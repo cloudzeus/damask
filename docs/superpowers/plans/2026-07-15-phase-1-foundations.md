@@ -143,7 +143,7 @@ Expected: δημιουργεί `components.json`, `src/lib/utils.ts`, ενημε
 - [ ] **Step 2: Προσθήκη components που θα χρειαστεί το shell/login**
 
 ```bash
-npx shadcn@latest add button input label card badge avatar dropdown-menu separator sonner skeleton
+npx shadcn@latest add button input label card badge avatar dropdown-menu separator sonner skeleton alert-dialog dialog progress tooltip table select
 ```
 
 - [ ] **Step 3: Build check**
@@ -509,6 +509,27 @@ model CommissionEntry {
   pct         Decimal          @db.Decimal(5, 2)
   amount      Decimal          @db.Decimal(14, 2)
   createdAt   DateTime         @default(now())
+}
+
+// ── Import/Export (οριζόντιο — spec §11α) ────────────
+model ImportMapping {
+  id        String   @id @default(cuid())
+  entity    String   // "product" | "customer" | "order" | ...
+  name      String
+  columnMap Json     // { "Στήλη Excel": "πεδίο μοντέλου", ... }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([entity, name])
+}
+
+model DocumentTemplate {
+  id        String   @id @default(cuid())
+  type      String   // "offer" | "report"
+  name      String
+  config    Json     // κείμενα, headers, branding επιλογές
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([type, name])
 }
 ```
 
