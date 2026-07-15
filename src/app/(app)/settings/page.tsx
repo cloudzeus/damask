@@ -3,6 +3,7 @@ import { SettingsTabs } from './settings-tabs'
 import { CompanyTab } from './company-tab'
 import { IntegrationsTab } from './integrations-tab'
 import { SeoTab } from './seo-tab'
+import { BackupsTab } from './backups-tab'
 
 export default async function SettingsPage() {
   await requirePermission('settings.manage')
@@ -16,7 +17,7 @@ export default async function SettingsPage() {
           </div>
           <h1 className="text-[22px]">Ρυθμίσεις</h1>
           <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Στοιχεία εταιρείας, διασυνδέσεις με εξωτερικές υπηρεσίες, προεπιλογές SEO.
+            Στοιχεία εταιρείας, διασυνδέσεις με εξωτερικές υπηρεσίες, προεπιλογές SEO, αντίγραφα ασφαλείας.
           </p>
         </div>
       </div>
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
         company={<CompanyTab />}
         integrations={<IntegrationsTab />}
         seo={<SeoTab />}
+        backups={<BackupsTab />}
       />
     </div>
   )

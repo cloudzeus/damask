@@ -12,6 +12,11 @@ RUN npx prisma generate && npm run build
 FROM node:22-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production
+# pg_dump/pg_restore για τα daily DB backups (src/lib/backup.ts) — ταιριάζει με τον
+# επαληθευμένο live server (PostgreSQL 16.14). Χωρίς αυτό, resolvePgBinary() πέφτει
+# στο bare "pg_dump"/"pg_restore" που δεν υπάρχει καθόλου στο image → κάθε backup
+# αποτυγχάνει με φιλικό ελληνικό ENOENT μήνυμα (βλ. runBackup) αλλά ποτέ δεν τρέχει.
+RUN apk add --no-cache postgresql16-client
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public

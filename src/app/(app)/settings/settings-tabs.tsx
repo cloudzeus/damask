@@ -2,28 +2,31 @@
 
 import { useState } from 'react'
 import { Building2, Plug, Search } from 'lucide-react'
+import { LuDatabaseBackup } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 
 const TABS = [
   { key: 'company', label: 'Εταιρεία', icon: Building2 },
   { key: 'integrations', label: 'Διασυνδέσεις', icon: Plug },
   { key: 'seo', label: 'SEO & Analytics', icon: Search },
+  { key: 'backups', label: 'Backups', icon: LuDatabaseBackup },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
 
 /**
  * Pill tabs, client-side (MASTER §4β «Pills παντού»/ίδιο idiom με τα tabs
- * gallery/upload του MediaPicker). Και τα 3 tab panels είναι server-rendered
+ * gallery/upload του MediaPicker). Και τα 4 tab panels είναι server-rendered
  * ΜΙΑ φορά στο page.tsx (παράλληλα) και περνάνε εδώ ως children — η εναλλαγή
  * tab είναι απλή εναλλαγή ορατότητας (`hidden`), όχι re-fetch.
  */
 export function SettingsTabs({
-  company, integrations, seo,
+  company, integrations, seo, backups,
 }: {
   company: React.ReactNode
   integrations: React.ReactNode
   seo: React.ReactNode
+  backups: React.ReactNode
 }) {
   const [active, setActive] = useState<TabKey>('company')
 
@@ -55,6 +58,9 @@ export function SettingsTabs({
       </div>
       <div id="settings-panel-seo" role="tabpanel" aria-labelledby="settings-tab-seo" hidden={active !== 'seo'}>
         {seo}
+      </div>
+      <div id="settings-panel-backups" role="tabpanel" aria-labelledby="settings-tab-backups" hidden={active !== 'backups'}>
+        {backups}
       </div>
     </div>
   )

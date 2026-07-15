@@ -510,6 +510,36 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+// ── DB Backups (BunnyCDN) ──────────────────────────────
+enum DbBackupStatus {
+  PENDING
+  READY
+  FAILED
+  RESTORING
+}
+
+/// Ημερήσια αντίγραφα ασφαλείας της DB σε BunnyCDN (καρτέλα «Backups» στο
+/// /settings). pg_dump -F c μέσω src/lib/backup.ts· trigger 'cron' (pg-boss
+/// queue 'backup', src/server/queue-start.ts, καθημερινά 03:30 Europe/Athens)
+/// ή 'manual' (κουμπί «Backup τώρα» ΚΑΙ το αυτόματο safety backup που τρέχει
+/// πριν από κάθε restore — αναγνωρίζεται από το πρόθεμα "pre-restore-" στο
+/// filename, όχι ξεχωριστό trigger). createdById ΧΩΡΙΣ @relation (soft
+/// reference, ίδιο idiom με PaymentOrder.createdById παραπάνω) — τα cron
+/// backups δεν έχουν χρήστη.
+model DbBackup {
+  id           String         @id @default(cuid())
+  filename     String
+  storageKey   String         @unique
+  sizeBytes    BigInt         @default(0)
+  status       DbBackupStatus @default(PENDING)
+  trigger      String         // "cron" | "manual"
+  errorMessage String?
+  createdById  String?
+  createdAt    DateTime       @default(now())
+
+  @@index([status, createdAt])
+}
+
 // ── CMS: Άρθρα / «Νέα» ─────────────────────────────────
 enum PostStatus {
   DRAFT

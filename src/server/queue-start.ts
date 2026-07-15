@@ -2,10 +2,15 @@ import type { Prisma } from '@prisma/client'
 import { startBoss } from '@/lib/queue'
 import { prisma } from '@/lib/prisma'
 import { runProductImport, type RawImportRow, type ImportTotals } from '@/lib/import/product-upsert'
+import { runBackup } from '@/lib/backup'
 
 export const QUEUE_HEALTH = 'health'
 /** Μεγάλες εισαγωγές Excel (>500 γραμμές — src/app/(app)/import/actions.ts executeImport). */
 export const QUEUE_IMPORT = 'import'
+/** Ημερήσιο DB backup → BunnyCDN (καρτέλα «Backups» στο /settings). Το χειροκίνητο
+ * κουμπί «Backup τώρα» ΔΕΝ περνάει από αυτή την ουρά — καλεί runBackup απευθείας
+ * από το server action (src/app/(app)/settings/backups-actions.ts). */
+export const QUEUE_BACKUP = 'backup'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
 
@@ -42,6 +47,20 @@ export async function startQueue(): Promise<void> {
       throw err // pg-boss κάνει retry με exponential backoff (spec §13) πριν το τελικό fail
     }
   })
+
+  await boss.createQueue(QUEUE_BACKUP)
+  await boss.work(QUEUE_BACKUP, async () => {
+    try {
+      await runBackup({ trigger: 'cron' })
+    } catch (err) {
+      console.error('[pg-boss] daily backup job απέτυχε', err)
+      throw err // pg-boss κάνει retry με exponential backoff (ίδιο idiom με QUEUE_IMPORT) —
+                // το runBackup έχει ήδη σημειώσει τη γραμμή DbBackup ως FAILED πριν φτάσει εδώ.
+    }
+  })
+  // Καθημερινά 03:30 Ελλάδα (Europe/Athens — pg-boss 12 ScheduleOptions.tz, χειρίζεται
+  // αυτόματα θερινή/χειμερινή ώρα). Χωρίς `data` payload — το runBackup(cron) δεν χρειάζεται.
+  await boss.schedule(QUEUE_BACKUP, '30 3 * * *', null, { tz: 'Europe/Athens' })
 
   console.log('[pg-boss] started')
 }
