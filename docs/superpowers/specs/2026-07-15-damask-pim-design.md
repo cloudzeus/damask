@@ -127,6 +127,8 @@ incremental μέσω `SqlData` / `getBrowserInfo`+`getBrowserData` με φίλτ
 
 Ο Import/Export Engine χτίζεται **μία φορά** (Φάση 2, με πρώτο καταναλωτή τα προϊόντα) και κάθε επόμενη οθόνη τον επαναχρησιμοποιεί δηλωτικά (ορισμός πεδίων/validators ανά οντότητα).
 
+**Πρότυπο DataTable (οριζόντιο):** κάθε λίστα δεδομένων χρησιμοποιεί κοινό `<DataTable>` (TanStack Table v8 + shadcn) με: sorting από τα labels των στηλών, column resize, επιλογή εμφανιζόμενων στηλών, page size selector + σελιδοποίηση, expand row με detail panel, dropdown menu ενεργειών (⋮) σε κάθε γραμμή (φιλτραρισμένο με permissions), inline edit με validation, row selection για μαζικές ενέργειες, και αποθήκευση προτιμήσεων πίνακα ανά χρήστη (πίνακας `TableView`). Χτίζεται στη Φάση 2 μαζί με τη λίστα προϊόντων. Πλήρης προδιαγραφή: `design-system/damask-pim/MASTER.md` §4α.
+
 ## 11β. Οριζόντια απαίτηση: UX για μη εξοικειωμένους χρήστες
 
 Το σύστημα θα χρησιμοποιείται από ανθρώπους **χωρίς μεγάλη εξοικείωση με υπολογιστές** — κάθε οθόνη σχεδιάζεται με αυτό ως πρώτο κριτήριο:
@@ -146,6 +148,7 @@ incremental μέσω `SqlData` / `getBrowserInfo`+`getBrowserData` με φίλτ
 - **Κατηγορίες/Ομάδες**, **Μονάδες μέτρησης**, **Πελάτες & Επαφές**, **Παραγγελίες & Εγκρίσεις**, **Containers**, **Αρχιτέκτονες & Προμήθειες**, **Χρήστες & Ρόλοι/Permissions**, **Ρυθμίσεις sync**
 - **B2B Portal** (ξεχωριστό layout): κατάλογος, καρτέλα προϊόντος (gallery/video/3D), καλάθι με ζωντανή τιμή container, «οι παραγγελίες μου»· ο ARCHITECT επιπλέον: επιλογή πελάτη, «οι προμήθειές μου»
 - Δίγλωσσο UI (next-intl, EL default), branding Damask από το λογότυπο, GSAP transitions
+- **Οπτική γλώσσα:** design system «Λινό & Μπρούντζος» (`design-system/damask-pim/MASTER.md`) — Inter παντού (όχι serif σε dashboard/ελληνικά — απόφαση χρήστη), συμπαγής κλίμακα (base 14px, table rows 40px), serif μόνο στο λογότυπο
 
 ## 13. Error handling & παρατηρησιμότητα
 

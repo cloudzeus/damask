@@ -45,26 +45,47 @@ Semantic tokens (shadcn/Tailwind 4 CSS variables). Ποτέ raw hex σε compone
 
 **Κανόνες:** Το χρώμα ΠΟΤΕ μόνο του δεν μεταφέρει νόημα (πάντα εικονίδιο+λέξη στα status). Red/green ποτέ ως μοναδικό ζεύγος διάκρισης.
 
-## 3. Τυπογραφία
+## 3. Τυπογραφία (αναθ. — sans παντού, συμπαγής κλίμακα)
+
+> Απόφαση χρήστη 2026-07-15: **όχι serif σε dashboard UI** (τα ελληνικά serif κουράζουν σε πυκνά δεδομένα)
+> και **συμπαγή μεγέθη** — εργαλείο δουλειάς, όχι brochure.
 
 | Ρόλος | Font | Λόγος |
 |---|---|---|
-| Display/Headings | **Literata** (500/600) | Editorial serif με ΠΛΗΡΗ ελληνικά· η «υφασμάτινη» κομψότητα |
-| UI/Body | **Inter** (400/500/600) | Κορυφαία αναγνωσιμότητα στα ελληνικά, tabular numerals |
-| Wordmark | Το logo της Damask (SVG στο `public/`) — μέχρι τότε Literata 600 letter-spacing 0.15em |
+| Όλα (headings + UI + body) | **Inter** (400/500/600) | Κορυφαία αναγνωσιμότητα ελληνικών σε οθόνη, tabular numerals |
+| Wordmark ΜΟΝΟ | Το logo της Damask (SVG στο `public/`) — το serif ζει μόνο στο λογότυπο |
 
-Κλίμακα: 13 (labels-uppercase) / **16 (base — ποτέ μικρότερο σε body)** / 18 / 22 / 28 / 36. Line-height 1.6 body, 1.2 headings.
+Κλίμακα (συμπαγής): **12** labels-uppercase / **13** table cells & δευτερεύον / **14 base UI** / **16** section titles (600) / **20** page titles (600, tracking -0.01em) / **26** μεγάλα νούμερα stats. Line-height 1.5 body, 1.25 headings.
 Αριθμοί σε πίνακες/τιμές: `font-variant-numeric: tabular-nums`, δεξιά στοίχιση.
 
-Υλοποίηση με `next/font`: `Inter({ subsets: ['latin','greek'] })`, `Literata({ subsets: ['latin','greek'] })` — μηδέν FOIT/CLS.
+Υλοποίηση με `next/font`: `Inter({ subsets: ['latin','greek'] })` — μηδέν FOIT/CLS.
 
-## 4. Χώρος, σχήμα, βάθος
+## 4. Χώρος, σχήμα, βάθος (αναθ. — συμπαγής πυκνότητα)
 
-- Spacing: κλίμακα 4px — sections 24/32/48. Γενναιόδωρα, όχι στριμωγμένα (αρχάριοι χρήστες = αραιό layout)
-- Radius: `--radius: 0.625rem` (10px) — μαλακό, «επιπλάδικο»· pills για badges
+- Spacing: κλίμακα 4px — sections 16/24/32. Συμπαγές αλλά καθαρό: η καθοδήγηση για αρχάριους έρχεται από σαφήνεια/ιεραρχία, όχι από αραίωμα
+- Radius: `--radius: 0.5rem` (8px)· pills για badges
 - Σκιές: 2 επίπεδα μόνο — `shadow-sm` κάρτες, `shadow-lg` modals. Ζεστές (`rgb(41 37 36 / 8%)`), ποτέ βαριές
-- Container: `max-w-7xl`. Πίνακες: γραμμές ύψους ≥52px, ΟΧΙ zebra — διαχωρισμός με ζεστό border
-- Κάθε interactive στοιχείο: **min 44×44px**, `cursor-pointer`, ορατό focus ring (μπρούντζος)
+- Container: πλήρες πλάτος για data οθόνες (`max-w-none` με padding 20px), `max-w-7xl` μόνο σε forms/dashboards
+- Πίνακες: γραμμές ύψους **40px** (compact), ΟΧΙ zebra — διαχωρισμός με ζεστό border, sticky header
+- Κουμπιά/inputs: ύψος **36px** (sm) / 40px (default)· hit area κάθε interactive στοιχείου ≥36px, `cursor-pointer`, ορατό focus ring (μπρούντζος)
+
+## 4α. Πρότυπο DataTable (ΔΕΣΜΕΥΤΙΚΟ — σε ΚΑΘΕ λίστα δεδομένων)
+
+Engine: **TanStack Table v8** + shadcn styling. Κοινό component `<DataTable>` που παρέχει δηλωτικά:
+
+| Feature | Συμπεριφορά |
+|---|---|
+| **Sorting** | Κλικ στο label της στήλης → asc/desc/none με βέλος· multi-sort με Shift |
+| **Column resize** | Drag handle στο όριο κάθε header (min-width ανά στήλη) |
+| **Επιλογή στηλών** | Κουμπί «Στήλες ▾» → checkbox list εμφάνισης/απόκρυψης |
+| **Αριθμός εγγραφών** | Selector «Εγγραφές: 25/50/100» + footer «1–50 από 12.480» με σελιδοποίηση |
+| **Expand row** | Chevron στην 1η στήλη → detail panel κάτω από τη γραμμή (προεπισκόπηση/σχετικά στοιχεία) |
+| **Row actions** | Κουμπί ⋮ στο τέλος ΚΑΘΕ γραμμής → dropdown (Προβολή, Επεξεργασία, Sync, Διαγραφή…) — τα διαθέσιμα actions φιλτράρονται με permissions |
+| **Inline edit** | Διπλό κλικ (ή μολύβι) σε επεξεργάσιμο κελί → input στη θέση του, Enter=αποθήκευση, Esc=άκυρο, validation on blur |
+| **Αποθήκευση κατάστασης** | Στήλες/πλάτη/ταξινόμηση/page size αποθηκεύονται ανά χρήστη+πίνακα (DB `TableView`) |
+| **Global** | Αναζήτηση, φίλτρα-chips, «Λήψη Excel» (με τρέχοντα φίλτρα), row selection με checkboxes για μαζικές ενέργειες |
+
+Χτίζεται ΜΙΑ φορά (Φάση 2, πρώτος καταναλωτής: Προϊόντα) — κάθε οθόνη μετά δίνει μόνο columns config.
 
 ## 5. Κίνηση (GSAP) — διακριτική, με νόημα
 

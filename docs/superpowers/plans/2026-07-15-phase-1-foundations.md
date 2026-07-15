@@ -1140,7 +1140,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-center font-serif text-3xl tracking-wide">DAMASK</CardTitle>
+          <CardTitle className="text-center text-2xl font-semibold tracking-[0.18em]">DAMASK</CardTitle>
           <p className="text-center text-sm text-muted-foreground">Product Information Management</p>
         </CardHeader>
         <CardContent>
@@ -1390,14 +1390,13 @@ git add -A && git commit -m "feat: pg-boss queue bootstrapped via instrumentatio
 }
 ```
 
-`src/app/layout.tsx` — metadata + fonts (Literata headings με ελληνικά, Inter UI):
+`src/app/layout.tsx` — metadata + font (Inter ΠΑΝΤΟΥ — όχι serif σε dashboard UI, απόφαση χρήστη· serif μόνο στο SVG λογότυπο). Βάση 14px: πρόσθεσε στο globals.css `html { font-size: 14px; }` — όλη η rem κλίμακα γίνεται συμπαγής:
 ```tsx
 import type { Metadata } from 'next'
-import { Inter, Literata } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin', 'greek'], variable: '--font-sans' })
-const literata = Literata({ weight: ['400', '500', '600'], subsets: ['latin', 'greek'], variable: '--font-serif' })
 
 export const metadata: Metadata = {
   title: 'DAMASK PIM',
@@ -1407,7 +1406,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="el" suppressHydrationWarning>
-      <body className={`${inter.variable} ${literata.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>
@@ -1415,7 +1414,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-Σημείωση branding: το wordmark αποδίδεται ως κείμενο "DAMASK" με τη serif (ταιριάζει με το λογότυπο). Όταν ο χρήστης δώσει το SVG/PNG λογότυπο, μπαίνει στο `public/logo.svg` και αντικαθιστά το κείμενο στο sidebar.
+Σημείωση branding: το wordmark αποδίδεται ως κείμενο "DAMASK" (Inter 600, tracking 0.18em) προσωρινά. Όταν ο χρήστης δώσει το SVG/PNG λογότυπο, μπαίνει στο `public/logo.svg` και αντικαθιστά το κείμενο στο sidebar.
 
 - [ ] **Step 2: Sidebar**
 
@@ -1447,7 +1446,7 @@ export function Sidebar({ permissions }: { permissions: string[] }) {
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-r bg-sidebar">
       <div className="flex h-16 items-center px-6">
-        <Link href="/" className="font-serif text-2xl font-semibold tracking-[0.15em]">
+        <Link href="/" className="text-xl font-semibold tracking-[0.18em]">
           DAMASK
         </Link>
       </div>
@@ -1581,7 +1580,7 @@ export default function DashboardPage() {
   ]
   return (
     <div>
-      <h1 className="mb-6 font-serif text-3xl">Dashboard</h1>
+      <h1 className="mb-5 text-xl font-semibold">Dashboard</h1>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map(c => (
           <Card key={c.title}>
