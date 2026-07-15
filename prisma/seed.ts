@@ -21,10 +21,12 @@ async function main() {
       create: { name, system: true },
     })
     const perms = await prisma.permission.findMany({ where: { key: { in: permKeys } } })
-    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } })
-    await prisma.rolePermission.createMany({
-      data: perms.map(p => ({ roleId: role.id, permissionId: p.id })),
-    })
+    await prisma.$transaction([
+      prisma.rolePermission.deleteMany({ where: { roleId: role.id } }),
+      prisma.rolePermission.createMany({
+        data: perms.map(p => ({ roleId: role.id, permissionId: p.id })),
+      }),
+    ])
   }
 
   // 3. Admin user
@@ -43,4 +45,6 @@ async function main() {
   console.log('Seed ολοκληρώθηκε. Admin: gkozyris@i4ria.com')
 }
 
-main().finally(() => prisma.$disconnect())
+main()
+  .catch(e => { console.error('Seed απέτυχε:', e); process.exitCode = 1 })
+  .finally(() => prisma.$disconnect())
