@@ -13,6 +13,11 @@ export type UserRow = {
   active: boolean
   roleId: string
   roleName: string
+  phone: string | null
+  mobile: string | null
+  address: string | null
+  city: string | null
+  country: string | null
   connectedLabel: string
   updatedLabel: string
 }
@@ -28,6 +33,16 @@ function initialsOf(name: string): string {
     .slice(0, 2)
     .join('')
     .toUpperCase()
+}
+
+/** Πλήρη στοιχεία επικοινωνίας για το tooltip στο όνομα — ό,τι δεν χωράει στις 2 ορατές στήλες. */
+function contactLines(user: UserRow): string[] {
+  const lines: string[] = []
+  if (user.mobile) lines.push(`Mobile: ${user.mobile}`)
+  if (user.address) lines.push(user.address)
+  const cityCountry = [user.city, user.country].filter(Boolean).join(', ')
+  if (cityCountry) lines.push(cityCountry)
+  return lines
 }
 
 export function UsersTable({
@@ -99,6 +114,8 @@ export function UsersTable({
               </th>
               <th>Χρήστης</th>
               <th>Ρόλος</th>
+              <th>Τηλέφωνο</th>
+              <th>Πόλη</th>
               <th>Συνδεδεμένος πελάτης</th>
               <th>Ενημερώθηκε</th>
               <th>Κατάσταση</th>
@@ -106,56 +123,80 @@ export function UsersTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.map(user => (
-              <tr key={user.id} className="dotted-row-bottom">
-                <td>
-                  <input type="checkbox" aria-label={`Επιλογή ${user.name}`} disabled />
-                </td>
-                <td>
-                  <div className="user-cell">
-                    <span className="avatar-ring size-8 text-[11px]">{initialsOf(user.name)}</span>
-                    <span>
-                      <b>{user.name}</b>
-                      <small>{user.email}</small>
+            {filtered.map(user => {
+              const lines = contactLines(user)
+              return (
+                <tr key={user.id} className="dotted-row-bottom">
+                  <td>
+                    <input type="checkbox" aria-label={`Επιλογή ${user.name}`} disabled />
+                  </td>
+                  <td>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <div className="user-cell cursor-default">
+                            <span className="avatar-ring size-8 text-[11px]">{initialsOf(user.name)}</span>
+                            <span>
+                              <b>{user.name}</b>
+                              <small>{user.email}</small>
+                            </span>
+                          </div>
+                        }
+                      />
+                      <TooltipContent>
+                        <div className="flex flex-col gap-0.5">
+                          {lines.length > 0
+                            ? lines.map((line, i) => <span key={i}>{line}</span>)
+                            : <span>Χωρίς επιπλέον στοιχεία επικοινωνίας</span>}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td>
+                    <span className="role-pill">
+                      <i style={{ background: roleColorVar(user.roleName) }} />
+                      {user.roleName}
                     </span>
-                  </div>
-                </td>
-                <td>
-                  <span className="role-pill">
-                    <i style={{ background: roleColorVar(user.roleName) }} />
-                    {user.roleName}
-                  </span>
-                </td>
-                <td>{user.connectedLabel}</td>
-                <td>{user.updatedLabel}</td>
-                <td>
-                  {user.active ? (
-                    <span className="badge-pill ok">
-                      <span className="status-dot pulse" style={{ background: 'var(--success)', color: 'var(--success)' }} aria-hidden />
-                      Ενεργός
-                    </span>
-                  ) : (
-                    <span className="badge-pill" style={{ color: 'var(--muted-foreground)', background: 'var(--muted)' }}>
-                      <span className="status-dot" style={{ background: 'var(--muted-foreground)' }} aria-hidden />
-                      Ανενεργός
-                    </span>
-                  )}
-                </td>
-                <td className="ctr">
-                  <UserRowActions
-                    userId={user.id}
-                    userName={user.name}
-                    active={user.active}
-                    roleId={user.roleId}
-                    roles={roles}
-                    isSelf={user.id === currentUserId}
-                  />
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td>{user.phone ?? '—'}</td>
+                  <td>{user.city ?? '—'}</td>
+                  <td>{user.connectedLabel}</td>
+                  <td>{user.updatedLabel}</td>
+                  <td>
+                    {user.active ? (
+                      <span className="badge-pill ok">
+                        <span className="status-dot pulse" style={{ background: 'var(--success)', color: 'var(--success)' }} aria-hidden />
+                        Ενεργός
+                      </span>
+                    ) : (
+                      <span className="badge-pill" style={{ color: 'var(--muted-foreground)', background: 'var(--muted)' }}>
+                        <span className="status-dot" style={{ background: 'var(--muted-foreground)' }} aria-hidden />
+                        Ανενεργός
+                      </span>
+                    )}
+                  </td>
+                  <td className="ctr">
+                    <UserRowActions
+                      userId={user.id}
+                      userName={user.name}
+                      userEmail={user.email}
+                      active={user.active}
+                      roleId={user.roleId}
+                      roles={roles}
+                      isSelf={user.id === currentUserId}
+                      phone={user.phone}
+                      mobile={user.mobile}
+                      address={user.address}
+                      city={user.city}
+                      country={user.country}
+                    />
+                  </td>
+                </tr>
+              )
+            })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                <td colSpan={9} className="py-8 text-center text-muted-foreground">
                   Δεν βρέθηκαν χρήστες.
                 </td>
               </tr>

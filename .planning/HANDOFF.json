@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T15:03:53.229Z",
+  "timestamp": "2026-07-15T15:44:04.116Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,11 +22,31 @@
     },
     {
       "status": "M",
-      "path": "src/app/globals.css"
+      "path": "e2e/users.spec.ts"
     },
     {
       "status": "M",
-      "path": "src/components/media/product-image-collection.tsx"
+      "path": "prisma/schema.prisma"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/users/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/users/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/users/row-actions.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/users/users-table.tsx"
+    },
+    {
+      "status": "M",
+      "path": "tests/users-actions.test.ts"
     },
     {
       "status": "??",
@@ -34,9 +54,21 @@
     },
     {
       "status": "??",
-      "path": "e2e/media-collection.spec.ts"
+      "path": "prisma/migrations/20260715152259_user_contact_fields/"
+    },
+    {
+      "status": "??",
+      "path": "src/app/(app)/users/new-user-button.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/app/(app)/users/user-form-dialog.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/components/ui/switch.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n77781cb feat: RBAC v2 — 8-role model (super admin→salesman), matrix edit affordance, subtitle legibility\n7a64a7f feat: users management and interactive roles/permissions matrix (Steel & Frost)\nbd17412 feat: Steel & Frost auth — login redesign, forgot/reset password flow, B2B access requests\nabd38a0 fix: deeper gradient band for public hero legibility\nd8fb11b feat: public homepage, role-based login redirects, B2B portal placeholder"
+  "context_notes": "Recent commits:\nc4334df feat: circular cover avatars with stacked overlap and top-anchored preview tooltip in image collection\n77781cb feat: RBAC v2 — 8-role model (super admin→salesman), matrix edit affordance, subtitle legibility\n7a64a7f feat: users management and interactive roles/permissions matrix (Steel & Frost)\nbd17412 feat: Steel & Frost auth — login redesign, forgot/reset password flow, B2B access requests\nabd38a0 fix: deeper gradient band for public hero legibility"
 }

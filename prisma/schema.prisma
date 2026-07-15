@@ -18,6 +18,11 @@ model User {
   customerId   String?
   customer     Customer? @relation(fields: [customerId], references: [id])
   architect    ArchitectProfile?
+  phone        String?
+  mobile       String?
+  address      String?
+  city         String?
+  country      String?
   createdOrders  Order[] @relation("OrderCreatedBy")
   approvedOrders Order[] @relation("OrderApprovedBy")
   createdAt    DateTime @default(now())

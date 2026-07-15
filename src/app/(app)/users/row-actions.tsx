@@ -14,26 +14,40 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { toggleUserActive, changeUserRole } from './actions'
+import { UserFormDialog } from './user-form-dialog'
 
 type RoleOption = { id: string; name: string }
 
 export function UserRowActions({
   userId,
   userName,
+  userEmail,
   active,
   roleId,
   roles,
   isSelf,
+  phone,
+  mobile,
+  address,
+  city,
+  country,
 }: {
   userId: string
   userName: string
+  userEmail: string
   active: boolean
   roleId: string
   roles: RoleOption[]
   isSelf: boolean
+  phone: string | null
+  mobile: string | null
+  address: string | null
+  city: string | null
+  country: string | null
 }) {
   const [pending, startTransition] = useTransition()
   const [roleDialogOpen, setRoleDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState(roleId)
 
   function handleToggleActive() {
@@ -67,6 +81,10 @@ export function UserRowActions({
           }
         />
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+            Επεξεργασία
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={isSelf || pending}
             onClick={handleToggleActive}
@@ -84,6 +102,26 @@ export function UserRowActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <UserFormDialog
+        mode="edit"
+        roles={roles}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        isSelf={isSelf}
+        user={{
+          id: userId,
+          name: userName,
+          email: userEmail,
+          roleId,
+          active,
+          phone,
+          mobile,
+          address,
+          city,
+          country,
+        }}
+      />
 
       <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent>

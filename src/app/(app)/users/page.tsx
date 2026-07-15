@@ -5,6 +5,7 @@ import { relativeTime } from '@/lib/relative-time'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UsersTable, type UserRow } from './users-table'
 import { AccessRequestsPanel, type AccessRequestRow } from './access-requests'
+import { NewUserButton } from './new-user-button'
 
 export default async function UsersPage() {
   const session = await requirePermission('user.manage')
@@ -46,6 +47,11 @@ export default async function UsersPage() {
     active: u.active,
     roleId: u.roleId,
     roleName: u.role.name,
+    phone: u.phone,
+    mobile: u.mobile,
+    address: u.address,
+    city: u.city,
+    country: u.country,
     connectedLabel: u.customer?.name ?? (u.architect ? `${u.architect._count.customers} πελάτες` : '—'),
     updatedLabel: relativeTime(u.updatedAt, now),
   }))
@@ -137,6 +143,7 @@ export default async function UsersPage() {
           />
           <TooltipContent>Έρχεται με το Import/Export Engine (Φάση 2)</TooltipContent>
         </Tooltip>
+        <NewUserButton roles={roles} />
       </div>
 
       <div className="stagger mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
