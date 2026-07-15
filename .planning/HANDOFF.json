@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T05:33:02.116Z",
+  "timestamp": "2026-07-15T06:18:03.846Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -21,14 +21,14 @@
       "path": ".planning/HANDOFF.json"
     },
     {
-      "status": "M",
-      "path": "docs/superpowers/plans/2026-07-15-phase-1-foundations.md"
+      "status": "??",
+      "path": "prisma.config.ts"
     },
     {
-      "status": "M",
-      "path": "docs/superpowers/specs/2026-07-15-damask-pim-design.md"
+      "status": "??",
+      "path": "prisma/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n5528e7e docs: Phase 1 foundations implementation plan\n2a7d112 Add .gitignore and .env.example (secrets stay local)\n07b8f61 first commit\n1d24ed0 Add DAMASK PIM design spec (v2 — approved after brainstorming)"
+  "context_notes": "Recent commits:\n2682dae chore: add shadcn/ui with base components\n7565479 chore: scaffold Next.js 16 app with tooling (vitest, prisma client, deps)\n0b156b4 design: v2 feedback — Inter everywhere (no serif in Greek dashboards), compact scale, binding smart DataTable standard\n34d5a92 design: curated 'Linen & Brass' design system (MASTER.md) and align Phase 1 plan tokens/fonts\ne6f8d64 docs: add cross-cutting UX and Excel/Word import-export requirements to spec and Phase 1 plan"
 }
