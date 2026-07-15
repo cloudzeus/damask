@@ -111,6 +111,8 @@ Engine: **TanStack Table v8** + shadcn styling. Κοινό component `<DataTable
 3. Τρία επίπεδα βάθους: καμβάς → glass → floating (σκιά `0 24px 60px`). Floating glass callout-chips πάνω από hero/γραφήματα.
 4. **Animations (υποχρεωτικά, διακριτικά):** entrance stagger 60ms/στοιχείο (fade + 16px rise, cubic-bezier(.2,.7,.3,1)), αιώρηση ±6px 7-9s στα floating chips, hover lift -3px με βάθεμα σκιάς, «αναπνοή» φωτός στον καμβά. Όλα σέβονται prefers-reduced-motion.
 5. Data-πυκνές οθόνες: πρότυπο §4α για features/layout, με skin Steel & Frost (glass wrapper, pills, navy active states) — ποτέ blur πίσω από κείμενο δεδομένων.
+5α. **Διαχωριστικά γραμμών πίνακα (εγκεκριμένο ρητά):** τελείες **1px** με **βήμα 7px** — όχι CSS `dotted` (πυκνό)· υλοποίηση: `background-image: repeating-linear-gradient(90deg, var(--dotted) 0 1px, transparent 1px 7px); background-position: 0 100%; background-size: 100% 1px; background-repeat: no-repeat;` στο td (χωρίς border-bottom, τελευταία γραμμή χωρίς). Ίδια τεχνική στο top του table footer. Λοιπά dotted leaders (section labels, dividers): `1px dotted`.
+5β. **Micro-details (δεσμευτικά, βλ. mockup-v4):** pulsing status dots (2.4s) σε live καταστάσεις, διάστικτα sparklines με κοραλί endpoint στα KPIs, icon-chip πάνω δεξιά στα KPIs, delta pills, avatar με λευκό ring, inner top-highlight στα κουμπιά + βέλος που γλιστράει στο hover, count badges στο nav, user card κάτω στο sidebar, breadcrumb πάνω από τίτλους, ⌘K search pill, εικονίδια μέσα στα inputs, dot-grid/hatch υφές σε decor.
 6. Κείμενο ≥4.5:1 πάνω στο glass· fallback συμπαγές `--card` όπου δεν υπάρχει backdrop-filter.
 
 ## 4γ. Αρχιτεκτονική πλοήγησης (απόφαση χρήστη 2026-07-15)
