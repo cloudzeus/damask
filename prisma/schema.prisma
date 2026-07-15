@@ -447,3 +447,70 @@ model Setting {
   value     Json
   updatedAt DateTime @updatedAt
 }
+
+// ── CMS: Άρθρα / «Νέα» ─────────────────────────────────
+enum PostStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+model Author {
+  id        String   @id @default(cuid())
+  name      String
+  bio       String?
+  avatarUrl String?
+  userId    String?  @unique // προαιρετική σύνδεση με User
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PostCategory {
+  id           String                     @id @default(cuid())
+  slug         String                     @unique
+  translations PostCategoryTranslation[]
+  posts        Post[]
+  createdAt    DateTime                   @default(now())
+}
+
+model PostCategoryTranslation {
+  id         String       @id @default(cuid())
+  categoryId String
+  category   PostCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale     String // "el" | "en"
+  name       String
+  @@unique([categoryId, locale])
+}
+
+model Post {
+  id            String            @id @default(cuid())
+  slug          String            @unique
+  status        PostStatus        @default(DRAFT)
+  authorId      String?
+  author        Author?           @relation(fields: [authorId], references: [id])
+  categoryId    String?
+  category      PostCategory?     @relation(fields: [categoryId], references: [id])
+  featuredImage String? // cdn url
+  publishedAt   DateTime?
+  aiGenerated   Boolean           @default(false)
+  translations  PostTranslation[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  @@index([status, publishedAt])
+}
+
+model PostTranslation {
+  id                String  @id @default(cuid())
+  postId            String
+  post              Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  locale            String // "el" | "en"
+  title             String
+  excerpt           String?
+  body              String // markdown
+  seoTitle          String?
+  seoDescription    String?
+  machineTranslated Boolean @default(false)
+  @@unique([postId, locale])
+}

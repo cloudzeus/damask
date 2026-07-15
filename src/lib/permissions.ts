@@ -22,6 +22,8 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'sync.run', description: 'Εκτέλεση sync με SoftOne' },
   { key: 'user.manage', description: 'Διαχείριση χρηστών/ρόλων' },
   { key: 'settings.manage', description: 'Ρυθμίσεις συστήματος' },
+  { key: 'cms.view', description: 'Προβολή CMS' },
+  { key: 'cms.edit', description: 'Διαχείριση άρθρων/CMS' },
 ]
 
 const ALL = PERMISSIONS.map(p => p.key)
@@ -42,8 +44,9 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
     'customer.view', 'customer.edit',
     'order.view', 'order.approve', 'order.autoapprove',
     'commission.manage', 'sync.run',
+    'cms.view', 'cms.edit',
   ],
-  EMPLOYEE: ['product.view', 'customer.view', 'order.view', 'order.create'],
+  EMPLOYEE: ['product.view', 'customer.view', 'order.view', 'order.create', 'cms.view'],
   CUSTOMER: ['portal.access', 'order.create', 'order.view'],
   SUPPLIER: ['portal.access', 'order.view'],
   ARCHITECT: ['portal.access', 'order.create', 'order.view', 'commission.view'],
@@ -72,6 +75,7 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   sync: 'Διαχείριση',
   user: 'Διαχείριση',
   settings: 'Διαχείριση',
+  cms: 'Διαχείριση',
 }
 
 export type PermissionGroup = { label: string; items: PermissionDef[] }

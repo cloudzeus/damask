@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T16:42:51.540Z",
+  "timestamp": "2026-07-15T18:32:35.845Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,15 +26,15 @@
     },
     {
       "status": "M",
-      "path": "src/app/api/media/upload/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/components/media/mass-uploader.tsx"
+      "path": "src/app/globals.css"
     },
     {
       "status": "M",
       "path": "src/components/shell/sidebar.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/permissions.ts"
     },
     {
       "status": "??",
@@ -42,37 +42,37 @@
     },
     {
       "status": "??",
-      "path": "e2e/media-gallery.spec.ts"
+      "path": "e2e/cms.spec.ts"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20260715155959_media_gallery_folders/"
+      "path": "prisma/migrations/20260715175841_cms_posts/"
     },
     {
       "status": "??",
-      "path": "src/app/(app)/media/"
+      "path": "src/app/(app)/cms/"
     },
     {
       "status": "??",
-      "path": "src/app/api/media/list/"
+      "path": "src/lib/cms-autogen.ts"
     },
     {
       "status": "??",
-      "path": "src/components/media/media-picker.tsx"
+      "path": "src/lib/slug.ts"
     },
     {
       "status": "??",
-      "path": "src/components/media/media-types.ts"
+      "path": "tests/cms-autogen.test.ts"
     },
     {
       "status": "??",
-      "path": "src/lib/media.ts"
+      "path": "tests/cms-posts-actions.test.ts"
     },
     {
       "status": "??",
-      "path": "tests/media-actions.test.ts"
+      "path": "tests/slug.test.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n23a12ed feat: full users CRUD with contact fields (phone/mobile/address/city/country)\nc4334df feat: circular cover avatars with stacked overlap and top-anchored preview tooltip in image collection\n77781cb feat: RBAC v2 — 8-role model (super admin→salesman), matrix edit affordance, subtitle legibility\n7a64a7f feat: users management and interactive roles/permissions matrix (Steel & Frost)\nbd17412 feat: Steel & Frost auth — login redesign, forgot/reset password flow, B2B access requests"
+  "context_notes": "Recent commits:\n3864219 feat: settings — integrations with connection tests, company profile with AADE lookup and logo picker, SEO defaults\nedafbe5 feat: Media Gallery with folders and reusable MediaPicker (Gallery-or-Upload pattern)\n23a12ed feat: full users CRUD with contact fields (phone/mobile/address/city/country)\nc4334df feat: circular cover avatars with stacked overlap and top-anchored preview tooltip in image collection\n77781cb feat: RBAC v2 — 8-role model (super admin→salesman), matrix edit affordance, subtitle legibility"
 }

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images,
+  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper,
 } from 'lucide-react'
 
 const NAV = [
@@ -18,6 +18,9 @@ const NAV = [
     { href: '/containers', label: 'Containers', icon: Container, permission: 'container.manage' },
     { href: '/import', label: 'Εισαγωγή Excel', icon: Upload, permission: 'product.edit' },
     { href: '/media', label: 'Media Gallery', icon: Images, permission: 'media.manage' },
+  ] },
+  { group: 'CMS', items: [
+    { href: '/cms/posts', label: 'Νέα', icon: Newspaper, permission: 'cms.view' },
   ] },
   { group: 'Διαχείριση', items: [
     { href: '/users', label: 'Χρήστες', icon: UserCog, permission: 'user.manage' },
@@ -55,21 +58,26 @@ export function Sidebar({
               <div className="dotted-leader px-3 pt-3 pb-1.5 text-[10px] font-extrabold tracking-[0.11em] text-muted-foreground uppercase">
                 {section.group}
               </div>
-              {items.map(item => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-2.5 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors',
-                    pathname === item.href
-                      ? 'bg-primary text-primary-foreground shadow-[0_6px_18px_rgb(22_50_63_/_25%)]'
-                      : 'text-muted-foreground hover:bg-[var(--glass-strong)] hover:text-foreground',
-                  )}
-                >
-                  <item.icon className="size-4 shrink-0" strokeWidth={1.75} />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              ))}
+              {items.map(item => {
+                // Ακριβές match ή υπο-διαδρομή (π.χ. /cms/posts/new, /cms/posts/[id]/edit) —
+                // τα περισσότερα nav items είναι μονο-επίπεδα όπου αυτό ισοδυναμεί με === .
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors',
+                      active
+                        ? 'bg-primary text-primary-foreground shadow-[0_6px_18px_rgb(22_50_63_/_25%)]'
+                        : 'text-muted-foreground hover:bg-[var(--glass-strong)] hover:text-foreground',
+                    )}
+                  >
+                    <item.icon className="size-4 shrink-0" strokeWidth={1.75} />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                )
+              })}
             </div>
           )
         })}
