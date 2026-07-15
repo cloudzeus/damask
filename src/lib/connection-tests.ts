@@ -191,6 +191,42 @@ export async function testClaude(config: ClaudeTestConfig): Promise<TestResult> 
   }
 }
 
+// ── Viva Payments ────────────────────────────────────────
+
+export type VivaTestConfig = { clientId?: string; clientSecret?: string }
+
+const VIVA_ACCOUNTS_URL: Record<'demo' | 'production', string> = {
+  demo: 'https://demo-accounts.vivapayments.com',
+  production: 'https://accounts.vivapayments.com',
+}
+
+/**
+ * Standalone OAuth2 client-credentials request ΜΕ ΤΑ ΔΟΘΕΝΤΑ creds — δεν αγγίζει
+ * το in-memory token cache του src/lib/viva.ts (εκείνο είναι για πραγματικές
+ * κλήσεις προς checkout/v2, όχι για το κουμπί «Δοκιμή σύνδεσης»).
+ */
+export async function testViva(environment: 'demo' | 'production', config: VivaTestConfig): Promise<TestResult> {
+  const missing = (['clientId', 'clientSecret'] as const).filter(f => !config[f]?.trim())
+  if (missing.length > 0) return { ok: false, message: missingFieldsMessage(missing) }
+
+  const envLabel = environment === 'production' ? 'Παραγωγή' : 'Demo'
+  try {
+    const basic = Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')
+    const res = await fetch(`${VIVA_ACCOUNTS_URL[environment]}/connect/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Basic ${basic}` },
+      body: 'grant_type=client_credentials',
+      signal: AbortSignal.timeout(TEST_TIMEOUT_MS),
+    })
+    if (res.status === 200) return { ok: true, message: `Επιτυχής σύνδεση με το Viva (${envLabel}).` }
+    if (res.status === 400 || res.status === 401) return { ok: false, message: 'Μη έγκυρα Client ID / Client Secret.' }
+    const detail = await safeErrorDetail(res)
+    return { ok: false, message: `Το Viva επέστρεψε HTTP ${res.status}${detail ? ` — ${detail}` : ''}.` }
+  } catch (err) {
+    return { ok: false, message: `Αποτυχία σύνδεσης με το Viva (${errMsg(err)}).` }
+  }
+}
+
 // ── helpers ──────────────────────────────────────────────
 
 async function safeErrorDetail(res: Response): Promise<string | null> {

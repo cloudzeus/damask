@@ -17,6 +17,8 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'order.approve', description: 'Έγκριση παραγγελιών' },
   { key: 'order.autoapprove', description: 'Παράκαμψη έγκρισης' },
   { key: 'container.manage', description: 'Διαχείριση containers & τιμολόγησης' },
+  { key: 'payment.view', description: 'Προβολή πληρωμών (Viva)' },
+  { key: 'payment.manage', description: 'Διαχείριση πληρωμών — δημιουργία, ακύρωση, ρυθμίσεις Viva' },
   { key: 'commission.view', description: 'Προβολή προμηθειών (δικών του)' },
   { key: 'commission.manage', description: 'Διαχείριση προμηθειών' },
   { key: 'portal.access', description: 'Πρόσβαση B2B portal' },
@@ -46,15 +48,23 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
     'order.view', 'order.approve', 'order.autoapprove',
     'commission.manage', 'sync.run',
     'cms.view', 'cms.edit',
+    'payment.view', 'payment.manage',
   ],
   EMPLOYEE: ['product.view', 'customer.view', 'order.view', 'order.create', 'cms.view'],
   CUSTOMER: ['portal.access', 'order.create', 'order.view'],
   SUPPLIER: ['portal.access', 'order.view'],
   ARCHITECT: ['portal.access', 'order.create', 'order.view', 'commission.view'],
+  // ΣΗΜΕΙΩΣΗ (πηγή Viva-payments brief): ο SALESMAN παίρνει μόνο payment.view —
+  // η δημιουργία/ακύρωση πληρωμών (payment.manage) μένει σε ADMIN/MANAGER/
+  // SUPER_ADMIN. Το πρωτότυπο αίτημα ήταν διφορούμενο («view+manage; view
+  // μόνο, manage στα admin/manager») — αν ο SALESMAN πρέπει τελικά να μπορεί
+  // να κόβει ο ίδιος κωδικούς πληρωμής σε πελάτες, πρόσθεσε 'payment.manage'
+  // εδώ (ή δώσε το μέσα από το /roles UI, ήδη editable).
   SALESMAN: [
     'product.view', 'customer.view', 'customer.edit',
     'order.view', 'order.create', 'order.approve', 'order.autoapprove',
     'commission.view',
+    'payment.view',
   ],
 }
 
@@ -73,6 +83,7 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   order: 'Πελάτες & Παραγγελίες',
   commission: 'Πελάτες & Παραγγελίες',
   portal: 'Πελάτες & Παραγγελίες',
+  payment: 'Πελάτες & Παραγγελίες',
   container: 'Διαχείριση',
   sync: 'Διαχείριση',
   user: 'Διαχείριση',

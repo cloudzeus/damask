@@ -8,10 +8,14 @@ import {
   type CheckResult, PUBLIC_TRACKING_CACHE_TAG,
 } from '@/lib/settings'
 import {
-  testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude,
+  testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude, testViva,
   type SoftOneTestConfig, type MailgunTestConfig, type BunnyTestConfig, type DeepSeekTestConfig, type ClaudeTestConfig,
 } from '@/lib/connection-tests'
 import { lookupAfm } from '@/lib/aade'
+import {
+  getVivaSettings, saveVivaSettings as persistVivaSettings, saveVivaLastCheck,
+  type VivaEnvironment, type VivaEnvInput,
+} from '@/lib/viva'
 
 export type ActionResult =
   | { ok: true; message: string }
@@ -251,6 +255,67 @@ export async function saveFacebookSettings(values: FacebookValues): Promise<Acti
   revalidateSettings()
   revalidateTag(PUBLIC_TRACKING_CACHE_TAG, 'max')
   return { ok: true, message: 'Οι ρυθμίσεις Facebook αποθηκεύτηκαν.' }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 8. Viva Payments (integration.viva) — σχήμα εμφωλευμένο (demo/production),
+//    ΔΕΝ περνάει από saveIntegration/getIntegration (βλ. src/lib/viva.ts).
+// ══════════════════════════════════════════════════════════════════════════
+
+export type VivaEnvValues = VivaEnvInput
+
+export type VivaSettingsValues = {
+  environment: VivaEnvironment
+  bankInstructions: string
+  demo: VivaEnvValues
+  production: VivaEnvValues
+}
+
+const vivaEnvSchema = z.object({
+  clientId: z.string().trim().max(120),
+  clientSecret: z.string().max(200),
+  sourceCode: z.string().trim().max(60),
+  webhookVerificationKey: z.string().trim().max(200),
+  merchantId: z.string().trim().max(120),
+  apiKey: z.string().max(200),
+})
+
+const vivaSettingsSchema = z.object({
+  environment: z.enum(['demo', 'production']),
+  bankInstructions: z.string().trim().max(1000),
+  demo: vivaEnvSchema,
+  production: vivaEnvSchema,
+})
+
+/** Ίδιο με fieldErrorsFromZod αλλά με «σπασμένο» (dotted) key — π.χ. "demo.clientId" — γιατί το σχήμα εδώ είναι εμφωλευμένο (demo/production), το path[0] μόνο θα έχανε ΠΟΙΟ πεδίο μέσα στο section απέτυχε. */
+function dottedFieldErrors(error: z.ZodError): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const issue of error.issues) {
+    const key = issue.path.join('.')
+    if (key && !out[key]) out[key] = issue.message
+  }
+  return out
+}
+
+export async function saveVivaSettings(values: VivaSettingsValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = vivaSettingsSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: dottedFieldErrors(parsed.error) }
+  await persistVivaSettings(parsed.data)
+  revalidateSettings()
+  revalidatePath('/payments')
+  return { ok: true, message: 'Οι ρυθμίσεις Viva Payments αποθηκεύτηκαν.' }
+}
+
+/** «Δοκιμή σύνδεσης» — OAuth token request στο ΔΟΘΕΝ (πιθανώς μη αποθηκευμένο ακόμα) environment/creds, όχι απαραίτητα το ενεργό. */
+export async function testVivaSettings(environment: VivaEnvironment, values: VivaEnvValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const stored = await getVivaSettings()
+  const merged = mergeNonEmpty(stored[environment], values)
+  const result = await testViva(environment, merged)
+  const check = await saveVivaLastCheck(environment, result)
+  revalidateSettings()
+  return check
 }
 
 // ══════════════════════════════════════════════════════════════════════════

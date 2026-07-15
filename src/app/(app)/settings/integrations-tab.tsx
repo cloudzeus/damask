@@ -1,4 +1,5 @@
 import { getIntegration, isIntegrationConfigured, maskSecret, type CheckResult } from '@/lib/settings'
+import { getVivaSettings, isVivaEnvConfigured, type VivaEnvConfig } from '@/lib/viva'
 import { SoftoneCard } from './cards/softone-card'
 import { MailgunCard } from './cards/mailgun-card'
 import { BunnyCard } from './cards/bunny-card'
@@ -6,6 +7,7 @@ import { DeepseekCard } from './cards/deepseek-card'
 import { ClaudeCard } from './cards/claude-card'
 import { GoogleTagsCard } from './cards/google-tags-card'
 import { FacebookCard } from './cards/facebook-card'
+import { VivaCard, type VivaEnvCardData } from './cards/viva-card'
 
 function str(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
@@ -19,8 +21,21 @@ function checkOf(merged: Record<string, unknown>): CheckResult | null {
   return null
 }
 
+function vivaEnvCardData(config: VivaEnvConfig): VivaEnvCardData {
+  return {
+    values: {
+      clientId: str(config.clientId), sourceCode: str(config.sourceCode),
+      webhookVerificationKey: str(config.webhookVerificationKey), merchantId: str(config.merchantId),
+    },
+    maskedClientSecret: maskSecret(config.clientSecret),
+    maskedApiKey: maskSecret(config.apiKey),
+    configured: isVivaEnvConfigured(config),
+    lastCheck: config._lastCheck ?? null,
+  }
+}
+
 export async function IntegrationsTab() {
-  const [softone, mailgun, bunny, deepseek, claude, gtags, facebook] = await Promise.all([
+  const [softone, mailgun, bunny, deepseek, claude, gtags, facebook, viva] = await Promise.all([
     getIntegration('softone'),
     getIntegration('mailgun'),
     getIntegration('bunny'),
@@ -28,6 +43,7 @@ export async function IntegrationsTab() {
     getIntegration('claude'),
     getIntegration('gtags'),
     getIntegration('facebook'),
+    getVivaSettings(),
   ])
 
   return (
@@ -82,6 +98,12 @@ export async function IntegrationsTab() {
       <FacebookCard
         initial={{ pixelId: str(facebook.pixelId), appId: str(facebook.appId) }}
         configured={isIntegrationConfigured('facebook', facebook)}
+      />
+      <VivaCard
+        initialEnvironment={viva.environment}
+        bankInstructionsInitial={viva.bankInstructions}
+        demo={vivaEnvCardData(viva.demo)}
+        production={vivaEnvCardData(viva.production)}
       />
     </div>
   )

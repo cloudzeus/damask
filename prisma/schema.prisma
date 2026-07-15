@@ -383,6 +383,42 @@ model CommissionEntry {
   @@index([architectId])
 }
 
+// ── Πληρωμές (Viva Payments — viva.com) ───────────────
+/// Κατάσταση μοναδικού κωδικού πληρωμής Viva (orderCode): PENDING μέχρι να έρθει
+/// webhook event, PAID/FAILED από το webhook (1796/1797), EXPIRED από «Έλεγχος
+/// κατάστασης» όταν η Viva επιστρέφει ληγμένη παραγγελία, CANCELED = τοπική
+/// ακύρωση χρήστη (δεν ακυρώνει τίποτα στο Viva, μόνο κρύβει από τα «ενεργά»).
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELED
+}
+
+/// customerId/createdById είναι σκόπιμα ΧΩΡΙΣ @relation (soft reference, όπως
+/// AccessRequest παραπάνω) — το PaymentOrder μένει αυτόνομο από Customer/User
+/// modeling churn· βλ. src/lib/viva.ts για τη λογική δημιουργίας/webhook update.
+model PaymentOrder {
+  id            String        @id @default(cuid())
+  orderCode     String        @unique // Viva 16-digit — ο «μοναδικός κωδικός πληρωμής»
+  amountCents   Int
+  description   String
+  customerName  String?
+  customerEmail String?
+  customerId    String? // soft link σε Customer αν επιλέχθηκε από τη λίστα
+  environment   String // "demo" | "production" — με ΠΟΙΟ env δημιουργήθηκε
+  status        PaymentStatus @default(PENDING)
+  transactionId String?
+  paidAt        DateTime?
+  raw           Json? // τελευταίο ωφέλιμο φορτίο Viva (order create ή webhook event)
+  createdById   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  @@index([status, createdAt])
+  @@index([customerId])
+}
+
 // ── Import/Export (οριζόντιο — spec §11α) ────────────
 model ImportMapping {
   id        String   @id @default(cuid())

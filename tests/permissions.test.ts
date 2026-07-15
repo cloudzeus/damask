@@ -61,6 +61,8 @@ describe('groupedPermissions()', () => {
     expect(labelOf('order.approve')).toBe('Πελάτες & Παραγγελίες')
     expect(labelOf('commission.manage')).toBe('Πελάτες & Παραγγελίες')
     expect(labelOf('portal.access')).toBe('Πελάτες & Παραγγελίες')
+    expect(labelOf('payment.view')).toBe('Πελάτες & Παραγγελίες')
+    expect(labelOf('payment.manage')).toBe('Πελάτες & Παραγγελίες')
 
     expect(labelOf('container.manage')).toBe('Διαχείριση')
     expect(labelOf('sync.run')).toBe('Διαχείριση')
@@ -74,6 +76,7 @@ describe('groupedPermissions()', () => {
     expect(catalog.items.map(i => i.key)).toEqual([
       'customer.view', 'customer.edit',
       'order.view', 'order.create', 'order.approve', 'order.autoapprove',
+      'payment.view', 'payment.manage',
       'commission.view', 'commission.manage',
       'portal.access',
     ])

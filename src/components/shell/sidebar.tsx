@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale, Cookie,
+  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale, Cookie, CreditCard,
 } from 'lucide-react'
 
 const NAV = [
@@ -15,6 +15,7 @@ const NAV = [
     { href: '/units', label: 'Μονάδες μέτρησης', icon: Ruler, permission: 'unit.manage' },
     { href: '/customers', label: 'Πελάτες', icon: Users, permission: 'customer.view' },
     { href: '/orders', label: 'Παραγγελίες', icon: ClipboardList, permission: 'order.view' },
+    { href: '/payments', label: 'Πληρωμές', icon: CreditCard, permission: 'payment.view' },
     { href: '/containers', label: 'Containers', icon: Container, permission: 'container.manage' },
     { href: '/import', label: 'Εισαγωγή Excel', icon: Upload, permission: 'import.run' },
     { href: '/media', label: 'Media Gallery', icon: Images, permission: 'media.manage' },
