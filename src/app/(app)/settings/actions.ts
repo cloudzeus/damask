@@ -8,8 +8,8 @@ import {
   type CheckResult, PUBLIC_TRACKING_CACHE_TAG,
 } from '@/lib/settings'
 import {
-  testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude, testViva,
-  type SoftOneTestConfig, type MailgunTestConfig, type BunnyTestConfig, type DeepSeekTestConfig, type ClaudeTestConfig,
+  testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude, testGemini, testViva,
+  type SoftOneTestConfig, type MailgunTestConfig, type BunnyTestConfig, type DeepSeekTestConfig, type ClaudeTestConfig, type GeminiTestConfig,
 } from '@/lib/connection-tests'
 import { lookupAfm } from '@/lib/aade'
 import {
@@ -205,6 +205,39 @@ export async function testClaudeSettings(values: ClaudeValues): Promise<CheckRes
   const stored = await getIntegration<ClaudeTestConfig>('claude')
   const result = await testClaude(mergeNonEmpty(stored, values))
   const check = await saveLastCheck('claude', result)
+  revalidateSettings()
+  return check
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 5α. Google Gemini (integration.gemini) — vision OCR (src/lib/ocr/*) + γενικό
+//     REST client (src/lib/gemini.ts). model: select με 3 προεπιλογές + ελεύθερο
+//     κείμενο (validated ως απλό trimmed string, όχι enum — ο χρήστης μπορεί να
+//     βάλει οποιοδήποτε μελλοντικό μοντέλο). fallbackModels: comma-separated.
+// ══════════════════════════════════════════════════════════════════════════
+
+export type GeminiValues = { apiKey: string; model: string; fallbackModels: string }
+
+const geminiSchema = z.object({
+  apiKey: z.string().max(200),
+  model: z.string().trim().max(120),
+  fallbackModels: z.string().trim().max(300),
+})
+
+export async function saveGeminiSettings(values: GeminiValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = geminiSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
+  await saveIntegration('gemini', parsed.data, ['apiKey'])
+  revalidateSettings()
+  return { ok: true, message: 'Οι ρυθμίσεις Google Gemini αποθηκεύτηκαν.' }
+}
+
+export async function testGeminiSettings(values: GeminiValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const stored = await getIntegration<GeminiTestConfig>('gemini')
+  const result = await testGemini(mergeNonEmpty(stored, { apiKey: values.apiKey, model: values.model }))
+  const check = await saveLastCheck('gemini', result)
   revalidateSettings()
   return check
 }

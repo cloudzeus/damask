@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale, Cookie, CreditCard,
+  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale, Cookie, CreditCard, ScanText,
 } from 'lucide-react'
 
 const NAV = [
@@ -19,6 +19,9 @@ const NAV = [
     { href: '/containers', label: 'Containers', icon: Container, permission: 'container.manage' },
     { href: '/import', label: 'Εισαγωγή Excel', icon: Upload, permission: 'import.run' },
     { href: '/media', label: 'Media Gallery', icon: Images, permission: 'media.manage' },
+    // TODO: permission 'media.manage' προσωρινό — αλλαγή σε δικό του permission όταν το
+    // OCR δεθεί στη ροή παραστατικών (findocs) και αυτό το demo item αποσυρθεί.
+    { href: '/ocr-demo', label: 'OCR (δοκιμή)', icon: ScanText, permission: 'media.manage' },
   ] },
   { group: 'CMS', items: [
     { href: '/cms/posts', label: 'Νέα', icon: Newspaper, permission: 'cms.view' },

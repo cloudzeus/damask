@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import iconv from 'iconv-lite'
-import { testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude } from '@/lib/connection-tests'
+import { testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude, testGemini } from '@/lib/connection-tests'
 
 const fetchMock = vi.fn()
 beforeEach(() => {
@@ -152,5 +152,51 @@ describe('testClaude', () => {
     const body = JSON.parse(init.body)
     expect(body.max_tokens).toBe(8)
     expect(body.model).toBe('claude-fable-5')
+  })
+})
+
+describe('testGemini', () => {
+  it('returns ⚠ without calling fetch when apiKey is missing', async () => {
+    const result = await testGemini({})
+    expect(result.ok).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('sends the x-goog-api-key header and a small ping to the default model', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 200 }))
+    const result = await testGemini({ apiKey: 'k' })
+    expect(result.ok).toBe(true)
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent')
+    expect(init.headers['x-goog-api-key']).toBe('k')
+    const body = JSON.parse(init.body)
+    expect(body.contents).toEqual([{ role: 'user', parts: [{ text: 'ping' }] }])
+    expect(body.generationConfig.maxOutputTokens).toBe(5)
+  })
+
+  it('respects a custom model override', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 200 }))
+    await testGemini({ apiKey: 'k', model: 'gemini-2.5-pro' })
+    expect(fetchMock.mock.calls[0][0]).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent')
+  })
+
+  it('maps 400/403 to an invalid API key message', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 403 }))
+    const result = await testGemini({ apiKey: 'bad' })
+    expect(result.ok).toBe(false)
+    expect(result.message).toMatch(/API key/)
+  })
+
+  it('maps 404 to a model-not-found message', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 404 }))
+    const result = await testGemini({ apiKey: 'k', model: 'no-such-model' })
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('no-such-model')
+  })
+
+  it('catches network errors without throwing', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('DNS fail'))
+    const result = await testGemini({ apiKey: 'k' })
+    expect(result.ok).toBe(false)
   })
 })

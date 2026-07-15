@@ -191,6 +191,40 @@ export async function testClaude(config: ClaudeTestConfig): Promise<TestResult> 
   }
 }
 
+// ── Google Gemini ────────────────────────────────────────
+
+export type GeminiTestConfig = { apiKey?: string; model?: string }
+
+export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash'
+
+/** Standalone ping — μικρό generateContent, ΔΕΝ αγγίζει το OCR pipeline (src/lib/gemini.ts). */
+export async function testGemini(config: GeminiTestConfig): Promise<TestResult> {
+  if (!config.apiKey?.trim()) return { ok: false, message: missingFieldsMessage(['apiKey']) }
+
+  const model = config.model?.trim() || GEMINI_DEFAULT_MODEL
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey! },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+          generationConfig: { maxOutputTokens: 5 },
+        }),
+        signal: AbortSignal.timeout(TEST_TIMEOUT_MS),
+      },
+    )
+    if (res.status === 200) return { ok: true, message: 'Επιτυχής σύνδεση με το Google Gemini.' }
+    if (res.status === 400 || res.status === 403) return { ok: false, message: 'Μη έγκυρο API key.' }
+    if (res.status === 404) return { ok: false, message: `Το μοντέλο "${model}" δεν βρέθηκε.` }
+    const detail = await safeErrorDetail(res)
+    return { ok: false, message: `Το Gemini επέστρεψε HTTP ${res.status}${detail ? ` — ${detail}` : ''}.` }
+  } catch (err) {
+    return { ok: false, message: `Αποτυχία σύνδεσης με το Gemini (${errMsg(err)}).` }
+  }
+}
+
 // ── Viva Payments ────────────────────────────────────────
 
 export type VivaTestConfig = { clientId?: string; clientSecret?: string }

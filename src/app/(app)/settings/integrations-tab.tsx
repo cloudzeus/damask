@@ -5,6 +5,7 @@ import { MailgunCard } from './cards/mailgun-card'
 import { BunnyCard } from './cards/bunny-card'
 import { DeepseekCard } from './cards/deepseek-card'
 import { ClaudeCard } from './cards/claude-card'
+import { GeminiCard } from './cards/gemini-card'
 import { GoogleTagsCard } from './cards/google-tags-card'
 import { FacebookCard } from './cards/facebook-card'
 import { VivaCard, type VivaEnvCardData } from './cards/viva-card'
@@ -35,12 +36,13 @@ function vivaEnvCardData(config: VivaEnvConfig): VivaEnvCardData {
 }
 
 export async function IntegrationsTab() {
-  const [softone, mailgun, bunny, deepseek, claude, gtags, facebook, viva] = await Promise.all([
+  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva] = await Promise.all([
     getIntegration('softone'),
     getIntegration('mailgun'),
     getIntegration('bunny'),
     getIntegration('deepseek'),
     getIntegration('claude'),
+    getIntegration('gemini'),
     getIntegration('gtags'),
     getIntegration('facebook'),
     getVivaSettings(),
@@ -90,6 +92,15 @@ export async function IntegrationsTab() {
         maskedApiKey={maskSecret(claude.apiKey)}
         configured={isIntegrationConfigured('claude', claude)}
         lastCheck={checkOf(claude)}
+      />
+      <GeminiCard
+        initial={{
+          model: str(gemini.model, 'gemini-2.5-flash') || 'gemini-2.5-flash',
+          fallbackModels: str(gemini.fallbackModels, 'gemini-2.5-flash-lite') || 'gemini-2.5-flash-lite',
+        }}
+        maskedApiKey={maskSecret(gemini.apiKey)}
+        configured={isIntegrationConfigured('gemini', gemini)}
+        lastCheck={checkOf(gemini)}
       />
       <GoogleTagsCard
         initial={{ gtagId: str(gtags.gtagId), gtmId: str(gtags.gtmId), siteVerification: str(gtags.siteVerification) }}
