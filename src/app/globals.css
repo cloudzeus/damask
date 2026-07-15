@@ -474,6 +474,25 @@
   box-shadow: 0 0 0 2px rgb(255 255 255 / 18%), 0 4px 10px rgb(0 0 0 / 40%);
 }
 
+/* Ring/shadow for circular photo thumbnails (ProductImageCollection) — same
+   white-ring language as .avatar-ring above (§5β micro-detail) so overlapping
+   image avatars read as part of the same family, without inheriting the
+   text-avatar background/color. `.is-dragging` swaps in a deeper "floating"
+   shadow while keeping the same ring layer, so scaling the dragged thumb up
+   never strips the white edge that separates it from the ones behind it. */
+.thumb-ring {
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 75%), 0 4px 10px rgb(23 43 58 / 20%);
+}
+.thumb-ring.is-dragging {
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 75%), 0 14px 28px rgb(23 43 58 / 30%);
+}
+.dark .thumb-ring {
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 18%), 0 4px 10px rgb(0 0 0 / 40%);
+}
+.dark .thumb-ring.is-dragging {
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 18%), 0 14px 28px rgb(0 0 0 / 55%);
+}
+
 /* ── animation keyframes (all reduced-motion-safe) ─────────────────── */
 
 @keyframes breathe {

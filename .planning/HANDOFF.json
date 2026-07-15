@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T11:32:34.763Z",
+  "timestamp": "2026-07-15T15:03:53.229Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,23 +22,11 @@
     },
     {
       "status": "M",
-      "path": "prisma/schema.prisma"
-    },
-    {
-      "status": "M",
       "path": "src/app/globals.css"
     },
     {
       "status": "M",
-      "path": "src/app/login/login-form.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/login/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/proxy.ts"
+      "path": "src/components/media/product-image-collection.tsx"
     },
     {
       "status": "??",
@@ -46,37 +34,9 @@
     },
     {
       "status": "??",
-      "path": "e2e/forgot-password.spec.ts"
-    },
-    {
-      "status": "??",
-      "path": "e2e/register.spec.ts"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20260715111432_auth_access_requests_reset_tokens/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/forgot-password/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/register/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/reset-password/"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/password-reset.ts"
-    },
-    {
-      "status": "??",
-      "path": "tests/password-reset.test.ts"
+      "path": "e2e/media-collection.spec.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nabd38a0 fix: deeper gradient band for public hero legibility\nd8fb11b feat: public homepage, role-based login redirects, B2B portal placeholder\n864435d fix: reskin contrast — heading token, brighter glass, higher gradient transition\n2052cd7 feat: Steel & Frost reskin — tokens, Comfortaa/Manrope, glass shell, dashboard at /dashboard\n395bfea design: v4.2 APPROVED — 1px sparse dotted separators, ratified micro-detail spec in MASTER.md"
+  "context_notes": "Recent commits:\n77781cb feat: RBAC v2 — 8-role model (super admin→salesman), matrix edit affordance, subtitle legibility\n7a64a7f feat: users management and interactive roles/permissions matrix (Steel & Frost)\nbd17412 feat: Steel & Frost auth — login redesign, forgot/reset password flow, B2B access requests\nabd38a0 fix: deeper gradient band for public hero legibility\nd8fb11b feat: public homepage, role-based login redirects, B2B portal placeholder"
 }
