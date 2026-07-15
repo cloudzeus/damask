@@ -22,6 +22,8 @@ model User {
   approvedOrders Order[] @relation("OrderApprovedBy")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  @@index([roleId])
+  @@index([customerId])
 }
 
 model Role {
@@ -49,6 +51,7 @@ model RolePermission {
 }
 
 // ── SoftOne infra ────────────────────────────────────
+/// Singleton row — always upsert with where:{id:1}, never create()
 model S1Session {
   id       Int    @id @default(1)
   clientId String
@@ -104,6 +107,7 @@ model Group {
   name     String
   nameEn   String?
   products Product[]
+  @@map("ProductGroup")
 }
 
 model Subgroup {
@@ -167,6 +171,9 @@ model Product {
   updatedAt      DateTime      @updatedAt
   @@index([status])
   @@index([code])
+  @@index([categoryId])
+  @@index([groupId])
+  @@index([subgroupId])
 }
 
 model ProductTranslation {
@@ -233,6 +240,7 @@ model Contact {
   roleTitle  String?
   email      String?
   phone      String?
+  @@index([customerId])
 }
 
 model ArchitectProfile {
@@ -251,6 +259,7 @@ model ArchitectCustomer {
   architect   ArchitectProfile @relation(fields: [architectId], references: [id], onDelete: Cascade)
   customer    Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
   @@id([architectId, customerId])
+  @@index([customerId])
 }
 
 // ── Containers & Τιμολόγηση ──────────────────────────
@@ -315,6 +324,7 @@ model Order {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   @@index([status, createdAt])
+  @@index([customerId])
 }
 
 model OrderLine {
@@ -329,6 +339,9 @@ model OrderLine {
   cbmReserved  Decimal?   @db.Decimal(10, 3)
   containerId  String?
   container    Container? @relation(fields: [containerId], references: [id])
+  @@index([orderId])
+  @@index([productId])
+  @@index([containerId])
 }
 
 model CommissionEntry {
@@ -340,6 +353,7 @@ model CommissionEntry {
   pct         Decimal          @db.Decimal(5, 2)
   amount      Decimal          @db.Decimal(14, 2)
   createdAt   DateTime         @default(now())
+  @@index([architectId])
 }
 
 // ── Import/Export (οριζόντιο — spec §11α) ────────────
