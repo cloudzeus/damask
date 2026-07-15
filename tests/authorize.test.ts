@@ -25,7 +25,10 @@ describe('verifyCredentials', () => {
   })
   it('returns null on inactive user', async () => {
     user.active = false
-    expect(await verifyCredentials('a@b.gr', 'secret123')).toBeNull()
-    user.active = true
+    try {
+      expect(await verifyCredentials('a@b.gr', 'secret123')).toBeNull()
+    } finally {
+      user.active = true
+    }
   })
 })
