@@ -2,17 +2,41 @@
 
 import { useState } from 'react'
 import { MassUploader, type UploadedAsset } from '@/components/media/mass-uploader'
+import { ProductImageCollection, type CollectionImage } from '@/components/media/product-image-collection'
 import { Card, CardContent } from '@/components/ui/card'
 
 export function MassUploaderDemo() {
   const [assets, setAssets] = useState<UploadedAsset[]>([])
+  const [imageOrder, setImageOrder] = useState<CollectionImage[]>([])
 
   return (
     <div className="flex flex-col gap-6">
       <MassUploader
         pathPrefix="products/demo"
-        onUploaded={uploaded => setAssets(prev => [...prev, ...uploaded])}
+        onUploaded={uploaded => {
+          setAssets(prev => [...prev, ...uploaded])
+          const newImages = uploaded
+            .filter(asset => asset.type === 'IMAGE')
+            .map(asset => ({ id: asset.path, url: asset.url, alt: asset.name }))
+          if (newImages.length > 0) setImageOrder(prev => [...prev, ...newImages])
+        }}
       />
+
+      {imageOrder.length >= 2 && (
+        <div>
+          <h2 className="mb-3 text-[14px] font-semibold">Συλλογή εικόνων (δοκιμή drag &amp; drop)</h2>
+          <div className="flex flex-wrap items-start gap-6">
+            <ProductImageCollection images={imageOrder} onReorder={setImageOrder} size={56} />
+            <ol className="flex flex-col gap-1 text-[12.5px] text-muted-foreground">
+              {imageOrder.map((img, index) => (
+                <li key={img.id} className="truncate">
+                  {index + 1}. {img.alt}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
 
       {assets.length > 0 && (
         <div>
