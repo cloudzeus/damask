@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T06:18:03.846Z",
+  "timestamp": "2026-07-15T06:22:43.494Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -21,14 +21,14 @@
       "path": ".planning/HANDOFF.json"
     },
     {
-      "status": "??",
-      "path": "prisma.config.ts"
+      "status": "M",
+      "path": "prisma/schema.prisma"
     },
     {
       "status": "??",
-      "path": "prisma/"
+      "path": "prisma/migrations/20260715062224_pricecache_product_fk/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n2682dae chore: add shadcn/ui with base components\n7565479 chore: scaffold Next.js 16 app with tooling (vitest, prisma client, deps)\n0b156b4 design: v2 feedback — Inter everywhere (no serif in Greek dashboards), compact scale, binding smart DataTable standard\n34d5a92 design: curated 'Linen & Brass' design system (MASTER.md) and align Phase 1 plan tokens/fonts\ne6f8d64 docs: add cross-cutting UX and Excel/Word import-export requirements to spec and Phase 1 plan"
+  "context_notes": "Recent commits:\nc9b8b77 feat: full Prisma schema for PIM domain (products, RBAC, orders, containers, sync infra)\n2682dae chore: add shadcn/ui with base components\n7565479 chore: scaffold Next.js 16 app with tooling (vitest, prisma client, deps)\n0b156b4 design: v2 feedback — Inter everywhere (no serif in Greek dashboards), compact scale, binding smart DataTable standard\n34d5a92 design: curated 'Linen & Brass' design system (MASTER.md) and align Phase 1 plan tokens/fonts"
 }

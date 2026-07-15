@@ -331,6 +331,7 @@ model Product {
   translations   ProductTranslation[]
   media          MediaAsset[]
   orderLines     OrderLine[]
+  priceCache     PriceCache[]
   s1UpdatedAt    DateTime?
   syncedAt       DateTime?
   createdAt      DateTime      @default(now())
@@ -451,6 +452,7 @@ model PriceCache {
   price      Decimal  @db.Decimal(14, 4)
   fetchedAt  DateTime @default(now())
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   @@id([customerId, productId])
 }
 
