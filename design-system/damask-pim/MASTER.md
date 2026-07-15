@@ -93,18 +93,25 @@ Engine: **TanStack Table v8** + shadcn styling. Κοινό component `<DataTable
 
 **🔒 Κανονικό οπτικό πρότυπο (εγκεκριμένο από τον χρήστη 2026-07-15):** το DataTable της οθόνης «Προϊόντα» στο [`mockup-v2.html`](mockup-v2.html) (ίδιο με το artifact «DAMASK PIM — Mockup v2»). Ο χρήστης το ενέκρινε ρητά ως «πολύ κοντά σε αυτό που θέλουμε» — κάθε υλοποίηση DataTable αντιγράφει ΑΥΤΟ το layout: toolbar (αναζήτηση αριστερά, φίλτρα-chips, «Στήλες ▾» δεξιά), header row με sort βέλη + resize handles, στήλη expander + checkbox πρώτα, ⋮ actions τελευταία, expanded detail panel σε muted φόντο με grid ετικετών, inline edit με μπρούντζινο περίγραμμα + «Enter ✓ · Esc ✕» hint, footer με «N επιλεγμένα · Μαζικές ενέργειες», «Εγγραφές: 50 ▾», «1–50 από Χ» και αριθμημένο pager. Άνοιξε το αρχείο στον browser πριν χτίσεις οποιοδήποτε table.
 
-## 4β. Aesthetic v2 «Atelier Glass» (εγκρίθηκε κατεύθυνση 2026-07-15 — references χρήστη)
+## 4β. Aesthetic v3 «Steel & Frost» (ΙΣΧΥΟΝ — 2026-07-15, references χρήστη)
 
-Ο χρήστης έδωσε references (Synthex glassmorphic analytics, Lisso warm dashboard) με εντολή: «να δίνει την εντύπωση ακριβής, καλοσχεδιασμένης εφαρμογής — όχι φοιτητικής εργασίας». Η ταυτότητα (λινό/μελάνι/μπρούντζος, Inter, compact data) ΔΕΝ αλλάζει — αλλάζει το **treatment**:
+> ⚠️ Το προηγούμενο warm treatment («Atelier Glass» σε λινό/μπεζ) **ΑΠΟΡΡΙΦΘΗΚΕ ρητά** από τον χρήστη
+> («δεν μου αρέσει το σκατί χρώμα — καμία σχέση με τις οθόνες που έστειλα»). Το ζεστό λινό/μπρούντζος
+> επιτρέπεται ΜΟΝΟ στο λογότυπο και σε φωτογραφικό περιεχόμενο προϊόντων — ΟΧΙ στο UI chrome.
+> Κανονικό πρότυπο: `mockup-v4-steel-frost.html` (εγκεκριμένη κατεύθυνση βάσει references Synthex/Lisso).
 
-1. **Ambient gradient καμβάς** αντί για flat φόντο: `linear-gradient(165deg, #F6F1E9 0%, #FAF7F2 45%, #EFE9DE 100%)` + πολύ διακριτικό brass glow (radial, 4-6% opacity) σε μία γωνία. Dark: `#0E0C0A → #171310` με brass glow 8%.
-2. **Frosted-glass κάρτες** (tier «glass»): `background: rgb(255 255 255 / 62%)`, `backdrop-filter: blur(20px)`, `border: 1px solid rgb(255 255 255 / 65%)`, radius **16px**, σκιά `0 8px 32px rgb(41 37 36 / 8%)`. Dark: `rgb(28 25 23 / 55%)`, border `rgb(255 255 255 / 8%)`.
-3. **Τρία επίπεδα βάθους:** καμβάς → glass κάρτες → αναδυόμενα στοιχεία (popovers/callouts, blur 24px, σκιά βαθύτερη). Επιτρέπεται ελαφρύ layering/επικάλυψη διακοσμητικών «paper» καρτών σε hero/κενές καταστάσεις.
-4. **KPI νούμερα:** Inter **200-300 weight**, 32-40px, tabular — μεγάλα και «ανάλαφρα» (βλ. 40.439,00 στα refs). Ετικέτα 12px muted από πάνω.
-5. **Pills παντού** στα φίλτρα/chips/κουμπιά δευτερεύοντα (radius 999). Primary κουμπιά μένουν 8-10px radius (σοβαρότητα).
-6. **Floating callouts:** μικρές glass κάρτες-badges (π.χ. «+24% αυτή την εβδομάδα») αγκυρωμένες πάνω σε γραφήματα.
-7. **Πού εφαρμόζεται πλήρως:** δημόσιο site, auth οθόνες, dashboard, portal. **Πού συγκρατημένα:** data-πυκνές οθόνες (πίνακες) κρατούν το compact πρότυπο §4α — glass μόνο στο περίβλημα της κάρτας του πίνακα, ποτέ blur πίσω από κείμενο δεδομένων.
-8. Προσβασιμότητα: κείμενο πάντα σε ≥4.5:1 πάνω στο glass (το blur δεν δικαιολογεί χαμηλή αντίθεση)· `backdrop-filter` με graceful fallback σε συμπαγές `--card`.
+**Παλέτα (light):** gradient καμβάς `178deg: #36505F → #8FA9B5 22% → #D3E0E4 52% → #F2F6F6` (fixed attachment, ψυχρό ατσάλι που «λιώνει» σε ομίχλη) + radial λευκή λάμψη που «αναπνέει» (11s animation). Ink `#1C3242`, muted `#5E7482`, solid **navy** `#16323F` για primary/active, accent **coral `#E4574D` ΜΟΝΟ για data highlights/alerts**, success `#2E9E63`, info `#3B7DA8`, borders `#DCE5E9`.
+**Dark:** `#0A141C → #16303D → #0E1D26`, glass `rgb(23 40 52 / 52%)`, navy αντιστρέφεται σε παγωμένο λευκό.
+
+**Τυπογραφία (αναθεωρημένη):** **Comfortaa** (headings/display/wordmark — τα στρογγυλεμένα γεωμετρικά των refs, έχει ελληνικά) + **Manrope** (UI/body/νούμερα, έχει ελληνικά). KPI: Manrope **250-300 weight**, 32-40px, tabular. Τα compact μεγέθη του §3 ισχύουν για data οθόνες.
+
+**Κανόνες treatment:**
+1. Frosted glass: `rgb(255 255 255 / 52%)` + `blur(24px) saturate(1.15)` + border `rgb(255 255 255 / 65%)`, radius **22-26px**.
+2. **Pills παντού** — φίλτρα, chips, ΚΑΙ τα primary κουμπιά (radius 999, navy solid με βαθιά μαλακή σκιά).
+3. Τρία επίπεδα βάθους: καμβάς → glass → floating (σκιά `0 24px 60px`). Floating glass callout-chips πάνω από hero/γραφήματα.
+4. **Animations (υποχρεωτικά, διακριτικά):** entrance stagger 60ms/στοιχείο (fade + 16px rise, cubic-bezier(.2,.7,.3,1)), αιώρηση ±6px 7-9s στα floating chips, hover lift -3px με βάθεμα σκιάς, «αναπνοή» φωτός στον καμβά. Όλα σέβονται prefers-reduced-motion.
+5. Data-πυκνές οθόνες: πρότυπο §4α για features/layout, με skin Steel & Frost (glass wrapper, pills, navy active states) — ποτέ blur πίσω από κείμενο δεδομένων.
+6. Κείμενο ≥4.5:1 πάνω στο glass· fallback συμπαγές `--card` όπου δεν υπάρχει backdrop-filter.
 
 ## 4γ. Αρχιτεκτονική πλοήγησης (απόφαση χρήστη 2026-07-15)
 
