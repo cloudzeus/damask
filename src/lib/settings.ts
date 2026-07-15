@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { DEFAULT_CONSENT_CONFIG, type ConsentModalConfig } from '@/lib/consent'
 
 /**
  * Γενικό key/value settings store (model Setting — prisma/schema.prisma).
@@ -201,4 +202,17 @@ export async function loadPublicTrackingSettings(): Promise<PublicTrackingSettin
     facebookPixelId: facebook.pixelId?.trim() ?? '',
     facebookAppId: facebook.appId?.trim() ?? '',
   }
+}
+
+/**
+ * next/cache tag για το consent modal config που διαβάζει το (public) layout
+ * (κείμενα banner + gating gtag/GTM/Pixel) — η saveConsentModalConfig action
+ * (src/app/(app)/cms/legal/actions.ts) κάνει revalidateTag(PUBLIC_CONSENT_CACHE_TAG, 'max').
+ */
+export const PUBLIC_CONSENT_CACHE_TAG = 'public-consent-config'
+
+/** setting key "consent.config" merged πάνω στο DEFAULT_CONSENT_CONFIG — ποτέ undefined πεδίο προς τον caller. */
+export async function loadConsentConfig(): Promise<ConsentModalConfig> {
+  const saved = await getSetting<Partial<ConsentModalConfig>>('consent.config')
+  return { ...DEFAULT_CONSENT_CONFIG, ...saved }
 }

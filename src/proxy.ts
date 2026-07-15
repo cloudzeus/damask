@@ -2,11 +2,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // Δημόσιες διαδρομές — δεν χρειάζονται session. Το "/" εξυπηρετεί το δημόσιο
 // website (χωρίς redirect) — βλ. design-system/damask-pim/MASTER.md §4γ.
-const PUBLIC_PATHS = new Set(['/', '/login', '/register', '/forgot-password', '/reset-password'])
+const PUBLIC_PATHS = new Set(['/', '/login', '/register', '/forgot-password', '/reset-password', '/api/consent'])
+// Δυναμικά δημόσια prefixes — /legal/[slug] (νομικές σελίδες, οποιοδήποτε slug).
+const PUBLIC_PREFIXES = ['/legal/']
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
-  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next()
+  if (PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
+    return NextResponse.next()
+  }
 
   const hasSession = req.cookies.has('authjs.session-token') || req.cookies.has('__Secure-authjs.session-token')
   if (!hasSession) {

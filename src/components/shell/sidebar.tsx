@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper,
+  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale, Cookie,
 } from 'lucide-react'
 
 const NAV = [
@@ -21,6 +21,8 @@ const NAV = [
   ] },
   { group: 'CMS', items: [
     { href: '/cms/posts', label: 'Νέα', icon: Newspaper, permission: 'cms.view' },
+    { href: '/cms/legal', label: 'Νομικά', icon: Scale, permission: 'cms.view' },
+    { href: '/cms/consents', label: 'Συγκαταθέσεις', icon: Cookie, permission: 'cms.view' },
   ] },
   { group: 'Διαχείριση', items: [
     { href: '/users', label: 'Χρήστες', icon: UserCog, permission: 'user.manage' },

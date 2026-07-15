@@ -514,3 +514,40 @@ model PostTranslation {
   machineTranslated Boolean @default(false)
   @@unique([postId, locale])
 }
+
+// ── Legal pages & Consent ─────────────────────────────
+model LegalPage {
+  id           String   @id @default(cuid())
+  slug         String   @unique   // privacy-policy, terms, cookies, returns, shipping, gdpr-rights
+  published    Boolean  @default(false)
+  translations LegalPageTranslation[]
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+model LegalPageTranslation {
+  id                String    @id @default(cuid())
+  pageId            String
+  page              LegalPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  locale            String    // el | en
+  title             String
+  body              String    // markdown
+  machineTranslated Boolean   @default(false)
+  @@unique([pageId, locale])
+}
+
+model ConsentLog {
+  id          String   @id @default(cuid())
+  visitorId   String   // anonymous cookie uuid
+  userId      String?  // αν logged in
+  ip          String
+  userAgent   String
+  os          String   // parsed
+  browser     String?  // parsed
+  locale      String?
+  choices     Json     // { necessary: true, analytics: bool, marketing: bool }
+  policyVersion String?  // από setting
+  createdAt   DateTime @default(now())
+  @@index([createdAt])
+  @@index([visitorId])
+}
