@@ -376,3 +376,34 @@ model DocumentTemplate {
   updatedAt DateTime @updatedAt
   @@unique([type, name])
 }
+
+// ── Auth: B2B access requests & password reset ───────
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AccessRequest {
+  id        String              @id @default(cuid())
+  type      String              // "CUSTOMER" | "ARCHITECT"
+  name      String
+  company   String
+  afm       String
+  phone     String
+  email     String              @unique
+  status    AccessRequestStatus @default(PENDING)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  @@index([status, createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId])
+}

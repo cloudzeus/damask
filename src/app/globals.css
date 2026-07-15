@@ -692,3 +692,234 @@
 .trust b:hover {
   opacity: 1;
 }
+
+/* ── Auth screens (mockup-v4-steel-frost.html #v-login/#v-register/#v-forgot)
+   New, additive-only utilities for login / register / forgot / reset. ───── */
+
+.auth-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 44px 16px;
+  position: relative;
+}
+.auth-decor {
+  position: absolute;
+  border-radius: 22px;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass);
+}
+.auth-decor.dots {
+  background-image: radial-gradient(circle, var(--dotted) 1px, transparent 1.3px);
+  background-size: 12px 12px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 408px;
+  padding: 38px 36px 28px;
+  position: relative;
+  z-index: 2;
+  border-radius: 28px;
+}
+.auth-card .wordmark {
+  display: flex;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+.auth-card .sub {
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  margin: 0 0 26px;
+}
+.auth-foot {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted-foreground);
+}
+.auth-foot a {
+  color: var(--info);
+  font-weight: 700;
+  text-decoration: none;
+}
+.auth-secure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dotted var(--dotted);
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  margin: 18px 0;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px dotted var(--dotted);
+}
+
+.field {
+  margin-bottom: 14px;
+}
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.inwrap {
+  position: relative;
+}
+.inwrap > svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+.inwrap input {
+  width: 100%;
+  height: 44px;
+  border-radius: 999px;
+  padding: 0 16px 0 40px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: inset 0 1px 3px rgb(23 43 58 / 5%);
+}
+.inwrap input:focus-visible {
+  outline: none;
+  border-color: var(--info);
+  box-shadow: 0 0 0 4px var(--info-soft);
+}
+.inwrap .eye {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  width: 32px;
+  height: 32px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.inwrap .eye:hover {
+  background: var(--info-soft);
+  color: var(--foreground);
+}
+.field .help {
+  font-size: 11.5px;
+  color: var(--muted-foreground);
+  margin-top: 5px;
+  padding-left: 16px;
+}
+.field .error {
+  font-size: 11.5px;
+  color: var(--destructive);
+  margin-top: 5px;
+  padding-left: 16px;
+}
+.form-error {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--destructive);
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+.role-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.role-pick .opt {
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  padding: 12px 14px;
+  background: var(--card);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+  text-align: left;
+}
+.role-pick .opt.on {
+  border-color: var(--info);
+  box-shadow: 0 0 0 4px var(--info-soft);
+}
+.role-pick .opt.on::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  background: var(--info);
+  color: #fff;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.role-pick .opt b {
+  display: block;
+  font-size: 13px;
+}
+.role-pick .opt small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.35;
+  display: block;
+  margin-top: 2px;
+}
+
+.notice {
+  display: flex;
+  gap: 9px;
+  border-radius: 15px;
+  padding: 11px 13px;
+  font-size: 12px;
+  background: var(--info-soft);
+  color: var(--foreground);
+  margin-bottom: 16px;
+  border: 1px dashed color-mix(in srgb, var(--info) 35%, transparent);
+}
+.notice svg {
+  color: var(--info);
+  flex: none;
+  margin-top: 1px;
+}
+.notice.success {
+  background: var(--success-soft);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+}
+.notice.success svg {
+  color: var(--success);
+}

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // Δημόσιες διαδρομές — δεν χρειάζονται session. Το "/" εξυπηρετεί το δημόσιο
 // website (χωρίς redirect) — βλ. design-system/damask-pim/MASTER.md §4γ.
-const PUBLIC_PATHS = new Set(['/', '/login', '/register', '/forgot-password'])
+const PUBLIC_PATHS = new Set(['/', '/login', '/register', '/forgot-password', '/reset-password'])
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
