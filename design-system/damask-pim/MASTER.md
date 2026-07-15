@@ -30,7 +30,8 @@ Semantic tokens (shadcn/Tailwind 4 CSS variables). Ποτέ raw hex σε compone
 | `--muted-foreground` | `#78716C` | Δευτερεύον κείμενο (μόνο ≥14px) |
 | `--border` | `#E7E0D8` | Περιγράμματα (ζεστό) |
 | `--primary` | `#292524` | Κύρια κουμπιά (μελάνι) — text `#FFFFFF` |
-| `--accent` | `#A16207` | Μπρούντζος: ενεργή κατάσταση nav, highlights — σε λευκό 4.6:1 ✓ |
+| `--accent` | `#F1EDE6` | Hover/focus επιφάνειες menu items (shadcn semantics — ΟΧΙ brass εδώ) |
+| `--brass` | `#A16207` | Μπρούντζος: ενεργή κατάσταση nav, avatar, highlights — σε λευκό 4.6:1 ✓ (dark: `#C89B3C`) |
 | `--destructive` | `#B91C1C` | Καταστροφικές ενέργειες — text λευκό |
 | `--success` | `#15803D` | Επιτυχία (πάντα με εικονίδιο+κείμενο) |
 | `--warning` | `#B45309` | Προειδοποίηση/εκκρεμότητα |
@@ -55,7 +56,10 @@ Semantic tokens (shadcn/Tailwind 4 CSS variables). Ποτέ raw hex σε compone
 | Όλα (headings + UI + body) | **Inter** (400/500/600) | Κορυφαία αναγνωσιμότητα ελληνικών σε οθόνη, tabular numerals |
 | Wordmark ΜΟΝΟ | Το logo της Damask (SVG στο `public/`) — το serif ζει μόνο στο λογότυπο |
 
-Κλίμακα (συμπαγής): **12** labels-uppercase / **13** table cells & δευτερεύον / **14 base UI** / **16** section titles (600) / **20** page titles (600, tracking -0.01em) / **26** μεγάλα νούμερα stats. Line-height 1.5 body, 1.25 headings.
+Κλίμακα (συμπαγής): **12** labels-uppercase / **13** table cells & δευτερεύον / **14 base UI** / **16** section titles (600) / **20** page titles (600, tracking -0.01em) / **26** μεγάλα νούμερα stats. Ενδιάμεσα μισά βήματα (11.5/12.5/13.5) επιτρέπονται για nav/captions. Line-height 1.5 body, 1.25 headings.
+Υλοποίηση: `html { font-size: 14px }` — όλη η rem κλίμακα του Tailwind γίνεται αναλογικά συμπαγής.
+
+> **Επικυρωμένες αποφάσεις (2026-07-15):** (α) το shadcn `--accent` μένει ουδέτερο για hovers· ο μπρούντζος εφαρμόζεται μέσω `--brass`/`--ring`/`--sidebar-primary`. (β) Τα shadcn components του project είναι **@base-ui/react** (όχι Radix): χρήση `render=` αντί `asChild`, και τα `DropdownMenuLabel` απαιτούν `DropdownMenuGroup` wrapper — δες `src/components/shell/topbar.tsx` ως αναφορά.
 Αριθμοί σε πίνακες/τιμές: `font-variant-numeric: tabular-nums`, δεξιά στοίχιση.
 
 Υλοποίηση με `next/font`: `Inter({ subsets: ['latin','greek'] })` — μηδέν FOIT/CLS.
