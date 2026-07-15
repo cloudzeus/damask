@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { isConvertibleImage, processImageToWebp } from '@/lib/image-processing'
 
 export type UploadedAsset = {
+  id: string
   url: string
   path: string
   name: string
@@ -28,6 +29,8 @@ export type MassUploaderProps = {
   accept?: string
   /** default 3 */
   maxConcurrent?: number
+  /** Media Gallery: φάκελος προορισμού (MediaFolder.id) — προαιρετικό, default κανένας (ρίζα) */
+  folderId?: string | null
 }
 
 type UploadStatus = 'queued' | 'converting' | 'uploading' | 'done' | 'error'
@@ -70,7 +73,7 @@ function greekUploadError(status: number, body: unknown): string {
   return 'Η μεταφόρτωση απέτυχε.'
 }
 
-export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, maxConcurrent = 3 }: MassUploaderProps) {
+export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, maxConcurrent = 3, folderId = null }: MassUploaderProps) {
   const [items, setItems] = useState<QueueItem[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -123,6 +126,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
         name: uploadName,
         mimeType: uploadType,
         pathPrefix,
+        folderId,
         originalName: file.name,
         onProgress: pct => updateItem(id, { progress: pct }),
       })
@@ -141,6 +145,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
     name: string
     mimeType: string
     pathPrefix: string
+    folderId?: string | null
     originalName: string
     onProgress: (pct: number) => void
   }): Promise<UploadedAsset> {
@@ -149,6 +154,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
       const formData = new FormData()
       formData.append('file', uploadFile)
       formData.append('path', opts.pathPrefix)
+      if (opts.folderId) formData.append('folderId', opts.folderId)
 
       const xhr = new XMLHttpRequest()
       xhr.open('POST', '/api/media/upload')
@@ -159,8 +165,9 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
         let body: unknown = null
         try { body = JSON.parse(xhr.responseText) } catch { /* μη-JSON απάντηση */ }
         if (xhr.status >= 200 && xhr.status < 300 && body && typeof body === 'object' && 'url' in body) {
-          const b = body as { url: string; path: string; size: number }
+          const b = body as { id: string; url: string; path: string; size: number }
           resolve({
+            id: b.id,
             url: b.url,
             path: b.path,
             name: opts.originalName,

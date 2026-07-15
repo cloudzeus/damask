@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T15:44:04.116Z",
+  "timestamp": "2026-07-15T16:42:51.540Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,31 +22,19 @@
     },
     {
       "status": "M",
-      "path": "e2e/users.spec.ts"
-    },
-    {
-      "status": "M",
       "path": "prisma/schema.prisma"
     },
     {
       "status": "M",
-      "path": "src/app/(app)/users/actions.ts"
+      "path": "src/app/api/media/upload/route.ts"
     },
     {
       "status": "M",
-      "path": "src/app/(app)/users/page.tsx"
+      "path": "src/components/media/mass-uploader.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/(app)/users/row-actions.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(app)/users/users-table.tsx"
-    },
-    {
-      "status": "M",
-      "path": "tests/users-actions.test.ts"
+      "path": "src/components/shell/sidebar.tsx"
     },
     {
       "status": "??",
@@ -54,21 +42,37 @@
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20260715152259_user_contact_fields/"
+      "path": "e2e/media-gallery.spec.ts"
     },
     {
       "status": "??",
-      "path": "src/app/(app)/users/new-user-button.tsx"
+      "path": "prisma/migrations/20260715155959_media_gallery_folders/"
     },
     {
       "status": "??",
-      "path": "src/app/(app)/users/user-form-dialog.tsx"
+      "path": "src/app/(app)/media/"
     },
     {
       "status": "??",
-      "path": "src/components/ui/switch.tsx"
+      "path": "src/app/api/media/list/"
+    },
+    {
+      "status": "??",
+      "path": "src/components/media/media-picker.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/components/media/media-types.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/media.ts"
+    },
+    {
+      "status": "??",
+      "path": "tests/media-actions.test.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nc4334df feat: circular cover avatars with stacked overlap and top-anchored preview tooltip in image collection\n77781cb feat: RBAC v2 — 8-role model (super admin→salesman), matrix edit affordance, subtitle legibility\n7a64a7f feat: users management and interactive roles/permissions matrix (Steel & Frost)\nbd17412 feat: Steel & Frost auth — login redesign, forgot/reset password flow, B2B access requests\nabd38a0 fix: deeper gradient band for public hero legibility"
+  "context_notes": "Recent commits:\n23a12ed feat: full users CRUD with contact fields (phone/mobile/address/city/country)\nc4334df feat: circular cover avatars with stacked overlap and top-anchored preview tooltip in image collection\n77781cb feat: RBAC v2 — 8-role model (super admin→salesman), matrix edit affordance, subtitle legibility\n7a64a7f feat: users management and interactive roles/permissions matrix (Steel & Frost)\nbd17412 feat: Steel & Frost auth — login redesign, forgot/reset password flow, B2B access requests"
 }

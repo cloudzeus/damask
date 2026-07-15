@@ -200,18 +200,39 @@ enum MediaType {
   IMAGE
   VIDEO
   MODEL_3D
+  FILE
+}
+
+model MediaFolder {
+  id        String        @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    MediaFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  MediaFolder[] @relation("FolderTree")
+  assets    MediaAsset[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  @@unique([parentId, name])
+  @@index([parentId])
 }
 
 model MediaAsset {
-  id        String    @id @default(cuid())
-  productId String
-  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id        String       @id @default(cuid())
+  productId String?
+  product   Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  name      String
+  alt       String?
   type      MediaType
   cdnUrl    String
-  sortOrder Int       @default(0)
+  size      Int?
+  mimeType  String?
+  sortOrder Int          @default(0)
   meta      Json?
-  createdAt DateTime  @default(now())
+  createdAt DateTime     @default(now())
   @@index([productId, sortOrder])
+  @@index([folderId])
 }
 
 // ── Πελάτες / Επαφές / Αρχιτέκτονες ──────────────────

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { auth } from '@/auth'
 import { can } from '@/lib/rbac'
+import { prisma } from '@/lib/prisma'
+import type { MediaType } from '@prisma/client'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -46,6 +48,15 @@ function extensionFor(file: File): string {
   return match ? match[0].toLowerCase() : ''
 }
 
+/** Ίδια λογική ταξινόμησης τύπου με το client (mass-uploader.tsx detectAssetType). */
+function detectMediaType(mimeType: string, filename: string): MediaType {
+  if (mimeType.startsWith('image/')) return 'IMAGE'
+  if (mimeType.startsWith('video/')) return 'VIDEO'
+  const lower = filename.toLowerCase()
+  if (lower.endsWith('.glb') || lower.endsWith('.gltf')) return 'MODEL_3D'
+  return 'FILE'
+}
+
 export async function POST(request: Request) {
   const session = await auth()
   if (!can(session, 'media.manage')) {
@@ -72,6 +83,7 @@ export async function POST(request: Request) {
 
   const file = formData.get('file')
   const path = formData.get('path')
+  const folderIdRaw = formData.get('folderId')
   if (!(file instanceof File)) {
     return NextResponse.json({ error: 'Δεν βρέθηκε αρχείο για μεταφόρτωση.' }, { status: 400 })
   }
@@ -82,6 +94,16 @@ export async function POST(request: Request) {
   const safePath = sanitizePath(path)
   if (!safePath) {
     return NextResponse.json({ error: 'Μη έγκυρη διαδρομή προορισμού.' }, { status: 400 })
+  }
+
+  // Προαιρετικός φάκελος (Media Gallery) — αν δοθεί, πρέπει να υπάρχει.
+  let folderId: string | null = null
+  if (typeof folderIdRaw === 'string' && folderIdRaw.trim() !== '') {
+    const folder = await prisma.mediaFolder.findUnique({ where: { id: folderIdRaw } })
+    if (!folder) {
+      return NextResponse.json({ error: 'Ο φάκελος προορισμού δεν βρέθηκε.' }, { status: 400 })
+    }
+    folderId = folder.id
   }
 
   const ext = extensionFor(file)
@@ -121,8 +143,23 @@ export async function POST(request: Request) {
     )
   }
 
+  const cdnUrl = `${pullZoneUrl}/${fullPath}`
+
+  const asset = await prisma.mediaAsset.create({
+    data: {
+      folderId,
+      productId: null,
+      name: baseName,
+      type: detectMediaType(file.type, file.name),
+      cdnUrl,
+      size: file.size,
+      mimeType: file.type || null,
+    },
+  })
+
   return NextResponse.json({
-    url: `${pullZoneUrl}/${fullPath}`,
+    id: asset.id,
+    url: cdnUrl,
     path: fullPath,
     size: file.size,
   })

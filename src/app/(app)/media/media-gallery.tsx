@@ -1,0 +1,155 @@
+'use client'
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { Wand2 } from 'lucide-react'
+import { FolderPanel } from './folder-panel'
+import { AssetToolbar } from './asset-toolbar'
+import { AssetGrid } from './asset-grid'
+import { UploadDialog } from './upload-dialog'
+import { MediaPicker } from '@/components/media/media-picker'
+import { ProductImageCollection, type CollectionImage } from '@/components/media/product-image-collection'
+import type { MediaAssetDTO, MediaFolderDTO, MediaKind, MediaListResponse, PickedAsset } from '@/components/media/media-types'
+
+const SEARCH_DEBOUNCE_MS = 300
+
+export function MediaGallery({
+  initialFolders,
+  initialAssets,
+}: {
+  initialFolders: MediaFolderDTO[]
+  initialAssets: MediaAssetDTO[]
+}) {
+  const [folders, setFolders] = useState(initialFolders)
+  const [assets, setAssets] = useState(initialAssets)
+  const [loading, setLoading] = useState(false)
+
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<MediaKind | null>(null)
+  const [queryInput, setQueryInput] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickedImages, setPickedImages] = useState<CollectionImage[]>([])
+
+  const isFirstRun = useRef(true)
+
+  const fetchList = useCallback(async (filters: { folderId: string | null; type: MediaKind | null; q: string }) => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (filters.folderId) params.set('folderId', filters.folderId)
+      if (filters.type) params.set('type', filters.type)
+      if (filters.q) params.set('q', filters.q)
+      const res = await fetch(`/api/media/list?${params.toString()}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data: MediaListResponse = await res.json()
+      setFolders(data.folders)
+      setAssets(data.assets)
+    } catch {
+      toast.error('Η φόρτωση των αρχείων απέτυχε.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // debounce το πληκτρολόγημα αναζήτησης
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedQuery(queryInput.trim()), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timeout)
+  }, [queryInput])
+
+  // refetch σε κάθε αλλαγή φίλτρου — παραλείπεται στο πρώτο render γιατί ο
+  // server ήδη έδωσε τα αρχικά folders/assets που ταιριάζουν στα default φίλτρα.
+  useEffect(() => {
+    if (isFirstRun.current) { isFirstRun.current = false; return }
+    fetchList({ folderId: selectedFolderId, type: typeFilter, q: debouncedQuery })
+  }, [selectedFolderId, typeFilter, debouncedQuery, fetchList])
+
+  function refresh() {
+    fetchList({ folderId: selectedFolderId, type: typeFilter, q: debouncedQuery })
+  }
+
+  function clearFilters() {
+    setTypeFilter(null)
+    setQueryInput('')
+    setDebouncedQuery('')
+  }
+
+  const selectedFolder = folders.find(f => f.id === selectedFolderId) ?? null
+  const hasActiveFilter = typeFilter !== null || debouncedQuery !== ''
+
+  function handlePicked(picked: PickedAsset[]) {
+    setPickedImages(prev => {
+      const existing = new Set(prev.map(img => img.id))
+      const additions = picked.filter(p => !existing.has(p.id)).map(p => ({ id: p.id, url: p.url, alt: p.name }))
+      return [...prev, ...additions]
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <div className="flex-1" />
+        <button type="button" className="btn-pill btn-glass" onClick={() => setPickerOpen(true)}>
+          <Wand2 className="size-3.5" strokeWidth={1.8} aria-hidden /> Δοκιμή Picker
+        </button>
+      </div>
+
+      <div className="flex items-start gap-4">
+        <FolderPanel
+          folders={folders}
+          selectedFolderId={selectedFolderId}
+          onSelect={setSelectedFolderId}
+          onChanged={refresh}
+        />
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <AssetToolbar
+            query={queryInput}
+            onQueryChange={setQueryInput}
+            typeFilter={typeFilter}
+            onTypeFilterChange={setTypeFilter}
+            onUploadClick={() => setUploadOpen(true)}
+          />
+
+          <div className="mt-3">
+            <AssetGrid
+              assets={assets}
+              folders={folders}
+              loading={loading}
+              hasActiveFilter={hasActiveFilter}
+              onClearFilters={clearFilters}
+              onUploadClick={() => setUploadOpen(true)}
+              onChanged={refresh}
+            />
+          </div>
+        </div>
+      </div>
+
+      <UploadDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        folderId={selectedFolderId}
+        folderLabel={selectedFolder?.name ?? 'Όλα τα αρχεία'}
+        onUploaded={refresh}
+      />
+
+      <MediaPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={handlePicked}
+        multiple
+        accept={['IMAGE']}
+      />
+
+      {pickedImages.length > 0 && (
+        <div className="glass p-4">
+          <h2 className="mb-3 text-[14px] font-semibold">Επιλεγμένα από το MediaPicker ({pickedImages.length})</h2>
+          <ProductImageCollection images={pickedImages} onReorder={setPickedImages} size={56} />
+        </div>
+      )}
+    </div>
+  )
+}
