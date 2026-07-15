@@ -225,6 +225,15 @@
   z-index: 1;
 }
 
+/* Public homepage variant — the ORIGINAL mockup stops (22%/52%). The internal
+   app uses higher stops (16%/44%) for shell contrast, but the public hero puts
+   light --hero-ink/--hero-muted text directly on the canvas and needs the
+   dark band to reach deeper for legibility. */
+.app-canvas--deep {
+  background: linear-gradient(178deg, var(--grad-top) 0%, var(--grad-mid) 22%, var(--grad-low) 52%, var(--grad-end) 100%);
+  background-attachment: fixed;
+}
+
 .glass {
   background: var(--glass);
   backdrop-filter: blur(24px) saturate(1.15);
