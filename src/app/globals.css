@@ -431,6 +431,10 @@
   color: var(--info);
   background: var(--info-soft);
 }
+.badge-pill.muted {
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
 
 .icon-pill {
   width: 36px;

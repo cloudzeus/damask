@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
+import { isMailerConfigured, sendMail, renderEmailShell, escapeHtml } from '@/lib/mailer'
 
 export type ActionResult =
   | { ok: true; message: string }
@@ -97,8 +98,27 @@ export async function approveAccessRequest(requestId: string): Promise<ActionRes
 
   await prisma.accessRequest.update({ where: { id: requestId }, data: { status: 'APPROVED' } })
 
-  // TODO(SMTP): δεν έχει ρυθμιστεί ακόμα mailer — προσωρινά logάρουμε το temp password.
-  console.log(`[access-request] Εγκρίθηκε ${request.email} (${roleName}) — προσωρινός κωδικός: ${tempPassword}`)
+  if (await isMailerConfigured()) {
+    const loginUrl = `${process.env.AUTH_URL ?? 'http://localhost:3000'}/login`
+    const html = renderEmailShell({
+      heading: 'Ο λογαριασμός σου είναι έτοιμος',
+      bodyHtml:
+        `<p>Γεια σου ${escapeHtml(request.name)},</p>` +
+        '<p>Το αίτημα πρόσβασής σου στο DAMASK PIM εγκρίθηκε. Στοιχεία σύνδεσης:</p>' +
+        `<p><b>Email:</b> ${escapeHtml(request.email)}<br/><b>Προσωρινός κωδικός:</b> ${escapeHtml(tempPassword)}</p>` +
+        '<p>Σύνδεσου και άλλαξε τον κωδικό σου το συντομότερο.</p>',
+      ctaLabel: 'Σύνδεση',
+      ctaUrl: loginUrl,
+    })
+    const result = await sendMail({ to: request.email, subject: 'Ο λογαριασμός σου στο DAMASK εγκρίθηκε', html })
+    if (!result.ok) {
+      // Mailgun ρυθμισμένο αλλά η αποστολή απέτυχε live — fallback σε log ώστε να μη χαθεί ο κωδικός.
+      console.log(`[access-request] Αποστολή Mailgun απέτυχε (${result.error}) — Εγκρίθηκε ${request.email} (${roleName}) — προσωρινός κωδικός: ${tempPassword}`)
+    }
+  } else {
+    // TODO(SMTP): κρατάμε το log fallback μέχρι να ρυθμιστεί το Mailgun στο /settings.
+    console.log(`[access-request] Εγκρίθηκε ${request.email} (${roleName}) — προσωρινός κωδικός: ${tempPassword}`)
+  }
 
   revalidatePath('/users')
   return { ok: true, message: `Ο λογαριασμός για ${request.name} δημιουργήθηκε.` }

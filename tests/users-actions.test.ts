@@ -94,6 +94,12 @@ vi.mock('@/lib/prisma', () => ({
         return { ...request }
       }),
     },
+    // approveAccessRequest() πλέον ελέγχει isMailerConfigured() (src/lib/mailer.ts →
+    // getIntegration('mailgun') → prisma.setting) πριν αποφασίσει αν στέλνει email ή
+    // κάνει fallback σε console.log — καμία ρύθμιση Mailgun σε αυτά τα tests.
+    setting: {
+      findUnique: vi.fn(async () => null),
+    },
   },
 }))
 

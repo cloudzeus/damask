@@ -433,3 +433,17 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
   @@index([userId])
 }
+
+// ── Settings (key/value) ──────────────────────────────
+/// Γενικό key/value store ρυθμίσεων — integrations ("integration.mailgun"),
+/// προφίλ εταιρείας ("company.profile"), SEO defaults ("seo.defaults").
+/// Secrets αποθηκεύονται εδώ ως Json (αποδεκτό για v1 — plaintext στη DB,
+/// βλ. concern για encryption σε φάση hardening). Κάθε integration value
+/// μπορεί να κουβαλά ένα εσωτερικό "_lastCheck": {ok,message,at} από το
+/// τελευταίο «Δοκιμή σύνδεσης». src/lib/settings.ts είναι το μοναδικό
+/// σημείο πρόσβασης (getSetting/setSetting/getIntegration).
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
