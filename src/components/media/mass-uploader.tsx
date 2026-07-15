@@ -226,7 +226,15 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
     const newlyDone = items.filter(i => i.status === 'done' && i.asset && !deliveredRef.current.has(i.id))
     if (newlyDone.length > 0) {
       newlyDone.forEach(i => deliveredRef.current.add(i.id))
-      toast.success(`Μεταφορτώθηκαν ${newlyDone.length} αρχεία ✓`)
+      // Αναβολή του toast ώστε να μην κάνει mount ενώ το main thread είναι
+      // απασχολημένο (π.χ. μετατροπές canvas → WebP) — αλλιώς το sonner
+      // μετράει λάθος --initial-height και το toast ανοίγει σαν τεράστια
+      // κενή κάρτα.
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          toast.success(`Μεταφορτώθηκαν ${newlyDone.length} αρχεία ✓`)
+        }, 0)
+      })
       onUploaded?.(newlyDone.map(i => i.asset!))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
