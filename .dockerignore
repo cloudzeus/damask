@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env
+docs
+design-system
+e2e
+tests
+playwright-report
+test-results
+.planning
+.claude
