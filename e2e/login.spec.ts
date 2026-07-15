@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test'
 
-test('redirects anonymous to /login', async ({ page }) => {
+test('anonymous sees the public homepage at /', async ({ page }) => {
   await page.goto('/')
+  await expect(page).toHaveURL('/')
+  await expect(page.getByRole('heading', { name: 'Η ύλη γίνεται ατμόσφαιρα.' })).toBeVisible()
+})
+
+test('redirects anonymous /dashboard to /login', async ({ page }) => {
+  await page.goto('/dashboard')
   await expect(page).toHaveURL(/\/login/)
 })
 

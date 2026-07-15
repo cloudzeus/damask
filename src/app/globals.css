@@ -117,6 +117,11 @@
 
   /* legacy alias — kept only for pages not yet reskinned (media uploader) */
   --brass: var(--coral);
+
+  /* Public homepage hero — text sits directly on the dark top of the
+     gradient canvas (not on a glass surface), needs its own light tokens. */
+  --hero-ink: #F4F8FA;
+  --hero-muted: rgb(244 248 250 / 75%);
 }
 
 .dark {
@@ -176,6 +181,9 @@
   --shadow-float: 0 24px 60px rgb(0 0 0 / 60%);
 
   --brass: var(--coral);
+
+  --hero-ink: #E9F1F5;
+  --hero-muted: rgb(233 241 245 / 68%);
 }
 
 @layer base {
@@ -468,11 +476,210 @@
 .float-b { animation: bob 9s ease-in-out infinite alternate-reverse; }
 .float-c { animation: bob 11s ease-in-out infinite alternate; }
 
+/* entrance stagger — CSS-only alternative to <PageTransition> for mostly-
+   static pages (public homepage). MASTER.md §5: fade + 16px rise, 60ms/item. */
+.stagger {
+  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.stagger:nth-child(2) { animation-delay: 0.06s; }
+.stagger:nth-child(3) { animation-delay: 0.12s; }
+.stagger:nth-child(4) { animation-delay: 0.18s; }
+.stagger:nth-child(5) { animation-delay: 0.24s; }
+
 @media (prefers-reduced-motion: reduce) {
-  .float-a, .float-b, .float-c, .app-canvas::before, .status-dot.pulse {
+  .float-a, .float-b, .float-c, .app-canvas::before, .status-dot.pulse, .stagger {
     animation: none !important;
   }
   .lift, .btn-pill, .pill, .icon-pill {
     transition: none !important;
   }
+}
+
+/* ── Public homepage (mockup-v4-steel-frost.html #v-home) ─────────────
+   New, additive-only utilities for the marketing site nav + hero. */
+
+.site-nav {
+  position: sticky;
+  top: 16px;
+  z-index: 40;
+  max-width: 1120px;
+  margin: 16px auto 0;
+  padding: 0 10px 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.site-nav .links {
+  display: flex;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.site-nav .links a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.2s, background 0.2s;
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+.site-nav .links a:hover {
+  color: var(--foreground);
+  background: var(--glass-strong);
+}
+
+.hero {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 88px 24px 44px;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 48px;
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+}
+.hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hero-muted);
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+.hero .eyebrow::before {
+  content: '';
+  width: 26px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--coral);
+}
+.hero h1 {
+  font-size: 54px;
+  letter-spacing: -0.005em;
+  color: var(--hero-ink);
+  font-weight: 700;
+  text-shadow: 0 2px 24px rgb(10 25 35 / 25%);
+}
+.hero p.lead {
+  font-size: 16px;
+  color: var(--hero-muted);
+  margin: 20px 0 30px;
+  max-width: 46ch;
+  line-height: 1.65;
+}
+.hero .cta-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.hero .micro {
+  display: flex;
+  gap: 18px;
+  margin-top: 26px;
+  color: var(--hero-muted);
+  font-size: 12px;
+  align-items: center;
+}
+.hero .micro span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.hero-stage {
+  position: relative;
+  height: 450px;
+}
+.stage-card {
+  position: absolute;
+  overflow: hidden;
+}
+.stage-card.main {
+  inset: 26px 0 60px 40px;
+  border-radius: 26px;
+  box-shadow: var(--shadow-float);
+  border: 1px solid var(--glass-border);
+}
+.stage-card.main .ph {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(140deg, #7FA1B0 0%, #46656F 55%, #2A4550 100%);
+  position: relative;
+}
+.stage-card.main .ph::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgb(255 255 255 / 22%) 1px, transparent 1.4px);
+  background-size: 14px 14px;
+  mask-image: linear-gradient(115deg, transparent 45%, black 75%);
+  -webkit-mask-image: linear-gradient(115deg, transparent 45%, black 75%);
+}
+.stage-chip {
+  position: absolute;
+  padding: 13px 17px;
+  border-radius: 18px;
+  z-index: 2;
+  background: var(--glass-strong);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-float);
+}
+.stage-chip .k {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stage-chip .v {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.stage-chip .v b {
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--success);
+  margin-left: 7px;
+  background: var(--success-soft);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+.spark {
+  display: block;
+  margin-top: 6px;
+}
+
+.trust {
+  max-width: 1072px;
+  margin: 0 auto 70px;
+  padding: 15px 26px;
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  flex-wrap: wrap;
+  border-radius: 999px;
+}
+.trust b {
+  color: var(--foreground);
+  font-weight: 700;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.trust b:hover {
+  opacity: 1;
 }
