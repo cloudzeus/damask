@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T06:22:43.494Z",
+  "timestamp": "2026-07-15T08:09:25.256Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,13 +22,17 @@
     },
     {
       "status": "M",
-      "path": "prisma/schema.prisma"
+      "path": "src/components/shell/topbar.tsx"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20260715062224_pricecache_product_fk/"
+      "path": ".claude/"
+    },
+    {
+      "status": "??",
+      "path": "src/components/shell/sign-out-item.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nc9b8b77 feat: full Prisma schema for PIM domain (products, RBAC, orders, containers, sync infra)\n2682dae chore: add shadcn/ui with base components\n7565479 chore: scaffold Next.js 16 app with tooling (vitest, prisma client, deps)\n0b156b4 design: v2 feedback — Inter everywhere (no serif in Greek dashboards), compact scale, binding smart DataTable standard\n34d5a92 design: curated 'Linen & Brass' design system (MASTER.md) and align Phase 1 plan tokens/fonts"
+  "context_notes": "Recent commits:\n66f751c feat: next-intl infrastructure with EL default and cookie-based locale\n9e01fa9 feat: app shell with sidebar/topbar, Damask Linen&Brass tokens, GSAP page transitions\nb6f5dc3 feat: pg-boss queue bootstrapped via instrumentation with health job\n04d54af feat: RBAC helpers can() and requirePermission()\neb3f8ca test: isolate inactive-user mutation with try/finally"
 }

@@ -2,9 +2,10 @@ import { auth, signOut } from '@/auth'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { SignOutMenuItem } from './sign-out-item'
 
 export async function Topbar() {
   const session = await auth()
@@ -22,11 +23,11 @@ export async function Topbar() {
           }
         />
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{session?.user?.role}</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{session?.user?.role}</DropdownMenuLabel>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <form action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }}>
-            <DropdownMenuItem render={<button type="submit" className="w-full text-left">Αποσύνδεση</button>} />
-          </form>
+          <SignOutMenuItem action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }} />
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
