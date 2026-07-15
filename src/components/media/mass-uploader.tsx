@@ -78,6 +78,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
   const activeCountRef = useRef(0)
   const pendingQueueRef = useRef<string[]>([])
   const notifiedRef = useRef(true)
+  const deliveredRef = useRef<Set<string>>(new Set())
 
   function updateItem(id: string, patch: Partial<QueueItem>) {
     setItems(prev => prev.map(it => (it.id === id ? { ...it, ...patch } : it)))
@@ -220,9 +221,13 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
   useEffect(() => {
     if (total === 0 || inProgress || notifiedRef.current) return
     notifiedRef.current = true
-    if (doneCount > 0) {
-      toast.success(`Μεταφορτώθηκαν ${doneCount} αρχεία ✓`)
-      onUploaded?.(items.filter(i => i.status === 'done').map(i => i.asset!))
+    // Παρέδωσε ΜΟΝΟ τα νέα assets της παρτίδας — όσα έχουν ήδη παραδοθεί σε προηγούμενο
+    // batch μένουν εκτός, αλλιώς ο καταναλωτής τα προσθέτει διπλά (duplicate keys).
+    const newlyDone = items.filter(i => i.status === 'done' && i.asset && !deliveredRef.current.has(i.id))
+    if (newlyDone.length > 0) {
+      newlyDone.forEach(i => deliveredRef.current.add(i.id))
+      toast.success(`Μεταφορτώθηκαν ${newlyDone.length} αρχεία ✓`)
+      onUploaded?.(newlyDone.map(i => i.asset!))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inProgress, total, doneCount])

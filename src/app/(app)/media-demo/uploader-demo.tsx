@@ -14,11 +14,21 @@ export function MassUploaderDemo() {
       <MassUploader
         pathPrefix="products/demo"
         onUploaded={uploaded => {
-          setAssets(prev => [...prev, ...uploaded])
+          // Άμυνα: dedupe με βάση το path — αν το ίδιο αρχείο ξανα-ανέβει (ίδιο path στο CDN),
+          // αντικαθιστούμε την υπάρχουσα εγγραφή αντί να δημιουργήσουμε διπλό key.
+          setAssets(prev => {
+            const existing = new Set(prev.map(a => a.path))
+            return [...prev, ...uploaded.filter(a => !existing.has(a.path))]
+          })
           const newImages = uploaded
             .filter(asset => asset.type === 'IMAGE')
             .map(asset => ({ id: asset.path, url: asset.url, alt: asset.name }))
-          if (newImages.length > 0) setImageOrder(prev => [...prev, ...newImages])
+          if (newImages.length > 0) {
+            setImageOrder(prev => {
+              const existing = new Set(prev.map(img => img.id))
+              return [...prev, ...newImages.filter(img => !existing.has(img.id))]
+            })
+          }
         }}
       />
 
