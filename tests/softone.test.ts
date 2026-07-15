@@ -76,4 +76,42 @@ describe('softone client', () => {
     expect(res.rows[0].ok).toBe(1)
     expect(fetchMock).toHaveBeenCalledTimes(4)
   })
+
+  it('throws on non-JSON HTML error page', async () => {
+    const today = new Date().toISOString().slice(0, 10)
+    mem.session = { clientId: 'cached', date: today }
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array(iconv.encode('<html>502 Bad Gateway</html>', 'win1253')), { status: 502 })
+    )
+
+    await expect(s1('GetTable', { TABLE: 'MTRL' })).rejects.toThrow(/S1 HTTP 502/)
+  })
+
+  it('throws when retry also returns -101', async () => {
+    const today = new Date().toISOString().slice(0, 10)
+    mem.session = { clientId: 'stale', date: today }
+    fetchMock
+      .mockResolvedValueOnce(s1Response({ success: false, errorcode: -101 }))  // expired
+      .mockResolvedValueOnce(s1Response({ success: true, clientID: 'temp2' })) // Login
+      .mockResolvedValueOnce(s1Response({ success: true, clientID: 'fresh' })) // authenticate
+      .mockResolvedValueOnce(s1Response({ success: false, errorcode: -101 }))  // retry still expired
+
+    await expect(s1('GetTable', { TABLE: 'MTRL' })).rejects.toThrow(/auth failed after retry/)
+  })
+
+  it('skips re-auth when another caller already refreshed the session', async () => {
+    const today = new Date().toISOString().slice(0, 10)
+    mem.session = { clientId: 'stale', date: today }
+    fetchMock
+      .mockImplementationOnce(async () => {
+        // simulate another concurrent caller refreshing the session in the meantime
+        mem.session = { clientId: 'refreshed', date: today }
+        return s1Response({ success: false, errorcode: -101 })
+      })
+      .mockResolvedValueOnce(s1Response({ success: true, rows: [{ ok: 1 }] }))
+
+    const res = await s1('GetTable', { TABLE: 'MTRL' })
+    expect(res.rows[0].ok).toBe(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2) // no Login/authenticate calls
+  })
 })

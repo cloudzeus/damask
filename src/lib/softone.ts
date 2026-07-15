@@ -5,7 +5,9 @@ function baseUrl() {
   return `https://${process.env.S1_SERIAL}.oncloud.gr/s1services`
 }
 function appId() {
-  return process.env.S1_APP_ID!
+  const id = process.env.S1_APP_ID
+  if (!id) throw new Error('S1_APP_ID env var is not set')
+  return id
 }
 function today() {
   return new Date().toISOString().slice(0, 10)
@@ -24,9 +26,16 @@ async function s1Fetch(body: object): Promise<any> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     cache: 'no-store',
+    signal: AbortSignal.timeout(30_000),
   })
   const buffer = await res.arrayBuffer()
-  return JSON.parse(iconv.decode(Buffer.from(buffer), 'win1253'))
+  const text = iconv.decode(Buffer.from(buffer), 'win1253')
+  if (!res.ok) throw new Error(`S1 HTTP ${res.status}: ${text.slice(0, 300)}`)
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(`S1 non-JSON response (${res.status}): ${text.slice(0, 300)}`)
+  }
 }
 
 async function loadSession(): Promise<string | null> {
@@ -76,14 +85,27 @@ async function getClientId(): Promise<string> {
   return authPromise
 }
 
+async function getFreshClientId(staleId: string): Promise<string> {
+  const current = await loadSession()
+  if (current && current !== staleId) return current // κάποιος άλλος το ανανέωσε ήδη
+  authPromise ??= (async () => {
+    await clearSession()
+    return authenticate()
+  })().finally(() => { authPromise = null })
+  return authPromise
+}
+
 /** Κλήση επίσημου S1 service με αυτόματο session & re-auth σε -100/-101. */
 export async function s1(service: string, params: Record<string, unknown> = {}): Promise<any> {
   const clientID = await getClientId()
   const data = await s1Fetch({ service, clientID, appId: appId(), VERSION: '2', ...params })
   if (!data.success && (data.errorcode === -101 || data.errorcode === -100)) {
-    await clearSession()
-    const fresh = await getClientId()
-    return s1Fetch({ service, clientID: fresh, appId: appId(), VERSION: '2', ...params })
+    const fresh = await getFreshClientId(clientID)
+    const retry = await s1Fetch({ service, clientID: fresh, appId: appId(), VERSION: '2', ...params })
+    if (!retry.success && (retry.errorcode === -101 || retry.errorcode === -100)) {
+      throw new Error(`S1 auth failed after retry: ${retry.error ?? retry.errorcode}`)
+    }
+    return retry
   }
   return data
 }
