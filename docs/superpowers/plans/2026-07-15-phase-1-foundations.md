@@ -1326,23 +1326,78 @@ git add -A && git commit -m "feat: pg-boss queue bootstrapped via instrumentatio
 - Delete: `src/app/page.tsx` (default scaffold)
 - Modify: `src/app/layout.tsx` (fonts/metadata), `src/app/globals.css` (brand tokens)
 
-- [ ] **Step 1: Brand tokens & fonts**
+- [ ] **Step 1: Brand tokens & fonts** (πηγή: `design-system/damask-pim/MASTER.md` — «Λινό & Μπρούντζος»)
 
-Στο `src/app/globals.css` πρόσθεσε (Tailwind 4 syntax, κάτω από τα imports):
+Στο `src/app/globals.css` αντικατάστησε τα shadcn default tokens του `:root`/`.dark` με τα Damask (μορφή oklch/hex όπως τα έχει στήσει το shadcn init — κράτα τη δομή, άλλαξε τιμές):
 ```css
-@theme {
-  --font-serif: "Cormorant Garamond", Georgia, serif;
+:root {
+  --radius: 0.625rem;
+  --background: #FAF7F2;      /* ζεστό λινό */
+  --foreground: #292524;      /* μελάνι */
+  --card: #FFFFFF;
+  --card-foreground: #292524;
+  --primary: #292524;
+  --primary-foreground: #FFFFFF;
+  --muted: #F1EDE6;
+  --muted-foreground: #78716C;
+  --accent: #F1EDE6;          /* hover επιφανειών */
+  --accent-foreground: #292524;
+  --border: #E7E0D8;
+  --input: #E7E0D8;
+  --ring: #A16207;            /* μπρούντζος */
+  --destructive: #B91C1C;
+  --sidebar: #F4EFE7;
+  --sidebar-foreground: #292524;
+  --sidebar-primary: #A16207;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EAE3D8;
+  --sidebar-accent-foreground: #292524;
+  --sidebar-border: #E7E0D8;
+  --sidebar-ring: #A16207;
+  /* Damask extras */
+  --brass: #A16207;
+  --success: #15803D;
+  --warning: #B45309;
+  --info: #0369A1;
+}
+.dark {
+  --background: #0C0A09;      /* ζεστό σκοτάδι — όχι μπλε-μαύρο */
+  --foreground: #E7E5E4;
+  --card: #1C1917;
+  --card-foreground: #E7E5E4;
+  --primary: #E7E5E4;
+  --primary-foreground: #1C1917;
+  --muted: #292524;
+  --muted-foreground: #A8A29E;
+  --accent: #292524;
+  --accent-foreground: #E7E5E4;
+  --border: #292524;
+  --input: #292524;
+  --ring: #C89B3C;
+  --destructive: #EF4444;
+  --sidebar: #12100E;
+  --sidebar-foreground: #E7E5E4;
+  --sidebar-primary: #C89B3C;
+  --sidebar-primary-foreground: #12100E;
+  --sidebar-accent: #292524;
+  --sidebar-accent-foreground: #E7E5E4;
+  --sidebar-border: #292524;
+  --sidebar-ring: #C89B3C;
+  --brass: #C89B3C;
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --info: #38BDF8;
 }
 ```
 
-`src/app/layout.tsx` — metadata + serif font για το wordmark:
+`src/app/layout.tsx` — metadata + fonts (Literata headings με ελληνικά, Inter UI):
 ```tsx
 import type { Metadata } from 'next'
-import { Inter, Cormorant_Garamond } from 'next/font/google'
+import { Inter, Literata } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin', 'greek'], variable: '--font-sans' })
-const cormorant = Cormorant_Garamond({ weight: ['500', '600'], subsets: ['latin'], variable: '--font-serif' })
+const literata = Literata({ weight: ['400', '500', '600'], subsets: ['latin', 'greek'], variable: '--font-serif' })
 
 export const metadata: Metadata = {
   title: 'DAMASK PIM',
@@ -1352,7 +1407,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="el" suppressHydrationWarning>
-      <body className={`${inter.variable} ${cormorant.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${literata.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>
