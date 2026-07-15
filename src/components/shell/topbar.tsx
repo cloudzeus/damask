@@ -1,6 +1,5 @@
+import { Bell, Search } from 'lucide-react'
 import { auth, signOut } from '@/auth'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -12,14 +11,27 @@ export async function Topbar() {
   const name = session?.user?.name ?? ''
   const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-end border-b bg-background/85 px-5 backdrop-blur">
+    <header className="glass mt-3.5 mb-4 flex h-[54px] items-center gap-2.5 rounded-full py-0 pr-2 pl-4.5">
+      <div className="flex h-[34px] min-w-[220px] items-center gap-2 rounded-full border border-border bg-card px-3.5 text-[12.5px] text-muted-foreground shadow-[inset_0_1px_3px_rgb(23_43_58_/_5%)]">
+        <Search className="size-3.5 shrink-0" strokeWidth={1.8} />
+        Γρήγορη αναζήτηση…
+        <span className="ml-auto rounded border border-border px-1 text-[10px]">⌘K</span>
+      </div>
+      <div className="flex-1" />
+      <span className="badge-pill ok">
+        <span className="status-dot pulse" style={{ background: 'var(--success)', color: 'var(--success)' }} aria-hidden />
+        Sync πριν 4′
+      </span>
+      <button type="button" className="icon-pill" aria-label="Ειδοποιήσεις">
+        <Bell className="size-4" strokeWidth={1.8} />
+        <span className="ndot" aria-hidden />
+      </button>
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant="ghost" className="gap-2">
-              <Avatar className="size-7"><AvatarFallback className="bg-(--brass) text-[11px] font-semibold text-white">{initials}</AvatarFallback></Avatar>
-              <span className="text-[13px]">{name}</span>
-            </Button>
+            <button type="button" className="avatar-ring size-[30px] shrink-0 cursor-pointer text-[11px]">
+              {initials}
+            </button>
           }
         />
         <DropdownMenuContent align="end">

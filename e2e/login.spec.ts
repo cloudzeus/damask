@@ -10,6 +10,7 @@ test('logs in and sees dashboard, then dropdown shows role', async ({ page }) =>
   await page.fill('#email', 'gkozyris@i4ria.com')
   await page.fill('#password', process.env.SEED_ADMIN_PASSWORD ?? 'damask!2026')
   await page.click('button[type=submit]')
+  await expect(page).toHaveURL(/\/dashboard/)
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
   await expect(page.locator('aside').getByText('DAMASK', { exact: true })).toBeVisible()
 })
