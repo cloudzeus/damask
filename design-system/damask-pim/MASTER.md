@@ -91,6 +91,8 @@ Engine: **TanStack Table v8** + shadcn styling. Κοινό component `<DataTable
 
 Χτίζεται ΜΙΑ φορά (Φάση 2, πρώτος καταναλωτής: Προϊόντα) — κάθε οθόνη μετά δίνει μόνο columns config.
 
+**🔒 Κανονικό οπτικό πρότυπο (εγκεκριμένο από τον χρήστη 2026-07-15):** το DataTable της οθόνης «Προϊόντα» στο [`mockup-v2.html`](mockup-v2.html) (ίδιο με το artifact «DAMASK PIM — Mockup v2»). Ο χρήστης το ενέκρινε ρητά ως «πολύ κοντά σε αυτό που θέλουμε» — κάθε υλοποίηση DataTable αντιγράφει ΑΥΤΟ το layout: toolbar (αναζήτηση αριστερά, φίλτρα-chips, «Στήλες ▾» δεξιά), header row με sort βέλη + resize handles, στήλη expander + checkbox πρώτα, ⋮ actions τελευταία, expanded detail panel σε muted φόντο με grid ετικετών, inline edit με μπρούντζινο περίγραμμα + «Enter ✓ · Esc ✕» hint, footer με «N επιλεγμένα · Μαζικές ενέργειες», «Εγγραφές: 50 ▾», «1–50 από Χ» και αριθμημένο pager. Άνοιξε το αρχείο στον browser πριν χτίσεις οποιοδήποτε table.
+
 ## 5. Κίνηση (GSAP) — διακριτική, με νόημα
 
 | Πρότυπο | Spec |
