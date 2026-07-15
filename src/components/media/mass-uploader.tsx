@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { toast } from 'sonner'
 import {
-  UploadCloud, Image as ImageIcon, Video, Box, File as FileIcon,
+  UploadCloud, Video, Box, File as FileIcon,
   CheckCircle2, AlertTriangle, RotateCcw, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
