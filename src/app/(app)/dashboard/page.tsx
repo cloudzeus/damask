@@ -13,7 +13,7 @@ export default function DashboardPage() {
       <div className="mb-4 flex items-end gap-3 pt-1.5">
         <div>
           <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Καθημερινά <span className="opacity-50">›</span> <b className="text-foreground">Dashboard</b>
+            Καθημερινά <span aria-hidden>›</span> <b className="text-foreground">Dashboard</b>
           </div>
           <h1 className="text-[22px]">Dashboard</h1>
         </div>

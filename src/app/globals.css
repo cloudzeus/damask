@@ -109,7 +109,7 @@
   --info: #3B7DA8;
   --info-soft: rgb(59 125 168 / 12%);
   --dotted: rgb(94 116 130 / 38%);
-  --glass: rgb(255 255 255 / 52%);
+  --glass: rgb(255 255 255 / 60%);
   --glass-strong: rgb(255 255 255 / 80%);
   --glass-border: rgb(255 255 255 / 68%);
   --shadow-glass: 0 12px 40px rgb(23 43 58 / 12%);
@@ -191,6 +191,7 @@
   }
   h1, h2, h3 {
     font-family: var(--font-display);
+    color: var(--foreground);
   }
 }
 
@@ -199,7 +200,7 @@
 .app-canvas {
   position: relative;
   min-height: 100vh;
-  background: linear-gradient(178deg, var(--grad-top) 0%, var(--grad-mid) 22%, var(--grad-low) 52%, var(--grad-end) 100%);
+  background: linear-gradient(178deg, var(--grad-top) 0%, var(--grad-mid) 16%, var(--grad-low) 44%, var(--grad-end) 100%);
   background-attachment: fixed;
 }
 .app-canvas::before {
