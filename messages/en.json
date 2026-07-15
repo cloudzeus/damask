@@ -1,0 +1,9 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "customers": "Customers",
+    "orders": "Orders"
+  },
+  "auth": { "signOut": "Sign out" }
+}
