@@ -149,7 +149,7 @@ Engine: **TanStack Table v8** + shadcn styling. Κοινό component `<DataTable
 
 ## 7. Εικονίδια & εικόνες
 
-- **Lucide** αποκλειστικά, stroke 1.75, μεγέθη tokens: 16/20/24. Ποτέ emoji ως εικονίδιο, ποτέ εικονίδιο χωρίς label σε κύρια ενέργεια
+- **react-icons** (απόφαση χρήστη 2026-07-15 — «πάντα react icons, έχει πολλές συλλογές»): προτιμώμενη συλλογή **Lucide μέσω react-icons (`react-icons/lu`)** για συνέχεια με το υπάρχον στυλ (stroke look, μεγέθη 16/20/24), άλλες συλλογές (fa/md/tb) όπου χρειάζεται κάτι που δεν υπάρχει. Ο υπάρχων lucide-react κώδικας παραμένει· νέος κώδικας = react-icons. Ποτέ emoji ως εικονίδιο, ποτέ εικονίδιο χωρίς label σε κύρια ενέργεια
 - Εικόνες προϊόντων: aspect-ratio 1:1, `object-cover`, radius 10px, πάντα `width/height` δηλωμένα (CLS=0), lazy εκτός fold, Bunny Optimizer resize
 
 ## 8. Anti-patterns (απαγορεύονται)

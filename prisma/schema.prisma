@@ -25,6 +25,7 @@ model User {
   country      String?
   createdOrders  Order[] @relation("OrderCreatedBy")
   approvedOrders Order[] @relation("OrderApprovedBy")
+  importJobs   ImportJob[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   @@index([roleId])
@@ -146,7 +147,7 @@ enum ReviewStatus {
 
 model Product {
   id             String        @id @default(cuid())
-  mtrl           Int           @unique // S1 id
+  mtrl           Int?          @unique // S1 id — NULL για προϊόντα που δημιουργήθηκαν από Excel import και δεν έχουν ακόμα συγχρονιστεί με το SoftOne (nullable unique είναι ok σε Postgres· πολλαπλά NULL επιτρέπονται)
   code           String        @unique
   isActive       Boolean       @default(true)
   status         ProductStatus @default(DRAFT)
@@ -401,6 +402,31 @@ model DocumentTemplate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([type, name])
+}
+
+/// Καταγραφή εκτέλεσης εισαγωγής Excel (Import Engine, spec §11α). Δημιουργείται
+/// πάντα στο Βήμα 5 (Εκτέλεση) — sync εκτελέσεις (≤500 γραμμές) καταλήγουν κατευθείαν
+/// DONE/FAILED· μεγαλύτερες πάνε PENDING→RUNNING μέσω pg-boss job στην ουρά 'import'
+/// (src/server/queue-start.ts) με progress ορατό από GET /api/import/status/[id].
+enum ImportJobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model ImportJob {
+  id           String          @id @default(cuid())
+  entity       String          // "product" | ... (μελλοντικές οντότητες)
+  status       ImportJobStatus @default(PENDING)
+  totals       Json?           // { total, created, updated, failed, errors: [{row,column,message}] } — πρώτα 50 errors
+  errorFileUrl String?         // προαιρετικό — v1 κατεβάζει το Excel σφαλμάτων client-side από τα totals.errors
+  createdById  String
+  createdBy    User            @relation(fields: [createdById], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  @@index([status, createdAt])
+  @@index([entity, createdAt])
 }
 
 // ── Auth: B2B access requests & password reset ───────

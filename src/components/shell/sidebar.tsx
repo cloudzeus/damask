@@ -16,7 +16,7 @@ const NAV = [
     { href: '/customers', label: 'Πελάτες', icon: Users, permission: 'customer.view' },
     { href: '/orders', label: 'Παραγγελίες', icon: ClipboardList, permission: 'order.view' },
     { href: '/containers', label: 'Containers', icon: Container, permission: 'container.manage' },
-    { href: '/import', label: 'Εισαγωγή Excel', icon: Upload, permission: 'product.edit' },
+    { href: '/import', label: 'Εισαγωγή Excel', icon: Upload, permission: 'import.run' },
     { href: '/media', label: 'Media Gallery', icon: Images, permission: 'media.manage' },
   ] },
   { group: 'CMS', items: [

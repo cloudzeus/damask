@@ -4,6 +4,7 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'product.view', description: 'Προβολή προϊόντων' },
   { key: 'product.edit', description: 'Επεξεργασία προϊόντων' },
   { key: 'product.publish', description: 'Δημοσίευση προϊόντων' },
+  { key: 'import.run', description: 'Εκτέλεση εισαγωγών Excel' },
   { key: 'translation.edit', description: 'Επεξεργασία μεταφράσεων' },
   { key: 'translation.approve', description: 'Έγκριση μεταφράσεων' },
   { key: 'media.manage', description: 'Διαχείριση media' },
@@ -38,7 +39,7 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
   SUPER_ADMIN: ALL,
   ADMIN: ALL.filter(key => key !== 'settings.manage'),
   MANAGER: [
-    'product.view', 'product.edit', 'product.publish',
+    'product.view', 'product.edit', 'product.publish', 'import.run',
     'translation.edit', 'translation.approve',
     'media.manage', 'category.manage', 'unit.manage', 'container.manage',
     'customer.view', 'customer.edit',
@@ -63,6 +64,7 @@ export const ROLE_ORDER = Object.keys(ROLE_DEFAULTS)
 /** Ετικέτα ομάδας ανά πρόθεμα permission key — για το matrix /roles. */
 const PERMISSION_GROUP_LABELS: Record<string, string> = {
   product: 'Προϊόντα & Κατάλογος',
+  import: 'Προϊόντα & Κατάλογος',
   translation: 'Προϊόντα & Κατάλογος',
   media: 'Προϊόντα & Κατάλογος',
   category: 'Προϊόντα & Κατάλογος',
