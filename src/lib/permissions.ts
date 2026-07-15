@@ -44,3 +44,48 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
   ARCHITECT: ['portal.access', 'order.create', 'order.view', 'commission.view'],
   CUSTOMER: ['portal.access', 'order.create', 'order.view'],
 }
+
+/** Σειρά εμφάνισης ρόλων σε /roles (κάρτες + στήλες matrix) — όχι αλφαβητική. */
+export const ROLE_ORDER = Object.keys(ROLE_DEFAULTS)
+
+/** Ετικέτα ομάδας ανά πρόθεμα permission key — για το matrix /roles. */
+const PERMISSION_GROUP_LABELS: Record<string, string> = {
+  product: 'Προϊόντα & Κατάλογος',
+  translation: 'Προϊόντα & Κατάλογος',
+  media: 'Προϊόντα & Κατάλογος',
+  category: 'Προϊόντα & Κατάλογος',
+  unit: 'Προϊόντα & Κατάλογος',
+  customer: 'Πελάτες & Παραγγελίες',
+  order: 'Πελάτες & Παραγγελίες',
+  commission: 'Πελάτες & Παραγγελίες',
+  portal: 'Πελάτες & Παραγγελίες',
+  container: 'Διαχείριση',
+  sync: 'Διαχείριση',
+  user: 'Διαχείριση',
+  settings: 'Διαχείριση',
+}
+
+export type PermissionGroup = { label: string; items: PermissionDef[] }
+
+/**
+ * Ομαδοποιεί το PERMISSIONS catalog ανά πρόθεμα (product/order/user/…) στις
+ * 3 ενότητες του permissions matrix, διατηρώντας τη σειρά εμφάνισης της
+ * πρώτης ετικέτας που συναντάται (όχι απαραίτητα η σειρά μέσα σε κάθε ομάδα —
+ * αυτή ακολουθεί πάντα τη δηλωμένη σειρά του PERMISSIONS).
+ */
+export function groupedPermissions(): PermissionGroup[] {
+  const order: string[] = []
+  const buckets = new Map<string, PermissionDef[]>()
+
+  for (const perm of PERMISSIONS) {
+    const prefix = perm.key.split('.')[0]
+    const label = PERMISSION_GROUP_LABELS[prefix] ?? 'Άλλο'
+    if (!buckets.has(label)) {
+      buckets.set(label, [])
+      order.push(label)
+    }
+    buckets.get(label)!.push(perm)
+  }
+
+  return order.map(label => ({ label, items: buckets.get(label)! }))
+}

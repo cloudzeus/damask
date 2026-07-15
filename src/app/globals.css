@@ -923,3 +923,377 @@
 .notice.success svg {
   color: var(--success);
 }
+
+/* ── Users & Roles management (mockup-v4-steel-frost.html #v-users/#v-roles)
+   New, additive-only utilities for data tables, role pills/cards, and the
+   permissions matrix. Token names translated from the mockup's own
+   --ink/--muted-ink to this app's --foreground/--muted-foreground. ───── */
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 15px;
+  height: 36px;
+  min-width: 220px;
+  flex: 1;
+  max-width: 300px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  box-shadow: inset 0 1px 3px rgb(23 43 58 / 5%);
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+}
+.search input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.table-card {
+  padding: 6px 14px 12px;
+}
+.table-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 4px;
+  flex-wrap: wrap;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+
+/* scoped table chrome — NOT a bare `table`/`th`/`td` selector, so it never
+   leaks onto unrelated tables elsewhere in the app. */
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.data-table th {
+  text-align: left;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  font-weight: 800;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: relative;
+}
+.data-table th.sortable {
+  cursor: pointer;
+}
+.data-table th.sortable:hover {
+  color: var(--foreground);
+}
+.data-table th.sorted {
+  color: var(--info);
+}
+.data-table th.sorted .sarr {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  border-radius: 99px;
+  background: var(--info-soft);
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  font-size: 9px;
+}
+.data-table td {
+  padding: 0 10px;
+  height: 46px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.data-table td.num,
+.data-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.data-table td.ctr,
+.data-table th.ctr {
+  text-align: center;
+}
+.data-table tbody tr {
+  transition: background 0.15s ease;
+}
+.data-table tbody tr:hover {
+  background: var(--info-soft);
+}
+.data-table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--info);
+}
+input[type='checkbox'] {
+  accent-color: var(--navy);
+  cursor: pointer;
+}
+
+.rowmenu-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.rowmenu-btn:hover {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--foreground);
+  box-shadow: 0 2px 8px rgb(23 43 58 / 10%);
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-cell b {
+  font-size: 13px;
+}
+.user-cell small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  box-shadow: 0 1px 3px rgb(23 43 58 / 6%);
+  white-space: nowrap;
+}
+.role-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  display: inline-block;
+  flex: none;
+}
+
+.table-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 8px 2px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  flex-wrap: wrap;
+}
+.pager {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: auto;
+}
+.pager button {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.pager button:hover:not(.on) {
+  border-color: var(--info);
+  color: var(--info);
+}
+.pager button.on {
+  background: var(--navy);
+  color: var(--navy-ink);
+  border-color: var(--navy);
+  font-weight: 700;
+}
+.select-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 3px 11px;
+  font-size: 12px;
+  color: var(--foreground);
+}
+
+/* roles & permissions matrix */
+.roles-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.role-card {
+  padding: 15px 17px;
+  cursor: pointer;
+  position: relative;
+  text-align: left;
+  border: none;
+  font: inherit;
+  color: inherit;
+}
+.role-card.on {
+  outline: 2px solid var(--info);
+}
+.role-card.on::after {
+  content: '✓';
+  position: absolute;
+  top: 11px;
+  right: 12px;
+  width: 19px;
+  height: 19px;
+  border-radius: 99px;
+  background: var(--info);
+  color: #fff;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.role-card .n {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.role-card .c {
+  font-size: 11.5px;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
+.role-card .cnt {
+  font-size: 28px;
+  font-weight: 250;
+  margin-top: 7px;
+  font-variant-numeric: tabular-nums;
+}
+.role-card .cnt small {
+  font-size: 10.5px;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  margin-left: 5px;
+}
+
+.matrix td,
+.matrix th {
+  text-align: center;
+}
+.matrix td:first-child,
+.matrix th:first-child {
+  text-align: left;
+}
+.matrix td.matrix-col-on,
+.matrix th.matrix-col-on {
+  background: var(--info-soft);
+}
+.matrix .grp td {
+  background: transparent;
+  font-weight: 800;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  height: 34px;
+}
+.matrix .grp td > span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.matrix .grp td > span::after {
+  content: '';
+  flex: 1;
+  border-top: 1px dotted var(--dotted);
+}
+.matrix .perm {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.matrix .perm small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+  font-weight: 400;
+  font-family: ui-monospace, monospace;
+}
+
+.tickchip,
+.tick-off {
+  cursor: pointer;
+}
+.tickchip {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  background: var(--success-soft);
+  color: var(--success);
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  border: none;
+  transition: transform 0.15s;
+}
+.tickchip:hover {
+  transform: scale(1.15);
+}
+.tickchip.locked,
+.tick-off.locked {
+  cursor: default;
+}
+.tickchip.locked:hover {
+  transform: none;
+}
+.tick-off {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  background: transparent;
+  border: 1px dotted var(--dotted);
+  opacity: 0.5;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.tick-off:hover {
+  opacity: 0.85;
+  transform: scale(1.1);
+}
+.tick-off.locked:hover {
+  opacity: 0.5;
+  transform: none;
+}
+.tickchip:disabled,
+.tick-off:disabled {
+  cursor: default;
+  opacity: 0.5;
+  transform: none;
+}

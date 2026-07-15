@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, Upload, Image as ImageIcon,
+  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Image as ImageIcon,
 } from 'lucide-react'
 
 const NAV = [
@@ -20,7 +20,8 @@ const NAV = [
     { href: '/media-demo', label: 'Media (δοκιμή)', icon: ImageIcon, permission: 'media.manage' },
   ] },
   { group: 'Διαχείριση', items: [
-    { href: '/users', label: 'Χρήστες & Ρόλοι', icon: Shield, permission: 'user.manage' },
+    { href: '/users', label: 'Χρήστες', icon: UserCog, permission: 'user.manage' },
+    { href: '/roles', label: 'Ρόλοι & Δικαιώματα', icon: Shield, permission: 'user.manage' },
     { href: '/settings', label: 'Ρυθμίσεις', icon: Settings, permission: 'settings.manage' },
   ] },
 ] as const

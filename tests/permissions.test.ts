@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { PERMISSIONS, ROLE_DEFAULTS } from '@/lib/permissions'
+import { PERMISSIONS, ROLE_DEFAULTS, ROLE_ORDER, groupedPermissions } from '@/lib/permissions'
 
 describe('permissions catalog', () => {
   it('has unique keys', () => {
@@ -16,5 +16,59 @@ describe('permissions catalog', () => {
 
   it('ADMIN has all permissions', () => {
     expect(ROLE_DEFAULTS.ADMIN.length).toBe(PERMISSIONS.length)
+  })
+})
+
+describe('ROLE_ORDER', () => {
+  it('lists the 6 system roles, ADMIN first', () => {
+    expect(ROLE_ORDER).toEqual(['ADMIN', 'PURCHASING', 'PRODUCT_MANAGER', 'SALES', 'ARCHITECT', 'CUSTOMER'])
+  })
+})
+
+describe('groupedPermissions()', () => {
+  it('συμπεριλαμβάνει κάθε permission ακριβώς μία φορά', () => {
+    const groups = groupedPermissions()
+    const flat = groups.flatMap(g => g.items.map(i => i.key))
+    expect(flat.length).toBe(PERMISSIONS.length)
+    expect(new Set(flat).size).toBe(PERMISSIONS.length)
+  })
+
+  it('παράγει τις 3 ενότητες στη σωστή σειρά με τη σωστή ετικέτα ανά permission', () => {
+    const groups = groupedPermissions()
+    expect(groups.map(g => g.label)).toEqual([
+      'Προϊόντα & Κατάλογος',
+      'Πελάτες & Παραγγελίες',
+      'Διαχείριση',
+    ])
+
+    const labelOf = (key: string) =>
+      groups.find(g => g.items.some(i => i.key === key))?.label
+
+    expect(labelOf('product.edit')).toBe('Προϊόντα & Κατάλογος')
+    expect(labelOf('translation.approve')).toBe('Προϊόντα & Κατάλογος')
+    expect(labelOf('media.manage')).toBe('Προϊόντα & Κατάλογος')
+    expect(labelOf('category.manage')).toBe('Προϊόντα & Κατάλογος')
+    expect(labelOf('unit.manage')).toBe('Προϊόντα & Κατάλογος')
+
+    expect(labelOf('customer.edit')).toBe('Πελάτες & Παραγγελίες')
+    expect(labelOf('order.approve')).toBe('Πελάτες & Παραγγελίες')
+    expect(labelOf('commission.manage')).toBe('Πελάτες & Παραγγελίες')
+    expect(labelOf('portal.access')).toBe('Πελάτες & Παραγγελίες')
+
+    expect(labelOf('container.manage')).toBe('Διαχείριση')
+    expect(labelOf('sync.run')).toBe('Διαχείριση')
+    expect(labelOf('user.manage')).toBe('Διαχείριση')
+    expect(labelOf('settings.manage')).toBe('Διαχείριση')
+  })
+
+  it('διατηρεί τη δηλωμένη σειρά του PERMISSIONS μέσα σε κάθε ομάδα', () => {
+    const groups = groupedPermissions()
+    const catalog = groups.find(g => g.label === 'Πελάτες & Παραγγελίες')!
+    expect(catalog.items.map(i => i.key)).toEqual([
+      'customer.view', 'customer.edit',
+      'order.view', 'order.create', 'order.approve', 'order.autoapprove',
+      'commission.view', 'commission.manage',
+      'portal.access',
+    ])
   })
 })
