@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T05:33:02.116Z",
+  "timestamp": "2026-07-15T08:19:28.757Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -21,14 +21,18 @@
       "path": ".planning/HANDOFF.json"
     },
     {
-      "status": "M",
-      "path": "docs/superpowers/plans/2026-07-15-phase-1-foundations.md"
+      "status": "??",
+      "path": ".claude/"
     },
     {
-      "status": "M",
-      "path": "docs/superpowers/specs/2026-07-15-damask-pim-design.md"
+      "status": "??",
+      "path": "e2e/"
+    },
+    {
+      "status": "??",
+      "path": "playwright.config.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n5528e7e docs: Phase 1 foundations implementation plan\n2a7d112 Add .gitignore and .env.example (secrets stay local)\n07b8f61 first commit\n1d24ed0 Add DAMASK PIM design spec (v2 — approved after brainstorming)"
+  "context_notes": "Recent commits:\n4d2221a docs: ratify accent/brass token split and base-ui render pattern in MASTER.md\n1a906ef fix: topbar dropdown crash — wrap label in Menu.Group and base-ui-safe sign-out item\n66f751c feat: next-intl infrastructure with EL default and cookie-based locale\n9e01fa9 feat: app shell with sidebar/topbar, Damask Linen&Brass tokens, GSAP page transitions\nb6f5dc3 feat: pg-boss queue bootstrapped via instrumentation with health job"
 }

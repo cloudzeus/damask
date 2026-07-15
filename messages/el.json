@@ -1,0 +1,9 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Προϊόντα",
+    "customers": "Πελάτες",
+    "orders": "Παραγγελίες"
+  },
+  "auth": { "signOut": "Αποσύνδεση" }
+}
