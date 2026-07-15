@@ -39,7 +39,7 @@ export default async function RolesPage() {
             Διαχείριση <span aria-hidden>›</span> <b className="text-foreground">Ρόλοι &amp; Δικαιώματα</b>
           </div>
           <h1 className="text-[22px]">Ρόλοι &amp; Δικαιώματα</h1>
-          <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+          <p className="page-head-subtitle mt-0.5 text-[12.5px]">
             Κλικ σε κελί για εναλλαγή — αποθηκεύεται αυτόματα
           </p>
         </div>

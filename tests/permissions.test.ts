@@ -14,14 +14,21 @@ describe('permissions catalog', () => {
     }
   })
 
-  it('ADMIN has all permissions', () => {
-    expect(ROLE_DEFAULTS.ADMIN.length).toBe(PERMISSIONS.length)
+  it('SUPER_ADMIN has all permissions', () => {
+    expect(ROLE_DEFAULTS.SUPER_ADMIN.length).toBe(PERMISSIONS.length)
+  })
+
+  it('ADMIN has all permissions except settings.manage', () => {
+    expect(ROLE_DEFAULTS.ADMIN.length).toBe(PERMISSIONS.length - 1)
+    expect(ROLE_DEFAULTS.ADMIN).not.toContain('settings.manage')
   })
 })
 
 describe('ROLE_ORDER', () => {
-  it('lists the 6 system roles, ADMIN first', () => {
-    expect(ROLE_ORDER).toEqual(['ADMIN', 'PURCHASING', 'PRODUCT_MANAGER', 'SALES', 'ARCHITECT', 'CUSTOMER'])
+  it('lists the 8 system roles, SUPER_ADMIN first', () => {
+    expect(ROLE_ORDER).toEqual([
+      'SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER', 'SUPPLIER', 'ARCHITECT', 'SALESMAN',
+    ])
   })
 })
 

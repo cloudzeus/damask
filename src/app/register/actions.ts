@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 const schema = z.object({
-  type: z.enum(['CUSTOMER', 'ARCHITECT'], { error: 'Επίλεξε τύπο λογαριασμού.' }),
+  type: z.enum(['CUSTOMER', 'ARCHITECT', 'SUPPLIER'], { error: 'Επίλεξε τύπο λογαριασμού.' }),
   name: z.string().trim().min(2, 'Συμπλήρωσε το ονοματεπώνυμό σου.'),
   phone: z
     .string()

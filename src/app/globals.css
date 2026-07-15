@@ -102,12 +102,14 @@
   --navy-ink: #F2F6F6;
   --coral: #E4574D;
   --coral-soft: rgb(228 87 77 / 10%);
+  --coral-light: color-mix(in srgb, var(--coral) 62%, white);
   --success: #2E9E63;
   --success-soft: rgb(46 158 99 / 12%);
   --warning: #C77E1E;
   --warning-soft: rgb(199 126 30 / 13%);
   --info: #3B7DA8;
   --info-soft: rgb(59 125 168 / 12%);
+  --info-light: color-mix(in srgb, var(--info) 62%, white);
   --dotted: rgb(94 116 130 / 38%);
   --glass: rgb(255 255 255 / 60%);
   --glass-strong: rgb(255 255 255 / 80%);
@@ -167,12 +169,14 @@
   --navy-ink: #10222C;
   --coral: #F0776D;
   --coral-soft: rgb(240 119 109 / 15%);
+  --coral-light: color-mix(in srgb, var(--coral) 55%, white);
   --success: #4AC98A;
   --success-soft: rgb(74 201 138 / 14%);
   --warning: #E9A94E;
   --warning-soft: rgb(233 169 78 / 15%);
   --info: #64A9D2;
   --info-soft: rgb(100 169 210 / 14%);
+  --info-light: color-mix(in srgb, var(--info) 55%, white);
   --dotted: rgb(143 165 178 / 35%);
   --glass: rgb(23 40 52 / 52%);
   --glass-strong: rgb(23 40 52 / 84%);
@@ -232,6 +236,14 @@
 .app-canvas--deep {
   background: linear-gradient(178deg, var(--grad-top) 0%, var(--grad-mid) 22%, var(--grad-low) 52%, var(--grad-end) 100%);
   background-attachment: fixed;
+}
+
+/* (app) page-head subtitle — like the public hero, this text sits directly
+   on the top (darkest) band of the gradient canvas, not on a glass surface,
+   so plain --muted-foreground (tuned for cards) is illegible there. Reuses
+   the hero tokens for the same reason .hero p.lead does. */
+.page-head-subtitle {
+  color: var(--hero-muted);
 }
 
 .glass {
@@ -855,8 +867,8 @@
 
 .role-pick {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
   margin-bottom: 14px;
 }
 .role-pick .opt {
@@ -1143,6 +1155,15 @@ input[type='checkbox'] {
 }
 
 /* roles & permissions matrix */
+.matrix-legend {
+  margin: 2px 4px 10px;
+  padding: 9px 13px;
+  border-radius: 13px;
+  background: var(--info-soft);
+  color: var(--foreground);
+  font-size: 11.5px;
+  font-weight: 600;
+}
 .roles-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
@@ -1261,10 +1282,18 @@ input[type='checkbox'] {
   font-size: 11px;
   font-weight: 800;
   border: none;
-  transition: transform 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
+/* editable-affordance: every non-locked cell rings + grows on hover, so the
+   whole matrix visibly reads as clickable, not just a static grid. */
 .tickchip:hover {
-  transform: scale(1.15);
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px var(--info);
+}
+.tickchip:focus-visible,
+.tick-off:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
 }
 .tickchip.locked,
 .tick-off.locked {
@@ -1272,6 +1301,7 @@ input[type='checkbox'] {
 }
 .tickchip.locked:hover {
   transform: none;
+  box-shadow: none;
 }
 .tick-off {
   display: inline-flex;
@@ -1281,19 +1311,35 @@ input[type='checkbox'] {
   background: transparent;
   border: 1px dotted var(--dotted);
   opacity: 0.5;
-  transition: transform 0.15s, opacity 0.15s;
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 800;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
 }
 .tick-off:hover {
   opacity: 0.85;
   transform: scale(1.1);
+  box-shadow: 0 0 0 2px var(--info);
+}
+/* faint ✓ preview inside an off cell on hover — signals "click to grant" */
+.tick-off .tick-preview {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.tick-off:hover .tick-preview {
+  opacity: 0.5;
 }
 .tick-off.locked:hover {
   opacity: 0.5;
   transform: none;
+  box-shadow: none;
 }
 .tickchip:disabled,
 .tick-off:disabled {
   cursor: default;
   opacity: 0.5;
   transform: none;
+  box-shadow: none;
 }

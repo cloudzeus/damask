@@ -60,8 +60,9 @@ import { togglePermission } from '@/app/(app)/roles/actions'
 
 beforeEach(() => {
   store.roles = [
+    { id: 'role-super-admin', name: 'SUPER_ADMIN' },
     { id: 'role-admin', name: 'ADMIN' },
-    { id: 'role-sales', name: 'SALES' },
+    { id: 'role-sales', name: 'SALESMAN' },
   ]
   store.permissions = [
     { id: 'perm-edit', key: 'product.edit', description: 'Επεξεργασία προϊόντων' },
@@ -71,20 +72,26 @@ beforeEach(() => {
 })
 
 describe('togglePermission()', () => {
-  it('αρνείται να αλλάξει δικαιώματα για τον ρόλο ADMIN', async () => {
-    const res = await togglePermission('ADMIN', 'product.edit')
+  it('αρνείται να αλλάξει δικαιώματα για τον ρόλο SUPER_ADMIN', async () => {
+    const res = await togglePermission('SUPER_ADMIN', 'product.edit')
     expect(res.ok).toBe(false)
-    expect(store.rolePermissions.some(rp => rp.roleId === 'role-admin')).toBe(false)
+    expect(store.rolePermissions.some(rp => rp.roleId === 'role-super-admin')).toBe(false)
+  })
+
+  it('επιτρέπει αλλαγή δικαιωμάτων για τον ρόλο ADMIN (δεν είναι πια locked)', async () => {
+    const res = await togglePermission('ADMIN', 'product.edit')
+    expect(res).toMatchObject({ ok: true })
+    expect(store.rolePermissions).toContainEqual({ roleId: 'role-admin', permissionId: 'perm-edit' })
   })
 
   it('προσθέτει το δικαίωμα όταν ο ρόλος δεν το έχει', async () => {
-    const res = await togglePermission('SALES', 'product.edit')
+    const res = await togglePermission('SALESMAN', 'product.edit')
     expect(res).toMatchObject({ ok: true })
     expect(store.rolePermissions).toContainEqual({ roleId: 'role-sales', permissionId: 'perm-edit' })
   })
 
   it('αφαιρεί το δικαίωμα όταν ο ρόλος το έχει ήδη', async () => {
-    const res = await togglePermission('SALES', 'product.view')
+    const res = await togglePermission('SALESMAN', 'product.view')
     expect(res).toMatchObject({ ok: true })
     expect(store.rolePermissions).not.toContainEqual({ roleId: 'role-sales', permissionId: 'perm-view' })
   })
@@ -95,7 +102,7 @@ describe('togglePermission()', () => {
   })
 
   it('επιστρέφει σφάλμα για άγνωστο permission key', async () => {
-    const res = await togglePermission('SALES', 'does.not.exist')
+    const res = await togglePermission('SALESMAN', 'does.not.exist')
     expect(res.ok).toBe(false)
   })
 })

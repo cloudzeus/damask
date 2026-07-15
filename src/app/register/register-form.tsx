@@ -8,7 +8,7 @@ const initialState: RegisterState = {}
 
 export function RegisterForm() {
   const [state, action, pending] = useActionState(requestAccess, initialState)
-  const [role, setRole] = useState<'CUSTOMER' | 'ARCHITECT'>('CUSTOMER')
+  const [role, setRole] = useState<'CUSTOMER' | 'ARCHITECT' | 'SUPPLIER'>('CUSTOMER')
 
   if (state.success) {
     return (
@@ -29,7 +29,7 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="auth-card glass stagger" style={{ maxWidth: 472 }}>
+    <div className="auth-card glass stagger" style={{ maxWidth: 528 }}>
       <span className="wordmark">DAMASK</span>
       <p className="sub">Αίτημα πρόσβασης B2B</p>
 
@@ -54,6 +54,15 @@ export function RegisterForm() {
           >
             <b>📐 Αρχιτέκτονας</b>
             <small>Παραγγέλνω για λογαριασμό πελατών μου</small>
+          </button>
+          <button
+            type="button"
+            className={`opt${role === 'SUPPLIER' ? ' on' : ''}`}
+            aria-pressed={role === 'SUPPLIER'}
+            onClick={() => setRole('SUPPLIER')}
+          >
+            <b>🏭 Προμηθευτής</b>
+            <small>Προμηθεύω προϊόντα στην Damask</small>
           </button>
         </div>
 

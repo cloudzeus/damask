@@ -47,7 +47,8 @@ export function AccessRequestsPanel({ requests }: { requests: AccessRequestRow[]
                 {request.name} <span className="font-normal text-muted-foreground">— {request.company}</span>
               </b>
               <small className="block text-[11px] text-muted-foreground">
-                ΑΦΜ {request.afm} · {request.email} · {request.type === 'ARCHITECT' ? 'Αρχιτέκτονας' : 'Πελάτης'}
+                ΑΦΜ {request.afm} · {request.email} ·{' '}
+                {request.type === 'ARCHITECT' ? 'Αρχιτέκτονας' : request.type === 'SUPPLIER' ? 'Προμηθευτής' : 'Πελάτης'}
               </small>
             </div>
             <div className="flex shrink-0 gap-2">

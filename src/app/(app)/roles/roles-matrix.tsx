@@ -58,6 +58,9 @@ export function RolesMatrix({ roles, groups }: { roles: RoleData[]; groups: Perm
       </div>
 
       <div className="glass table-card stagger">
+        <p className="matrix-legend">
+          💡 Κλικ σε οποιοδήποτε κελί για ενεργοποίηση/απενεργοποίηση — αποθηκεύεται αυτόματα
+        </p>
         <div className="table-wrap">
           <table className="data-table matrix">
             <thead>
@@ -85,22 +88,22 @@ export function RolesMatrix({ roles, groups }: { roles: RoleData[]; groups: Perm
                         <small>{perm.key}</small>
                       </td>
                       {roles.map(role => {
-                        const isAdmin = role.name === 'ADMIN'
+                        const isLocked = role.name === 'SUPER_ADMIN'
                         const granted = role.grantedKeys.includes(perm.key)
                         const cellClassName = selectedRole === role.name ? 'matrix-col-on' : ''
 
-                        if (isAdmin) {
+                        if (isLocked) {
                           return (
                             <td key={role.id} className={cellClassName}>
                               <Tooltip>
                                 <TooltipTrigger
                                   render={
-                                    <span className="tickchip locked" aria-label="Ο ADMIN έχει πάντα όλα τα δικαιώματα">
+                                    <span className="tickchip locked" aria-label="Ο SUPER ADMIN έχει πάντα πλήρη πρόσβαση">
                                       ✓
                                     </span>
                                   }
                                 />
-                                <TooltipContent>Ο ADMIN έχει πάντα όλα</TooltipContent>
+                                <TooltipContent>Ο SUPER ADMIN έχει πάντα πλήρη πρόσβαση</TooltipContent>
                               </Tooltip>
                             </td>
                           )
@@ -112,10 +115,11 @@ export function RolesMatrix({ roles, groups }: { roles: RoleData[]; groups: Perm
                               type="button"
                               className={granted ? 'tickchip' : 'tick-off'}
                               disabled={pending}
+                              title="Κλικ για εναλλαγή"
                               aria-label={`${granted ? 'Αφαίρεση' : 'Προσθήκη'} «${perm.description}» για τον ρόλο ${role.name}`}
                               onClick={() => handleToggle(role.name, perm.key)}
                             >
-                              {granted ? '✓' : ''}
+                              {granted ? '✓' : <span className="tick-preview" aria-hidden>✓</span>}
                             </button>
                           </td>
                         )

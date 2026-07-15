@@ -3,14 +3,16 @@ import { roleHome } from '@/lib/role-home'
 
 describe('roleHome()', () => {
   it('στέλνει το εσωτερικό προσωπικό στο /dashboard', () => {
+    expect(roleHome('SUPER_ADMIN')).toBe('/dashboard')
     expect(roleHome('ADMIN')).toBe('/dashboard')
-    expect(roleHome('PURCHASING')).toBe('/dashboard')
-    expect(roleHome('PRODUCT_MANAGER')).toBe('/dashboard')
-    expect(roleHome('SALES')).toBe('/dashboard')
+    expect(roleHome('MANAGER')).toBe('/dashboard')
+    expect(roleHome('EMPLOYEE')).toBe('/dashboard')
+    expect(roleHome('SALESMAN')).toBe('/dashboard')
   })
-  it('στέλνει πελάτες/αρχιτέκτονες στο B2B /portal', () => {
+  it('στέλνει πελάτες/αρχιτέκτονες/προμηθευτές στο B2B /portal', () => {
     expect(roleHome('ARCHITECT')).toBe('/portal')
     expect(roleHome('CUSTOMER')).toBe('/portal')
+    expect(roleHome('SUPPLIER')).toBe('/portal')
   })
   it('άγνωστος ρόλος πάει στο /login', () => {
     expect(roleHome('')).toBe('/login')

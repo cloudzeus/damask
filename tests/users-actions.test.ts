@@ -87,14 +87,16 @@ beforeEach(() => {
   ]
   store.roles = [
     { id: 'role-admin', name: 'ADMIN' },
-    { id: 'role-sales', name: 'SALES' },
+    { id: 'role-sales', name: 'SALESMAN' },
     { id: 'role-architect', name: 'ARCHITECT' },
     { id: 'role-customer', name: 'CUSTOMER' },
+    { id: 'role-supplier', name: 'SUPPLIER' },
   ]
   store.requests = [
     { id: 'req-1', type: 'CUSTOMER', name: 'Νίκος Σταύρου', company: 'Interior Concept', afm: '123456789', phone: '2101234567', email: 'nikos@interior.gr', status: 'PENDING' },
     { id: 'req-2', type: 'ARCHITECT', name: 'Μαρία Παπαδάκη', company: 'Atelier Nord', afm: '987654321', phone: '2109876543', email: 'maria@atelier.gr', status: 'PENDING' },
     { id: 'req-3', type: 'CUSTOMER', name: 'Ήδη εγκεκριμένος', company: 'X', afm: '111111111', phone: '210', email: 'approved@x.gr', status: 'APPROVED' },
+    { id: 'req-4', type: 'SUPPLIER', name: 'Κώστας Προμηθευτής', company: 'Ξυλεία Βορρά', afm: '222222222', phone: '2104445566', email: 'kostas@xylia.gr', status: 'PENDING' },
   ]
 })
 
@@ -156,6 +158,14 @@ describe('approveAccessRequest()', () => {
     const created = store.users.find(u => u.email === 'maria@atelier.gr')
     expect(created?.roleId).toBe('role-architect')
     expect(store.requests.find(r => r.id === 'req-2')?.status).toBe('APPROVED')
+  })
+
+  it('δημιουργεί User με ρόλο SUPPLIER για αίτημα τύπου SUPPLIER', async () => {
+    const res = await approveAccessRequest('req-4')
+    expect(res).toMatchObject({ ok: true })
+    const created = store.users.find(u => u.email === 'kostas@xylia.gr')
+    expect(created?.roleId).toBe('role-supplier')
+    expect(store.requests.find(r => r.id === 'req-4')?.status).toBe('APPROVED')
   })
 
   it('αρνείται αίτημα που δεν είναι πλέον PENDING', async () => {

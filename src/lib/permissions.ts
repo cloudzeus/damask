@@ -26,23 +26,32 @@ export const PERMISSIONS: PermissionDef[] = [
 
 const ALL = PERMISSIONS.map(p => p.key)
 
+/**
+ * 8-role model (RBAC v2). Σειρά δήλωσης = ROLE_ORDER (κάρτες + στήλες
+ * matrix σε /roles) — SUPER_ADMIN, ADMIN, MANAGER, EMPLOYEE, CUSTOMER,
+ * SUPPLIER, ARCHITECT, SALESMAN. Όλα editable αργότερα μέσω του matrix —
+ * αυτά είναι μόνο τα seeds.
+ */
 export const ROLE_DEFAULTS: Record<string, string[]> = {
-  ADMIN: ALL,
-  PURCHASING: [
-    'product.view', 'unit.manage', 'container.manage',
-    'order.view', 'sync.run', 'commission.manage',
-  ],
-  PRODUCT_MANAGER: [
+  SUPER_ADMIN: ALL,
+  ADMIN: ALL.filter(key => key !== 'settings.manage'),
+  MANAGER: [
     'product.view', 'product.edit', 'product.publish',
-    'translation.edit', 'translation.approve', 'media.manage',
-    'category.manage', 'unit.manage', 'sync.run',
+    'translation.edit', 'translation.approve',
+    'media.manage', 'category.manage', 'unit.manage', 'container.manage',
+    'customer.view', 'customer.edit',
+    'order.view', 'order.approve', 'order.autoapprove',
+    'commission.manage', 'sync.run',
   ],
-  SALES: [
+  EMPLOYEE: ['product.view', 'customer.view', 'order.view', 'order.create'],
+  CUSTOMER: ['portal.access', 'order.create', 'order.view'],
+  SUPPLIER: ['portal.access', 'order.view'],
+  ARCHITECT: ['portal.access', 'order.create', 'order.view', 'commission.view'],
+  SALESMAN: [
     'product.view', 'customer.view', 'customer.edit',
     'order.view', 'order.create', 'order.approve', 'order.autoapprove',
+    'commission.view',
   ],
-  ARCHITECT: ['portal.access', 'order.create', 'order.view', 'commission.view'],
-  CUSTOMER: ['portal.access', 'order.create', 'order.view'],
 }
 
 /** Σειρά εμφάνισης ρόλων σε /roles (κάρτες + στήλες matrix) — όχι αλφαβητική. */

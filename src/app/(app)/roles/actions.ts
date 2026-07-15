@@ -8,13 +8,14 @@ export type ActionResult = { ok: true; message: string } | { ok: false; message:
 
 /**
  * Ενεργοποιεί/απενεργοποιεί ένα permission για έναν ρόλο (create/delete RolePermission).
- * Ο ADMIN έχει πάντα όλα τα δικαιώματα — locked, refuses server-side (όχι μόνο στο UI).
+ * Ο SUPER_ADMIN έχει πάντα όλα τα δικαιώματα — locked, refuses server-side (όχι μόνο στο UI).
+ * Ο ADMIN πλέον είναι κανονικός, επεξεργάσιμος ρόλος (RBAC v2).
  */
 export async function togglePermission(roleName: string, permissionKey: string): Promise<ActionResult> {
   await requirePermission('user.manage')
 
-  if (roleName === 'ADMIN') {
-    return { ok: false, message: 'Ο ρόλος ADMIN έχει πάντα όλα τα δικαιώματα.' }
+  if (roleName === 'SUPER_ADMIN') {
+    return { ok: false, message: 'Ο ρόλος SUPER_ADMIN έχει πάντα όλα τα δικαιώματα.' }
   }
 
   const [role, permission] = await Promise.all([

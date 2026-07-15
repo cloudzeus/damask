@@ -29,8 +29,9 @@ async function main() {
     ])
   }
 
-  // 3. Admin user
-  const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'ADMIN' } })
+  // 3. Admin user — SUPER_ADMIN (RBAC v2). update:{} σκόπιμα κενό: reseed δεν
+  // πρέπει ποτέ να υποβαθμίσει τον ρόλο ενός ήδη υπάρχοντος χρήστη.
+  const superAdminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'SUPER_ADMIN' } })
   const password = process.env.SEED_ADMIN_PASSWORD ?? 'damask!2026'
   await prisma.user.upsert({
     where: { email: 'gkozyris@i4ria.com' },
@@ -39,10 +40,10 @@ async function main() {
       email: 'gkozyris@i4ria.com',
       name: 'Giannis Kozyris',
       passwordHash: await bcrypt.hash(password, 12),
-      roleId: adminRole.id,
+      roleId: superAdminRole.id,
     },
   })
-  console.log('Seed ολοκληρώθηκε. Admin: gkozyris@i4ria.com')
+  console.log('Seed ολοκληρώθηκε. Admin: gkozyris@i4ria.com (SUPER_ADMIN)')
 }
 
 main()

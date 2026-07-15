@@ -53,8 +53,12 @@ function randomTempPassword(): string {
   return crypto.randomBytes(12).toString('base64url')
 }
 
+/** Τύποι B2B αιτήματος που γίνονται δεκτοί — mapping 1:1 σε όνομα ρόλου. */
+const ACCESS_REQUEST_ROLE_NAMES = new Set(['CUSTOMER', 'ARCHITECT', 'SUPPLIER'])
+
 /**
- * Εγκρίνει ένα B2B αίτημα πρόσβασης: δημιουργεί User (CUSTOMER ή ARCHITECT),
+ * Εγκρίνει ένα B2B αίτημα πρόσβασης: δημιουργεί User (CUSTOMER, ARCHITECT ή
+ * SUPPLIER — το type του αιτήματος γίνεται απευθείας το όνομα του ρόλου),
  * ενεργό, με τυχαίο προσωρινό password· σημειώνει το αίτημα ως APPROVED.
  */
 export async function approveAccessRequest(requestId: string): Promise<ActionResult> {
@@ -65,7 +69,7 @@ export async function approveAccessRequest(requestId: string): Promise<ActionRes
     return { ok: false, message: 'Το αίτημα δεν βρέθηκε ή έχει ήδη διεκπεραιωθεί.' }
   }
 
-  const roleName = request.type === 'ARCHITECT' ? 'ARCHITECT' : 'CUSTOMER'
+  const roleName = ACCESS_REQUEST_ROLE_NAMES.has(request.type) ? request.type : 'CUSTOMER'
   const role = await prisma.role.findUnique({ where: { name: roleName } })
   if (!role) return { ok: false, message: `Ο ρόλος ${roleName} δεν υπάρχει.` }
 
