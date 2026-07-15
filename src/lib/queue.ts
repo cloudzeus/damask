@@ -3,10 +3,14 @@ import { PgBoss } from 'pg-boss'
 const globalForBoss = globalThis as unknown as { boss?: PgBoss; bossStarted?: boolean }
 
 export function getBoss(): PgBoss {
-  globalForBoss.boss ??= new PgBoss({
-    connectionString: process.env.DATABASE_URL!,
-    schema: 'pgboss',
-  })
+  if (!globalForBoss.boss) {
+    const boss = new PgBoss({
+      connectionString: process.env.DATABASE_URL!,
+      schema: 'pgboss',
+    })
+    boss.on('error', err => console.error('[pg-boss] error:', err))
+    globalForBoss.boss = boss
+  }
   return globalForBoss.boss
 }
 
