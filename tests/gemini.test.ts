@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/settings', () => ({ getIntegration: vi.fn(async () => ({})) }))
+vi.mock('@/lib/ai/usage', () => ({ logAiUsage: vi.fn(async () => {}) }))
 
 import { getIntegration } from '@/lib/settings'
+import { logAiUsage } from '@/lib/ai/usage'
 import { geminiGenerate, parseFallbackModels } from '@/lib/gemini'
 
 const fetchMock = vi.fn()
@@ -11,13 +13,14 @@ beforeEach(() => {
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
   vi.mocked(getIntegration).mockReset()
+  vi.mocked(logAiUsage).mockReset().mockResolvedValue(undefined)
 })
 afterEach(() => vi.unstubAllGlobals())
 
 function genResponse(text: string, status = 200, extra: Record<string, unknown> = {}): Response {
   return new Response(JSON.stringify({
     candidates: [{ content: { parts: [{ text }] } }],
-    usageMetadata: { totalTokenCount: 42 },
+    usageMetadata: { promptTokenCount: 30, candidatesTokenCount: 12, totalTokenCount: 42 },
     ...extra,
   }), { status })
 }
@@ -128,6 +131,15 @@ describe('geminiGenerate — request shape', () => {
     await expect(geminiGenerate({})).rejects.toThrow(/δεν δόθηκε/)
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  it('passes opts.scope/refType/refId/userId through to logAiUsage (used by ocr/extract.ts)', async () => {
+    fetchMock.mockResolvedValueOnce(genResponse('ok'))
+    await geminiGenerate({ text: 'hi', scope: 'OCR_VISION', refType: 'ocr', refId: 'doc-1', userId: 'user-1' })
+
+    expect(logAiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      scope: 'OCR_VISION', refType: 'ocr', refId: 'doc-1', userId: 'user-1',
+    }))
+  })
 })
 
 describe('geminiGenerate — model fallback + errors', () => {
@@ -140,6 +152,19 @@ describe('geminiGenerate — model fallback + errors', () => {
 
     const result = await geminiGenerate({ text: 'ping' })
     expect(result).toEqual({ text: 'pong', model: 'b', tokensUsed: 42 })
+  })
+
+  it('logs AiUsage ONLY for the model that ultimately succeeded, not the failed fallback attempts', async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response('bad', { status: 400 }))
+      .mockResolvedValueOnce(genResponse('pong'))
+
+    await geminiGenerate({ text: 'ping' })
+
+    expect(logAiUsage).toHaveBeenCalledTimes(1)
+    expect(logAiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'gemini', model: 'b', inputTokens: 30, outputTokens: 12, totalTokens: 42, scope: 'OTHER',
+    }))
   })
 
   it('throws the FIRST (primary) model error when every model fails', async () => {

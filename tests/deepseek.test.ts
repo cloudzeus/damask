@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/settings', () => ({ getIntegration: vi.fn(async () => ({})) }))
+vi.mock('@/lib/ai/usage', () => ({ logAiUsage: vi.fn(async () => {}) }))
 
 import { getIntegration } from '@/lib/settings'
+import { logAiUsage } from '@/lib/ai/usage'
 import { deepseekChat, translateText, generateText } from '@/lib/deepseek'
 
 const fetchMock = vi.fn()
@@ -11,11 +13,12 @@ beforeEach(() => {
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
   vi.mocked(getIntegration).mockReset()
+  vi.mocked(logAiUsage).mockReset().mockResolvedValue(undefined)
 })
 afterEach(() => vi.unstubAllGlobals())
 
-function chatResponse(content: string, status = 200): Response {
-  return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status })
+function chatResponse(content: string, status = 200, usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }): Response {
+  return new Response(JSON.stringify({ choices: [{ message: { content } }], ...(usage ? { usage } : {}) }), { status })
 }
 
 describe('deepseekChat', () => {
@@ -77,6 +80,32 @@ describe('deepseekChat', () => {
 
     await expect(deepseekChat([{ role: 'user', content: 'ping' }])).rejects.toThrow(/μη αναμενόμενη/)
   })
+
+  it('fire-and-forget logs usage with provider/model/tokens from the response, defaulting scope to OTHER', async () => {
+    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k', model: 'deepseek-chat' })
+    fetchMock.mockResolvedValueOnce(chatResponse('pong', 200, { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }))
+
+    await deepseekChat([{ role: 'user', content: 'ping' }])
+
+    expect(logAiUsage).toHaveBeenCalledTimes(1)
+    expect(logAiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      scope: 'OTHER',
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+      inputTokens: 10,
+      outputTokens: 5,
+      totalTokens: 15,
+    }))
+  })
+
+  it('does not await logAiUsage — a slow/failing logger never delays or breaks the returned content', async () => {
+    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k' })
+    vi.mocked(logAiUsage).mockImplementation(() => new Promise(() => {})) // never resolves
+    fetchMock.mockResolvedValueOnce(chatResponse('pong'))
+
+    const result = await deepseekChat([{ role: 'user', content: 'ping' }])
+    expect(result).toBe('pong')
+  })
 })
 
 describe('translateText', () => {
@@ -93,6 +122,26 @@ describe('translateText', () => {
     expect(body.messages[0].content).toMatch(/Greek/)
     expect(body.messages[1]).toEqual({ role: 'user', content: 'Good morning' })
   })
+
+  it('defaults the AiUsage scope to TRANSLATION (overridable via opts)', async () => {
+    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k' })
+    fetchMock.mockResolvedValueOnce(chatResponse('Καλημέρα'))
+
+    await translateText('Good morning', 'en', 'el')
+
+    expect(logAiUsage).toHaveBeenCalledWith(expect.objectContaining({ scope: 'TRANSLATION' }))
+  })
+
+  it('opts.scope/refType/refId/userId override the TRANSLATION default and flow through to logAiUsage', async () => {
+    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k' })
+    fetchMock.mockResolvedValueOnce(chatResponse('Καλημέρα'))
+
+    await translateText('Good morning', 'en', 'el', { refType: 'post', refId: 'post-1', userId: 'user-1' })
+
+    expect(logAiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      scope: 'TRANSLATION', refType: 'post', refId: 'post-1', userId: 'user-1',
+    }))
+  })
 })
 
 describe('generateText', () => {
@@ -105,5 +154,14 @@ describe('generateText', () => {
     expect(result).toBe('Γεια σου κόσμε')
     const body = JSON.parse(fetchMock.mock.calls[0][1].body)
     expect(body.messages).toEqual([{ role: 'user', content: 'Πες γεια' }])
+  })
+
+  it('defaults the AiUsage scope to OTHER', async () => {
+    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k' })
+    fetchMock.mockResolvedValueOnce(chatResponse('Γεια σου κόσμε'))
+
+    await generateText('Πες γεια')
+
+    expect(logAiUsage).toHaveBeenCalledWith(expect.objectContaining({ scope: 'OTHER' }))
   })
 })

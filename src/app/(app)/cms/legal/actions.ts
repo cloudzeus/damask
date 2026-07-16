@@ -170,14 +170,18 @@ export async function translateLegalFieldsToEnglish(el: LegalLocaleContentValues
   | { ok: true; data: LegalLocaleContentValues }
   | { ok: false; message: string }
 > {
-  await requirePermission('cms.edit')
+  const session = await requirePermission('cms.edit')
 
   const parsed = elContentSchema.safeParse(el)
   if (!parsed.success) return { ok: false, message: 'Συμπλήρωσε πρώτα τίτλο και κείμενο (Ελληνικά).' }
   const data = parsed.data
+  const aiOpts = { refType: 'legalPage', userId: session.user.id }
 
   try {
-    const [title, body] = await Promise.all([translateText(data.title, 'el', 'en'), translateText(data.body, 'el', 'en')])
+    const [title, body] = await Promise.all([
+      translateText(data.title, 'el', 'en', aiOpts),
+      translateText(data.body, 'el', 'en', aiOpts),
+    ])
     return { ok: true, data: { title, body } }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : 'Η μετάφραση απέτυχε.' }
@@ -257,16 +261,17 @@ export async function translateConsentTextDraft(titleEl: string, textEl: string)
   | { ok: true; titleEn: string; textEn: string }
   | { ok: false; message: string }
 > {
-  await requirePermission('cms.edit')
+  const session = await requirePermission('cms.edit')
 
   if (titleEl.trim() === '' && textEl.trim() === '') {
     return { ok: false, message: 'Συμπλήρωσε πρώτα τίτλο ή κείμενο (Ελληνικά).' }
   }
+  const aiOpts = { refType: 'consentConfig', userId: session.user.id }
 
   try {
     const [titleEn, textEn] = await Promise.all([
-      titleEl.trim() !== '' ? translateText(titleEl, 'el', 'en') : Promise.resolve(''),
-      textEl.trim() !== '' ? translateText(textEl, 'el', 'en') : Promise.resolve(''),
+      titleEl.trim() !== '' ? translateText(titleEl, 'el', 'en', aiOpts) : Promise.resolve(''),
+      textEl.trim() !== '' ? translateText(textEl, 'el', 'en', aiOpts) : Promise.resolve(''),
     ])
     return { ok: true, titleEn, textEn }
   } catch (e) {

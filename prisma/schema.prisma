@@ -643,3 +643,33 @@ model ConsentLog {
   @@index([createdAt])
   @@index([visitorId])
 }
+
+// ── AI/API cost tracking (src/lib/ai/*) ─────────────────
+/// Μία γραμμή ανά κλήση σε AI provider (DeepSeek/Gemini/Claude/…), γραμμένη
+/// fire-and-forget από logAiUsage (src/lib/ai/usage.ts — ΠΟΤΕ δεν πετάει).
+/// inputCost/outputCost/totalCost σε USD, null όταν το μοντέλο δεν αναγνωρίστηκε
+/// στο pricing table (src/lib/ai/pricing.ts) ΟΥΤΕ σε override (setting
+/// "ai.pricingOverrides") — η σελίδα /costs τα μετατρέπει σε EUR (src/lib/ai/fx.ts)
+/// και εφαρμόζει markup ανά provider (setting "ai.markup", SUPER_ADMIN-only) κατά
+/// το render, όχι εδώ· η γραμμή μένει πάντα «καθαρό» base cost. userId/refType/refId
+/// ΧΩΡΙΣ @relation (soft reference, ίδιο idiom με PaymentOrder.createdById παραπάνω).
+model AiUsage {
+  id           String   @id @default(cuid())
+  scope        String   // "OCR_TEXT" | "OCR_VISION" | "TRANSLATION" | "CMS_GENERATE" | "OTHER"
+  provider     String   // "deepseek" | "gemini" | "claude" | ...
+  model        String
+  operation    String?
+  inputTokens  Int
+  outputTokens Int
+  totalTokens  Int
+  inputCost    Float?   // USD
+  outputCost   Float?   // USD
+  totalCost    Float?   // USD
+  durationMs   Int?
+  userId       String?
+  refType      String?
+  refId        String?
+  createdAt    DateTime @default(now())
+  @@index([createdAt])
+  @@index([provider, createdAt])
+}

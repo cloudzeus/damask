@@ -1,11 +1,16 @@
 import { getIntegration } from '@/lib/settings'
 import { DEEPSEEK_DEFAULT_API_URL, DEEPSEEK_DEFAULT_MODEL } from '@/lib/connection-tests'
+import { logAiUsage, type AiScope } from '@/lib/ai/usage'
 
 /**
  * Καθαρό interface πάνω από το DeepSeek chat-completions API — θα το
  * καταναλώσουν CMS/legal (επόμενο task) για μεταφράσεις/περιγραφές προϊόντων.
  * Ρυθμίσεις από getIntegration('deepseek') (DB → env DEEPSEEK_* fallback),
  * με δυνατότητα override ανά κλήση μέσω `opts`.
+ *
+ * Κάθε κλήση καταγράφεται fire-and-forget στο AiUsage (src/lib/ai/usage.ts,
+ * καταναλώνεται από τη σελίδα /costs) — ΧΩΡΙΣ await, ώστε το logging να μην
+ * καθυστερεί ποτέ την απάντηση προς τον χρήστη ούτε να μπορεί να τη σπάσει.
  */
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
@@ -16,6 +21,11 @@ export type DeepSeekOptions = {
   model?: string
   maxTokens?: number
   temperature?: number
+  /** Scope για το AiUsage log (/costs) — προεπιλογή ανά function παρακάτω. */
+  scope?: AiScope
+  refType?: string | null
+  refId?: string | null
+  userId?: string | null
 }
 
 type StoredDeepSeekConfig = { apiKey?: string; apiUrl?: string; model?: string }
@@ -34,6 +44,7 @@ async function resolveConfig(opts: DeepSeekOptions): Promise<{ apiKey: string; a
 /** Απευθείας κλήση στο DeepSeek chat-completions endpoint. Επιστρέφει το κείμενο της απάντησης. */
 export async function deepseekChat(messages: ChatMessage[], opts: DeepSeekOptions = {}): Promise<string> {
   const { apiKey, apiUrl, model } = await resolveConfig(opts)
+  const startedAt = Date.now()
 
   const res = await fetch(apiUrl, {
     method: 'POST',
@@ -52,9 +63,27 @@ export async function deepseekChat(messages: ChatMessage[], opts: DeepSeekOption
     throw new Error(`DeepSeek HTTP ${res.status}: ${detail.slice(0, 300)}`)
   }
 
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] }
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[]
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+  }
   const content = data.choices?.[0]?.message?.content
   if (typeof content !== 'string') throw new Error('DeepSeek: μη αναμενόμενη μορφή απάντησης.')
+
+  void logAiUsage({
+    scope: opts.scope ?? 'OTHER',
+    provider: 'deepseek',
+    model,
+    operation: 'chat',
+    inputTokens: data.usage?.prompt_tokens,
+    outputTokens: data.usage?.completion_tokens,
+    totalTokens: data.usage?.total_tokens,
+    durationMs: Date.now() - startedAt,
+    userId: opts.userId,
+    refType: opts.refType,
+    refId: opts.refId,
+  })
+
   return content
 }
 
@@ -71,12 +100,12 @@ export async function translateText(text: string, from: string, to: string, opts
     },
     { role: 'user', content: text },
   ]
-  const result = await deepseekChat(messages, { temperature: 0.2, ...opts })
+  const result = await deepseekChat(messages, { temperature: 0.2, scope: 'TRANSLATION', ...opts })
   return result.trim()
 }
 
 /** Ελεύθερη παραγωγή κειμένου από prompt (περιγραφές προϊόντων κ.λπ.). */
 export async function generateText(prompt: string, opts: DeepSeekOptions = {}): Promise<string> {
-  const result = await deepseekChat([{ role: 'user', content: prompt }], opts)
+  const result = await deepseekChat([{ role: 'user', content: prompt }], { scope: 'OTHER', ...opts })
   return result.trim()
 }

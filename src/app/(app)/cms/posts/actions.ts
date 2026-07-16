@@ -297,19 +297,20 @@ export async function togglePublishPost(postId: string): Promise<ActionResult> {
  * ΑΝΕΝΤΑΧΤΟ (ακόμα μη αποθηκευμένο) περιεχόμενο μέσα στον editor.
  */
 export async function translatePostToEnglish(postId: string): Promise<ActionResult> {
-  await requirePermission('cms.edit')
+  const session = await requirePermission('cms.edit')
 
   const el = await prisma.postTranslation.findUnique({ where: { postId_locale: { postId, locale: 'el' } } })
   if (!el) return { ok: false, message: 'Δεν υπάρχει ελληνικό κείμενο για μετάφραση.' }
 
+  const aiOpts = { refType: 'post', refId: postId, userId: session.user.id }
   let translated: LocaleContentValues
   try {
     const [title, excerpt, body, seoTitle, seoDescription] = await Promise.all([
-      translateText(el.title, 'el', 'en'),
-      el.excerpt ? translateText(el.excerpt, 'el', 'en') : Promise.resolve(''),
-      translateText(el.body, 'el', 'en'),
-      el.seoTitle ? translateText(el.seoTitle, 'el', 'en') : Promise.resolve(''),
-      el.seoDescription ? translateText(el.seoDescription, 'el', 'en') : Promise.resolve(''),
+      translateText(el.title, 'el', 'en', aiOpts),
+      el.excerpt ? translateText(el.excerpt, 'el', 'en', aiOpts) : Promise.resolve(''),
+      translateText(el.body, 'el', 'en', aiOpts),
+      el.seoTitle ? translateText(el.seoTitle, 'el', 'en', aiOpts) : Promise.resolve(''),
+      el.seoDescription ? translateText(el.seoDescription, 'el', 'en', aiOpts) : Promise.resolve(''),
     ])
     translated = { title, excerpt, body, seoTitle, seoDescription }
   } catch (e) {
@@ -350,19 +351,20 @@ export async function translateFieldsToEnglish(el: LocaleContentValues): Promise
   | { ok: true; data: LocaleContentValues }
   | { ok: false; message: string }
 > {
-  await requirePermission('cms.edit')
+  const session = await requirePermission('cms.edit')
 
   const parsed = elContentSchema.safeParse(el)
   if (!parsed.success) return { ok: false, message: 'Συμπλήρωσε πρώτα τίτλο και κείμενο (Ελληνικά).' }
   const data = parsed.data
+  const aiOpts = { refType: 'post', userId: session.user.id }
 
   try {
     const [title, excerpt, body, seoTitle, seoDescription] = await Promise.all([
-      translateText(data.title, 'el', 'en'),
-      data.excerpt ? translateText(data.excerpt, 'el', 'en') : Promise.resolve(''),
-      translateText(data.body, 'el', 'en'),
-      data.seoTitle ? translateText(data.seoTitle, 'el', 'en') : Promise.resolve(''),
-      data.seoDescription ? translateText(data.seoDescription, 'el', 'en') : Promise.resolve(''),
+      translateText(data.title, 'el', 'en', aiOpts),
+      data.excerpt ? translateText(data.excerpt, 'el', 'en', aiOpts) : Promise.resolve(''),
+      translateText(data.body, 'el', 'en', aiOpts),
+      data.seoTitle ? translateText(data.seoTitle, 'el', 'en', aiOpts) : Promise.resolve(''),
+      data.seoDescription ? translateText(data.seoDescription, 'el', 'en', aiOpts) : Promise.resolve(''),
     ])
     return { ok: true, data: { title, excerpt, body, seoTitle, seoDescription } }
   } catch (e) {
@@ -398,13 +400,14 @@ async function loadCompanyContext(): Promise<string | null> {
 }
 
 export async function generateArticleWithAI(input: AutogenInput): Promise<ActionResult> {
-  await requirePermission('cms.edit')
+  const session = await requirePermission('cms.edit')
 
   const parsed = autogenSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false, message: 'Συμπλήρωσε το θέμα του άρθρου.', fieldErrors: fieldErrorsFromZod(parsed.error) }
   }
   const data = parsed.data
+  const aiOpts = { refType: 'post', userId: session.user.id }
 
   let categoryName: string | null = null
   if (data.categoryId) {
@@ -422,7 +425,7 @@ export async function generateArticleWithAI(input: AutogenInput): Promise<Action
   try {
     const raw = await deepseekChat(
       buildArticleGenerationMessages({ topic: data.topic, categoryName, tone: data.tone, length: data.length, companyContext }),
-      { maxTokens: 4000, temperature: 0.6 },
+      { maxTokens: 4000, temperature: 0.6, scope: 'CMS_GENERATE', ...aiOpts },
     )
     generated = parseGeneratedArticle(raw)
   } catch (e) {
@@ -432,11 +435,11 @@ export async function generateArticleWithAI(input: AutogenInput): Promise<Action
   let translated: LocaleContentValues
   try {
     const [title, excerpt, body, seoTitle, seoDescription] = await Promise.all([
-      translateText(generated.title, 'el', 'en'),
-      translateText(generated.excerpt, 'el', 'en'),
-      translateText(generated.body, 'el', 'en'),
-      translateText(generated.seoTitle, 'el', 'en'),
-      translateText(generated.seoDescription, 'el', 'en'),
+      translateText(generated.title, 'el', 'en', aiOpts),
+      translateText(generated.excerpt, 'el', 'en', aiOpts),
+      translateText(generated.body, 'el', 'en', aiOpts),
+      translateText(generated.seoTitle, 'el', 'en', aiOpts),
+      translateText(generated.seoDescription, 'el', 'en', aiOpts),
     ])
     translated = { title, excerpt, body, seoTitle, seoDescription }
   } catch (e) {
@@ -585,11 +588,11 @@ export async function deleteCategory(categoryId: string): Promise<ActionResult> 
 export async function translateCategoryNameDraft(nameEl: string): Promise<
   { ok: true; nameEn: string } | { ok: false; message: string }
 > {
-  await requirePermission('cms.edit')
+  const session = await requirePermission('cms.edit')
   const trimmed = nameEl.trim()
   if (trimmed === '') return { ok: false, message: 'Συμπλήρωσε πρώτα το ελληνικό όνομα.' }
   try {
-    const nameEn = await translateText(trimmed, 'el', 'en')
+    const nameEn = await translateText(trimmed, 'el', 'en', { refType: 'postCategory', userId: session.user.id })
     return { ok: true, nameEn }
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : 'Η μετάφραση απέτυχε.' }

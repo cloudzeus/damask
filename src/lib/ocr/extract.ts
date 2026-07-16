@@ -29,6 +29,9 @@ export interface ExtractDocumentInput {
   /** Ήδη εξαγμένο κείμενο (π.χ. επιλέξιμο κείμενο ψηφιακού PDF) — επιτρέπει DeepSeek fallback χωρίς Gemini. */
   text?: string
   docType?: OcrDocTypeHint
+  /** Προαιρετικά — προωθούνται στο AiUsage log (/costs) μέσω logAiUsage στο gemini.ts/deepseek.ts. refType πάντα 'ocr'. */
+  refId?: string | null
+  userId?: string | null
 }
 
 export interface ExtractResult {
@@ -110,7 +113,10 @@ async function resolveAiCall(
       ...input.images.map(img => ({ inlineData: { data: img.base64, mimeType: img.mimeType } })),
       { text: instruction },
     ]
-    const result = await geminiGenerate({ parts, systemInstruction: prompt, json: true })
+    const result = await geminiGenerate({
+      parts, systemInstruction: prompt, json: true,
+      scope: 'OCR_VISION', refType: 'ocr', refId: input.refId, userId: input.userId,
+    })
     return { rawText: result.text, model: result.model, usedFallback: false }
   }
 
@@ -118,7 +124,9 @@ async function resolveAiCall(
   if (hasImages && !hasText) throw new Error(GEMINI_NOT_CONFIGURED_MESSAGE)
   if (!hasText) throw new Error('Δεν δόθηκαν δεδομένα προς ανάλυση.')
 
-  const rawText = await generateText(`${prompt}\n\n${input.text}`)
+  const rawText = await generateText(`${prompt}\n\n${input.text}`, {
+    scope: 'OCR_TEXT', refType: 'ocr', refId: input.refId, userId: input.userId,
+  })
   return { rawText, model: 'deepseek (text fallback)', usedFallback: true }
 }
 

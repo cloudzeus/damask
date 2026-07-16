@@ -27,6 +27,7 @@ export const PERMISSIONS: PermissionDef[] = [
   { key: 'settings.manage', description: 'Ρυθμίσεις συστήματος' },
   { key: 'cms.view', description: 'Προβολή CMS' },
   { key: 'cms.edit', description: 'Διαχείριση άρθρων/CMS' },
+  { key: 'costs.view', description: 'Προβολή κόστους AI/API (SUPER_ADMIN βλέπει markup, ADMIN μόνο το τελικό κόστος)' },
 ]
 
 const ALL = PERMISSIONS.map(p => p.key)
@@ -89,6 +90,7 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   user: 'Διαχείριση',
   settings: 'Διαχείριση',
   cms: 'Διαχείριση',
+  costs: 'Διαχείριση',
 }
 
 export type PermissionGroup = { label: string; items: PermissionDef[] }

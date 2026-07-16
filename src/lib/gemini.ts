@@ -1,6 +1,7 @@
 import { getIntegration } from '@/lib/settings'
 import { buildModelChain, tryModels } from '@/lib/ocr/model-fallback'
 import { fetchWithRetry } from '@/lib/ocr/fetch-retry'
+import { logAiUsage, type AiScope } from '@/lib/ai/usage'
 
 /**
  * Καθαρό interface πάνω από το Google Gemini `generateContent` REST API
@@ -42,6 +43,11 @@ export type GeminiOptions = {
   apiKey?: string
   /** Override της αποθηκευμένης αλυσίδας fallback μοντέλων. */
   fallbackModels?: string[]
+  /** Scope για το AiUsage log (/costs) — προεπιλογή 'OTHER' αν δεν δοθεί (οι callers, π.χ. ocr/extract.ts, περνάνε δικό τους). */
+  scope?: AiScope
+  refType?: string | null
+  refId?: string | null
+  userId?: string | null
 }
 
 export type GeminiResult = {
@@ -90,6 +96,7 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
   }
 
   const chain = buildModelChain(model, fallbackModels)
+  const startedAt = Date.now()
 
   return tryModels(chain, async (m) => {
     try {
@@ -123,7 +130,25 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
           error: new Error(blockReason ? `Gemini: το περιεχόμενο μπλοκαρίστηκε (${blockReason}).` : 'Gemini: κενή απάντηση.'),
         }
       }
-      const tokensUsed = data?.usageMetadata?.totalTokenCount ?? null
+      const usageMetadata = data?.usageMetadata as { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | undefined
+      const tokensUsed = usageMetadata?.totalTokenCount ?? null
+
+      // Log ΜΟΝΟ την κλήση που τελικά πέτυχε (όχι τα ενδιάμεσα fallback attempts) —
+      // fire-and-forget, χωρίς await, ώστε να μη μπει καθυστέρηση στην απάντηση.
+      void logAiUsage({
+        scope: opts.scope ?? 'OTHER',
+        provider: 'gemini',
+        model: m,
+        operation: 'generateContent',
+        inputTokens: usageMetadata?.promptTokenCount,
+        outputTokens: usageMetadata?.candidatesTokenCount,
+        totalTokens: usageMetadata?.totalTokenCount,
+        durationMs: Date.now() - startedAt,
+        userId: opts.userId,
+        refType: opts.refType,
+        refId: opts.refId,
+      })
+
       return { ok: true as const, value: { text, model: m, tokensUsed } }
     } catch (err) {
       return { ok: false as const, error: err instanceof Error ? err : new Error(String(err)) }
