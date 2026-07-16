@@ -59,8 +59,8 @@ export function parseJsonLoose(s: string): unknown {
 
 const JSON_SHAPE = `{
   "docType": "invoice" | "receipt" | "packing_list",
-  "issuer": { "name": string|null, "afm": string|null, "address": string|null },
-  "counterparty": { "name": string|null, "afm": string|null, "address": string|null } | null,
+  "issuer": { "name": string|null, "afm": string|null, "address": string|null, "phones": string[], "emails": string[], "website": string|null },
+  "counterparty": { "name": string|null, "afm": string|null, "address": string|null, "phones": string[], "emails": string[], "website": string|null } | null,
   "documentNumber": string|null,
   "date": string|null,
   "currency": string|null,
@@ -90,6 +90,7 @@ ${JSON_SHAPE}
 - "packing_list" = δελτίο αποστολής χωρίς τιμές/ΦΠΑ (μόνο περιγραφές/ποσότητες)· τα lines[].unitPrice/vatPct/total και τα totals μπορεί να είναι όλα null.
 - "receipt" = απόδειξη λιανικής, συνήθως χωρίς στοιχεία παραλήπτη (counterparty null).
 - "invoice" = τιμολόγιο, με στοιχεία παραλήπτη (counterparty) όποτε αναγράφονται.
+- Ψάξε προσεκτικά στο header ΚΑΙ στο footer του εγγράφου για τηλέφωνα, emails και website του εκδότη (issuer) ή/και του παραλήπτη (counterparty) — συχνά εμφανίζονται εκεί ως μικρά στοιχεία επικοινωνίας. Αν βρεις, γέμισε τα "phones"/"emails" (arrays — μπορεί να έχουν 0, 1, ή περισσότερα στοιχεία το καθένα) και το "website" (string ή null). ΜΗΝ επινοείς στοιχεία επικοινωνίας που δεν φαίνονται καθαρά.
 - "confidence": πόσο σίγουρος είσαι συνολικά για την ανάγνωση, από 0 έως 1.
 - "notes": σύντομη σημείωση (μία πρόταση) για ασάφειες, δυσανάγνωστα σημεία, ή null αν δεν υπάρχει κάτι αξιοσημείωτο.${hintLine}
 

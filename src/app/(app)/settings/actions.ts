@@ -11,7 +11,7 @@ import {
   testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude, testGemini, testViva,
   type SoftOneTestConfig, type MailgunTestConfig, type BunnyTestConfig, type DeepSeekTestConfig, type ClaudeTestConfig, type GeminiTestConfig,
 } from '@/lib/connection-tests'
-import { lookupAfm } from '@/lib/aade'
+import { aadeLookup } from '@/lib/aade'
 import {
   getVivaSettings, saveVivaSettings as persistVivaSettings, saveVivaLastCheck,
   type VivaEnvironment, type VivaEnvInput,
@@ -352,7 +352,8 @@ export async function testVivaSettings(environment: VivaEnvironment, values: Viv
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// Εταιρεία (company.profile) + ΑΑΔΕ credentials (integration.aade)
+// Εταιρεία (company.profile) — η αναζήτηση ΑΑΔΕ (src/lib/aade.ts, vat.wwa.gr)
+// δεν χρειάζεται πλέον credentials, οπότε δεν αποθηκεύεται integration.aade.
 // ══════════════════════════════════════════════════════════════════════════
 
 export type LogoEntry = { assetId: string; url: string; label: string }
@@ -363,7 +364,6 @@ export type CompanyProfileValues = {
   phone: string; phone2: string; fax: string; email: string; website: string; iban: string
   hours: string; googleMapsLink: string; lat: string; lng: string
   logos: LogoEntry[]
-  aadeUsername: string; aadePassword: string; afmCalledFor: string
 }
 
 const logoEntrySchema = z.object({ assetId: z.string().min(1), url: z.string().min(1), label: z.string().max(80) })
@@ -391,9 +391,6 @@ const companyProfileSchema = z.object({
   lat: z.string().trim().max(30),
   lng: z.string().trim().max(30),
   logos: z.array(logoEntrySchema).max(20),
-  aadeUsername: z.string().trim().max(120),
-  aadePassword: z.string().max(200),
-  afmCalledFor: z.string().trim().max(20),
 })
 
 export async function saveCompanyProfile(values: CompanyProfileValues): Promise<ActionResult> {
@@ -401,9 +398,7 @@ export async function saveCompanyProfile(values: CompanyProfileValues): Promise<
   const parsed = companyProfileSchema.safeParse(values)
   if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
 
-  const { aadeUsername, aadePassword, afmCalledFor, ...profile } = parsed.data
-  await setSetting('company.profile', profile)
-  await saveIntegration('aade', { username: aadeUsername, password: aadePassword, afmCalledFor }, ['password'])
+  await setSetting('company.profile', parsed.data)
 
   revalidateSettings()
   revalidateTag(PUBLIC_TRACKING_CACHE_TAG, 'max') // λογότυπα/όνομα εταιρείας μπορεί να καταναλωθούν δημόσια αργότερα
@@ -414,29 +409,33 @@ export type AadeLookupResult =
   | {
       ok: true
       data: {
-        name: string; commerTitle: string; address: string; addressNo: string
+        name: string; commerTitle: string; address: string
         zip: string; district: string; doyDescr: string; jobTypeDesc: string
       }
     }
-  | { ok: false; message: string; reason: string }
+  | { ok: false; message: string }
 
-/** Προσυμπλήρωση (ΟΧΙ αποθήκευση) — ο χρήστης πατάει «Αποθήκευση» μετά για να κρατήσει τα στοιχεία. */
+/** Προσυμπλήρωση (ΟΧΙ αποθήκευση) — ο χρήστης πατάει «Αποθήκευση» μετά για να κρατήσει τα στοιχεία.
+ * Μέσω vat.wwa.gr (src/lib/aade.ts) — δουλεύει άμεσα, χωρίς credentials. */
 export async function lookupCompanyAfm(afm: string): Promise<AadeLookupResult> {
   await requirePermission('settings.manage')
-  const result = await lookupAfm(afm)
-  if (!result.ok) return { ok: false, message: result.message, reason: result.reason }
-  return {
-    ok: true,
-    data: {
-      name: result.data.onomasia ?? '',
-      commerTitle: result.data.commerTitle ?? '',
-      address: result.data.postalAddress ?? '',
-      addressNo: result.data.postalAddressNo ?? '',
-      zip: result.data.postalZipCode ?? '',
-      district: result.data.postalAreaDescription ?? '',
-      doyDescr: result.data.doyDescr ?? '',
-      jobTypeDesc: result.data.firmActDescr ?? '',
-    },
+  try {
+    const company = await aadeLookup(afm)
+    if (!company) return { ok: false, message: 'Δεν βρέθηκαν στοιχεία για αυτό το ΑΦΜ στο μητρώο της ΑΑΔΕ.' }
+    return {
+      ok: true,
+      data: {
+        name: company.name,
+        commerTitle: company.shortName ?? '',
+        address: company.address ?? '',
+        zip: company.zip ?? '',
+        district: company.city ?? '',
+        doyDescr: company.doy ?? '',
+        jobTypeDesc: company.profession ?? '',
+      },
+    }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Σφάλμα αναζήτησης ΑΑΔΕ.' }
   }
 }
 

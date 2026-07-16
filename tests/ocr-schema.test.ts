@@ -112,4 +112,59 @@ describe('emptyExtractedDocument', () => {
     expect(() => extractedDocumentSchema.parse(empty)).not.toThrow()
     expect(empty.docType).toBe('receipt')
   })
+
+  it('issuer has empty phones/emails arrays and a null website by default', () => {
+    const empty = emptyExtractedDocument('invoice')
+    expect(empty.issuer.phones).toEqual([])
+    expect(empty.issuer.emails).toEqual([])
+    expect(empty.issuer.website).toBeNull()
+  })
+})
+
+describe('party contact enrichment (phones/emails/website)', () => {
+  it('coerces issuer/counterparty phones and emails arrays, trimming and dropping blanks', () => {
+    const raw = {
+      docType: 'invoice',
+      issuer: {
+        name: 'Προμηθευτής ΑΕ', afm: '094014201', address: 'Αθήνα',
+        phones: [' 210 1234567 ', '', '6971234567'],
+        emails: ['info@example.gr', '  ', 'sales@example.gr'],
+        website: ' https://example.gr ',
+      },
+      counterparty: {
+        name: 'Πελάτης', afm: null, address: null,
+        phones: [], emails: [], website: null,
+      },
+    }
+    const out = coerceExtractedJson(raw) as { issuer: Record<string, unknown>; counterparty: Record<string, unknown> }
+    expect(out.issuer.phones).toEqual(['210 1234567', '6971234567'])
+    expect(out.issuer.emails).toEqual(['info@example.gr', 'sales@example.gr'])
+    expect(out.issuer.website).toBe('https://example.gr')
+    expect(out.counterparty.phones).toEqual([])
+    expect(out.counterparty.emails).toEqual([])
+  })
+
+  it('accepts a single non-array phone/email (LLM quirk) and normalizes it into a 1-element array', () => {
+    const raw = { issuer: { name: 'X', phones: '2101234567', emails: 'a@b.gr' } }
+    const out = coerceExtractedJson(raw) as { issuer: Record<string, unknown> }
+    expect(out.issuer.phones).toEqual(['2101234567'])
+    expect(out.issuer.emails).toEqual(['a@b.gr'])
+  })
+
+  it('defaults to empty arrays / null website when the LLM omits contact fields entirely', () => {
+    const out = coerceExtractedJson({ issuer: { name: 'X' } }) as { issuer: Record<string, unknown> }
+    expect(out.issuer.phones).toEqual([])
+    expect(out.issuer.emails).toEqual([])
+    expect(out.issuer.website).toBeNull()
+  })
+
+  it('round-trips contact fields through parseExtractedDocument', () => {
+    const doc = parseExtractedDocument({
+      docType: 'invoice',
+      issuer: { name: 'Προμηθευτής', afm: '094014201', phones: ['2101234567'], emails: ['a@b.gr'], website: 'https://a.gr' },
+    })
+    expect(doc.issuer.phones).toEqual(['2101234567'])
+    expect(doc.issuer.emails).toEqual(['a@b.gr'])
+    expect(doc.issuer.website).toBe('https://a.gr')
+  })
 })

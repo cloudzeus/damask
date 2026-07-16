@@ -19,6 +19,10 @@ export const ocrPartySchema = z.object({
   name: z.string().nullable().default(null),
   afm: z.string().nullable().default(null),
   address: z.string().nullable().default(null),
+  /** Τηλέφωνα/emails του μέρους (εκδότη/παραλήπτη) όπως αναγράφονται στο header/footer του παραστατικού — προαιρετικά, συχνά κενά. */
+  phones: z.array(z.string()).default([]),
+  emails: z.array(z.string()).default([]),
+  website: z.string().nullable().default(null),
 })
 export type OcrParty = z.infer<typeof ocrPartySchema>
 
@@ -56,7 +60,7 @@ export type ExtractedDocument = z.infer<typeof extractedDocumentSchema>
 export function emptyExtractedDocument(docType: OcrDocType = 'invoice'): ExtractedDocument {
   return {
     docType,
-    issuer: { name: null, afm: null, address: null },
+    issuer: { name: null, afm: null, address: null, phones: [], emails: [], website: null },
     counterparty: null,
     documentNumber: null,
     date: null,
@@ -89,8 +93,17 @@ export function coerceOcrNumber(v: unknown): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-type CoercedParty = { name: string | null; afm: string | null; address: string | null }
-const EMPTY_PARTY: CoercedParty = { name: null, afm: null, address: null }
+type CoercedParty = {
+  name: string | null; afm: string | null; address: string | null
+  phones: string[]; emails: string[]; website: string | null
+}
+const EMPTY_PARTY: CoercedParty = { name: null, afm: null, address: null, phones: [], emails: [], website: null }
+
+/** Ένα (ή περισσότερα) τηλέφωνο/email ως string[] — δέχεται array, μεμονωμένο string, ή απόν (→ []). Αγνοεί κενά/whitespace-only στοιχεία. */
+function coerceStringArray(v: unknown): string[] {
+  const list = Array.isArray(v) ? v : (v == null || v === '' ? [] : [v])
+  return list.map(x => (x == null ? '' : String(x).trim())).filter(Boolean)
+}
 
 /** issuer is REQUIRED by the schema (never null) — missing/garbage input becomes an all-null party object. */
 function coerceParty(v: unknown): CoercedParty {
@@ -99,6 +112,9 @@ function coerceParty(v: unknown): CoercedParty {
     name: v.name == null || v.name === '' ? null : String(v.name),
     afm: v.afm == null || v.afm === '' ? null : String(v.afm),
     address: v.address == null || v.address === '' ? null : String(v.address),
+    phones: coerceStringArray(v.phones ?? v.phone),
+    emails: coerceStringArray(v.emails ?? v.email),
+    website: v.website == null || String(v.website).trim() === '' ? null : String(v.website).trim(),
   }
 }
 

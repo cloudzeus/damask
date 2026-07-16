@@ -48,10 +48,14 @@ function invoiceDoc(overrides: Partial<ExtractedDocument> = {}): ExtractedDocume
   return { ...emptyExtractedDocument('invoice'), confidence: 0.9, ...overrides }
 }
 
+function party(overrides: Partial<ExtractedDocument['issuer']>): ExtractedDocument['issuer'] {
+  return { name: null, afm: null, address: null, phones: [], emails: [], website: null, ...overrides }
+}
+
 describe('validateExtractedDocument', () => {
   it('returns no flags for a clean, consistent, high-confidence invoice', () => {
     const doc = invoiceDoc({
-      issuer: { name: 'Εκδότης', afm: VALID_AFM, address: null },
+      issuer: party({ name: 'Εκδότης', afm: VALID_AFM }),
       lines: [{ description: 'Α', quantity: 1, unitPrice: 100, vatPct: 24, total: 100 }],
       totals: { net: 100, vat: 24, gross: 124 },
     })
@@ -59,7 +63,7 @@ describe('validateExtractedDocument', () => {
   })
 
   it('flags an invalid issuer ΑΦΜ as a warning', () => {
-    const doc = invoiceDoc({ issuer: { name: 'X', afm: INVALID_AFM, address: null } })
+    const doc = invoiceDoc({ issuer: party({ name: 'X', afm: INVALID_AFM }) })
     const flags = validateExtractedDocument(doc)
     const flag = flags.find(f => f.code === 'issuer_afm_invalid')
     expect(flag).toBeDefined()
@@ -68,8 +72,8 @@ describe('validateExtractedDocument', () => {
 
   it('flags an invalid counterparty ΑΦΜ independently of the issuer', () => {
     const doc = invoiceDoc({
-      issuer: { name: 'X', afm: VALID_AFM, address: null },
-      counterparty: { name: 'Y', afm: INVALID_AFM, address: null },
+      issuer: party({ name: 'X', afm: VALID_AFM }),
+      counterparty: party({ name: 'Y', afm: INVALID_AFM }),
     })
     const flags = validateExtractedDocument(doc)
     expect(flags.map(f => f.code)).toContain('counterparty_afm_invalid')
@@ -77,7 +81,7 @@ describe('validateExtractedDocument', () => {
   })
 
   it('does not flag a null/absent ΑΦΜ (nothing to validate yet)', () => {
-    const doc = invoiceDoc({ issuer: { name: 'X', afm: null, address: null } })
+    const doc = invoiceDoc({ issuer: party({ name: 'X', afm: null }) })
     expect(validateExtractedDocument(doc).map(f => f.code)).not.toContain('issuer_afm_invalid')
   })
 

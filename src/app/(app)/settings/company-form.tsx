@@ -4,10 +4,10 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import {
   Building2, Tag, Fingerprint, Landmark, Briefcase, FileText, MapPin, Building, Hash, Globe2, Flag,
-  Phone, Smartphone, Printer, Mail, Wallet, Clock, Link2, Compass, Search, User, KeyRound,
+  Phone, Smartphone, Printer, Mail, Wallet, Clock, Link2, Compass, Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { TextField, SecretField, maskSecretPreview } from './fields'
+import { TextField } from './fields'
 import { LogosField } from './logos-field'
 import { saveCompanyProfile, lookupCompanyAfm, type CompanyProfileValues } from './actions'
 
@@ -19,16 +19,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function CompanyForm({
-  initial, maskedAadePassword: initialMaskedAadePassword,
-}: {
-  initial: CompanyProfileValues
-  maskedAadePassword: string | null
-}) {
+export function CompanyForm({ initial }: { initial: CompanyProfileValues }) {
   const [values, setValues] = useState<CompanyProfileValues>(initial)
-  const [maskedAadePassword, setMaskedAadePassword] = useState(initialMaskedAadePassword)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [aadeNotice, setAadeNotice] = useState<string | null>(null)
   const [saving, startSave] = useTransition()
   const [lookingUp, startLookup] = useTransition()
 
@@ -52,16 +45,10 @@ export function CompanyForm({
       }
       toast.success(res.message)
       setFieldErrors({})
-      const hadNewPassword = values.aadePassword.trim() !== ''
-      if (hadNewPassword) {
-        setMaskedAadePassword(maskSecretPreview(values.aadePassword))
-        set('aadePassword', '')
-      }
     })
   }
 
   function handleLookup() {
-    setAadeNotice(null)
     if (!values.afm.trim()) {
       toast.error('Συμπλήρωσε πρώτα το ΑΦΜ.')
       return
@@ -69,15 +56,14 @@ export function CompanyForm({
     startLookup(async () => {
       const result = await lookupCompanyAfm(values.afm)
       if (!result.ok) {
-        if (result.reason === 'missing_credentials') setAadeNotice(result.message)
-        else toast.error(result.message)
+        toast.error(result.message)
         return
       }
       setValues(prev => ({
         ...prev,
         name: result.data.name || prev.name,
         title: result.data.commerTitle || prev.title,
-        address: [result.data.address, result.data.addressNo].filter(Boolean).join(' ') || prev.address,
+        address: result.data.address || prev.address,
         zip: result.data.zip || prev.zip,
         district: result.data.district || prev.district,
         doy: result.data.doyDescr || prev.doy,
@@ -120,21 +106,6 @@ export function CompanyForm({
         <TextField id="cp-doy" label="ΔΟΥ" icon={Landmark} value={values.doy} onChange={v => set('doy', v)} error={fieldErrors.doy} />
         <TextField id="cp-jobtype" label="Δραστηριότητα" icon={Briefcase} value={values.jobTypeDesc} onChange={v => set('jobTypeDesc', v)} error={fieldErrors.jobTypeDesc} />
         <TextField id="cp-gemi" label="Αρ. ΓΕΜΗ" icon={FileText} value={values.gemiNumber} onChange={v => set('gemiNumber', v)} error={fieldErrors.gemiNumber} />
-
-        {aadeNotice && (
-          <div className="notice col-span-full">
-            <Landmark aria-hidden />
-            <span>
-              {aadeNotice}{' '}
-              <a href="https://www.aade.gr" target="_blank" rel="noreferrer noopener">aade.gr</a>
-            </span>
-          </div>
-        )}
-
-        <SectionLabel>Στοιχεία πρόσβασης ΑΑΔΕ (για την αναζήτηση ΑΦΜ)</SectionLabel>
-        <TextField id="cp-aade-username" label="Username" icon={User} value={values.aadeUsername} onChange={v => set('aadeUsername', v)} error={fieldErrors.aadeUsername} help="Ειδικοί κωδικοί web service — διαφορετικοί από τους κωδικούς TAXISnet." />
-        <SecretField id="cp-aade-password" label="Password" icon={KeyRound} value={values.aadePassword} onChange={v => set('aadePassword', v)} maskedHint={maskedAadePassword} error={fieldErrors.aadePassword} />
-        <TextField id="cp-aade-called-for" label="ΑΦΜ αιτούντος (afmCalledFor)" icon={Fingerprint} value={values.afmCalledFor} onChange={v => set('afmCalledFor', v)} error={fieldErrors.afmCalledFor} help="Το ΑΦΜ με το οποίο έχει γίνει η εγγραφή στο web service του ΑΑΔΕ." />
 
         <SectionLabel>Διεύθυνση</SectionLabel>
         <TextField id="cp-address" label="Διεύθυνση" icon={MapPin} value={values.address} onChange={v => set('address', v)} error={fieldErrors.address} />

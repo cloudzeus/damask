@@ -1,4 +1,4 @@
-import { getSetting, getIntegration, maskSecret } from '@/lib/settings'
+import { getSetting } from '@/lib/settings'
 import { CompanyForm } from './company-form'
 import type { CompanyProfileValues, LogoEntry } from './actions'
 
@@ -7,10 +7,7 @@ function str(value: unknown, fallback = ''): string {
 }
 
 export async function CompanyTab() {
-  const [profile, aade] = await Promise.all([
-    getSetting<Record<string, unknown>>('company.profile'),
-    getIntegration<{ username?: string; password?: string; afmCalledFor?: string }>('aade'),
-  ])
+  const profile = await getSetting<Record<string, unknown>>('company.profile')
   const p = profile ?? {}
   const logos: LogoEntry[] = Array.isArray(p.logos) ? (p.logos as LogoEntry[]) : []
 
@@ -37,10 +34,7 @@ export async function CompanyTab() {
     lat: str(p.lat),
     lng: str(p.lng),
     logos,
-    aadeUsername: str(aade.username),
-    aadePassword: '',
-    afmCalledFor: str(aade.afmCalledFor),
   }
 
-  return <CompanyForm initial={initial} maskedAadePassword={maskSecret(aade.password)} />
+  return <CompanyForm initial={initial} />
 }

@@ -13,6 +13,7 @@ import { coerceOcrNumber, OCR_DOC_TYPES, type ExtractedDocument, type OcrParty, 
 import { validateExtractedDocument } from '@/lib/ocr/validate'
 import type { MismatchFlag } from '@/lib/ocr/invoice-math'
 import { pageDataUrl, type StagedPage } from './types'
+import { CustomerCardPanel } from './customer-card-panel'
 
 const DOC_TYPE_LABEL: Record<OcrDocType, string> = {
   invoice: 'Τιμολόγιο',
@@ -265,6 +266,8 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
 
         <PartyFields title="Εκδότης" party={data.issuer} onChange={p => patch({ issuer: { ...data.issuer, ...p } })} afmFlag={flagByCode.get('issuer_afm_invalid')} />
 
+        <CustomerCardPanel issuer={data.issuer} />
+
         {data.counterparty ? (
           <PartyFields
             title="Παραλήπτης"
@@ -276,7 +279,7 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
         ) : (
           <button
             type="button"
-            onClick={() => patch({ counterparty: { name: null, afm: null, address: null } })}
+            onClick={() => patch({ counterparty: { name: null, afm: null, address: null, phones: [], emails: [], website: null } })}
             className="flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2.5 text-[12.5px] font-semibold text-muted-foreground transition-colors hover:border-(--info) hover:text-(--info)"
           >
             <LuPlus className="size-3.5" /> Προσθήκη παραλήπτη

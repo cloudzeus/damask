@@ -239,7 +239,7 @@ model MediaAsset {
 // ── Πελάτες / Επαφές / Αρχιτέκτονες ──────────────────
 model Customer {
   id        String    @id @default(cuid())
-  trdr      Int       @unique
+  trdr      Int?      @unique // null = καρτέλα που δεν έχει συγχρονιστεί ακόμα με SoftOne (π.χ. δημιουργήθηκε από OCR)
   code      String?
   name      String
   afm       String?

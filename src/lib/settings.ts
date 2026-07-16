@@ -33,8 +33,9 @@ export type CheckResult = { ok: boolean; message: string; at: string }
  */
 export const PUBLIC_TRACKING_CACHE_TAG = 'public-tracking-settings'
 
-/** Οι 8 κάρτες της καρτέλας «Διασυνδέσεις» + το AADE (ζει στην καρτέλα «Εταιρεία» αλλά είναι integration-shaped). */
-export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook' | 'aade'
+/** Οι 8 κάρτες της καρτέλας «Διασυνδέσεις». Το AADE (καρτέλα «Εταιρεία») ΔΕΝ είναι πλέον integration-shaped
+ * — η αναζήτηση vat.wwa.gr (src/lib/aade.ts) δεν χρειάζεται credentials, οπότε δεν αποθηκεύεται εδώ. */
+export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook'
 
 function settingKeyFor(name: IntegrationName): string {
   return `integration.${name}`
@@ -45,7 +46,7 @@ function settingKeyFor(name: IntegrationName): string {
  * λειτουργούν ως fallback ΜΟΝΟ όταν το αντίστοιχο πεδίο δεν έχει τιμή στη DB. Οι
  * υπάρχουσες libs (softone.ts κ.λπ.) συνεχίζουν να διαβάζουν τα ίδια env vars
  * απευθείας — αυτό το fallback αφορά μόνο τα νέα Settings test buttons/libs.
- * Mailgun/Claude/Gemini/Google Tags/Facebook/AADE είναι integrations χωρίς προϋπάρχοντα
+ * Mailgun/Claude/Gemini/Google Tags/Facebook είναι integrations χωρίς προϋπάρχοντα
  * .env — DB-only (κενό fallback map).
  */
 // ΣΗΜΑΝΤΙΚΟ: υπολογίζεται μέσα σε συνάρτηση (όχι top-level const) ώστε να
@@ -78,7 +79,7 @@ function envFallbackFor(name: IntegrationName): Record<string, string | undefine
         apiKey: process.env.DEEPSEEK_API_KEY,
         apiUrl: process.env.DEEPSEEK_API_URL,
       }
-    // Mailgun/Claude/Gemini/Google Tags/Facebook/AADE: integrations χωρίς προϋπάρχον .env — DB-only.
+    // Mailgun/Claude/Gemini/Google Tags/Facebook: integrations χωρίς προϋπάρχον .env — DB-only.
     default:
       return {}
   }
@@ -162,7 +163,6 @@ const REQUIRED_FIELDS: Record<IntegrationName, string[]> = {
   gemini: ['apiKey'],
   gtags: [], // ειδική περίπτωση — βλ. παρακάτω (gtagId Ή gtmId αρκεί)
   facebook: ['pixelId'],
-  aade: ['username', 'password'],
 }
 
 function nonEmpty(value: unknown): boolean {

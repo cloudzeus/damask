@@ -1,180 +1,136 @@
-import { getIntegration } from '@/lib/settings'
-
 /**
- * ΑΑΔΕ (GSIS) RgWsPublic2 lookup — επίσημο δημόσιο SOAP webservice αναζήτησης
- * στοιχείων επιχείρησης από ΑΦΜ. https://www1.gsis.gr/wsaade/RgWsPublic2/RgWsPublic2
+ * ΑΑΔΕ αναζήτηση στοιχείων επιχείρησης από ΑΦΜ — μέσω της δικής μας υπηρεσίας
+ * vat.wwa.gr/afm2info (ΟΧΙ πλέον το δημόσιο GSIS SOAP RgWsPublic2, ΟΧΙ credentials).
  *
- * ⚠️ ΣΗΜΕΙΩΣΗ ΑΞΙΟΠΙΣΤΙΑΣ: το ακριβές namespace/element shape του SOAP envelope
- * παρακάτω είναι βέλτιστη προσπάθεια βασισμένη σε τεκμηρίωση της υπηρεσίας — δεν
- * υπήρχαν διαθέσιμα credentials/sandbox για ζωντανή επαλήθευση σε αυτό το
- * περιβάλλον. Το parsing (parseAadeXml) είναι σκόπιμα ΑΝΕΚΤΙΚΟ (tag-name based,
- * αγνοεί namespace prefix/nesting) ώστε να αντέχει μικρές αποκλίσεις στο
- * request shape. Πριν το πρώτο πραγματικό production lookup, επαλήθευσε το
- * envelope έναντι πραγματικής response από το ΑΑΔΕ.
+ * POST https://vat.wwa.gr/afm2info  body: { afm: "094019245" }
+ * → { basic_rec: {...}, firm_act_tab: { item: [] | {} } }
  *
- * Σημασιολογία AFM: το webservice απαιτεί ΔΥΟ ΑΦΜ σε κάθε κλήση — το ΑΦΜ του
- * λογαριασμού που κάνει την κλήση (registered/authorized, εδώ αποθηκευμένο ως
- * ρύθμιση `afmCalledFor` μαζί με τα credentials — δεν αλλάζει ανά αναζήτηση) και
- * το ΑΦΜ-στόχο για το οποίο ζητάμε στοιχεία (περνάει ως όρισμα σε κάθε κλήση,
- * από το πεδίο ΑΦΜ της καρτέλας Εταιρεία).
+ * basic_rec.deactivation_flag === '1' ΚΑΙ χωρίς stop_date ⇒ ενεργή επιχείρηση.
+ * firm_act_tab.item μπορεί να είναι array, ένα μεμονωμένο object, ή απόν —
+ * κανονικοποιείται πάντα σε array. firm_act_kind === '1' ⇒ κύρια δραστηριότητα.
  */
 
-const AADE_ENDPOINT = 'https://www1.gsis.gr/wsaade/RgWsPublic2/RgWsPublic2'
+const AADE_ENDPOINT = 'https://vat.wwa.gr/afm2info'
+const REQUEST_TIMEOUT_MS = 10_000
 
-export type AadeCompanyInfo = {
+export type AadeActivityKind = 'PRIMARY' | 'SECONDARY'
+
+export type AadeActivity = {
+  code: string | null
+  description: string | null
+  kind: AadeActivityKind
+}
+
+export type AadeCompany = {
   afm: string
-  onomasia: string | null
-  commerTitle: string | null
-  postalAddress: string | null
-  postalAddressNo: string | null
-  postalZipCode: string | null
-  postalAreaDescription: string | null
+  name: string
+  shortName: string | null
   doy: string | null
-  doyDescr: string | null
-  firmActDescr: string | null
+  legalForm: string | null
+  address: string | null
+  zip: string | null
+  city: string | null
+  country: string
+  foundingDate: string | null
+  profession: string | null
+  activities: AadeActivity[]
+  aadeStatus: string | null
+  isActive: boolean
 }
 
-export type AadeLookupResult =
-  | { ok: true; data: AadeCompanyInfo }
-  | {
-      ok: false
-      reason: 'missing_credentials' | 'invalid_afm' | 'soap_fault' | 'not_found' | 'http_error' | 'network_error'
-      message: string
-    }
+/** Λάθος αναζήτησης ΑΑΔΕ με φιλικό ελληνικό μήνυμα — δεν σημαίνει "δεν βρέθηκε" (αυτό είναι `null` return). */
+export class AadeLookupError extends Error {}
 
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
+/**
+ * AADE/ΓΕΜΗ-style responses μπορεί να επιστρέψουν nil markers αντί για JSON null
+ * σε κάποια endpoints· εδώ το vat.wwa.gr επιστρέφει καθαρό JSON, αλλά κρατάμε
+ * την ίδια ανεκτική κανονικοποίηση για ασφάλεια (κενό string/whitespace → null).
+ */
+function s(v: unknown): string | null {
+  if (v == null) return null
+  if (typeof v === 'string') return v.trim() || null
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  return null
 }
 
-function decodeXmlEntities(value: string): string {
-  return value
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&')
+type FirmActRaw = {
+  firm_act_code?: unknown
+  firm_act_descr?: unknown
+  firm_act_kind?: unknown
+}
+
+type AadeRawResponse = {
+  basic_rec?: Record<string, unknown>
+  firm_act_tab?: { item?: FirmActRaw | FirmActRaw[] }
+}
+
+function normalizeActivities(raw: AadeRawResponse['firm_act_tab']): AadeActivity[] {
+  const item = raw?.item
+  const items: FirmActRaw[] = item == null ? [] : (Array.isArray(item) ? item : [item])
+  return items.map(a => ({
+    code: s(a?.firm_act_code),
+    description: s(a?.firm_act_descr),
+    kind: s(a?.firm_act_kind) === '1' ? 'PRIMARY' : 'SECONDARY',
+  }))
 }
 
 /**
- * Εξάγει το πρώτο `<tagName>...</tagName>` (ανεκτικό σε namespace prefix,
- * π.χ. `<ns1:onomasia>`) — null αν δεν υπάρχει ή είναι κενό. Δεν κάνει πλήρες
- * XML parse (καμία εξάρτηση xml lib) — αρκετό για το επίπεδο (flat-ish) shape
- * της response αυτού του συγκεκριμένου webservice.
+ * Αναζήτηση στοιχείων επιχείρησης από ΑΦΜ μέσω vat.wwa.gr/afm2info.
+ * - Επιστρέφει `null` όταν το ΑΦΜ δεν βρέθηκε στο μητρώο (όχι σφάλμα).
+ * - Πετάει `AadeLookupError` (ελληνικό μήνυμα) για μη έγκυρο ΑΦΜ, timeout, HTTP/δικτυακό σφάλμα.
  */
-function extractTag(xml: string, tagName: string): string | null {
-  const re = new RegExp(`<(?:[\\w.-]+:)?${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[\\w.-]+:)?${tagName}>`, 'i')
-  const match = re.exec(xml)
-  if (!match) return null
-  const raw = match[1].trim()
-  return raw === '' ? null : decodeXmlEntities(raw)
-}
-
-/** SOAP Fault detection — ελληνικό μήνυμα βασισμένο στο faultstring όταν υπάρχει. */
-function extractSoapFault(xml: string): string | null {
-  if (!/<[^>]*:?Fault[ >]/i.test(xml)) return null
-  return extractTag(xml, 'faultstring') ?? 'Άγνωστο σφάλμα SOAP.'
-}
-
-/**
- * Parse μόνο των πεδίων που χρειάζεται η προσυμπλήρωση της καρτέλας Εταιρεία.
- * Επιστρέφει null αν η response δεν περιέχει ούτε ΑΦΜ ούτε επωνυμία (κενό/μη
- * αναγνωρίσιμο αποτέλεσμα).
- */
-export function parseAadeXml(xml: string): AadeCompanyInfo | null {
-  const afm = extractTag(xml, 'afm')
-  const onomasia = extractTag(xml, 'onomasia')
-  if (!afm && !onomasia) return null
-
-  return {
-    afm: afm ?? '',
-    onomasia,
-    commerTitle: extractTag(xml, 'commer_title'),
-    postalAddress: extractTag(xml, 'postal_address'),
-    postalAddressNo: extractTag(xml, 'postal_address_no'),
-    postalZipCode: extractTag(xml, 'postal_zip_code'),
-    postalAreaDescription: extractTag(xml, 'postal_area_description'),
-    doy: extractTag(xml, 'doy'),
-    doyDescr: extractTag(xml, 'doy_descr'),
-    firmActDescr: extractTag(xml, 'firm_act_descr'),
-  }
-}
-
-function buildSoapEnvelope(opts: { username: string; password: string; requesterAfm: string; targetAfm: string }): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns="http://rgwspublic2.gsis.gr/RgWsPublic2Service">
-  <soapenv:Header>
-    <ns:rgWsPublic2AuthenticateRequest>
-      <ns:username>${escapeXml(opts.username)}</ns:username>
-      <ns:password>${escapeXml(opts.password)}</ns:password>
-    </ns:rgWsPublic2AuthenticateRequest>
-  </soapenv:Header>
-  <soapenv:Body>
-    <ns:rgWsPublic2AfmMethod>
-      <ns:INPUT_PARAMETERS>
-        <ns:afm_called_by>${escapeXml(opts.requesterAfm)}</ns:afm_called_by>
-        <ns:afm_called_for>${escapeXml(opts.targetAfm)}</ns:afm_called_for>
-      </ns:INPUT_PARAMETERS>
-    </ns:rgWsPublic2AfmMethod>
-  </soapenv:Body>
-</soapenv:Envelope>`
-}
-
-type StoredAadeConfig = { username?: string; password?: string; afmCalledFor?: string }
-
-/** Αναζήτηση στοιχείων επιχείρησης από ΑΦΜ μέσω ΑΑΔΕ. `targetAfm` = το ΑΦΜ που αναζητούμε (πεδίο ΑΦΜ της καρτέλας Εταιρεία). */
-export async function lookupAfm(targetAfm: string): Promise<AadeLookupResult> {
-  const afm = targetAfm.trim()
-  if (!/^\d{9}$/.test(afm)) {
-    return { ok: false, reason: 'invalid_afm', message: 'Το ΑΦΜ πρέπει να έχει 9 ψηφία.' }
+export async function aadeLookup(afm: string): Promise<AadeCompany | null> {
+  const clean = String(afm ?? '').trim()
+  if (!/^\d{9}$/.test(clean)) {
+    throw new AadeLookupError('Το ΑΦΜ πρέπει να έχει 9 ψηφία.')
   }
 
-  const creds = await getIntegration<StoredAadeConfig>('aade')
-  if (!creds.username?.trim() || !creds.password?.trim()) {
-    return {
-      ok: false,
-      reason: 'missing_credentials',
-      message:
-        'Χρειάζεται εγγραφή στις Ηλεκτρονικές Υπηρεσίες του gsis.gr (ειδικοί κωδικοί web service, διαφορετικοί από τους κωδικούς TAXISnet) — κάνε εγγραφή στο https://www.aade.gr και συμπλήρωσε τα στοιχεία πρόσβασης παραπάνω.',
-    }
-  }
-
-  const envelope = buildSoapEnvelope({
-    username: creds.username,
-    password: creds.password,
-    requesterAfm: creds.afmCalledFor?.trim() || creds.username,
-    targetAfm: afm,
-  })
-
-  let xml: string
+  let raw: AadeRawResponse
   try {
     const res = await fetch(AADE_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/xml; charset=utf-8', SOAPAction: '' },
-      body: envelope,
-      signal: AbortSignal.timeout(20_000),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ afm: clean }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
-    xml = await res.text()
-    if (!res.ok && !xml.trim()) {
-      return { ok: false, reason: 'http_error', message: `Το ΑΑΔΕ επέστρεψε HTTP ${res.status}.` }
+    if (!res.ok) {
+      throw new AadeLookupError(`Η υπηρεσία ΑΑΔΕ (vat.wwa.gr) επέστρεψε σφάλμα HTTP ${res.status}.`)
     }
-  } catch {
-    return { ok: false, reason: 'network_error', message: 'Αδυναμία σύνδεσης με το ΑΑΔΕ. Δοκίμασε ξανά σε λίγο.' }
+    raw = await res.json()
+  } catch (err) {
+    if (err instanceof AadeLookupError) throw err
+    if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+      throw new AadeLookupError('Η υπηρεσία ΑΑΔΕ (vat.wwa.gr) δεν απάντησε έγκαιρα (10s). Δοκίμασε ξανά.')
+    }
+    throw new AadeLookupError('Αδυναμία σύνδεσης με την υπηρεσία ΑΑΔΕ (vat.wwa.gr). Δοκίμασε ξανά σε λίγο.')
   }
 
-  const fault = extractSoapFault(xml)
-  if (fault) {
-    return { ok: false, reason: 'soap_fault', message: `Το ΑΑΔΕ επέστρεψε σφάλμα: ${fault}` }
-  }
+  const b = raw?.basic_rec
+  if (!b || !s(b.afm)) return null
 
-  const data = parseAadeXml(xml)
-  if (!data || !data.onomasia) {
-    return { ok: false, reason: 'not_found', message: 'Δεν βρέθηκαν στοιχεία για αυτό το ΑΦΜ.' }
-  }
+  const activities = normalizeActivities(raw?.firm_act_tab)
+  const profession = activities.find(a => a.kind === 'PRIMARY')?.description ?? activities[0]?.description ?? null
 
-  return { ok: true, data }
+  const stopDate = s(b.stop_date)
+  const isActive = s(b.deactivation_flag) === '1' && !stopDate
+
+  const addressParts = [s(b.postal_address), s(b.postal_address_no)].filter(Boolean)
+
+  return {
+    afm: s(b.afm) ?? clean,
+    name: s(b.onomasia) ?? '',
+    shortName: s(b.commer_title),
+    doy: s(b.doy_descr),
+    legalForm: s(b.legal_status_descr),
+    address: addressParts.join(' ') || null,
+    zip: s(b.postal_zip_code),
+    city: s(b.postal_area_description),
+    country: 'GR',
+    foundingDate: s(b.regist_date),
+    profession,
+    activities,
+    aadeStatus: s(b.deactivation_flag_descr),
+    isActive,
+  }
 }
