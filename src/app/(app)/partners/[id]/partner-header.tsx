@@ -8,17 +8,19 @@ import { MediaPicker } from '@/components/media/media-picker'
 import { PartnerFormDialog, type EditablePartner } from '../partner-form-dialog'
 import { convertLeadToCustomer, setPartnerLogo, setPartnerLogoFromWebsite } from '../actions'
 import type { MapsClientConfig } from '../actions'
+import type { S1Option } from '@/lib/s1-options'
 
 function initialsOf(name: string): string {
   return name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 }
 
 export function PartnerHeader({
-  partner, logoUrl, mapsConfig,
+  partner, logoUrl, mapsConfig, formOptions,
 }: {
   partner: EditablePartner
   logoUrl: string | null
   mapsConfig: MapsClientConfig
+  formOptions: { country: S1Option[]; irsdata: S1Option[]; trdCategory: S1Option[]; payment: S1Option[]; shipment: S1Option[] }
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -65,8 +67,8 @@ export function PartnerHeader({
           <h1 className="text-[20px]">{partner.name}</h1>
           <span className="badge-pill info">{partner.sodtype === 12 ? 'Προμηθευτής' : 'Πελάτης'}</span>
           {partner.sodtype === 13 && (
-            <span className={`badge-pill ${partner.status === 'LEAD' ? 'warn' : 'ok'}`}>
-              {partner.status === 'LEAD' ? 'Υποψήφιος' : 'Πελάτης'}
+            <span className={`badge-pill ${partner.isProsp ? 'warn' : 'ok'}`}>
+              {partner.isProsp ? 'Υποψήφιος' : 'Πελάτης'}
             </span>
           )}
         </div>
@@ -81,7 +83,7 @@ export function PartnerHeader({
           {favicoLoading ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Globe2 className="size-3.5" aria-hidden />}
           Από website
         </Button>
-        {partner.sodtype === 13 && partner.status === 'LEAD' && (
+        {partner.sodtype === 13 && partner.isProsp && (
           <Button type="button" onClick={handleConvert} disabled={converting}>
             <ArrowUpRight className="size-3.5" aria-hidden /> {converting ? 'Μετατροπή…' : 'Μετατροπή σε Πελάτη'}
           </Button>
@@ -91,7 +93,7 @@ export function PartnerHeader({
         </Button>
       </div>
 
-      <PartnerFormDialog mode="edit" open={editOpen} onOpenChange={setEditOpen} partner={partner} mapsConfig={mapsConfig} />
+      <PartnerFormDialog mode="edit" open={editOpen} onOpenChange={setEditOpen} partner={partner} mapsConfig={mapsConfig} formOptions={formOptions} />
 
       <MediaPicker
         open={pickerOpen}

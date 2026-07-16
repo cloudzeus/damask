@@ -1,53 +1,60 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-type FakeCustomer = {
-  id: string; trdr: number | null; name: string; afm: string | null
-  email: string | null; phone: string | null; address: string | null; city: string | null; zip: string | null
-  sodtype: number; status: string; doy: string | null; website: string | null
+type FakeTrdr = {
+  id: string; TRDR: number | null; NAME: string; AFM: string | null
+  EMAIL: string | null; PHONE01: string | null; ADDRESS: string | null; CITY: string | null; ZIP: string | null
+  SODTYPE: number; ISPROSP: number; IRSDATA: string | null; appNotes: string | null; WEBPAGE: string | null
 }
-type FakeContact = { id: string; customerId: string; name: string; email: string | null; phone: string | null }
+type FakeContact = { id: string; trdrId: string; name: string; email: string | null; phone: string | null }
+type FakeIrsdata = { IRSDATA: number; CODE: string | null; NAME: string }
 
-const store: { customers: FakeCustomer[]; contacts: FakeContact[] } = { customers: [], contacts: [] }
+const store: { trdrs: FakeTrdr[]; contacts: FakeContact[]; irsdata: FakeIrsdata[] } = { trdrs: [], contacts: [], irsdata: [] }
 let nextId = 1
 
 vi.mock('@/lib/rbac-server', () => ({
   requirePermission: vi.fn(async () => ({
-    user: { id: 'admin-1', role: 'ADMIN', permissions: ['customer.edit'], customerId: null },
+    user: { id: 'admin-1', role: 'ADMIN', permissions: ['customer.edit'], trdrId: null },
   })),
 }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    customer: {
-      findFirst: vi.fn(async ({ where }: { where: { afm: string } }) =>
-        store.customers.find(c => c.afm === where.afm) ?? null,
+    trdr: {
+      findFirst: vi.fn(async ({ where }: { where: { AFM: string } }) =>
+        store.trdrs.find(t => t.AFM === where.AFM) ?? null,
       ),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
-        const id = `cust-${nextId++}`
-        const customer: FakeCustomer = {
+        const id = `trdr-${nextId++}`
+        const trdr: FakeTrdr = {
           id,
-          trdr: (data.trdr as number | null) ?? null,
-          name: data.name as string,
-          afm: (data.afm as string | null) ?? null,
-          email: (data.email as string | null) ?? null,
-          phone: (data.phone as string | null) ?? null,
-          address: (data.address as string | null) ?? null,
-          city: (data.city as string | null) ?? null,
-          zip: (data.zip as string | null) ?? null,
-          sodtype: (data.sodtype as number | undefined) ?? 12,
-          status: (data.status as string | undefined) ?? 'CUSTOMER',
-          doy: (data.doy as string | null) ?? null,
-          website: (data.website as string | null) ?? null,
+          TRDR: (data.TRDR as number | null) ?? null,
+          NAME: data.NAME as string,
+          AFM: (data.AFM as string | null) ?? null,
+          EMAIL: (data.EMAIL as string | null) ?? null,
+          PHONE01: (data.PHONE01 as string | null) ?? null,
+          ADDRESS: (data.ADDRESS as string | null) ?? null,
+          CITY: (data.CITY as string | null) ?? null,
+          ZIP: (data.ZIP as string | null) ?? null,
+          SODTYPE: (data.SODTYPE as number | undefined) ?? 12,
+          ISPROSP: (data.ISPROSP as number | undefined) ?? 0,
+          IRSDATA: (data.IRSDATA as string | null) ?? null,
+          appNotes: (data.appNotes as string | null) ?? null,
+          WEBPAGE: (data.WEBPAGE as string | null) ?? null,
         }
-        store.customers.push(customer)
+        store.trdrs.push(trdr)
         const contactsCreate = (data.contacts as { create?: { name: string; email?: string; phone?: string }[] } | undefined)?.create
         if (contactsCreate) {
           for (const c of contactsCreate) {
-            store.contacts.push({ id: `contact-${nextId++}`, customerId: id, name: c.name, email: c.email ?? null, phone: c.phone ?? null })
+            store.contacts.push({ id: `contact-${nextId++}`, trdrId: id, name: c.name, email: c.email ?? null, phone: c.phone ?? null })
           }
         }
-        return { ...customer }
+        return { ...trdr }
       }),
+    },
+    irsdata: {
+      findFirst: vi.fn(async ({ where }: { where: { NAME: { contains: string; mode: string } } }) =>
+        store.irsdata.find(i => i.NAME.toLowerCase().includes(where.NAME.contains.toLowerCase())) ?? null,
+      ),
     },
   },
 }))
@@ -58,14 +65,15 @@ import { createCustomerFromOcr, verifyIssuerAfm } from '@/lib/ocr/customer-actio
 import { aadeLookup } from '@/lib/aade'
 
 beforeEach(() => {
-  store.customers = []
+  store.trdrs = []
   store.contacts = []
+  store.irsdata = []
   nextId = 1
   vi.mocked(aadeLookup).mockReset()
 })
 
 describe('createCustomerFromOcr', () => {
-  it('creates a Customer with trdr=null, first phone/email on the row, extras as Contact rows', async () => {
+  it('creates a Trdr with TRDR=null, first phone/email on the row, extras as Contact rows', async () => {
     const res = await createCustomerFromOcr({
       name: 'Νέος Πελάτης ΑΕ',
       afm: '094014201',
@@ -78,13 +86,13 @@ describe('createCustomerFromOcr', () => {
 
     expect(res.ok).toBe(true)
     if (!res.ok) return
-    const customer = store.customers.find(c => c.id === res.customerId)
-    expect(customer).toBeDefined()
-    expect(customer!.trdr).toBeNull()
-    expect(customer!.name).toBe('Νέος Πελάτης ΑΕ')
-    expect(customer!.afm).toBe('094014201')
-    expect(customer!.phone).toBe('2101234567')
-    expect(customer!.email).toBe('info@example.gr')
+    const trdr = store.trdrs.find(t => t.id === res.customerId)
+    expect(trdr).toBeDefined()
+    expect(trdr!.TRDR).toBeNull()
+    expect(trdr!.NAME).toBe('Νέος Πελάτης ΑΕ')
+    expect(trdr!.AFM).toBe('094014201')
+    expect(trdr!.PHONE01).toBe('2101234567')
+    expect(trdr!.EMAIL).toBe('info@example.gr')
 
     // extra phone/email each become their own Contact row named «Από παραστατικό»
     expect(store.contacts).toHaveLength(2)
@@ -93,7 +101,7 @@ describe('createCustomerFromOcr', () => {
     expect(store.contacts.every(c => c.name === 'Από παραστατικό')).toBe(true)
   })
 
-  it('creates a customer with only a single phone/email and no extra Contact rows', async () => {
+  it('creates a trdr with only a single phone/email and no extra Contact rows', async () => {
     const res = await createCustomerFromOcr({
       name: 'Μονό Στοιχείο',
       afm: '',
@@ -104,11 +112,11 @@ describe('createCustomerFromOcr', () => {
     expect(store.contacts).toHaveLength(0)
   })
 
-  it('rejects a duplicate ΑΦΜ with a friendly Greek message and points to the existing customer', async () => {
-    store.customers.push({
-      id: 'cust-existing', trdr: 555, name: 'Ήδη Υπάρχων', afm: '094014201',
-      email: null, phone: null, address: null, city: null, zip: null,
-      sodtype: 12, status: 'CUSTOMER', doy: null, website: null,
+  it('rejects a duplicate ΑΦΜ with a friendly Greek message and points to the existing trdr', async () => {
+    store.trdrs.push({
+      id: 'cust-existing', TRDR: 555, NAME: 'Ήδη Υπάρχων', AFM: '094014201',
+      EMAIL: null, PHONE01: null, ADDRESS: null, CITY: null, ZIP: null,
+      SODTYPE: 12, ISPROSP: 0, IRSDATA: null, appNotes: null, WEBPAGE: null,
     })
 
     const res = await createCustomerFromOcr({
@@ -122,8 +130,8 @@ describe('createCustomerFromOcr', () => {
     expect(res.customerId).toBe('cust-existing')
     expect(res.customerName).toBe('Ήδη Υπάρχων')
     expect(res.message).toMatch(/Υπάρχει ήδη καρτέλα/)
-    // no new customer created
-    expect(store.customers).toHaveLength(1)
+    // no new trdr created
+    expect(store.trdrs).toHaveLength(1)
   })
 
   it('rejects an invalid ΑΦΜ (not 9 digits) with field errors, without hitting the DB', async () => {
@@ -135,7 +143,7 @@ describe('createCustomerFromOcr', () => {
     expect(res.duplicate).toBe(false)
     if (res.duplicate) return
     expect(res.fieldErrors?.afm).toBeDefined()
-    expect(store.customers).toHaveLength(0)
+    expect(store.trdrs).toHaveLength(0)
   })
 
   it('rejects a blank name', async () => {
@@ -148,26 +156,39 @@ describe('createCustomerFromOcr', () => {
     expect(res.ok).toBe(true)
   })
 
-  it('defaults sodtype to 12 (Προμηθευτής) and always sets status=CUSTOMER when not given explicitly', async () => {
+  it('defaults sodtype to 12 (Προμηθευτής) and always sets ISPROSP=0 when not given explicitly', async () => {
     const res = await createCustomerFromOcr({ name: 'Default Sodtype', afm: '', phones: [], emails: [] })
     expect(res.ok).toBe(true)
     if (!res.ok) return
-    const customer = store.customers.find(c => c.id === res.customerId)
-    expect(customer?.sodtype).toBe(12)
-    expect(customer?.status).toBe('CUSTOMER')
+    const trdr = store.trdrs.find(t => t.id === res.customerId)
+    expect(trdr?.SODTYPE).toBe(12)
+    expect(trdr?.ISPROSP).toBe(0)
   })
 
-  it('persists sodtype=13 (Πελάτης), doy and website when the panel toggle overrides them', async () => {
+  it('persists sodtype=13 (Πελάτης) and website when the panel toggle overrides them; doy without a mirror match goes to appNotes', async () => {
     const res = await createCustomerFromOcr({
       name: 'Πελάτης Από OCR', afm: '', sodtype: 13, doy: 'Δ.Ο.Υ. Αθηνών', website: 'https://example.gr',
       phones: [], emails: [],
     })
     expect(res.ok).toBe(true)
     if (!res.ok) return
-    const customer = store.customers.find(c => c.id === res.customerId)
-    expect(customer?.sodtype).toBe(13)
-    expect(customer?.doy).toBe('Δ.Ο.Υ. Αθηνών')
-    expect(customer?.website).toBe('https://example.gr')
+    const trdr = store.trdrs.find(t => t.id === res.customerId)
+    expect(trdr?.SODTYPE).toBe(13)
+    expect(trdr?.IRSDATA).toBeNull()
+    expect(trdr?.appNotes).toMatch(/Δ.Ο.Υ. Αθηνών/)
+    expect(trdr?.WEBPAGE).toBe('https://example.gr')
+  })
+
+  it('resolves doy to Irsdata.CODE when a mirror match is found by NAME', async () => {
+    store.irsdata.push({ IRSDATA: 1, CODE: '1120', NAME: 'Δ.Ο.Υ. Αθηνών' })
+    const res = await createCustomerFromOcr({
+      name: 'Με ΔΟΥ Match', afm: '', doy: 'Δ.Ο.Υ. Αθηνών', phones: [], emails: [],
+    })
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
+    const trdr = store.trdrs.find(t => t.id === res.customerId)
+    expect(trdr?.IRSDATA).toBe('1120')
+    expect(trdr?.appNotes).toBeNull()
   })
 })
 

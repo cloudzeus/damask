@@ -9,7 +9,7 @@ import { aadeLookup, type AadeCompany } from '@/lib/aade'
  * Server actions πίσω από την κάρτα «Εξακρίβωση & Καρτέλα» του OCR review panel
  * (src/components/ocr/customer-card-panel.tsx): επαλήθευση της εταιρείας στο
  * παραστατικό μέσω ΑΑΔΕ (vat.wwa.gr, src/lib/aade.ts) και δημιουργία καρτέλας
- * πελάτη (Customer, trdr=null — δεν έχει συγχρονιστεί ακόμα με SoftOne).
+ * συναλλασσόμενου (Trdr, TRDR=null — δεν έχει συγχρονιστεί ακόμα με SoftOne).
  *
  * Gating: 'customer.edit' και για τα δύο — η επαλήθευση ΑΦΜ δεν έχει νόημα να
  * είναι πιο ανοιχτή από τη δημιουργία της καρτέλας που προκύπτει από αυτήν.
@@ -42,7 +42,7 @@ const createCustomerFromOcrSchema = z.object({
   // schema comment) — προεπιλογή 12 (Προμηθευτής) στο UI callsite (customer-card-panel.tsx)
   // γιατί ο εκδότης παραστατικού ΑΓΟΡΑΣ είναι σχεδόν πάντα προμηθευτής.
   sodtype: z.union([z.literal(12), z.literal(13)]).default(12),
-  doy: z.string().trim().max(120).optional(),
+  doy: z.string().trim().max(120).optional(), // ελεύθερο κείμενο ΔΟΥ από το παραστατικό (OCR) — γίνεται match κατά NAME στο Irsdata mirror
   website: z.string().trim().max(300).optional(),
   address: z.string().trim().max(200).optional(),
   city: z.string().trim().max(120).optional(),
@@ -59,10 +59,14 @@ export type CreateCustomerFromOcrResult =
   | { ok: false; duplicate: false; message: string; fieldErrors?: Record<string, string> }
 
 /**
- * Δημιουργεί καρτέλα πελάτη (Customer, trdr=null) από τα (πιθανώς επεξεργασμένα
- * από τον χρήστη) στοιχεία του review panel. Το πρώτο τηλέφωνο/email πάνε στα
- * Customer.phone/email· τα υπόλοιπα γίνονται από ένα Contact row το καθένα
- * (name: «Από παραστατικό»). Duplicate-check by ΑΦΜ πριν τη δημιουργία.
+ * Δημιουργεί καρτέλα συναλλασσόμενου (Trdr, TRDR=null) από τα (πιθανώς
+ * επεξεργασμένα από τον χρήστη) στοιχεία του review panel. Το πρώτο
+ * τηλέφωνο/email πάνε στα Trdr.PHONE01/EMAIL· τα υπόλοιπα γίνονται από ένα
+ * Contact row το καθένα (name: «Από παραστατικό»). Duplicate-check by ΑΦΜ πριν
+ * τη δημιουργία. Το ελεύθερο κείμενο ΔΟΥ από το OCR γίνεται match κατά NAME
+ * στο Irsdata mirror (case-insensitive substring) — αν βρεθεί, αποθηκεύεται
+ * το CODE του (Trdr.IRSDATA)· αλλιώς το ακατέργαστο κείμενο πάει στο appNotes
+ * ώστε να μη χαθεί.
  */
 export async function createCustomerFromOcr(input: CreateCustomerFromOcrInput): Promise<CreateCustomerFromOcrResult> {
   await requirePermission('customer.edit')
@@ -81,16 +85,25 @@ export async function createCustomerFromOcr(input: CreateCustomerFromOcrInput): 
   const afmClean = afm || null
 
   if (afmClean) {
-    const existing = await prisma.customer.findFirst({ where: { afm: afmClean } })
+    const existing = await prisma.trdr.findFirst({ where: { AFM: afmClean } })
     if (existing) {
       return {
         ok: false,
         duplicate: true,
         customerId: existing.id,
-        customerName: existing.name,
-        message: `Υπάρχει ήδη καρτέλα με αυτό το ΑΦΜ: «${existing.name}».`,
+        customerName: existing.NAME,
+        message: `Υπάρχει ήδη καρτέλα με αυτό το ΑΦΜ: «${existing.NAME}».`,
       }
     }
+  }
+
+  let irsdataCode: string | null = null
+  let appNotes: string | null = null
+  const doyTrimmed = (doy ?? '').trim()
+  if (doyTrimmed) {
+    const matched = await prisma.irsdata.findFirst({ where: { NAME: { contains: doyTrimmed, mode: 'insensitive' } } })
+    if (matched?.CODE) irsdataCode = matched.CODE
+    else appNotes = `ΔΟΥ (από παραστατικό, χωρίς match): ${doyTrimmed}`
   }
 
   const extraContacts: { name: string; phone?: string; email?: string }[] = [
@@ -98,23 +111,24 @@ export async function createCustomerFromOcr(input: CreateCustomerFromOcrInput): 
     ...emails.slice(1).map(email => ({ name: 'Από παραστατικό', email })),
   ]
 
-  const customer = await prisma.customer.create({
+  const trdr = await prisma.trdr.create({
     data: {
-      trdr: null,
-      sodtype,
-      status: 'CUSTOMER', // OCR καρτέλες προκύπτουν από πραγματικό παραστατικό, όχι lead pipeline
-      name,
-      afm: afmClean,
-      doy: doy || null,
-      website: website || null,
-      email: emails[0] ?? null,
-      phone: phones[0] ?? null,
-      address: address || null,
-      city: city || null,
-      zip: zip || null,
+      TRDR: null,
+      SODTYPE: sodtype,
+      ISPROSP: 0, // OCR καρτέλες προκύπτουν από πραγματικό παραστατικό, όχι lead pipeline
+      NAME: name,
+      AFM: afmClean,
+      IRSDATA: irsdataCode,
+      appNotes,
+      WEBPAGE: website || null,
+      EMAIL: emails[0] ?? null,
+      PHONE01: phones[0] ?? null,
+      ADDRESS: address || null,
+      CITY: city || null,
+      ZIP: zip || null,
       contacts: extraContacts.length ? { create: extraContacts } : undefined,
     },
   })
 
-  return { ok: true, customerId: customer.id }
+  return { ok: true, customerId: trdr.id }
 }

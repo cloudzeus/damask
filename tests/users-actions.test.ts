@@ -20,7 +20,7 @@ type FakeUser = {
   passwordHash: string
   active: boolean
   roleId: string
-  customerId?: string | null
+  trdrId?: string | null
   phone?: string | null
   mobile?: string | null
   address?: string | null
@@ -39,7 +39,7 @@ type FakeAccessRequest = {
   contactId?: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
 }
-type FakeContact = { id: string; customerId: string; name: string; userId?: string | null }
+type FakeContact = { id: string; trdrId: string; name: string; userId?: string | null }
 
 const store: { users: FakeUser[]; roles: FakeRole[]; requests: FakeAccessRequest[]; contacts: FakeContact[] } = {
   users: [],
@@ -52,7 +52,7 @@ const CURRENT_USER_ID = 'admin-1'
 
 vi.mock('@/lib/rbac-server', () => ({
   requirePermission: vi.fn(async () => ({
-    user: { id: CURRENT_USER_ID, role: 'ADMIN', permissions: ['user.manage'], customerId: null },
+    user: { id: CURRENT_USER_ID, role: 'ADMIN', permissions: ['user.manage'], trdrId: null },
   })),
 }))
 
@@ -160,7 +160,7 @@ beforeEach(() => {
     { id: 'req-5', type: 'CUSTOMER', name: 'Ελένη Επαφή', company: 'Damask Partner ΑΕ', afm: '333333333', phone: '2105556677', email: 'eleni@partner.gr', status: 'PENDING', contactId: 'contact-1' },
   ]
   store.contacts = [
-    { id: 'contact-1', customerId: 'customer-1', name: 'Ελένη Επαφή', userId: null },
+    { id: 'contact-1', trdrId: 'customer-1', name: 'Ελένη Επαφή', userId: null },
   ]
 })
 
@@ -243,13 +243,13 @@ describe('approveAccessRequest()', () => {
     expect(res.ok).toBe(false)
   })
 
-  it('αίτημα από επαφή (contactId): γράφει Contact.userId ΚΑΙ User.customerId', async () => {
+  it('αίτημα από επαφή (contactId): γράφει Contact.userId ΚΑΙ User.trdrId', async () => {
     const res = await approveAccessRequest('req-5')
     expect(res).toMatchObject({ ok: true })
 
     const created = store.users.find(u => u.email === 'eleni@partner.gr')
     expect(created).toBeTruthy()
-    expect(created?.customerId).toBe('customer-1')
+    expect(created?.trdrId).toBe('customer-1')
 
     const contact = store.contacts.find(c => c.id === 'contact-1')
     expect(contact?.userId).toBe(created?.id)

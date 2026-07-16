@@ -13,7 +13,7 @@ export type PartnerRow = {
   phone: string | null
   logoUrl: string | null
   contactsCount: number
-  status: 'LEAD' | 'CUSTOMER'
+  isProsp: boolean
   sodtype: number
   trdr: number | null
 }
@@ -41,12 +41,12 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
   const counts = useMemo(() => ({
     customers: partners.filter(p => p.sodtype === 13).length,
     suppliers: partners.filter(p => p.sodtype === 12).length,
-    leads: partners.filter(p => p.status === 'LEAD').length,
+    leads: partners.filter(p => p.isProsp).length,
   }), [partners])
 
   const byTab = useMemo(() => {
     if (tab === 'suppliers') return partners.filter(p => p.sodtype === 12)
-    if (tab === 'leads') return partners.filter(p => p.status === 'LEAD')
+    if (tab === 'leads') return partners.filter(p => p.isProsp)
     return partners.filter(p => p.sodtype === 13)
   }, [partners, tab])
 
@@ -115,7 +115,7 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
                 <td>
                   {p.sodtype === 12 ? (
                     <span className="badge-pill muted">—</span>
-                  ) : p.status === 'LEAD' ? (
+                  ) : p.isProsp ? (
                     <span className="badge-pill warn">
                       <span className="status-dot" style={{ background: 'var(--warning)' }} aria-hidden />
                       Υποψήφιος
@@ -135,7 +135,7 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
                   )}
                 </td>
                 <td className="ctr">
-                  <PartnerRowActions id={p.id} name={p.name} status={p.status} isLocal={p.trdr === null} />
+                  <PartnerRowActions id={p.id} name={p.name} isProsp={p.isProsp} isLocal={p.trdr === null} />
                 </td>
               </tr>
             ))}

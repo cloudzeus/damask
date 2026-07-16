@@ -24,7 +24,7 @@ export default async function UsersPage() {
     prisma.user.findMany({
       include: {
         role: { select: { name: true } },
-        customer: { select: { name: true } },
+        trdr: { select: { NAME: true } },
         architect: { include: { _count: { select: { customers: true } } } },
       },
       orderBy: { name: 'asc' },
@@ -52,7 +52,7 @@ export default async function UsersPage() {
     address: u.address,
     city: u.city,
     country: u.country,
-    connectedLabel: u.customer?.name ?? (u.architect ? `${u.architect._count.customers} πελάτες` : '—'),
+    connectedLabel: u.trdr?.NAME ?? (u.architect ? `${u.architect._count.customers} πελάτες` : '—'),
     updatedLabel: relativeTime(u.updatedAt, now),
   }))
 

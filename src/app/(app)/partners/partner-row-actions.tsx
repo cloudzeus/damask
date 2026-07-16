@@ -14,11 +14,11 @@ import {
 import { convertLeadToCustomer, deletePartner } from './actions'
 
 export function PartnerRowActions({
-  id, name, status, isLocal,
+  id, name, isProsp, isLocal,
 }: {
   id: string
   name: string
-  status: 'LEAD' | 'CUSTOMER'
+  isProsp: boolean
   /** trdr === null — δεν έχει συγχρονιστεί με SoftOne, άρα επιτρέπεται διαγραφή. */
   isLocal: boolean
 }) {
@@ -60,7 +60,7 @@ export function PartnerRowActions({
           <DropdownMenuItem render={<Link href={`/partners/${id}`} />}>
             <FileText className="size-3.5" strokeWidth={1.75} /> Καρτέλα
           </DropdownMenuItem>
-          {status === 'LEAD' && (
+          {isProsp && (
             <DropdownMenuItem disabled={converting} onClick={handleConvert}>
               <ArrowUpRight className="size-3.5" strokeWidth={1.75} /> {converting ? 'Μετατροπή…' : 'Μετατροπή σε Πελάτη'}
             </DropdownMenuItem>

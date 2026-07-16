@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { can } from '@/lib/rbac'
 
 const session = (perms: string[]) =>
-  ({ user: { id: 'u', role: 'X', permissions: perms, customerId: null } }) as any
+  ({ user: { id: 'u', role: 'X', permissions: perms, trdrId: null } }) as any
 
 describe('can()', () => {
   it('true όταν υπάρχει το permission', () => {

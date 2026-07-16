@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import bcrypt from 'bcryptjs'
 
 const user = {
-  id: 'u1', email: 'a@b.gr', name: 'A', active: true, customerId: null,
+  id: 'u1', email: 'a@b.gr', name: 'A', active: true, trdrId: null,
   passwordHash: bcrypt.hashSync('secret123', 4),
   role: { name: 'ADMIN', permissions: [{ permission: { key: 'user.manage' } }] },
 }

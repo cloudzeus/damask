@@ -20,7 +20,7 @@ let nextFolderId = 1
 
 vi.mock('@/lib/rbac-server', () => ({
   requirePermission: vi.fn(async () => ({
-    user: { id: 'admin-1', role: 'ADMIN', permissions: ['media.manage'], customerId: null },
+    user: { id: 'admin-1', role: 'ADMIN', permissions: ['media.manage'], trdrId: null },
   })),
 }))
 

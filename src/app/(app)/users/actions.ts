@@ -67,7 +67,7 @@ const ACCESS_REQUEST_ROLE_NAMES = new Set(['CUSTOMER', 'ARCHITECT', 'SUPPLIER'])
  *
  * Όταν το αίτημα προέρχεται από επαφή συναλλασσόμενου (contactId — βλ.
  * requestContactAccess, src/app/(app)/partners/actions.ts) ο νέος χρήστης
- * συνδέεται ΚΑΙ με την καρτέλα Customer της επαφής (User.customerId) ΚΑΙ η
+ * συνδέεται ΚΑΙ με την καρτέλα Trdr της επαφής (User.trdrId) ΚΑΙ η
  * ίδια η επαφή γράφεται ως «έχει λογαριασμό» (Contact.userId) — ώστε το
  * /partners/[id] να δείχνει «User ✓» στη λίστα επαφών.
  */
@@ -98,7 +98,7 @@ export async function approveAccessRequest(requestId: string): Promise<ActionRes
         passwordHash: await bcrypt.hash(tempPassword, 12),
         active: true,
         roleId: role.id,
-        customerId: contact?.customerId ?? null,
+        trdrId: contact?.trdrId ?? null,
       },
     })
     newUserId = created.id
@@ -140,7 +140,7 @@ export async function approveAccessRequest(requestId: string): Promise<ActionRes
   revalidatePath('/users')
   if (contact) {
     revalidatePath('/partners')
-    revalidatePath(`/partners/${contact.customerId}`)
+    revalidatePath(`/partners/${contact.trdrId}`)
   }
   return { ok: true, message: `Ο λογαριασμός για ${request.name} δημιουργήθηκε.` }
 }

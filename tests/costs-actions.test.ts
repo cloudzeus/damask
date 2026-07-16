@@ -15,7 +15,7 @@ vi.mock('@/lib/settings', () => ({
 import { saveAiMarkup, savePricingOverride, deletePricingOverride, saveApiCostConfig } from '@/app/(app)/costs/actions'
 
 function sessionFor(role: string) {
-  return { user: { id: 'u1', role, permissions: ['costs.view'], customerId: null } }
+  return { user: { id: 'u1', role, permissions: ['costs.view'], trdrId: null } }
 }
 
 beforeEach(() => {

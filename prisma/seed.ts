@@ -2,6 +2,7 @@ import 'dotenv/config'
 import bcrypt from 'bcryptjs'
 import { PERMISSIONS, ROLE_DEFAULTS } from '../src/lib/permissions'
 import { prisma } from '../src/lib/prisma'
+import { seedReferenceDefaults } from '../src/lib/s1-sync'
 
 async function main() {
   // 1. Permissions — upsert ώστε το seed να είναι επανεκτελέσιμο
@@ -44,6 +45,11 @@ async function main() {
     },
   })
   console.log('Seed ολοκληρώθηκε. Admin: gkozyris@i4ria.com (SUPER_ADMIN)')
+
+  // 4. S1 reference mirrors — προσωρινό seed (VAT/COUNTRY) μόνο αν άδειο πίνακας.
+  // Θα αντικατασταθούν με upsert στο πρώτο πραγματικό SoftOne sync.
+  await seedReferenceDefaults()
+  console.log('S1 reference mirrors: seed ελέγχθηκε (VAT/COUNTRY μόνο αν άδεια).')
 }
 
 main()

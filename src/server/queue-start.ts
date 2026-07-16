@@ -3,6 +3,7 @@ import { startBoss } from '@/lib/queue'
 import { prisma } from '@/lib/prisma'
 import { runProductImport, type RawImportRow, type ImportTotals } from '@/lib/import/product-upsert'
 import { runBackup } from '@/lib/backup'
+import { syncAllReferences } from '@/lib/s1-sync'
 
 export const QUEUE_HEALTH = 'health'
 /** Μεγάλες εισαγωγές Excel (>500 γραμμές — src/app/(app)/import/actions.ts executeImport). */
@@ -11,6 +12,13 @@ export const QUEUE_IMPORT = 'import'
  * κουμπί «Backup τώρα» ΔΕΝ περνάει από αυτή την ουρά — καλεί runBackup απευθείας
  * από το server action (src/app/(app)/settings/backups-actions.ts). */
 export const QUEUE_BACKUP = 'backup'
+/** Sync βοηθητικών πινάκων SoftOne (VAT/COUNTRY/IRSDATA/κ.λπ. — src/lib/s1-sync.ts).
+ * Το χειροκίνητο κουμπί «Sync βοηθητικών από SoftOne» (καρτέλα «Διασυνδέσεις»)
+ * ΔΕΝ περνάει από αυτή την ουρά — καλεί syncAllReferences απευθείας από το server
+ * action (src/app/(app)/settings/s1-sync-actions.ts), ίδιο idiom με QUEUE_BACKUP.
+ * Η ουρά υπάρχει για μελλοντικό scheduled sync (δεν είναι scheduled ακόμα — δεν
+ * υπάρχουν S1 credentials σε αυτό το περιβάλλον). */
+export const QUEUE_S1_REF_SYNC = 's1-ref-sync'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
 
@@ -61,6 +69,18 @@ export async function startQueue(): Promise<void> {
   // Καθημερινά 03:30 Ελλάδα (Europe/Athens — pg-boss 12 ScheduleOptions.tz, χειρίζεται
   // αυτόματα θερινή/χειμερινή ώρα). Χωρίς `data` payload — το runBackup(cron) δεν χρειάζεται.
   await boss.schedule(QUEUE_BACKUP, '30 3 * * *', null, { tz: 'Europe/Athens' })
+
+  await boss.createQueue(QUEUE_S1_REF_SYNC)
+  await boss.work(QUEUE_S1_REF_SYNC, async () => {
+    try {
+      const results = await syncAllReferences()
+      const failed = results.filter(r => !r.ok)
+      if (failed.length > 0) console.warn('[pg-boss] s1-ref-sync ολοκληρώθηκε με σφάλματα', failed)
+    } catch (err) {
+      console.error('[pg-boss] s1-ref-sync job απέτυχε', err)
+      throw err // ίδιο idiom με QUEUE_BACKUP/QUEUE_IMPORT — pg-boss κάνει retry
+    }
+  })
 
   console.log('[pg-boss] started')
 }

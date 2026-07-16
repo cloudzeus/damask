@@ -23,7 +23,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const u = user as import('@/auth.config').AuthUserPayload
         token.role = u.role
         token.permissions = u.permissions
-        token.customerId = u.customerId
+        token.trdrId = u.trdrId
       }
       return token
     },
@@ -31,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = token.sub!
       session.user.role = token.role as string
       session.user.permissions = (token.permissions as string[]) ?? []
-      session.user.customerId = (token.customerId as string | null) ?? null
+      session.user.trdrId = (token.trdrId as string | null) ?? null
       return session
     },
   },

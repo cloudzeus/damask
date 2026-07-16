@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Server, User, KeyRound, Fingerprint, Building2, GitBranch, Layers3, Hash } from 'lucide-react'
+import { Server, User, KeyRound, Fingerprint, Building2, GitBranch, Layers3, Hash, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CardHeader, TextField, SecretField, maskSecretPreview } from '../fields'
 import { saveSoftoneSettings, testSoftoneSettings, type SoftoneValues } from '../actions'
+import { runS1RefSyncNow } from '../s1-sync-actions'
 import type { CheckResult } from '@/lib/settings'
 
 export function SoftoneCard({
@@ -23,6 +24,7 @@ export function SoftoneCard({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [saving, startSave] = useTransition()
   const [testing, startTest] = useTransition()
+  const [syncing, startSync] = useTransition()
 
   function set<K extends keyof SoftoneValues>(key: K, value: SoftoneValues[K]) {
     setValues(prev => ({ ...prev, [key]: value }))
@@ -62,6 +64,21 @@ export function SoftoneCard({
     })
   }
 
+  /** «Sync βοηθητικών από SoftOne» — VAT/COUNTRY/IRSDATA/TRDCATEGORY/PAYMENT/
+   * SHIPMENT/SOCURRENCY/SERIES mirror tables (src/lib/s1-sync.ts). Gated πίσω
+   * από configured — αν δεν είναι ρυθμισμένο εμφανίζει το γνωστό friendly μήνυμα. */
+  function handleSync() {
+    if (!configured) {
+      toast.warning('Ρύθμισε το SoftOne στις Ρυθμίσεις.')
+      return
+    }
+    startSync(async () => {
+      const res = await runS1RefSyncNow()
+      if (res.ok) toast.success(res.message)
+      else toast.error(res.message)
+    })
+  }
+
   return (
     <div className="glass p-4">
       <CardHeader
@@ -81,9 +98,13 @@ export function SoftoneCard({
         <TextField id="softone-module" label="Module" icon={Layers3} value={values.module} onChange={v => set('module', v)} error={fieldErrors.module} />
         <TextField id="softone-refid" label="Ref ID" icon={Hash} value={values.refid} onChange={v => set('refid', v)} error={fieldErrors.refid} />
       </div>
-      <div className="mt-1 flex items-center gap-2">
+      <div className="mt-1 flex flex-wrap items-center gap-2">
         <Button type="button" onClick={handleSave} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Button>
         <Button type="button" variant="outline" onClick={handleTest} disabled={testing}>{testing ? 'Έλεγχος…' : 'Δοκιμή σύνδεσης'}</Button>
+        <Button type="button" variant="outline" onClick={handleSync} disabled={syncing}>
+          <RefreshCw className="size-3.5" aria-hidden />
+          {syncing ? 'Συγχρονισμός…' : 'Sync βοηθητικών από SoftOne'}
+        </Button>
       </div>
     </div>
   )

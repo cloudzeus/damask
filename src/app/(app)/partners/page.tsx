@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { PartnersTable, type PartnerRow } from './partners-table'
 import { NewPartnerButton } from './new-partner-button'
 import { getMapsClientConfig } from './actions'
+import { getPartnerFormOptions } from '@/lib/s1-options'
 
 export default async function PartnersPage() {
   await requirePermission('customer.view')
@@ -12,29 +13,30 @@ export default async function PartnersPage() {
   monthStart.setDate(1)
   monthStart.setHours(0, 0, 0, 0)
 
-  const [customers, customerCount, supplierCount, leadCount, newThisMonth, mapsConfig] = await Promise.all([
-    prisma.customer.findMany({
+  const [trdrs, customerCount, supplierCount, leadCount, newThisMonth, mapsConfig, formOptions] = await Promise.all([
+    prisma.trdr.findMany({
       include: { _count: { select: { contacts: true } } },
-      orderBy: { name: 'asc' },
+      orderBy: { NAME: 'asc' },
     }),
-    prisma.customer.count({ where: { sodtype: 13, status: 'CUSTOMER' } }),
-    prisma.customer.count({ where: { sodtype: 12 } }),
-    prisma.customer.count({ where: { status: 'LEAD' } }),
-    prisma.customer.count({ where: { createdAt: { gte: monthStart } } }),
+    prisma.trdr.count({ where: { SODTYPE: 13, ISPROSP: 0 } }),
+    prisma.trdr.count({ where: { SODTYPE: 12 } }),
+    prisma.trdr.count({ where: { ISPROSP: 1 } }),
+    prisma.trdr.count({ where: { createdAt: { gte: monthStart } } }),
     getMapsClientConfig(),
+    getPartnerFormOptions(),
   ])
 
-  const partnerRows: PartnerRow[] = customers.map(c => ({
-    id: c.id,
-    name: c.name,
-    afm: c.afm,
-    city: c.city,
-    phone: c.phone,
-    logoUrl: c.logoUrl,
-    contactsCount: c._count.contacts,
-    status: c.status,
-    sodtype: c.sodtype,
-    trdr: c.trdr,
+  const partnerRows: PartnerRow[] = trdrs.map(t => ({
+    id: t.id,
+    name: t.NAME,
+    afm: t.AFM,
+    city: t.CITY,
+    phone: t.PHONE01,
+    logoUrl: t.appLogoUrl,
+    contactsCount: t._count.contacts,
+    isProsp: t.ISPROSP === 1,
+    sodtype: t.SODTYPE,
+    trdr: t.TRDR,
   }))
 
   const kpis = [
@@ -66,7 +68,7 @@ export default async function PartnersPage() {
           <h1 className="text-[22px]">Συναλλασσόμενοι</h1>
         </div>
         <div className="flex-1" />
-        <NewPartnerButton mapsConfig={mapsConfig} />
+        <NewPartnerButton mapsConfig={mapsConfig} formOptions={formOptions} />
       </div>
 
       <div className="stagger mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

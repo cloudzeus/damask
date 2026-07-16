@@ -11,10 +11,12 @@ import { geocodeSearch, geocodeReverse, GeocodeError, type GeocodeResult } from 
 
 /**
  * Server actions πίσω από /partners (Συναλλασσόμενοι κατά SoftOne SODTYPE —
- * 13 Πελάτες / 12 Προμηθευτές) + /partners/[id] (καρτέλα, χάρτης, επαφές,
- * αιτήματα πρόσβασης user). Gating: 'customer.view' για αναγνώσεις χωρίς
- * side-effect (γίνονται ήδη στα ίδια τα Server Components), 'customer.edit'
- * για ΚΑΘΕ mutation — ίδιο idiom με src/lib/ocr/customer-actions.ts.
+ * 13 Πελάτες / 12 Προμηθευτές, model Trdr — EXACT SoftOne TRDR mapping) +
+ * /partners/[id] (καρτέλα, χάρτης, επαφές, αιτήματα πρόσβασης user).
+ * ISPROSP=1 σημαίνει «Υποψήφιος» (lead) — δεν υπάρχει πλέον ξεχωριστό enum
+ * status. Gating: 'customer.view' για αναγνώσεις χωρίς side-effect (γίνονται
+ * ήδη στα ίδια τα Server Components), 'customer.edit' για ΚΑΘΕ mutation —
+ * ίδιο idiom με src/lib/ocr/customer-actions.ts.
  */
 
 export type ActionResult =
@@ -41,25 +43,37 @@ function n(value: string | undefined): string | null {
   return trimmed === '' ? null : trimmed
 }
 
+/** '' ή undefined → null, αλλιώς parseInt — για τα S1 combo (COUNTRY/TRDCATEGORY/PAYMENT/SHIPMENT) numeric ids. */
+function ni(value: string | undefined | null): number | null {
+  const trimmed = (value ?? '').trim()
+  if (trimmed === '') return null
+  const parsed = parseInt(trimmed, 10)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 // ── Δημιουργία / Επεξεργασία συναλλασσόμενου ────────────────────────────────
 
 const partnerFormShape = {
-  sodtype: z.union([z.literal(12), z.literal(13)]),
-  status: z.enum(['LEAD', 'CUSTOMER']),
-  name: z.string().trim().min(1, 'Η επωνυμία είναι υποχρεωτική.').max(200),
-  afm: z.union([z.literal(''), z.string().trim().regex(/^\d{9}$/, 'Το ΑΦΜ πρέπει να έχει 9 ψηφία.')]),
-  doy: z.string().trim().max(120).optional(),
-  legalForm: z.string().trim().max(120).optional(),
-  profession: z.string().trim().max(300).optional(),
-  email: z.union([z.literal(''), z.email('Μη έγκυρο email.')]),
-  phone: z.string().trim().max(40).optional(),
-  website: z.string().trim().max(300).optional(),
-  address: z.string().trim().max(200).optional(),
-  city: z.string().trim().max(120).optional(),
-  zip: z.string().trim().max(20).optional(),
-  lat: z.number().min(-90).max(90).nullable().optional(),
-  lng: z.number().min(-180).max(180).nullable().optional(),
-  notes: z.string().trim().max(2000).optional(),
+  SODTYPE: z.union([z.literal(12), z.literal(13)]),
+  ISPROSP: z.union([z.literal(0), z.literal(1)]),
+  NAME: z.string().trim().min(1, 'Η επωνυμία είναι υποχρεωτική.').max(200),
+  AFM: z.union([z.literal(''), z.string().trim().regex(/^\d{9}$/, 'Το ΑΦΜ πρέπει να έχει 9 ψηφία.')]),
+  IRSDATA: z.string().trim().max(10).optional(), // Irsdata.CODE (combo) — string κωδικός ΔΟΥ
+  JOBTYPETRD: z.string().trim().max(300).optional(),
+  appLegalForm: z.string().trim().max(120).optional(),
+  EMAIL: z.union([z.literal(''), z.email('Μη έγκυρο email.')]),
+  PHONE01: z.string().trim().max(40).optional(),
+  WEBPAGE: z.string().trim().max(300).optional(),
+  ADDRESS: z.string().trim().max(200).optional(),
+  CITY: z.string().trim().max(120).optional(),
+  ZIP: z.string().trim().max(20).optional(),
+  COUNTRY: z.string().trim().max(10).optional(),
+  TRDCATEGORY: z.string().trim().max(10).optional(),
+  PAYMENT: z.string().trim().max(10).optional(),
+  SHIPMENT: z.string().trim().max(10).optional(),
+  appLat: z.number().min(-90).max(90).nullable().optional(),
+  appLng: z.number().min(-180).max(180).nullable().optional(),
+  appNotes: z.string().trim().max(2000).optional(),
 }
 
 const createPartnerSchema = z.object(partnerFormShape)
@@ -77,42 +91,46 @@ export async function createPartner(input: PartnerFormValues): Promise<ActionRes
     return { ok: false, message: 'Έλεγξε τα στοιχεία που συμπλήρωσες.', fieldErrors: fieldErrorsFromZod(parsed.error) }
   }
   const data = parsed.data
-  const afm = n(data.afm)
+  const afm = n(data.AFM)
 
   if (afm) {
-    const existing = await prisma.customer.findFirst({ where: { afm } })
+    const existing = await prisma.trdr.findFirst({ where: { AFM: afm } })
     if (existing) {
-      return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { afm: UNIQUE_AFM_MESSAGE } }
+      return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { AFM: UNIQUE_AFM_MESSAGE } }
     }
   }
 
   try {
-    const created = await prisma.customer.create({
+    const created = await prisma.trdr.create({
       data: {
-        trdr: null,
-        sodtype: data.sodtype,
-        status: data.status,
-        name: data.name,
-        afm,
-        doy: n(data.doy),
-        legalForm: n(data.legalForm),
-        profession: n(data.profession),
-        email: n(data.email),
-        phone: n(data.phone),
-        website: n(data.website),
-        address: n(data.address),
-        city: n(data.city),
-        zip: n(data.zip),
-        lat: data.lat ?? null,
-        lng: data.lng ?? null,
-        notes: n(data.notes),
+        TRDR: null,
+        SODTYPE: data.SODTYPE,
+        ISPROSP: data.ISPROSP,
+        NAME: data.NAME,
+        AFM: afm,
+        IRSDATA: n(data.IRSDATA),
+        JOBTYPETRD: n(data.JOBTYPETRD),
+        appLegalForm: n(data.appLegalForm),
+        EMAIL: n(data.EMAIL),
+        PHONE01: n(data.PHONE01),
+        WEBPAGE: n(data.WEBPAGE),
+        ADDRESS: n(data.ADDRESS),
+        CITY: n(data.CITY),
+        ZIP: n(data.ZIP),
+        COUNTRY: ni(data.COUNTRY),
+        TRDCATEGORY: ni(data.TRDCATEGORY),
+        PAYMENT: ni(data.PAYMENT),
+        SHIPMENT: ni(data.SHIPMENT),
+        appLat: data.appLat ?? null,
+        appLng: data.appLng ?? null,
+        appNotes: n(data.appNotes),
       },
     })
     revalidatePartners()
-    return { ok: true, message: `Ο συναλλασσόμενος «${created.name}» δημιουργήθηκε.`, partnerId: created.id }
+    return { ok: true, message: `Ο συναλλασσόμενος «${created.NAME}» δημιουργήθηκε.`, partnerId: created.id }
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-      return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { afm: UNIQUE_AFM_MESSAGE } }
+      return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { AFM: UNIQUE_AFM_MESSAGE } }
     }
     throw e
   }
@@ -126,77 +144,81 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
     return { ok: false, message: 'Έλεγξε τα στοιχεία που συμπλήρωσες.', fieldErrors: fieldErrorsFromZod(parsed.error) }
   }
   const data = parsed.data
-  const afm = n(data.afm)
+  const afm = n(data.AFM)
 
-  const existing = await prisma.customer.findUnique({ where: { id } })
+  const existing = await prisma.trdr.findUnique({ where: { id } })
   if (!existing) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
 
   if (afm) {
-    const dup = await prisma.customer.findFirst({ where: { afm, id: { not: id } } })
-    if (dup) return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { afm: UNIQUE_AFM_MESSAGE } }
+    const dup = await prisma.trdr.findFirst({ where: { AFM: afm, id: { not: id } } })
+    if (dup) return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { AFM: UNIQUE_AFM_MESSAGE } }
   }
 
   try {
-    await prisma.customer.update({
+    await prisma.trdr.update({
       where: { id },
       data: {
-        sodtype: data.sodtype,
-        status: data.status,
-        name: data.name,
-        afm,
-        doy: n(data.doy),
-        legalForm: n(data.legalForm),
-        profession: n(data.profession),
-        email: n(data.email),
-        phone: n(data.phone),
-        website: n(data.website),
-        address: n(data.address),
-        city: n(data.city),
-        zip: n(data.zip),
-        lat: data.lat ?? null,
-        lng: data.lng ?? null,
-        notes: n(data.notes),
+        SODTYPE: data.SODTYPE,
+        ISPROSP: data.ISPROSP,
+        NAME: data.NAME,
+        AFM: afm,
+        IRSDATA: n(data.IRSDATA),
+        JOBTYPETRD: n(data.JOBTYPETRD),
+        appLegalForm: n(data.appLegalForm),
+        EMAIL: n(data.EMAIL),
+        PHONE01: n(data.PHONE01),
+        WEBPAGE: n(data.WEBPAGE),
+        ADDRESS: n(data.ADDRESS),
+        CITY: n(data.CITY),
+        ZIP: n(data.ZIP),
+        COUNTRY: ni(data.COUNTRY),
+        TRDCATEGORY: ni(data.TRDCATEGORY),
+        PAYMENT: ni(data.PAYMENT),
+        SHIPMENT: ni(data.SHIPMENT),
+        appLat: data.appLat ?? null,
+        appLng: data.appLng ?? null,
+        appNotes: n(data.appNotes),
       },
     })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-      return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { afm: UNIQUE_AFM_MESSAGE } }
+      return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { AFM: UNIQUE_AFM_MESSAGE } }
     }
     throw e
   }
 
   revalidatePartners(id)
-  return { ok: true, message: `Οι αλλαγές για «${data.name}» αποθηκεύτηκαν.` }
+  return { ok: true, message: `Οι αλλαγές για «${data.NAME}» αποθηκεύτηκαν.` }
 }
 
-/** Μόνο τοπικές καρτέλες (trdr=null, δεν έχουν συγχρονιστεί με SoftOne) διαγράφονται. */
+/** Μόνο τοπικές καρτέλες (TRDR=null, δεν έχουν συγχρονιστεί με SoftOne) διαγράφονται. */
 export async function deletePartner(id: string): Promise<ActionResult> {
   await requirePermission('customer.edit')
 
-  const existing = await prisma.customer.findUnique({ where: { id } })
+  const existing = await prisma.trdr.findUnique({ where: { id } })
   if (!existing) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
-  if (existing.trdr !== null) {
+  if (existing.TRDR !== null) {
     return { ok: false, message: 'Δεν διαγράφονται καρτέλες συγχρονισμένες με το SoftOne.' }
   }
 
-  await prisma.customer.delete({ where: { id } })
+  await prisma.trdr.delete({ where: { id } })
   revalidatePartners()
-  return { ok: true, message: `Ο συναλλασσόμενος «${existing.name}» διαγράφηκε.` }
+  return { ok: true, message: `Ο συναλλασσόμενος «${existing.NAME}» διαγράφηκε.` }
 }
 
-/** LEAD → CUSTOMER (πελατοποίηση). Ιδεμπότητο-guard: μόνο από LEAD. */
+/** ISPROSP 1→0 (πελατοποίηση lead). Ιδεμπότητο-guard: μόνο από ISPROSP=1. */
 export async function convertLeadToCustomer(id: string): Promise<ActionResult> {
   await requirePermission('customer.edit')
 
-  const existing = await prisma.customer.findUnique({ where: { id } })
+  const existing = await prisma.trdr.findUnique({ where: { id } })
   if (!existing) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
-  if (existing.status !== 'LEAD') {
-    return { ok: false, message: 'Ο συναλλασσόμενος δεν είναι υποψήφιος (LEAD).' }
+  if (existing.ISPROSP !== 1) {
+    return { ok: false, message: 'Ο συναλλασσόμενος δεν είναι υποψήφιος (Lead).' }
   }
 
-  await prisma.customer.update({ where: { id }, data: { status: 'CUSTOMER' } })
+  await prisma.trdr.update({ where: { id }, data: { ISPROSP: 0 } })
   revalidatePartners(id)
-  return { ok: true, message: `Ο/Η «${existing.name}» έγινε Πελάτης.` }
+  return { ok: true, message: `Ο/Η «${existing.NAME}» έγινε Πελάτης.` }
 }
 
 // ── ΑΑΔΕ lookup ──────────────────────────────────────────────────────────
@@ -262,10 +284,10 @@ export async function updatePartnerCoordinates(id: string, lat: number, lng: num
   const parsed = z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).safeParse({ lat, lng })
   if (!parsed.success) return { ok: false, message: 'Μη έγκυρες συντεταγμένες.' }
 
-  const existing = await prisma.customer.findUnique({ where: { id } })
+  const existing = await prisma.trdr.findUnique({ where: { id } })
   if (!existing) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
 
-  await prisma.customer.update({ where: { id }, data: { lat: parsed.data.lat, lng: parsed.data.lng } })
+  await prisma.trdr.update({ where: { id }, data: { appLat: parsed.data.lat, appLng: parsed.data.lng } })
   revalidatePartners(id)
   return { ok: true, message: 'Οι συντεταγμένες ενημερώθηκαν.' }
 }
@@ -273,10 +295,10 @@ export async function updatePartnerCoordinates(id: string, lat: number, lng: num
 /** «Ενημέρωση από διεύθυνση» στην καρτέλα — γεωκωδικοποιεί τη διεύθυνση της καρτέλας και αποθηκεύει. */
 export async function refreshCoordinatesFromAddress(id: string): Promise<ActionResult> {
   await requirePermission('customer.edit')
-  const existing = await prisma.customer.findUnique({ where: { id } })
+  const existing = await prisma.trdr.findUnique({ where: { id } })
   if (!existing) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
 
-  const address = [existing.address, existing.city, existing.zip].filter(Boolean).join(', ')
+  const address = [existing.ADDRESS, existing.CITY, existing.ZIP].filter(Boolean).join(', ')
   if (!address) return { ok: false, message: 'Δεν υπάρχει διεύθυνση στην καρτέλα.' }
 
   try {
@@ -284,7 +306,7 @@ export async function refreshCoordinatesFromAddress(id: string): Promise<ActionR
     const results = await geocodeSearch(address, apiKey)
     if (results.length === 0) return { ok: false, message: 'Δεν βρέθηκε τοποθεσία για τη διεύθυνση της καρτέλας.' }
     const { lat, lng } = results[0]
-    await prisma.customer.update({ where: { id }, data: { lat, lng } })
+    await prisma.trdr.update({ where: { id }, data: { appLat: lat, appLng: lng } })
     revalidatePartners(id)
     return { ok: true, message: 'Οι συντεταγμένες ενημερώθηκαν από τη διεύθυνση.' }
   } catch (err) {
@@ -301,10 +323,10 @@ export async function setPartnerLogo(id: string, url: string): Promise<ActionRes
   const clean = url.trim()
   if (!clean) return { ok: false, message: 'Μη έγκυρο αρχείο.' }
 
-  const existing = await prisma.customer.findUnique({ where: { id } })
+  const existing = await prisma.trdr.findUnique({ where: { id } })
   if (!existing) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
 
-  await prisma.customer.update({ where: { id }, data: { logoUrl: clean } })
+  await prisma.trdr.update({ where: { id }, data: { appLogoUrl: clean } })
   revalidatePartners(id)
   return { ok: true, message: 'Το λογότυπο ενημερώθηκε.' }
 }
@@ -322,15 +344,15 @@ function domainOf(website: string): string | null {
 export async function setPartnerLogoFromWebsite(id: string): Promise<ActionResult> {
   await requirePermission('customer.edit')
 
-  const existing = await prisma.customer.findUnique({ where: { id } })
+  const existing = await prisma.trdr.findUnique({ where: { id } })
   if (!existing) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
-  if (!existing.website) return { ok: false, message: 'Συμπλήρωσε πρώτα website στα στοιχεία της καρτέλας.' }
+  if (!existing.WEBPAGE) return { ok: false, message: 'Συμπλήρωσε πρώτα website στα στοιχεία της καρτέλας.' }
 
-  const domain = domainOf(existing.website)
+  const domain = domainOf(existing.WEBPAGE)
   if (!domain) return { ok: false, message: 'Το website δεν είναι έγκυρο URL.' }
 
   const logoUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`
-  await prisma.customer.update({ where: { id }, data: { logoUrl } })
+  await prisma.trdr.update({ where: { id }, data: { appLogoUrl: logoUrl } })
   revalidatePartners(id)
   return { ok: true, message: 'Το λογότυπο ενημερώθηκε από το website.' }
 }
@@ -350,7 +372,7 @@ export async function getMapsClientConfig(): Promise<MapsClientConfig> {
   }
 }
 
-// ── Επαφές ───────────────────────────────────────────────────────────────
+// ── Επαφές (mirror CUSPRSN/SUPPRSN) ─────────────────────────────────────
 
 const contactFormShape = {
   name: z.string().trim().min(1, 'Το όνομα είναι υποχρεωτικό.').max(150),
@@ -363,22 +385,22 @@ const contactFormShape = {
 const contactFormSchema = z.object(contactFormShape)
 export type ContactFormValues = z.input<typeof contactFormSchema>
 
-export async function createContact(customerId: string, input: ContactFormValues): Promise<ActionResult> {
+export async function createContact(trdrId: string, input: ContactFormValues): Promise<ActionResult> {
   await requirePermission('customer.edit')
   const parsed = contactFormSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: 'Έλεγξε τα στοιχεία που συμπλήρωσες.', fieldErrors: fieldErrorsFromZod(parsed.error) }
   const data = parsed.data
 
-  const customer = await prisma.customer.findUnique({ where: { id: customerId } })
-  if (!customer) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
+  const trdr = await prisma.trdr.findUnique({ where: { id: trdrId } })
+  if (!trdr) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
 
   await prisma.$transaction(async tx => {
     if (data.isPrimary) {
-      await tx.contact.updateMany({ where: { customerId, isPrimary: true }, data: { isPrimary: false } })
+      await tx.contact.updateMany({ where: { trdrId, isPrimary: true }, data: { isPrimary: false } })
     }
     await tx.contact.create({
       data: {
-        customerId,
+        trdrId,
         name: data.name,
         position: n(data.position),
         email: n(data.email),
@@ -389,7 +411,7 @@ export async function createContact(customerId: string, input: ContactFormValues
     })
   })
 
-  revalidatePartners(customerId)
+  revalidatePartners(trdrId)
   return { ok: true, message: `Η επαφή «${data.name}» προστέθηκε.` }
 }
 
@@ -405,7 +427,7 @@ export async function updateContact(contactId: string, input: ContactFormValues)
   await prisma.$transaction(async tx => {
     if (data.isPrimary) {
       await tx.contact.updateMany({
-        where: { customerId: existing.customerId, isPrimary: true, id: { not: contactId } },
+        where: { trdrId: existing.trdrId, isPrimary: true, id: { not: contactId } },
         data: { isPrimary: false },
       })
     }
@@ -422,7 +444,7 @@ export async function updateContact(contactId: string, input: ContactFormValues)
     })
   })
 
-  revalidatePartners(existing.customerId)
+  revalidatePartners(existing.trdrId)
   return { ok: true, message: `Οι αλλαγές για «${data.name}» αποθηκεύτηκαν.` }
 }
 
@@ -432,7 +454,7 @@ export async function deleteContact(contactId: string): Promise<ActionResult> {
   if (!existing) return { ok: false, message: 'Η επαφή δεν βρέθηκε.' }
 
   await prisma.contact.delete({ where: { id: contactId } })
-  revalidatePartners(existing.customerId)
+  revalidatePartners(existing.trdrId)
   return { ok: true, message: `Η επαφή «${existing.name}» διαγράφηκε.` }
 }
 
@@ -442,11 +464,11 @@ export async function setPrimaryContact(contactId: string): Promise<ActionResult
   if (!existing) return { ok: false, message: 'Η επαφή δεν βρέθηκε.' }
 
   await prisma.$transaction([
-    prisma.contact.updateMany({ where: { customerId: existing.customerId, isPrimary: true }, data: { isPrimary: false } }),
+    prisma.contact.updateMany({ where: { trdrId: existing.trdrId, isPrimary: true }, data: { isPrimary: false } }),
     prisma.contact.update({ where: { id: contactId }, data: { isPrimary: true } }),
   ])
 
-  revalidatePartners(existing.customerId)
+  revalidatePartners(existing.trdrId)
   return { ok: true, message: `Η «${existing.name}» ορίστηκε κύρια επαφή.` }
 }
 
@@ -456,15 +478,15 @@ const UNIQUE_REQUEST_EMAIL_MESSAGE = 'Υπάρχει ήδη αίτημα ή λο
 
 /**
  * Δημιουργεί AccessRequest από επαφή (⋮ «Αίτημα πρόσβασης user» στο /partners/[id]) —
- * type παράγεται από το sodtype του συναλλασσόμενου (13→CUSTOMER, 12→SUPPLIER),
+ * type παράγεται από το SODTYPE του συναλλασσόμενου (13→CUSTOMER, 12→SUPPLIER),
  * contactId συνδέει το αίτημα με την επαφή ώστε το approveAccessRequest
- * (src/app/(app)/users/actions.ts) να γράψει πίσω Contact.userId + User.customerId.
+ * (src/app/(app)/users/actions.ts) να γράψει πίσω Contact.userId + User.trdrId.
  * Εμφανίζεται στο ίδιο panel εγκρίσεων με τα /register αιτήματα (AccessRequestsPanel, /users).
  */
 export async function requestContactAccess(contactId: string): Promise<ActionResult> {
   await requirePermission('customer.edit')
 
-  const contact = await prisma.contact.findUnique({ where: { id: contactId }, include: { customer: true } })
+  const contact = await prisma.contact.findUnique({ where: { id: contactId }, include: { trdr: true } })
   if (!contact) return { ok: false, message: 'Η επαφή δεν βρέθηκε.' }
   if (contact.userId) return { ok: false, message: 'Η επαφή έχει ήδη λογαριασμό χρήστη.' }
   if (!contact.email) return { ok: false, message: 'Η επαφή δεν έχει email — συμπλήρωσέ το πρώτα.' }
@@ -472,15 +494,15 @@ export async function requestContactAccess(contactId: string): Promise<ActionRes
   const existingRequest = await prisma.accessRequest.findFirst({ where: { contactId, status: 'PENDING' } })
   if (existingRequest) return { ok: false, message: 'Υπάρχει ήδη αίτημα σε αναμονή για αυτή την επαφή.' }
 
-  const type = contact.customer.sodtype === 12 ? 'SUPPLIER' : 'CUSTOMER'
+  const type = contact.trdr.SODTYPE === 12 ? 'SUPPLIER' : 'CUSTOMER'
 
   try {
     await prisma.accessRequest.create({
       data: {
         type,
         name: contact.name,
-        company: contact.customer.name,
-        afm: contact.customer.afm ?? '',
+        company: contact.trdr.NAME,
+        afm: contact.trdr.AFM ?? '',
         phone: contact.phone ?? contact.mobile ?? '',
         email: contact.email.toLowerCase(),
         contactId: contact.id,
@@ -493,7 +515,7 @@ export async function requestContactAccess(contactId: string): Promise<ActionRes
     throw e
   }
 
-  revalidatePartners(contact.customerId)
+  revalidatePartners(contact.trdrId)
   revalidatePath('/users')
   return { ok: true, message: `Το αίτημα πρόσβασης για «${contact.name}» δημιουργήθηκε.` }
 }

@@ -37,7 +37,7 @@ const store: { posts: FakePost[]; translations: FakeTranslation[]; categories: F
 
 vi.mock('@/lib/rbac-server', () => ({
   requirePermission: vi.fn(async () => ({
-    user: { id: 'admin-1', role: 'ADMIN', permissions: ['cms.view', 'cms.edit'], customerId: null },
+    user: { id: 'admin-1', role: 'ADMIN', permissions: ['cms.view', 'cms.edit'], trdrId: null },
   })),
 }))
 

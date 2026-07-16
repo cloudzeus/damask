@@ -13,7 +13,7 @@ import {
 import { deleteContact, setPrimaryContact, requestContactAccess } from '../actions'
 import { ContactFormDialog, type EditableContact } from './contact-form-dialog'
 
-export function ContactRowActions({ customerId, contact }: { customerId: string; contact: EditableContact & { hasUser: boolean } }) {
+export function ContactRowActions({ trdrId, contact }: { trdrId: string; contact: EditableContact & { hasUser: boolean } }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -78,7 +78,7 @@ export function ContactRowActions({ customerId, contact }: { customerId: string;
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ContactFormDialog mode="edit" customerId={customerId} open={editOpen} onOpenChange={setEditOpen} contact={contact} />
+      <ContactFormDialog mode="edit" trdrId={trdrId} open={editOpen} onOpenChange={setEditOpen} contact={contact} />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>

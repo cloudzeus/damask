@@ -32,10 +32,10 @@ function toFormValues(c: EditableContact): ContactFormValues {
 }
 
 export function ContactFormDialog({
-  mode, customerId, open, onOpenChange, contact,
+  mode, trdrId, open, onOpenChange, contact,
 }: {
   mode: 'create' | 'edit'
-  customerId: string
+  trdrId: string
   open: boolean
   onOpenChange: (open: boolean) => void
   contact?: EditableContact
@@ -58,7 +58,7 @@ export function ContactFormDialog({
     e.preventDefault()
     startTransition(async () => {
       const res = mode === 'create'
-        ? await createContact(customerId, values)
+        ? await createContact(trdrId, values)
         : await updateContact(contact!.id, values)
       if (res.ok) {
         toast.success(res.message)

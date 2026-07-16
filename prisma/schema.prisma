@@ -8,29 +8,30 @@ datasource db {
 
 // ── RBAC ─────────────────────────────────────────────
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  active       Boolean  @default(true)
-  roleId       String
-  role         Role     @relation(fields: [roleId], references: [id])
-  customerId   String?
-  customer     Customer? @relation(fields: [customerId], references: [id])
-  architect    ArchitectProfile?
-  contact      Contact?
-  phone        String?
-  mobile       String?
-  address      String?
-  city         String?
-  country      String?
-  createdOrders  Order[] @relation("OrderCreatedBy")
-  approvedOrders Order[] @relation("OrderApprovedBy")
-  importJobs   ImportJob[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String            @id @default(cuid())
+  email          String            @unique
+  name           String
+  passwordHash   String
+  active         Boolean           @default(true)
+  roleId         String
+  role           Role              @relation(fields: [roleId], references: [id])
+  trdrId         String?
+  trdr           Trdr?             @relation(fields: [trdrId], references: [id])
+  architect      ArchitectProfile?
+  contact        Contact?
+  phone          String?
+  mobile         String?
+  address        String?
+  city           String?
+  country        String?
+  createdOrders  Order[]           @relation("OrderCreatedBy")
+  approvedOrders Order[]           @relation("OrderApprovedBy")
+  importJobs     ImportJob[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
   @@index([roleId])
-  @@index([customerId])
+  @@index([trdrId])
 }
 
 model Role {
@@ -54,6 +55,7 @@ model RolePermission {
   permissionId String
   role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
   @@id([roleId, permissionId])
 }
 
@@ -67,14 +69,15 @@ model S1Session {
 
 model SyncLog {
   id        String   @id @default(cuid())
-  entity    String   // "product" | "customer" | ...
-  action    String   // "pull" | "push" | "verify"
+  entity    String // "product" | "customer" | ...
+  action    String // "pull" | "push" | "verify"
   s1Key     String?
   ok        Boolean
   message   String?
   request   Json?
   response  Json?
   createdAt DateTime @default(now())
+
   @@index([entity, createdAt])
 }
 
@@ -87,8 +90,8 @@ enum OutboxStatus {
 
 model S1Outbox {
   id         String       @id @default(cuid())
-  object     String       // S1 OBJECT π.χ. "ITEM", "CUSTOMER", "SALDOC"
-  s1Key      String?      // KEY για update, null για insert
+  object     String // S1 OBJECT π.χ. "ITEM", "CUSTOMER", "SALDOC"
+  s1Key      String? // KEY για update, null για insert
   payload    Json
   status     OutboxStatus @default(PENDING)
   attempts   Int          @default(0)
@@ -96,42 +99,44 @@ model S1Outbox {
   verifiedAt DateTime?
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
+
   @@index([status, createdAt])
 }
 
 // ── Ταξινομήσεις & ΜΜ ────────────────────────────────
 model Category {
-  id       String  @id @default(cuid())
-  s1Id     Int     @unique
+  id       String    @id @default(cuid())
+  s1Id     Int       @unique
   name     String
   nameEn   String?
   products Product[]
 }
 
 model Group {
-  id       String  @id @default(cuid())
-  s1Id     Int     @unique
+  id       String    @id @default(cuid())
+  s1Id     Int       @unique
   name     String
   nameEn   String?
   products Product[]
+
   @@map("ProductGroup")
 }
 
 model Subgroup {
-  id       String  @id @default(cuid())
-  s1Id     Int     @unique
+  id       String    @id @default(cuid())
+  s1Id     Int       @unique
   name     String
   nameEn   String?
   products Product[]
 }
 
 model Unit {
-  id            String    @id @default(cuid())
-  s1Id          Int       @unique
-  code          String?
-  name          String
-  purchaseFor   Product[] @relation("PurchaseUnit")
-  salesFor      Product[] @relation("SalesUnit")
+  id          String    @id @default(cuid())
+  s1Id        Int       @unique
+  code        String?
+  name        String
+  purchaseFor Product[] @relation("PurchaseUnit")
+  salesFor    Product[] @relation("SalesUnit")
 }
 
 // ── Προϊόντα ─────────────────────────────────────────
@@ -147,35 +152,36 @@ enum ReviewStatus {
 }
 
 model Product {
-  id             String        @id @default(cuid())
-  mtrl           Int?          @unique // S1 id — NULL για προϊόντα που δημιουργήθηκαν από Excel import και δεν έχουν ακόμα συγχρονιστεί με το SoftOne (nullable unique είναι ok σε Postgres· πολλαπλά NULL επιτρέπονται)
-  code           String        @unique
-  isActive       Boolean       @default(true)
-  status         ProductStatus @default(DRAFT)
-  priceWholesale Decimal?      @db.Decimal(14, 4)
-  priceRetail    Decimal?      @db.Decimal(14, 4)
-  stock          Decimal?      @db.Decimal(14, 4)
-  cbmPerUnit     Decimal?      @db.Decimal(10, 4)
-  weightPerUnit  Decimal?      @db.Decimal(10, 3)
+  id             String               @id @default(cuid())
+  mtrl           Int?                 @unique // S1 id — NULL για προϊόντα που δημιουργήθηκαν από Excel import και δεν έχουν ακόμα συγχρονιστεί με το SoftOne (nullable unique είναι ok σε Postgres· πολλαπλά NULL επιτρέπονται)
+  code           String               @unique
+  isActive       Boolean              @default(true)
+  status         ProductStatus        @default(DRAFT)
+  priceWholesale Decimal?             @db.Decimal(14, 4)
+  priceRetail    Decimal?             @db.Decimal(14, 4)
+  stock          Decimal?             @db.Decimal(14, 4)
+  cbmPerUnit     Decimal?             @db.Decimal(10, 4)
+  weightPerUnit  Decimal?             @db.Decimal(10, 3)
   categoryId     String?
-  category       Category?     @relation(fields: [categoryId], references: [id])
+  category       Category?            @relation(fields: [categoryId], references: [id])
   groupId        String?
-  group          Group?        @relation(fields: [groupId], references: [id])
+  group          Group?               @relation(fields: [groupId], references: [id])
   subgroupId     String?
-  subgroup       Subgroup?     @relation(fields: [subgroupId], references: [id])
+  subgroup       Subgroup?            @relation(fields: [subgroupId], references: [id])
   purchaseUnitId String?
-  purchaseUnit   Unit?         @relation("PurchaseUnit", fields: [purchaseUnitId], references: [id])
+  purchaseUnit   Unit?                @relation("PurchaseUnit", fields: [purchaseUnitId], references: [id])
   salesUnitId    String?
-  salesUnit      Unit?         @relation("SalesUnit", fields: [salesUnitId], references: [id])
-  unitFactor     Decimal?      @db.Decimal(12, 6) // ΜΜ αγοράς → ΜΜ πώλησης
+  salesUnit      Unit?                @relation("SalesUnit", fields: [salesUnitId], references: [id])
+  unitFactor     Decimal?             @db.Decimal(12, 6) // ΜΜ αγοράς → ΜΜ πώλησης
   translations   ProductTranslation[]
   media          MediaAsset[]
   orderLines     OrderLine[]
   priceCache     PriceCache[]
   s1UpdatedAt    DateTime?
   syncedAt       DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
   @@index([status])
   @@index([code])
   @@index([categoryId])
@@ -187,7 +193,7 @@ model ProductTranslation {
   id                String       @id @default(cuid())
   productId         String
   product           Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  locale            String       // "el" | "en"
+  locale            String // "el" | "en"
   name              String
   shortDescription  String?
   description       String?
@@ -195,6 +201,7 @@ model ProductTranslation {
   seoDescription    String?
   machineTranslated Boolean      @default(false)
   reviewStatus      ReviewStatus @default(NEEDS_REVIEW)
+
   @@unique([productId, locale])
 }
 
@@ -214,6 +221,7 @@ model MediaFolder {
   assets    MediaAsset[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
   @@unique([parentId, name])
   @@index([parentId])
 }
@@ -233,72 +241,98 @@ model MediaAsset {
   sortOrder Int          @default(0)
   meta      Json?
   createdAt DateTime     @default(now())
+
   @@index([productId, sortOrder])
   @@index([folderId])
 }
 
-// ── Πελάτες / Επαφές / Αρχιτέκτονες ──────────────────
-/// Κατάσταση πελατοποίησης — LEAD (υποψήφιος, δεν έχει αγοράσει ακόμα) →
-/// CUSTOMER (πελατοποιήθηκε). Ανεξάρτητο του sodtype: ένας προμηθευτής (12)
-/// δεν εμφανίζει καν το badge στο UI (βλ. /partners), αλλά το πεδίο υπάρχει
-/// σε όλες τις γραμμές Customer για ομοιομορφία.
-enum TraderStatus {
-  LEAD
-  CUSTOMER
-}
+// ── Συναλλασσόμενοι (TRDR) / Επαφές / Αρχιτέκτονες ───
+/// EXACT SoftOne TRDR mapping (CUSTOMER.CUSTOMER / SUPPLIER.SUPPLIER — ίδιος
+/// υποκείμενος πίνακας TRDR στο SoftOne, διαφοροποιείται με SODTYPE). Τα
+/// πεδία με uppercase ονόματα είναι 1-προς-1 SoftOne (βλ. trdr-schema.json) —
+/// ΟΧΙ δικά μας ονόματα/mapping layer. Πεδία με πρόθεμα "app" είναι δικές μας
+/// επεκτάσεις εκτός SoftOne (ΠΟΤΕ δεν στέλνονται/λαμβάνονται από S1 sync).
+/// ISPROSP = 1 σημαίνει «Υποψήφιος» (lead) — αυτό ΕΙΝΑΙ το lead flag, όχι
+/// ξεχωριστό enum status. SODTYPE 13 = Πελάτης, 12 = Προμηθευτής (καθορίζει
+/// tab στο /partners). COUNTRY/TRDCATEGORY/TRDPGROUP/TRDBUSINESS/PAYMENT/
+/// SHIPMENT/SOCURRENCY είναι soft references (Int, χωρίς Prisma @relation)
+/// στα mirror tables παρακάτω — τα combos τα φορτώνουν με ξεχωριστό query,
+/// όχι Prisma relation, ώστε η σειρά sync (S1 reference data πριν τα TRDR) να
+/// μην είναι FK-constrained.
+model Trdr {
+  id           String              @id @default(cuid())
+  TRDR         Int?                @unique // null = καρτέλα που δεν έχει συγχρονιστεί ακόμα με SoftOne (π.χ. δημιουργήθηκε από OCR)
+  SODTYPE      Int                 @default(13) // 13 = Πελάτης, 12 = Προμηθευτής
+  CODE         String?
+  NAME         String
+  AFM          String?
+  IRSDATA      String? // κωδ.Δ.Ο.Υ. (soft ref στο mirror Irsdata.CODE — string κωδικός, ΟΧΙ το Irsdata.IRSDATA numeric id)
+  JOBTYPETRD   String? // επάγγελμα, free text
+  ADDRESS      String?
+  ZIP          String?
+  DISTRICT     String?
+  CITY         String?
+  COUNTRY      Int? // soft ref Country.COUNTRY
+  PHONE01      String?
+  PHONE02      String?
+  FAX          String?
+  EMAIL        String?
+  WEBPAGE      String?
+  TRDCATEGORY  Int? // soft ref TrdCategory.TRDCATEGORY
+  TRDPGROUP    Int?
+  TRDBUSINESS  Int?
+  PAYMENT      Int? // soft ref S1Payment.PAYMENT
+  SHIPMENT     Int? // soft ref Shipment.SHIPMENT
+  SOCURRENCY   Int?                @default(100) // 100 = ΕΥΡΩ (default SoftOne)
+  ISACTIVE     Int                 @default(1)
+  ISPROSP      Int                 @default(0) // 1 = Υποψήφιος (lead flag)
+  REMARKS      String?
+  CODE1        String?
+  UPDDATE      DateTime? // τελευταία μεταβολή στο SoftOne
+  // ── app extras (ΟΧΙ SoftOne) ──
+  appLat       Float?
+  appLng       Float?
+  appLogoUrl   String?
+  appLegalForm String?
+  appNotes     String?
+  syncedAt     DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  users        User[]
+  contacts     Contact[]
+  orders       Order[]
+  architects   ArchitectCustomer[]
+  priceCache   PriceCache[]
 
-model Customer {
-  id        String    @id @default(cuid())
-  trdr      Int?      @unique // null = καρτέλα που δεν έχει συγχρονιστεί ακόμα με SoftOne (π.χ. δημιουργήθηκε από OCR)
-  code      String?
-  /// SoftOne SODTYPE (TRDR convention) — 13 = Πελάτης, 12 = Προμηθευτής. Καθορίζει
-  /// σε ποιο tab εμφανίζεται στο /partners (Πελάτες/Προμηθευτές/Leads).
-  sodtype   Int       @default(13)
-  status    TraderStatus @default(CUSTOMER)
-  name      String
-  afm       String?
-  doy       String?
-  legalForm String?
-  profession String?
-  email     String?
-  phone     String?
-  website   String?
-  address   String?
-  city      String?
-  zip       String?
-  lat       Float?
-  lng       Float?
-  logoUrl   String?
-  notes     String?
-  users     User[]
-  contacts  Contact[]
-  orders    Order[]
-  architects ArchitectCustomer[]
-  priceCache PriceCache[]
-  syncedAt  DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  @@index([sodtype, status])
+  @@index([SODTYPE, ISPROSP])
+  @@index([SODTYPE, ISACTIVE])
+  @@index([AFM])
 }
 
 model Contact {
-  id         String   @id @default(cuid())
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  s1Id       Int?
-  name       String
-  roleTitle  String?
-  position   String?
-  email      String?
-  phone      String?
-  mobile     String?
-  isPrimary  Boolean  @default(false)
+  id        String  @id @default(cuid())
+  trdrId    String
+  trdr      Trdr    @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  /// Mirror CUSPRSN/SUPPRSN pattern (S1 person-on-trader link) — PRSN = S1
+  /// person id (PRSN→PRSNOUT στο S1 export), TRDBRANCH/LINENUM = θέση μέσα
+  /// στην CUSPRSN/SUPPRSN γραμμή, COMMENTS = παρατηρήσεις S1.
+  PRSN      Int?
+  TRDBRANCH Int?
+  LINENUM   Int?
+  COMMENTS  String?
+  name      String
+  position  String?
+  email     String?
+  phone     String?
+  mobile    String?
+  isPrimary Boolean @default(false)
   /// Σύνδεση με User όταν εγκρίνεται το αίτημα πρόσβασης της επαφής (βλ.
   /// approveAccessRequest, src/app/(app)/users/actions.ts) — ίδιο idiom με
   /// ArchitectProfile.userId παρακάτω.
-  userId     String?  @unique
-  user       User?    @relation(fields: [userId], references: [id])
-  @@index([customerId])
+  userId    String? @unique
+  user      User?   @relation(fields: [userId], references: [id])
+
+  @@index([trdrId])
 }
 
 model ArchitectProfile {
@@ -313,11 +347,101 @@ model ArchitectProfile {
 
 model ArchitectCustomer {
   architectId String
-  customerId  String
+  trdrId      String
   architect   ArchitectProfile @relation(fields: [architectId], references: [id], onDelete: Cascade)
-  customer    Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  @@id([architectId, customerId])
-  @@index([customerId])
+  trdr        Trdr             @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+
+  @@id([architectId, trdrId])
+  @@index([trdrId])
+}
+
+// ── S1 reference mirrors (VAT/COUNTRY/IRSDATA/TRDCATEGORY/PAYMENT/
+// SHIPMENT/SOCURRENCY/SERIES) ─────────────────────────
+/// Synced from SoftOne via src/lib/s1-sync.ts (syncS1Reference/syncAllReferences,
+/// pg-boss queue 's1-ref-sync'). Πεδία ΑΚΡΙΒΩΣ όπως στο SoftOne (βλ.
+/// trdr-schema.json). ISACTIVE=1 φιλτράρεται στα combo components
+/// (src/components/s1/*Select.tsx).
+model Vat {
+  VAT        Int    @id
+  NAME       String
+  PERCNT     Float
+  VATS1      Int?
+  ISACTIVE   Int    @default(1)
+  MYDATACODE Int?
+}
+
+model Country {
+  COUNTRY     Int     @id
+  SHORTCUT    String
+  NAME        String
+  SOCURRENCY  Int?
+  COUNTRYTYPE Int?
+  INTCODE     String?
+  INTERCODE   String?
+  EANCODE     String?
+  ISACTIVE    Int     @default(1)
+}
+
+model Irsdata {
+  IRSDATA  Int     @id
+  CODE     String?
+  NAME     String
+  ISACTIVE Int     @default(1)
+  ADDRESS  String?
+  CITY     String?
+  ZIP      String?
+  PHONE1   String?
+  EMAIL    String?
+}
+
+model TrdCategory {
+  TRDCATEGORY Int    @id
+  CODE        String
+  NAME        String
+  VATSTS      Int?
+  ISACTIVE    Int    @default(1)
+}
+
+/// Ονομάστηκε S1Payment (@@map "S1Payment") για να μην συγκρούεται με τα
+/// υπάρχοντα enum PaymentStatus/model PaymentOrder (Viva Payments — βλ.
+/// παρακάτω) που είναι εντελώς άσχετο domain.
+model S1Payment {
+  PAYMENT     Int    @id
+  CODE        String
+  NAME        String
+  ISACTIVE    Int    @default(1)
+  MYDATACODE  Int?
+  INSTALMENTS Int?
+
+  @@map("S1Payment")
+}
+
+model Shipment {
+  SHIPMENT Int     @id
+  CODE     String
+  NAME     String
+  INTCODE  String?
+  ISACTIVE Int     @default(1)
+}
+
+model SoCurrency {
+  SOCURRENCY Int     @id
+  SHORTCUT   String
+  NAME       String
+  ISACTIVE   Int     @default(1)
+  INTERCODE  String?
+  LRATE      Float?
+}
+
+/// Curated (ΟΧΙ όλα τα πεδία SERIES.SERIES — 60+ πεδία εκτύπωσης/λογιστικής
+/// άσχετα με trading-partner combos). Μόνο ό,τι χρειάζεται για SERIES combo
+/// (βλ. AGENTS.md §3).
+model Series {
+  SERIES   Int     @id
+  SODTYPE  Int
+  CODE     String?
+  NAME     String
+  ISACTIVE Int     @default(1)
 }
 
 // ── Containers & Τιμολόγηση ──────────────────────────
@@ -336,20 +460,21 @@ model Container {
   capacityCbm  Decimal         @db.Decimal(10, 3)
   freightCost  Decimal         @db.Decimal(14, 2)
   status       ContainerStatus @default(OPEN)
-  overrides    Json?           // per-item/σταθερά overrides τιμών
+  overrides    Json? // per-item/σταθερά overrides τιμών
   orderLines   OrderLine[]
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 }
 
 model PriceCache {
-  customerId String
-  productId  String
-  price      Decimal  @db.Decimal(14, 4)
-  fetchedAt  DateTime @default(now())
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  @@id([customerId, productId])
+  trdrId    String
+  productId String
+  price     Decimal  @db.Decimal(14, 4)
+  fetchedAt DateTime @default(now())
+  trdr      Trdr     @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([trdrId, productId])
 }
 
 // ── Παραγγελίες ──────────────────────────────────────
@@ -363,26 +488,27 @@ enum OrderStatus {
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  customerId   String
-  customer     Customer    @relation(fields: [customerId], references: [id])
+  id           String            @id @default(cuid())
+  trdrId       String
+  trdr         Trdr              @relation(fields: [trdrId], references: [id])
   createdById  String
-  createdBy    User        @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  createdBy    User              @relation("OrderCreatedBy", fields: [createdById], references: [id])
   architectId  String?
   architect    ArchitectProfile? @relation(fields: [architectId], references: [id])
-  status       OrderStatus @default(DRAFT)
+  status       OrderStatus       @default(DRAFT)
   s1Findoc     Int?
   notes        String?
   approvedById String?
-  approvedBy   User?       @relation("OrderApprovedBy", fields: [approvedById], references: [id])
+  approvedBy   User?             @relation("OrderApprovedBy", fields: [approvedById], references: [id])
   approvedAt   DateTime?
   rejectReason String?
   lines        OrderLine[]
   commission   CommissionEntry?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
   @@index([status, createdAt])
-  @@index([customerId])
+  @@index([trdrId])
 }
 
 model OrderLine {
@@ -397,6 +523,7 @@ model OrderLine {
   cbmReserved  Decimal?   @db.Decimal(10, 3)
   containerId  String?
   container    Container? @relation(fields: [containerId], references: [id])
+
   @@index([orderId])
   @@index([productId])
   @@index([containerId])
@@ -411,6 +538,7 @@ model CommissionEntry {
   pct         Decimal          @db.Decimal(5, 2)
   amount      Decimal          @db.Decimal(14, 2)
   createdAt   DateTime         @default(now())
+
   @@index([architectId])
 }
 
@@ -446,6 +574,7 @@ model PaymentOrder {
   createdById   String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+
   @@index([status, createdAt])
   @@index([customerId])
 }
@@ -453,21 +582,23 @@ model PaymentOrder {
 // ── Import/Export (οριζόντιο — spec §11α) ────────────
 model ImportMapping {
   id        String   @id @default(cuid())
-  entity    String   // "product" | "customer" | "order" | ...
+  entity    String // "product" | "customer" | "order" | ...
   name      String
-  columnMap Json     // { "Στήλη Excel": "πεδίο μοντέλου", ... }
+  columnMap Json // { "Στήλη Excel": "πεδίο μοντέλου", ... }
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   @@unique([entity, name])
 }
 
 model DocumentTemplate {
   id        String   @id @default(cuid())
-  type      String   // "offer" | "report"
+  type      String // "offer" | "report"
   name      String
-  config    Json     // κείμενα, headers, branding επιλογές
+  config    Json // κείμενα, headers, branding επιλογές
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   @@unique([type, name])
 }
 
@@ -484,14 +615,15 @@ enum ImportJobStatus {
 
 model ImportJob {
   id           String          @id @default(cuid())
-  entity       String          // "product" | ... (μελλοντικές οντότητες)
+  entity       String // "product" | ... (μελλοντικές οντότητες)
   status       ImportJobStatus @default(PENDING)
-  totals       Json?           // { total, created, updated, failed, errors: [{row,column,message}] } — πρώτα 50 errors
-  errorFileUrl String?         // προαιρετικό — v1 κατεβάζει το Excel σφαλμάτων client-side από τα totals.errors
+  totals       Json? // { total, created, updated, failed, errors: [{row,column,message}] } — πρώτα 50 errors
+  errorFileUrl String? // προαιρετικό — v1 κατεβάζει το Excel σφαλμάτων client-side από τα totals.errors
   createdById  String
   createdBy    User            @relation(fields: [createdById], references: [id])
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+
   @@index([status, createdAt])
   @@index([entity, createdAt])
 }
@@ -505,7 +637,7 @@ enum AccessRequestStatus {
 
 model AccessRequest {
   id        String              @id @default(cuid())
-  type      String              // "CUSTOMER" | "ARCHITECT" | "SUPPLIER"
+  type      String // "CUSTOMER" | "ARCHITECT" | "SUPPLIER"
   name      String
   company   String
   afm       String
@@ -519,16 +651,18 @@ model AccessRequest {
   status    AccessRequestStatus @default(PENDING)
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
+
   @@index([status, createdAt])
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+
   @@index([userId])
 }
 
@@ -568,7 +702,7 @@ model DbBackup {
   storageKey   String         @unique
   sizeBytes    BigInt         @default(0)
   status       DbBackupStatus @default(PENDING)
-  trigger      String         // "cron" | "manual"
+  trigger      String // "cron" | "manual"
   errorMessage String?
   createdById  String?
   createdAt    DateTime       @default(now())
@@ -596,11 +730,11 @@ model Author {
 }
 
 model PostCategory {
-  id           String                     @id @default(cuid())
-  slug         String                     @unique
+  id           String                    @id @default(cuid())
+  slug         String                    @unique
   translations PostCategoryTranslation[]
   posts        Post[]
-  createdAt    DateTime                   @default(now())
+  createdAt    DateTime                  @default(now())
 }
 
 model PostCategoryTranslation {
@@ -609,6 +743,7 @@ model PostCategoryTranslation {
   category   PostCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   locale     String // "el" | "en"
   name       String
+
   @@unique([categoryId, locale])
 }
 
@@ -626,6 +761,7 @@ model Post {
   translations  PostTranslation[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+
   @@index([status, publishedAt])
 }
 
@@ -640,42 +776,45 @@ model PostTranslation {
   seoTitle          String?
   seoDescription    String?
   machineTranslated Boolean @default(false)
+
   @@unique([postId, locale])
 }
 
 // ── Legal pages & Consent ─────────────────────────────
 model LegalPage {
-  id           String   @id @default(cuid())
-  slug         String   @unique   // privacy-policy, terms, cookies, returns, shipping, gdpr-rights
-  published    Boolean  @default(false)
+  id           String                 @id @default(cuid())
+  slug         String                 @unique // privacy-policy, terms, cookies, returns, shipping, gdpr-rights
+  published    Boolean                @default(false)
   translations LegalPageTranslation[]
-  updatedAt    DateTime @updatedAt
-  createdAt    DateTime @default(now())
+  updatedAt    DateTime               @updatedAt
+  createdAt    DateTime               @default(now())
 }
 
 model LegalPageTranslation {
   id                String    @id @default(cuid())
   pageId            String
   page              LegalPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  locale            String    // el | en
+  locale            String // el | en
   title             String
-  body              String    // markdown
+  body              String // markdown
   machineTranslated Boolean   @default(false)
+
   @@unique([pageId, locale])
 }
 
 model ConsentLog {
-  id          String   @id @default(cuid())
-  visitorId   String   // anonymous cookie uuid
-  userId      String?  // αν logged in
-  ip          String
-  userAgent   String
-  os          String   // parsed
-  browser     String?  // parsed
-  locale      String?
-  choices     Json     // { necessary: true, analytics: bool, marketing: bool }
-  policyVersion String?  // από setting
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  visitorId     String // anonymous cookie uuid
+  userId        String? // αν logged in
+  ip            String
+  userAgent     String
+  os            String // parsed
+  browser       String? // parsed
+  locale        String?
+  choices       Json // { necessary: true, analytics: bool, marketing: bool }
+  policyVersion String? // από setting
+  createdAt     DateTime @default(now())
+
   @@index([createdAt])
   @@index([visitorId])
 }
@@ -691,21 +830,22 @@ model ConsentLog {
 /// ΧΩΡΙΣ @relation (soft reference, ίδιο idiom με PaymentOrder.createdById παραπάνω).
 model AiUsage {
   id           String   @id @default(cuid())
-  scope        String   // "OCR_TEXT" | "OCR_VISION" | "TRANSLATION" | "CMS_GENERATE" | "OTHER"
-  provider     String   // "deepseek" | "gemini" | "claude" | ...
+  scope        String // "OCR_TEXT" | "OCR_VISION" | "TRANSLATION" | "CMS_GENERATE" | "OTHER"
+  provider     String // "deepseek" | "gemini" | "claude" | ...
   model        String
   operation    String?
   inputTokens  Int
   outputTokens Int
   totalTokens  Int
-  inputCost    Float?   // USD
-  outputCost   Float?   // USD
-  totalCost    Float?   // USD
+  inputCost    Float? // USD
+  outputCost   Float? // USD
+  totalCost    Float? // USD
   durationMs   Int?
   userId       String?
   refType      String?
   refId        String?
   createdAt    DateTime @default(now())
+
   @@index([createdAt])
   @@index([provider, createdAt])
 }
@@ -722,7 +862,7 @@ model AiUsage {
 /// είναι base cost πριν το markup, το οποίο εφαρμόζεται στο render).
 model ApiUsage {
   id        String   @id @default(cuid())
-  service   String   // "mailgun" | "bunnycdn" | "viva" | "aade" | "geocoding"
+  service   String // "mailgun" | "bunnycdn" | "viva" | "aade" | "geocoding"
   operation String?
   units     Float
   costEur   Float?
@@ -730,5 +870,6 @@ model ApiUsage {
   refType   String?
   refId     String?
   createdAt DateTime @default(now())
+
   @@index([service, createdAt])
 }

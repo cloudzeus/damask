@@ -12,7 +12,7 @@ const store: { roles: FakeRole[]; permissions: FakePermission[]; rolePermissions
 
 vi.mock('@/lib/rbac-server', () => ({
   requirePermission: vi.fn(async () => ({
-    user: { id: 'admin-1', role: 'ADMIN', permissions: ['user.manage'], customerId: null },
+    user: { id: 'admin-1', role: 'ADMIN', permissions: ['user.manage'], trdrId: null },
   })),
 }))
 

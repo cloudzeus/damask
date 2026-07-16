@@ -5,24 +5,24 @@ function p2002Error(): Prisma.PrismaClientKnownRequestError {
   return new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: 'test' })
 }
 
-type FakeCustomer = {
-  id: string; trdr: number | null; sodtype: number; status: 'LEAD' | 'CUSTOMER'
-  name: string; afm: string | null; website: string | null
+type FakeTrdr = {
+  id: string; TRDR: number | null; SODTYPE: number; ISPROSP: number
+  NAME: string; AFM: string | null; WEBPAGE: string | null
 }
 type FakeContact = {
-  id: string; customerId: string; name: string; email: string | null; phone: string | null; mobile: string | null
+  id: string; trdrId: string; name: string; email: string | null; phone: string | null; mobile: string | null
   isPrimary: boolean; userId: string | null
 }
 type FakeAccessRequest = { id: string; contactId: string | null; email: string; status: string }
 
-const store: { customers: FakeCustomer[]; contacts: FakeContact[]; requests: FakeAccessRequest[] } = {
-  customers: [], contacts: [], requests: [],
+const store: { trdrs: FakeTrdr[]; contacts: FakeContact[]; requests: FakeAccessRequest[] } = {
+  trdrs: [], contacts: [], requests: [],
 }
 let nextId = 1
 
 vi.mock('@/lib/rbac-server', () => ({
   requirePermission: vi.fn(async () => ({
-    user: { id: 'admin-1', role: 'ADMIN', permissions: ['customer.edit', 'customer.view'], customerId: null },
+    user: { id: 'admin-1', role: 'ADMIN', permissions: ['customer.edit', 'customer.view'], trdrId: null },
   })),
 }))
 
@@ -47,51 +47,51 @@ vi.mock('@/lib/aade', () => ({
 
 vi.mock('@/lib/prisma', () => {
   const dbMock = {
-    customer: {
-      findFirst: vi.fn(async ({ where }: { where: { afm?: string; id?: { not: string } } }) =>
-        store.customers.find(c => c.afm === where.afm && (!where.id || c.id !== where.id.not)) ?? null,
+    trdr: {
+      findFirst: vi.fn(async ({ where }: { where: { AFM?: string; id?: { not: string } } }) =>
+        store.trdrs.find(t => t.AFM === where.AFM && (!where.id || t.id !== where.id.not)) ?? null,
       ),
       findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
-        store.customers.find(c => c.id === where.id) ?? null,
+        store.trdrs.find(t => t.id === where.id) ?? null,
       ),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
-        if (data.afm && store.customers.some(c => c.afm === data.afm)) throw p2002Error()
-        const created: FakeCustomer = {
-          id: `cust-${nextId++}`,
-          trdr: null,
-          sodtype: data.sodtype as number,
-          status: data.status as 'LEAD' | 'CUSTOMER',
-          name: data.name as string,
-          afm: (data.afm as string | null) ?? null,
-          website: (data.website as string | null) ?? null,
+        if (data.AFM && store.trdrs.some(t => t.AFM === data.AFM)) throw p2002Error()
+        const created: FakeTrdr = {
+          id: `trdr-${nextId++}`,
+          TRDR: null,
+          SODTYPE: data.SODTYPE as number,
+          ISPROSP: data.ISPROSP as number,
+          NAME: data.NAME as string,
+          AFM: (data.AFM as string | null) ?? null,
+          WEBPAGE: (data.WEBPAGE as string | null) ?? null,
         }
-        store.customers.push(created)
+        store.trdrs.push(created)
         return created
       }),
-      update: vi.fn(async ({ where, data }: { where: { id: string }; data: Partial<FakeCustomer> }) => {
-        const c = store.customers.find(x => x.id === where.id)
-        if (!c) throw new Error('not found')
-        Object.assign(c, data)
-        return { ...c }
+      update: vi.fn(async ({ where, data }: { where: { id: string }; data: Partial<FakeTrdr> }) => {
+        const t = store.trdrs.find(x => x.id === where.id)
+        if (!t) throw new Error('not found')
+        Object.assign(t, data)
+        return { ...t }
       }),
       delete: vi.fn(async ({ where }: { where: { id: string } }) => {
-        const idx = store.customers.findIndex(c => c.id === where.id)
+        const idx = store.trdrs.findIndex(t => t.id === where.id)
         if (idx === -1) throw new Error('not found')
-        const [removed] = store.customers.splice(idx, 1)
+        const [removed] = store.trdrs.splice(idx, 1)
         return removed
       }),
     },
     contact: {
-      findUnique: vi.fn(async ({ where, include }: { where: { id: string }; include?: { customer?: boolean } }) => {
+      findUnique: vi.fn(async ({ where, include }: { where: { id: string }; include?: { trdr?: boolean } }) => {
         const c = store.contacts.find(x => x.id === where.id)
         if (!c) return null
-        if (include?.customer) return { ...c, customer: store.customers.find(cust => cust.id === c.customerId) }
+        if (include?.trdr) return { ...c, trdr: store.trdrs.find(t => t.id === c.trdrId) }
         return c
       }),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const created: FakeContact = {
           id: `contact-${nextId++}`,
-          customerId: data.customerId as string,
+          trdrId: data.trdrId as string,
           name: data.name as string,
           email: (data.email as string | null) ?? null,
           phone: (data.phone as string | null) ?? null,
@@ -108,9 +108,9 @@ vi.mock('@/lib/prisma', () => {
         Object.assign(c, data)
         return { ...c }
       }),
-      updateMany: vi.fn(async ({ where, data }: { where: { customerId: string; isPrimary?: boolean; id?: { not: string } }; data: Partial<FakeContact> }) => {
+      updateMany: vi.fn(async ({ where, data }: { where: { trdrId: string; isPrimary?: boolean; id?: { not: string } }; data: Partial<FakeContact> }) => {
         const matches = store.contacts.filter(c =>
-          c.customerId === where.customerId
+          c.trdrId === where.trdrId
           && (where.isPrimary === undefined || c.isPrimary === where.isPrimary)
           && (!where.id || c.id !== where.id.not),
         )
@@ -152,22 +152,26 @@ import {
 
 function partnerValues(overrides: Partial<PartnerFormValues> = {}): PartnerFormValues {
   return {
-    sodtype: 13,
-    status: 'LEAD',
-    name: 'Νέος Συναλλασσόμενος',
-    afm: '',
-    doy: '',
-    legalForm: '',
-    profession: '',
-    email: '',
-    phone: '',
-    website: '',
-    address: '',
-    city: '',
-    zip: '',
-    lat: null,
-    lng: null,
-    notes: '',
+    SODTYPE: 13,
+    ISPROSP: 1,
+    NAME: 'Νέος Συναλλασσόμενος',
+    AFM: '',
+    IRSDATA: '',
+    JOBTYPETRD: '',
+    appLegalForm: '',
+    EMAIL: '',
+    PHONE01: '',
+    WEBPAGE: '',
+    ADDRESS: '',
+    CITY: '',
+    ZIP: '',
+    COUNTRY: '',
+    TRDCATEGORY: '',
+    PAYMENT: '',
+    SHIPMENT: '',
+    appLat: null,
+    appLng: null,
+    appNotes: '',
     ...overrides,
   }
 }
@@ -177,15 +181,15 @@ function contactValues(overrides: Partial<ContactFormValues> = {}): ContactFormV
 }
 
 beforeEach(() => {
-  store.customers = [
-    { id: 'cust-lead', trdr: null, sodtype: 13, status: 'LEAD', name: 'Υποψήφιος ΑΕ', afm: '111111111', website: null },
-    { id: 'cust-customer', trdr: null, sodtype: 13, status: 'CUSTOMER', name: 'Πελάτης ΑΕ', afm: '222222222', website: 'https://example.gr' },
-    { id: 'cust-synced', trdr: 1001, sodtype: 12, status: 'CUSTOMER', name: 'Προμηθευτής Συγχρονισμένος', afm: '333333333', website: null },
+  store.trdrs = [
+    { id: 'cust-lead', TRDR: null, SODTYPE: 13, ISPROSP: 1, NAME: 'Υποψήφιος ΑΕ', AFM: '111111111', WEBPAGE: null },
+    { id: 'cust-customer', TRDR: null, SODTYPE: 13, ISPROSP: 0, NAME: 'Πελάτης ΑΕ', AFM: '222222222', WEBPAGE: 'https://example.gr' },
+    { id: 'cust-synced', TRDR: 1001, SODTYPE: 12, ISPROSP: 0, NAME: 'Προμηθευτής Συγχρονισμένος', AFM: '333333333', WEBPAGE: null },
   ]
   store.contacts = [
-    { id: 'contact-primary', customerId: 'cust-customer', name: 'Κύρια Επαφή', email: 'primary@example.gr', phone: null, mobile: null, isPrimary: true, userId: null },
-    { id: 'contact-secondary', customerId: 'cust-customer', name: 'Δευτερεύουσα Επαφή', email: 'secondary@example.gr', phone: null, mobile: null, isPrimary: false, userId: null },
-    { id: 'contact-linked', customerId: 'cust-customer', name: 'Ήδη User', email: 'linked@example.gr', phone: null, mobile: null, isPrimary: false, userId: 'user-1' },
+    { id: 'contact-primary', trdrId: 'cust-customer', name: 'Κύρια Επαφή', email: 'primary@example.gr', phone: null, mobile: null, isPrimary: true, userId: null },
+    { id: 'contact-secondary', trdrId: 'cust-customer', name: 'Δευτερεύουσα Επαφή', email: 'secondary@example.gr', phone: null, mobile: null, isPrimary: false, userId: null },
+    { id: 'contact-linked', trdrId: 'cust-customer', name: 'Ήδη User', email: 'linked@example.gr', phone: null, mobile: null, isPrimary: false, userId: 'user-1' },
   ]
   store.requests = []
   settingStore.clear()
@@ -195,39 +199,39 @@ beforeEach(() => {
 })
 
 describe('createPartner()', () => {
-  it('δημιουργεί τοπικό συναλλασσόμενο (χωρίς trdr) με sodtype/status όπως δόθηκαν', async () => {
-    const res = await createPartner(partnerValues({ sodtype: 12, status: 'CUSTOMER', name: 'Νέος Προμηθευτής' }))
+  it('δημιουργεί τοπικό συναλλασσόμενο (χωρίς TRDR) με SODTYPE/ISPROSP όπως δόθηκαν', async () => {
+    const res = await createPartner(partnerValues({ SODTYPE: 12, ISPROSP: 0, NAME: 'Νέος Προμηθευτής' }))
     expect(res).toMatchObject({ ok: true })
-    const created = store.customers.find(c => c.name === 'Νέος Προμηθευτής')
-    expect(created?.sodtype).toBe(12)
-    expect(created?.status).toBe('CUSTOMER')
-    expect(created?.trdr).toBeNull()
+    const created = store.trdrs.find(t => t.NAME === 'Νέος Προμηθευτής')
+    expect(created?.SODTYPE).toBe(12)
+    expect(created?.ISPROSP).toBe(0)
+    expect(created?.TRDR).toBeNull()
   })
 
   it('απορρίπτει διπλότυπο ΑΦΜ με φιλικό μήνυμα', async () => {
-    const res = await createPartner(partnerValues({ afm: '111111111' }))
+    const res = await createPartner(partnerValues({ AFM: '111111111' }))
     expect(res.ok).toBe(false)
-    if (!res.ok) expect(res.fieldErrors?.afm).toBeTruthy()
+    if (!res.ok) expect(res.fieldErrors?.AFM).toBeTruthy()
   })
 
   it('απορρίπτει άκυρο ΑΦΜ (όχι 9 ψηφία) με fieldError', async () => {
-    const res = await createPartner(partnerValues({ afm: '123' }))
+    const res = await createPartner(partnerValues({ AFM: '123' }))
     expect(res.ok).toBe(false)
-    if (!res.ok) expect(res.fieldErrors?.afm).toBeTruthy()
+    if (!res.ok) expect(res.fieldErrors?.AFM).toBeTruthy()
   })
 
-  it('απορρίπτει sodtype εκτός 12/13', async () => {
+  it('απορρίπτει SODTYPE εκτός 12/13', async () => {
     // @ts-expect-error δοκιμάζουμε σκόπιμα μη έγκυρη τιμή
-    const res = await createPartner(partnerValues({ sodtype: 99 }))
+    const res = await createPartner(partnerValues({ SODTYPE: 99 }))
     expect(res.ok).toBe(false)
   })
 })
 
 describe('updatePartner()', () => {
   it('ενημερώνει στοιχεία', async () => {
-    const res = await updatePartner('cust-lead', partnerValues({ name: 'Ενημερωμένο Όνομα', status: 'LEAD' }))
+    const res = await updatePartner('cust-lead', partnerValues({ NAME: 'Ενημερωμένο Όνομα', ISPROSP: 1 }))
     expect(res).toMatchObject({ ok: true })
-    expect(store.customers.find(c => c.id === 'cust-lead')?.name).toBe('Ενημερωμένο Όνομα')
+    expect(store.trdrs.find(t => t.id === 'cust-lead')?.NAME).toBe('Ενημερωμένο Όνομα')
   })
 
   it('σφάλμα για άγνωστη καρτέλα', async () => {
@@ -237,30 +241,30 @@ describe('updatePartner()', () => {
 })
 
 describe('deletePartner() — guard: μόνο τοπικές καρτέλες', () => {
-  it('διαγράφει τοπική καρτέλα (trdr=null)', async () => {
+  it('διαγράφει τοπική καρτέλα (TRDR=null)', async () => {
     const res = await deletePartner('cust-lead')
     expect(res).toMatchObject({ ok: true })
-    expect(store.customers.some(c => c.id === 'cust-lead')).toBe(false)
+    expect(store.trdrs.some(t => t.id === 'cust-lead')).toBe(false)
   })
 
-  it('αρνείται διαγραφή καρτέλας συγχρονισμένης με SoftOne (trdr != null)', async () => {
+  it('αρνείται διαγραφή καρτέλας συγχρονισμένης με SoftOne (TRDR != null)', async () => {
     const res = await deletePartner('cust-synced')
     expect(res.ok).toBe(false)
-    expect(store.customers.some(c => c.id === 'cust-synced')).toBe(true)
+    expect(store.trdrs.some(t => t.id === 'cust-synced')).toBe(true)
   })
 })
 
-describe('convertLeadToCustomer() — guard: μόνο από LEAD', () => {
-  it('μετατρέπει LEAD σε CUSTOMER', async () => {
+describe('convertLeadToCustomer() — guard: μόνο από ISPROSP=1', () => {
+  it('μετατρέπει ISPROSP 1→0', async () => {
     const res = await convertLeadToCustomer('cust-lead')
     expect(res).toMatchObject({ ok: true })
-    expect(store.customers.find(c => c.id === 'cust-lead')?.status).toBe('CUSTOMER')
+    expect(store.trdrs.find(t => t.id === 'cust-lead')?.ISPROSP).toBe(0)
   })
 
-  it('αρνείται μετατροπή όταν ήδη CUSTOMER', async () => {
+  it('αρνείται μετατροπή όταν ήδη ISPROSP=0', async () => {
     const res = await convertLeadToCustomer('cust-customer')
     expect(res.ok).toBe(false)
-    expect(store.customers.find(c => c.id === 'cust-customer')?.status).toBe('CUSTOMER')
+    expect(store.trdrs.find(t => t.id === 'cust-customer')?.ISPROSP).toBe(0)
   })
 })
 
@@ -268,7 +272,7 @@ describe('createContact() / isPrimary', () => {
   it('δημιουργεί επαφή', async () => {
     const res = await createContact('cust-lead', contactValues({ name: 'Πρώτη Επαφή' }))
     expect(res).toMatchObject({ ok: true })
-    expect(store.contacts.some(c => c.name === 'Πρώτη Επαφή' && c.customerId === 'cust-lead')).toBe(true)
+    expect(store.contacts.some(c => c.name === 'Πρώτη Επαφή' && c.trdrId === 'cust-lead')).toBe(true)
   })
 
   it('θέτοντας isPrimary=true, αποεπιλέγει τις υπόλοιπες πρωτεύουσες επαφές του ίδιου συναλλασσόμενου', async () => {
@@ -296,20 +300,20 @@ describe('setPrimaryContact()', () => {
 })
 
 describe('requestContactAccess()', () => {
-  it('δημιουργεί AccessRequest με type=CUSTOMER για επαφή πελάτη (sodtype 13)', async () => {
+  it('δημιουργεί AccessRequest με type=CUSTOMER για επαφή πελάτη (SODTYPE 13)', async () => {
     const res = await requestContactAccess('contact-secondary')
     expect(res).toMatchObject({ ok: true })
     expect(store.requests).toHaveLength(1)
   })
 
-  it('δημιουργεί AccessRequest με type=SUPPLIER για επαφή προμηθευτή (sodtype 12)', async () => {
-    store.contacts.push({ id: 'contact-supplier', customerId: 'cust-synced', name: 'Επαφή Προμηθευτή', email: 'supplier@example.gr', phone: null, mobile: null, isPrimary: false, userId: null })
+  it('δημιουργεί AccessRequest με type=SUPPLIER για επαφή προμηθευτή (SODTYPE 12)', async () => {
+    store.contacts.push({ id: 'contact-supplier', trdrId: 'cust-synced', name: 'Επαφή Προμηθευτή', email: 'supplier@example.gr', phone: null, mobile: null, isPrimary: false, userId: null })
     const res = await requestContactAccess('contact-supplier')
     expect(res).toMatchObject({ ok: true })
   })
 
   it('αρνείται όταν η επαφή δεν έχει email', async () => {
-    store.contacts.push({ id: 'contact-no-email', customerId: 'cust-customer', name: 'Χωρίς Email', email: null, phone: null, mobile: null, isPrimary: false, userId: null })
+    store.contacts.push({ id: 'contact-no-email', trdrId: 'cust-customer', name: 'Χωρίς Email', email: null, phone: null, mobile: null, isPrimary: false, userId: null })
     const res = await requestContactAccess('contact-no-email')
     expect(res.ok).toBe(false)
   })

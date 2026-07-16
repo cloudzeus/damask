@@ -7,7 +7,7 @@ export type AuthUserPayload = {
   name: string
   role: string
   permissions: string[]
-  customerId: string | null
+  trdrId: string | null
 }
 
 export async function verifyCredentials(
@@ -26,6 +26,6 @@ export async function verifyCredentials(
     name: user.name,
     role: user.role.name,
     permissions: user.role.permissions.map(rp => rp.permission.key),
-    customerId: user.customerId ?? null,
+    trdrId: user.trdrId ?? null,
   }
 }

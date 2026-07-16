@@ -20,7 +20,7 @@ export default async function PaymentsPage() {
 
   const [payments, customers, pendingAgg, paidThisMonth, staleCount, vivaSettings] = await Promise.all([
     prisma.paymentOrder.findMany({ orderBy: { createdAt: 'desc' }, take: 300 }),
-    prisma.customer.findMany({ select: { id: true, name: true, email: true }, orderBy: { name: 'asc' }, take: 500 }),
+    prisma.trdr.findMany({ select: { id: true, NAME: true, EMAIL: true }, orderBy: { NAME: 'asc' }, take: 500 }),
     prisma.paymentOrder.aggregate({ where: { status: 'PENDING' }, _count: true, _sum: { amountCents: true } }),
     prisma.paymentOrder.count({ where: { status: 'PAID', paidAt: { gte: startOfMonth } } }),
     // «Ληγμένες» = ΔΕΝ υπάρχει EventTypeId λήξης στο documented webhook (μόνο 1796/1797) — heuristic
@@ -48,7 +48,7 @@ export default async function PaymentsPage() {
     }
   })
 
-  const customerOptions = customers.map(c => ({ id: c.id, name: c.name, email: c.email }))
+  const customerOptions = customers.map(c => ({ id: c.id, name: c.NAME, email: c.EMAIL }))
 
   const kpis = [
     {

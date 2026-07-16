@@ -21,7 +21,7 @@ function initialsOf(name: string): string {
   return name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 }
 
-export function ContactsPanel({ customerId, contacts }: { customerId: string; contacts: ContactRow[] }) {
+export function ContactsPanel({ trdrId, contacts }: { trdrId: string; contacts: ContactRow[] }) {
   const [addOpen, setAddOpen] = useState(false)
 
   return (
@@ -57,13 +57,13 @@ export function ContactsPanel({ customerId, contacts }: { customerId: string; co
                   {!c.email && !c.phone && !c.mobile && <span>Χωρίς στοιχεία επικοινωνίας</span>}
                 </div>
               </div>
-              <ContactRowActions customerId={customerId} contact={c} />
+              <ContactRowActions trdrId={trdrId} contact={c} />
             </div>
           ))}
         </div>
       )}
 
-      <ContactFormDialog mode="create" customerId={customerId} open={addOpen} onOpenChange={setAddOpen} />
+      <ContactFormDialog mode="create" trdrId={trdrId} open={addOpen} onOpenChange={setAddOpen} />
     </div>
   )
 }

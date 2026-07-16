@@ -3,42 +3,52 @@
 import { useState, useTransition, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import {
-  Building2, Hash, Landmark, Briefcase, Mail, Phone, Globe, Building, MapPinned, Compass, StickyNote, Search, LoaderCircle,
+  Building2, Hash, Briefcase, Mail, Phone, Globe, Building, MapPinned, Compass, StickyNote, Search, LoaderCircle,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { CountrySelect } from '@/components/s1/country-select'
+import { IrsdataSelect } from '@/components/s1/irsdata-select'
+import { TrdCategorySelect } from '@/components/s1/trd-category-select'
+import { PaymentSelect } from '@/components/s1/payment-select'
+import { ShipmentSelect } from '@/components/s1/shipment-select'
 import { createPartner, updatePartner, lookupPartnerAfm, geocodeAddressAction, type PartnerFormValues } from './actions'
 import { GooglePlacesInput, type PlaceResolved } from './google-places-input'
 import type { MapsClientConfig } from './actions'
+import type { S1Option } from '@/lib/s1-options'
 
 const SODTYPE_OPTIONS = [
   { value: '13', label: 'Πελάτης' },
   { value: '12', label: 'Προμηθευτής' },
 ] as const
 
-const STATUS_OPTIONS = [
-  { value: 'LEAD', label: 'Υποψήφιος (Lead)' },
-  { value: 'CUSTOMER', label: 'Πελάτης' },
+const ISPROSP_OPTIONS = [
+  { value: '1', label: 'Υποψήφιος (Lead)' },
+  { value: '0', label: 'Πελάτης' },
 ] as const
 
 export type EditablePartner = {
   id: string
   sodtype: number
-  status: 'LEAD' | 'CUSTOMER'
+  isProsp: boolean
   name: string
   afm: string | null
-  doy: string | null
+  irsdata: string | null
+  jobtypetrd: string | null
   legalForm: string | null
-  profession: string | null
   email: string | null
   phone: string | null
   website: string | null
   address: string | null
   city: string | null
   zip: string | null
+  country: number | null
+  trdCategory: number | null
+  payment: number | null
+  shipment: number | null
   lat: number | null
   lng: number | null
   notes: string | null
@@ -46,54 +56,63 @@ export type EditablePartner = {
 
 function emptyForm(): PartnerFormValues {
   return {
-    sodtype: 13,
-    status: 'LEAD',
-    name: '',
-    afm: '',
-    doy: '',
-    legalForm: '',
-    profession: '',
-    email: '',
-    phone: '',
-    website: '',
-    address: '',
-    city: '',
-    zip: '',
-    lat: null,
-    lng: null,
-    notes: '',
+    SODTYPE: 13,
+    ISPROSP: 1,
+    NAME: '',
+    AFM: '',
+    IRSDATA: '',
+    JOBTYPETRD: '',
+    appLegalForm: '',
+    EMAIL: '',
+    PHONE01: '',
+    WEBPAGE: '',
+    ADDRESS: '',
+    CITY: '',
+    ZIP: '',
+    COUNTRY: '',
+    TRDCATEGORY: '',
+    PAYMENT: '',
+    SHIPMENT: '',
+    appLat: null,
+    appLng: null,
+    appNotes: '',
   }
 }
 
 function toFormValues(p: EditablePartner): PartnerFormValues {
   return {
-    sodtype: p.sodtype === 12 ? 12 : 13,
-    status: p.status,
-    name: p.name,
-    afm: p.afm ?? '',
-    doy: p.doy ?? '',
-    legalForm: p.legalForm ?? '',
-    profession: p.profession ?? '',
-    email: p.email ?? '',
-    phone: p.phone ?? '',
-    website: p.website ?? '',
-    address: p.address ?? '',
-    city: p.city ?? '',
-    zip: p.zip ?? '',
-    lat: p.lat,
-    lng: p.lng,
-    notes: p.notes ?? '',
+    SODTYPE: p.sodtype === 12 ? 12 : 13,
+    ISPROSP: p.isProsp ? 1 : 0,
+    NAME: p.name,
+    AFM: p.afm ?? '',
+    IRSDATA: p.irsdata ?? '',
+    JOBTYPETRD: p.jobtypetrd ?? '',
+    appLegalForm: p.legalForm ?? '',
+    EMAIL: p.email ?? '',
+    PHONE01: p.phone ?? '',
+    WEBPAGE: p.website ?? '',
+    ADDRESS: p.address ?? '',
+    CITY: p.city ?? '',
+    ZIP: p.zip ?? '',
+    COUNTRY: p.country != null ? String(p.country) : '',
+    TRDCATEGORY: p.trdCategory != null ? String(p.trdCategory) : '',
+    PAYMENT: p.payment != null ? String(p.payment) : '',
+    SHIPMENT: p.shipment != null ? String(p.shipment) : '',
+    appLat: p.lat,
+    appLng: p.lng,
+    appNotes: p.notes ?? '',
   }
 }
 
 export function PartnerFormDialog({
-  mode, open, onOpenChange, partner, mapsConfig, onCreated,
+  mode, open, onOpenChange, partner, mapsConfig, formOptions, onCreated,
 }: {
   mode: 'create' | 'edit'
   open: boolean
   onOpenChange: (open: boolean) => void
   partner?: EditablePartner
   mapsConfig: MapsClientConfig
+  formOptions: { country: S1Option[]; irsdata: S1Option[]; trdCategory: S1Option[]; payment: S1Option[]; shipment: S1Option[] }
   onCreated?: (partnerId: string) => void
 }) {
   const [values, setValues] = useState<PartnerFormValues>(() => (partner ? toFormValues(partner) : emptyForm()))
@@ -117,24 +136,24 @@ export function PartnerFormDialog({
 
   function handleSodtypeChange(next: '12' | '13') {
     const sodtype = next === '12' ? 12 : 13
-    set('sodtype', sodtype)
-    if (sodtype === 12) set('status', 'CUSTOMER') // status badge δεν εμφανίζεται σε προμηθευτές — force CUSTOMER
+    set('SODTYPE', sodtype)
+    if (sodtype === 12) set('ISPROSP', 0) // lead badge δεν εμφανίζεται σε προμηθευτές — force ISPROSP=0
   }
 
   function handlePlaceSelected(place: PlaceResolved) {
     setValues(v => ({
       ...v,
-      address: place.address || v.address,
-      city: place.city || v.city,
-      zip: place.zip || v.zip,
-      lat: place.lat,
-      lng: place.lng,
+      ADDRESS: place.address || v.ADDRESS,
+      CITY: place.city || v.CITY,
+      ZIP: place.zip || v.ZIP,
+      appLat: place.lat,
+      appLng: place.lng,
     }))
     setCoordsHint(`${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}`)
   }
 
   function handleAfmLookup() {
-    const afm = (values.afm ?? '').trim()
+    const afm = (values.AFM ?? '').trim()
     if (!/^\d{9}$/.test(afm)) {
       toast.error('Το ΑΦΜ πρέπει να έχει 9 ψηφία.')
       return
@@ -146,20 +165,20 @@ export function PartnerFormDialog({
       const c = res.company
       setValues(v => ({
         ...v,
-        name: c.name || v.name,
-        doy: c.doy ?? v.doy,
-        legalForm: c.legalForm ?? v.legalForm,
-        profession: c.profession ?? v.profession,
-        address: c.address ?? v.address,
-        city: c.city ?? v.city,
-        zip: c.zip ?? v.zip,
+        NAME: c.name || v.NAME,
+        appLegalForm: c.legalForm ?? v.appLegalForm,
+        JOBTYPETRD: c.profession ?? v.JOBTYPETRD,
+        ADDRESS: c.address ?? v.ADDRESS,
+        CITY: c.city ?? v.CITY,
+        ZIP: c.zip ?? v.ZIP,
       }))
+      // Το ΔΟΥ όνομα από ΑΑΔΕ (c.doy) δεν αντιστοιχεί αυτόματα σε Irsdata.CODE — ο χρήστης το επιλέγει από το combo.
       toast.success('Συμπληρώθηκαν τα στοιχεία από την ΑΑΔΕ.')
     })
   }
 
   function handleGeocode() {
-    const address = [values.address, values.city, values.zip].filter(Boolean).join(', ')
+    const address = [values.ADDRESS, values.CITY, values.ZIP].filter(Boolean).join(', ')
     if (!address.trim()) {
       toast.error('Συμπλήρωσε πρώτα διεύθυνση.')
       return
@@ -167,8 +186,8 @@ export function PartnerFormDialog({
     startGeocode(async () => {
       const res = await geocodeAddressAction(address)
       if (!res.ok) { toast.error(res.message); return }
-      set('lat', res.result.lat)
-      set('lng', res.result.lng)
+      set('appLat', res.result.lat)
+      set('appLng', res.result.lng)
       setCoordsHint(`${res.result.lat.toFixed(5)}, ${res.result.lng.toFixed(5)}`)
       toast.success('Βρέθηκαν συντεταγμένες.')
     })
@@ -214,7 +233,7 @@ export function PartnerFormDialog({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
             <div className="field">
               <label htmlFor="partner-form-sodtype">Τύπος*</label>
-              <Select value={String(values.sodtype) as '12' | '13'} onValueChange={v => handleSodtypeChange(v as '12' | '13')}>
+              <Select value={String(values.SODTYPE) as '12' | '13'} onValueChange={v => handleSodtypeChange(v as '12' | '13')}>
                 <SelectTrigger id="partner-form-sodtype" aria-label="Τύπος" className="h-11 w-full rounded-full border-border bg-card px-4">
                   <SelectValue>{(v: string) => SODTYPE_OPTIONS.find(o => o.value === v)?.label ?? v}</SelectValue>
                 </SelectTrigger>
@@ -224,28 +243,28 @@ export function PartnerFormDialog({
               </Select>
             </div>
 
-            {values.sodtype === 13 && (
+            {values.SODTYPE === 13 && (
               <div className="field">
-                <label htmlFor="partner-form-status">Κατάσταση*</label>
-                <Select value={values.status} onValueChange={v => set('status', v as 'LEAD' | 'CUSTOMER')}>
-                  <SelectTrigger id="partner-form-status" aria-label="Κατάσταση" className="h-11 w-full rounded-full border-border bg-card px-4">
-                    <SelectValue>{(v: string) => STATUS_OPTIONS.find(o => o.value === v)?.label ?? v}</SelectValue>
+                <label htmlFor="partner-form-isprosp">Κατάσταση*</label>
+                <Select value={String(values.ISPROSP) as '0' | '1'} onValueChange={v => set('ISPROSP', (v === '1' ? 1 : 0))}>
+                  <SelectTrigger id="partner-form-isprosp" aria-label="Κατάσταση" className="h-11 w-full rounded-full border-border bg-card px-4">
+                    <SelectValue>{(v: string) => ISPROSP_OPTIONS.find(o => o.value === v)?.label ?? v}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    {ISPROSP_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             )}
 
-            <div className="sm:col-span-2" style={{ gridColumn: values.sodtype === 13 ? undefined : '1 / -1' }}>
+            <div className="sm:col-span-2" style={{ gridColumn: values.SODTYPE === 13 ? undefined : '1 / -1' }}>
               <div className="field">
                 <label htmlFor="partner-form-name">Επωνυμία*</label>
                 <div className="inwrap">
                   <Building2 aria-hidden />
-                  <input id="partner-form-name" value={values.name} onChange={e => set('name', e.target.value)} required placeholder="π.χ. Interior Concept Ε.Π.Ε." />
+                  <input id="partner-form-name" value={values.NAME} onChange={e => set('NAME', e.target.value)} required placeholder="π.χ. Interior Concept Ε.Π.Ε." />
                 </div>
-                {fieldErrors.name && <div className="error">{fieldErrors.name}</div>}
+                {fieldErrors.NAME && <div className="error">{fieldErrors.NAME}</div>}
               </div>
             </div>
 
@@ -253,7 +272,7 @@ export function PartnerFormDialog({
               <label htmlFor="partner-form-afm">ΑΦΜ</label>
               <div className="inwrap" style={{ paddingRight: 4 }}>
                 <Hash aria-hidden />
-                <input id="partner-form-afm" value={values.afm} onChange={e => set('afm', e.target.value.replace(/\D/g, ''))} maxLength={9} placeholder="9 ψηφία" style={{ paddingRight: 78 }} />
+                <input id="partner-form-afm" value={values.AFM} onChange={e => set('AFM', e.target.value.replace(/\D/g, ''))} maxLength={9} placeholder="9 ψηφία" style={{ paddingRight: 78 }} />
                 <button
                   type="button"
                   className="eye"
@@ -265,42 +284,69 @@ export function PartnerFormDialog({
                   ΑΑΔΕ
                 </button>
               </div>
-              {fieldErrors.afm && <div className="error">{fieldErrors.afm}</div>}
+              {fieldErrors.AFM && <div className="error">{fieldErrors.AFM}</div>}
             </div>
 
-            <div className="field">
-              <label htmlFor="partner-form-doy">ΔΟΥ</label>
-              <div className="inwrap">
-                <Landmark aria-hidden />
-                <input id="partner-form-doy" value={values.doy} onChange={e => set('doy', e.target.value)} />
-              </div>
-            </div>
+            <IrsdataSelect
+              id="partner-form-irsdata"
+              options={formOptions.irsdata}
+              value={values.IRSDATA || null}
+              onChange={v => set('IRSDATA', v ?? '')}
+            />
+
+            <CountrySelect
+              id="partner-form-country"
+              options={formOptions.country}
+              value={values.COUNTRY || null}
+              onChange={v => set('COUNTRY', v ?? '')}
+            />
+
+            <TrdCategorySelect
+              id="partner-form-trdcategory"
+              options={formOptions.trdCategory}
+              value={values.TRDCATEGORY || null}
+              onChange={v => set('TRDCATEGORY', v ?? '')}
+            />
 
             <div className="field">
               <label htmlFor="partner-form-legalform">Νομική μορφή</label>
               <div className="inwrap">
                 <Briefcase aria-hidden />
-                <input id="partner-form-legalform" value={values.legalForm} onChange={e => set('legalForm', e.target.value)} />
+                <input id="partner-form-legalform" value={values.appLegalForm} onChange={e => set('appLegalForm', e.target.value)} />
               </div>
             </div>
 
             <div className="field">
-              <label htmlFor="partner-form-profession">Δραστηριότητα</label>
+              <label htmlFor="partner-form-jobtype">Δραστηριότητα</label>
               <div className="inwrap">
                 <Briefcase aria-hidden />
-                <input id="partner-form-profession" value={values.profession} onChange={e => set('profession', e.target.value)} />
+                <input id="partner-form-jobtype" value={values.JOBTYPETRD} onChange={e => set('JOBTYPETRD', e.target.value)} />
               </div>
             </div>
+
+            <PaymentSelect
+              id="partner-form-payment"
+              options={formOptions.payment}
+              value={values.PAYMENT || null}
+              onChange={v => set('PAYMENT', v ?? '')}
+            />
+
+            <ShipmentSelect
+              id="partner-form-shipment"
+              options={formOptions.shipment}
+              value={values.SHIPMENT || null}
+              onChange={v => set('SHIPMENT', v ?? '')}
+            />
 
             <div className="sm:col-span-2">
               <GooglePlacesInput
                 id="partner-form-address"
                 label="Διεύθυνση"
                 apiKey={mapsConfig.googleMapsApiKey}
-                value={values.address ?? ''}
-                onChange={v => set('address', v)}
+                value={values.ADDRESS ?? ''}
+                onChange={v => set('ADDRESS', v)}
                 onPlaceSelected={handlePlaceSelected}
-                error={fieldErrors.address}
+                error={fieldErrors.ADDRESS}
               />
             </div>
 
@@ -308,7 +354,7 @@ export function PartnerFormDialog({
               <label htmlFor="partner-form-city">Πόλη</label>
               <div className="inwrap">
                 <Building aria-hidden />
-                <input id="partner-form-city" value={values.city} onChange={e => set('city', e.target.value)} />
+                <input id="partner-form-city" value={values.CITY} onChange={e => set('CITY', e.target.value)} />
               </div>
             </div>
 
@@ -316,7 +362,7 @@ export function PartnerFormDialog({
               <label htmlFor="partner-form-zip">ΤΚ</label>
               <div className="inwrap">
                 <MapPinned aria-hidden />
-                <input id="partner-form-zip" value={values.zip} onChange={e => set('zip', e.target.value)} />
+                <input id="partner-form-zip" value={values.ZIP} onChange={e => set('ZIP', e.target.value)} />
               </div>
             </div>
 
@@ -334,7 +380,7 @@ export function PartnerFormDialog({
               <label htmlFor="partner-form-phone">Τηλέφωνο</label>
               <div className="inwrap">
                 <Phone aria-hidden />
-                <input id="partner-form-phone" type="tel" value={values.phone} onChange={e => set('phone', e.target.value)} />
+                <input id="partner-form-phone" type="tel" value={values.PHONE01} onChange={e => set('PHONE01', e.target.value)} />
               </div>
             </div>
 
@@ -342,9 +388,9 @@ export function PartnerFormDialog({
               <label htmlFor="partner-form-email">Email</label>
               <div className="inwrap">
                 <Mail aria-hidden />
-                <input id="partner-form-email" type="email" value={values.email} onChange={e => set('email', e.target.value)} />
+                <input id="partner-form-email" type="email" value={values.EMAIL} onChange={e => set('EMAIL', e.target.value)} />
               </div>
-              {fieldErrors.email && <div className="error">{fieldErrors.email}</div>}
+              {fieldErrors.EMAIL && <div className="error">{fieldErrors.EMAIL}</div>}
             </div>
 
             <div className="sm:col-span-2">
@@ -352,7 +398,7 @@ export function PartnerFormDialog({
                 <label htmlFor="partner-form-website">Website</label>
                 <div className="inwrap">
                   <Globe aria-hidden />
-                  <input id="partner-form-website" value={values.website} onChange={e => set('website', e.target.value)} placeholder="https://…" />
+                  <input id="partner-form-website" value={values.WEBPAGE} onChange={e => set('WEBPAGE', e.target.value)} placeholder="https://…" />
                 </div>
               </div>
             </div>
@@ -364,8 +410,8 @@ export function PartnerFormDialog({
                   <StickyNote aria-hidden />
                   <textarea
                     id="partner-form-notes"
-                    value={values.notes}
-                    onChange={e => set('notes', e.target.value)}
+                    value={values.appNotes}
+                    onChange={e => set('appNotes', e.target.value)}
                     rows={2}
                     style={{ resize: 'vertical', width: '100%', border: 'none', background: 'transparent', outline: 'none', font: 'inherit', padding: '4px 0' }}
                   />

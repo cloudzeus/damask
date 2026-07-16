@@ -6,7 +6,7 @@ declare module 'next-auth' {
       id: string
       role: string
       permissions: string[]
-      customerId: string | null
+      trdrId: string | null
     }
   }
 }

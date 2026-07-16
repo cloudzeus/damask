@@ -9,7 +9,7 @@ const CONTACT_EMAIL = `e2e-contact-${RUN_ID}@example.gr`
 
 test.afterAll(async () => {
   await prisma.accessRequest.deleteMany({ where: { email: CONTACT_EMAIL } })
-  await prisma.customer.deleteMany({ where: { name: PARTNER_NAME } })
+  await prisma.trdr.deleteMany({ where: { NAME: PARTNER_NAME } })
   await prisma.$disconnect()
 })
 

@@ -17,15 +17,19 @@ type VerifyState =
   | { status: 'error'; message: string }
 
 export function PartnerInfoCard({
-  afm, doy, legalForm, profession, address, city, zip, phone, email, website,
+  afm, irsdataName, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, email, website,
 }: {
   afm: string | null
-  doy: string | null
+  irsdataName: string | null
   legalForm: string | null
-  profession: string | null
+  jobtypetrd: string | null
   address: string | null
   city: string | null
   zip: string | null
+  countryName: string | null
+  trdCategoryName: string | null
+  paymentName: string | null
+  shipmentName: string | null
   phone: string | null
   email: string | null
   website: string | null
@@ -35,13 +39,17 @@ export function PartnerInfoCard({
 
   const fields: Field[] = [
     { icon: Hash, label: 'ΑΦΜ', value: afm },
-    { icon: Landmark, label: 'ΔΟΥ', value: doy },
+    { icon: Landmark, label: 'ΔΟΥ', value: irsdataName },
     { icon: Briefcase, label: 'Νομική μορφή', value: legalForm },
-    { icon: Briefcase, label: 'Δραστηριότητα', value: profession },
+    { icon: Briefcase, label: 'Δραστηριότητα', value: jobtypetrd },
     { icon: MapPin, label: 'Διεύθυνση', value: [address, city, zip].filter(Boolean).join(', ') || null },
+    { icon: Globe, label: 'Χώρα', value: countryName },
+    { icon: Briefcase, label: 'Κατηγορία', value: trdCategoryName },
     { icon: Phone, label: 'Τηλέφωνο', value: phone },
     { icon: Mail, label: 'Email', value: email },
     { icon: Globe, label: 'Website', value: website },
+    { icon: Briefcase, label: 'Τρόπος πληρωμής', value: paymentName },
+    { icon: Briefcase, label: 'Τρόπος αποστολής', value: shipmentName },
   ]
 
   function handleVerify() {
