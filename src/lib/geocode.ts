@@ -119,6 +119,29 @@ export async function geocodeSearch(address: string, apiKey: string): Promise<Ge
   return results
 }
 
+/** Προτάσεις autocomplete (fallback όταν το Google Places (New) δεν είναι διαθέσιμο — βλ.
+ * partners/google-places-input.tsx) — ίδιο endpoint με το geocodeSearch αλλά με explicit
+ * `limit` ώστε το dropdown να μη γεμίζει με δεκάδες αποτελέσματα. */
+export async function geocodeSuggest(query: string, apiKey: string, limit = 6): Promise<GeocodeResult[]> {
+  requireApiKey(apiKey)
+  const clean = query.trim()
+  if (!clean) return []
+
+  const url = `${GEOCODE_BASE}/search?q=${encodeURIComponent(clean)}&limit=${encodeURIComponent(String(limit))}&api_key=${encodeURIComponent(apiKey)}`
+  const data = await geocodeFetch(url)
+
+  void logApiUsage({ service: 'geocoding', operation: 'suggest', units: 1 })
+
+  if (!Array.isArray(data)) return []
+  const results: GeocodeResult[] = []
+  for (const item of data as NominatimRaw[]) {
+    const r = toResult(item)
+    if (r) results.push(r)
+    if (results.length >= limit) break
+  }
+  return results
+}
+
 /** Συντεταγμένες → διεύθυνση. `null` όταν η υπηρεσία δεν βρήκε τίποτα σε αυτό το σημείο. */
 export async function geocodeReverse(lat: number, lng: number, apiKey: string): Promise<GeocodeResult | null> {
   requireApiKey(apiKey)

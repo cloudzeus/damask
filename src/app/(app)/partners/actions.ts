@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { getIntegration } from '@/lib/settings'
 import { aadeLookup, type AadeCompany } from '@/lib/aade'
-import { geocodeSearch, geocodeReverse, GeocodeError, type GeocodeResult } from '@/lib/geocode'
+import { geocodeSearch, geocodeSuggest, geocodeReverse, GeocodeError, type GeocodeResult } from '@/lib/geocode'
 
 /**
  * Server actions πίσω από /partners (Συναλλασσόμενοι κατά SoftOne SODTYPE —
@@ -261,6 +261,30 @@ export async function geocodeAddressAction(address: string): Promise<GeocodeAddr
   } catch (err) {
     if (err instanceof GeocodeError) return { ok: false, message: err.message }
     return { ok: false, message: 'Σφάλμα γεωκωδικοποίησης.' }
+  }
+}
+
+const GEOCODE_SUGGEST_MIN_CHARS = 3
+const GEOCODE_SUGGEST_LIMIT = 6
+
+export type GeocodeSuggestResult =
+  | { ok: true; results: GeocodeResult[] }
+  | { ok: false; message: string }
+
+/** Fallback autocomplete διεύθυνσης μέσω geocode.maps.co — καλείται από το GooglePlacesInput
+ * (partners/google-places-input.tsx) όταν το Google Places (New) δεν είναι διαθέσιμο. Read-only,
+ * ίδιο gating με getMapsClientConfig ('customer.view'). */
+export async function geocodeSuggestAction(query: string): Promise<GeocodeSuggestResult> {
+  await requirePermission('customer.view')
+  const clean = query.trim()
+  if (clean.length < GEOCODE_SUGGEST_MIN_CHARS) return { ok: true, results: [] }
+  try {
+    const apiKey = await geocodeApiKey()
+    const results = await geocodeSuggest(clean, apiKey, GEOCODE_SUGGEST_LIMIT)
+    return { ok: true, results }
+  } catch (err) {
+    if (err instanceof GeocodeError) return { ok: false, message: err.message }
+    return { ok: false, message: 'Σφάλμα αναζήτησης διεύθυνσης.' }
   }
 }
 

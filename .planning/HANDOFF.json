@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-16T02:01:09.433Z",
+  "timestamp": "2026-07-16T08:42:54.011Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -21,10 +21,26 @@
       "path": ".planning/HANDOFF.json"
     },
     {
+      "status": "M",
+      "path": "src/app/(app)/partners/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/partners/google-places-input.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/geocode.ts"
+    },
+    {
+      "status": "M",
+      "path": "tests/geocode.test.ts"
+    },
+    {
       "status": "??",
       "path": ".claude/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n79679f3 feat: OCR component for invoices/receipts/packing lists — Gemini vision with model fallback, client PDF rasterize, review panel\n4eb3d04 feat: daily DB backups to BunnyCDN with 30-day retention and guarded restore\neb7138e feat: Viva Payments — env-switchable settings, unique payment codes, card checkout, webhook tracking\n5300dd0 feat: Excel Import Engine — multi-sheet picker, column excludes, Excel-like preview, mapping templates, chunked execution\n6c8fe22 feat: legal pages with DeepSeek translation, configurable consent modal, full consent logging (IP/OS/time)"
+  "context_notes": "Recent commits:\n3539924 fix: auto-refresh role/permissions in JWT every 60s — no re-login needed after RBAC changes\n7c97fb5 refactor: exact SoftOne TRDR mapping with SODTYPE/ISPROSP, S1 reference mirror tables and combo components\n95cbee4 feat: trading partners by SODTYPE — leads pipeline, geocoding+maps, logos, multi-contacts with user access requests\ned7b740 feat: metered API cost tracking — per-service usage, free quotas, markup, unified /costs dashboard\ne6e9e89 feat: media gallery v2 — lightbox full-res viewer, adjustable thumbnails, bulk and recursive deletion"
 }
