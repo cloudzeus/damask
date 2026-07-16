@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, type FormEvent } from 'react'
+import { useState, useTransition, type FormEvent, type MouseEvent } from 'react'
 import { toast } from 'sonner'
 import { Video, Box, File as FileIcon, MoreVertical, Pencil, FolderInput, Copy, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import {
-  buildFolderTree, formatMediaBytes, MEDIA_KIND_LABEL,
+  buildFolderTree, formatMediaBytes, mediaThumbUrl, MEDIA_KIND_LABEL,
   type MediaAssetDTO, type MediaFolderDTO, type MediaFolderNode,
 } from '@/components/media/media-types'
 import { renameAsset, moveAsset, deleteAsset } from './actions'
@@ -33,10 +33,22 @@ function flattenFolders(nodes: MediaFolderNode[], depth = 0): Array<{ id: string
 export function AssetCard({
   asset,
   folders,
+  thumbSize,
+  selectionMode = false,
+  selected = false,
+  onToggleSelect,
+  onOpenLightbox,
   onChanged,
 }: {
   asset: MediaAssetDTO
   folders: MediaFolderDTO[]
+  /** Τρέχον μέγεθος μικρογραφίας (px) — καθορίζει το πλάτος του Bunny Optimizer param. */
+  thumbSize: number
+  /** true όταν ο χρήστης έχει ενεργοποιήσει «Επιλογή» στο toolbar — δείχνει checkbox αντί για ⋮. */
+  selectionMode?: boolean
+  selected?: boolean
+  onToggleSelect?: (assetId: string, shiftKey: boolean) => void
+  onOpenLightbox?: () => void
   onChanged: () => void
 }) {
   const [renameOpen, setRenameOpen] = useState(false)
@@ -63,15 +75,40 @@ export function AssetCard({
     })
   }
 
+  function handleThumbActivate(shiftKey: boolean) {
+    if (selectionMode) onToggleSelect?.(asset.id, shiftKey)
+    else onOpenLightbox?.()
+  }
+
+  function handleCheckboxClick(e: MouseEvent<HTMLInputElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    onToggleSelect?.(asset.id, e.shiftKey)
+  }
+
   return (
     <div className="lift group/card flex flex-col overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
-      <div className="relative aspect-square w-full overflow-hidden bg-muted">
+      <div
+        className="relative aspect-square w-full cursor-pointer overflow-hidden bg-muted"
+        onClick={e => handleThumbActivate(e.shiftKey)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleThumbActivate(false) }
+        }}
+        aria-label={selectionMode ? `Επιλογή ${asset.name}` : `Προβολή ${asset.name} σε πλήρη ανάλυση`}
+      >
         {asset.type === 'IMAGE' ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={asset.url} alt={asset.alt ?? asset.name} className="size-full object-cover" loading="lazy" />
+          <img src={mediaThumbUrl(asset, thumbSize)} alt={asset.alt ?? asset.name} className="size-full object-cover" loading="lazy" />
+        ) : asset.type === 'VIDEO' ? (
+          <div className="relative flex size-full items-center justify-center bg-muted">
+            {/* preload="metadata" — φθηνό, δείχνει το πρώτο frame σαν thumbnail χωρίς να κατεβάζει όλο το βίντεο */}
+            <video src={asset.url} preload="metadata" muted playsInline className="size-full object-cover" />
+            <Video className="pointer-events-none absolute size-7 text-white drop-shadow-[0_1px_4px_rgb(0_0_0_/_60%)]" strokeWidth={1.6} />
+          </div>
         ) : (
           <div className="flex size-full items-center justify-center">
-            {asset.type === 'VIDEO' && <Video className="size-8 text-muted-foreground" strokeWidth={1.5} />}
             {asset.type === 'MODEL_3D' && <Box className="size-8 text-muted-foreground" strokeWidth={1.5} />}
             {asset.type === 'FILE' && <FileIcon className="size-8 text-muted-foreground" strokeWidth={1.5} />}
           </div>
@@ -79,34 +116,51 @@ export function AssetCard({
         <span className="badge-pill info absolute top-2 left-2 backdrop-blur-sm">
           {MEDIA_KIND_LABEL[asset.type]}
         </span>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <button
-                type="button"
-                className="rowmenu-btn absolute top-2 right-2 bg-card/90 opacity-0 backdrop-blur-sm group-hover/card:opacity-100 data-[popup-open]:opacity-100"
-                aria-label={`Ενέργειες για ${asset.name}`}
-              >
-                <MoreVertical className="size-3.5" strokeWidth={1.8} />
-              </button>
-            }
-          />
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setRenameOpen(true)}>
-              <Pencil className="size-3.5" strokeWidth={1.75} /> Μετονομασία
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setMoveOpen(true)}>
-              <FolderInput className="size-3.5" strokeWidth={1.75} /> Μετακίνηση σε φάκελο
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleCopyUrl}>
-              <Copy className="size-3.5" strokeWidth={1.75} /> Αντιγραφή URL
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
-              <Trash2 className="size-3.5" strokeWidth={1.75} /> Διαγραφή
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {selectionMode ? (
+          <span
+            className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md bg-card/90 backdrop-blur-sm"
+            onClick={e => e.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              checked={selected}
+              readOnly
+              onClick={handleCheckboxClick}
+              className="select-check"
+              aria-label={`Επιλογή ${asset.name}`}
+            />
+          </span>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  className="rowmenu-btn absolute top-2 right-2 bg-card/90 opacity-0 backdrop-blur-sm group-hover/card:opacity-100 data-[popup-open]:opacity-100"
+                  aria-label={`Ενέργειες για ${asset.name}`}
+                  onClick={(e: MouseEvent) => e.stopPropagation()}
+                >
+                  <MoreVertical className="size-3.5" strokeWidth={1.8} />
+                </button>
+              }
+            />
+            <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => setRenameOpen(true)}>
+                <Pencil className="size-3.5" strokeWidth={1.75} /> Μετονομασία
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMoveOpen(true)}>
+                <FolderInput className="size-3.5" strokeWidth={1.75} /> Μετακίνηση σε φάκελο
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCopyUrl}>
+                <Copy className="size-3.5" strokeWidth={1.75} /> Αντιγραφή URL
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="size-3.5" strokeWidth={1.75} /> Διαγραφή
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       <div className="flex flex-col gap-0.5 p-2.5">
         <span className="truncate text-[12.5px] font-medium" title={asset.name}>{asset.name}</span>

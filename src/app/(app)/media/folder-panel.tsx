@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Images, Folder, FolderPlus, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
@@ -16,7 +17,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { buildFolderTree, type MediaFolderDTO, type MediaFolderNode } from '@/components/media/media-types'
-import { createFolder, renameFolder, deleteFolder } from './actions'
+import { createFolder, renameFolder, deleteFolder, deleteFolderRecursive, getFolderDeletePreview } from './actions'
+
+const RECURSIVE_DELETE_WORD = 'ΔΙΑΓΡΑΦΗ'
 
 export function FolderPanel({
   folders,
@@ -103,6 +106,9 @@ function FolderRow({
 }) {
   const [renameOpen, setRenameOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [recursiveDeleteOpen, setRecursiveDeleteOpen] = useState(false)
+  const [recursivePreview, setRecursivePreview] = useState<{ assetCount: number; folderCount: number } | null>(null)
+  const [recursivePreviewLoading, setRecursivePreviewLoading] = useState(false)
   const [pending, startTransition] = useTransition()
   const isEmpty = node.assetCount === 0 && node.childCount === 0
 
@@ -118,6 +124,31 @@ function FolderRow({
         toast.error(res.message)
       }
     })
+  }
+
+  /**
+   * Το «Διαγραφή» στο dropdown ορίζει open=true ΑΠΕΥΘΕΙΑΣ (setRecursiveDeleteOpen) —
+   * δεν περνάει από κανένα onOpenChange του dialog. Το base-ui Dialog σε
+   * ΠΛΗΡΩΣ ελεγχόμενη λειτουργία (open+onOpenChange και τα δύο δοσμένα) καλεί
+   * το δικό του onOpenChange ΜΟΝΟ όταν ο ΧΡΗΣΤΗΣ κλείνει το dialog από μέσα
+   * (Esc/backdrop/Cancel) — ΟΧΙ όταν εμείς αλλάζουμε το open prop απ' έξω. Γι'
+   * αυτό η φόρτωση του preview πρέπει να ξεκινά ΕΔΩ, στο ΙΔΙΟ event handler
+   * που ανοίγει το dialog — αλλιώς δεν τρέχει ποτέ.
+   */
+  function handleDeleteClick() {
+    if (isEmpty) { setDeleteOpen(true); return }
+    setRecursiveDeleteOpen(true)
+    setRecursivePreview(null)
+    setRecursivePreviewLoading(true)
+    getFolderDeletePreview(node.id).then(res => {
+      if (res.ok) setRecursivePreview({ assetCount: res.assetCount, folderCount: res.folderCount })
+      else toast.error(res.message)
+    }).finally(() => setRecursivePreviewLoading(false))
+  }
+
+  function handleRecursiveDeleted() {
+    if (selectedFolderId === node.id) onSelect(null)
+    onChanged()
   }
 
   return (
@@ -163,7 +194,7 @@ function FolderRow({
               <Pencil className="size-3.5" strokeWidth={1.75} /> Μετονομασία
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+            <DropdownMenuItem variant="destructive" onClick={handleDeleteClick}>
               <Trash2 className="size-3.5" strokeWidth={1.75} /> Διαγραφή
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -190,29 +221,133 @@ function FolderRow({
         onDone={onChanged}
       />
 
+      {/* isEmpty — απλή, άμεση επιβεβαίωση (χωρίς πληκτρολόγηση). Το μη-άδειο
+          μονοπάτι πάει στο FolderRecursiveDeleteDialog παρακάτω. */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Διαγραφή φακέλου «{node.name}»;</AlertDialogTitle>
-            <AlertDialogDescription>
-              {isEmpty
-                ? 'Ο φάκελος είναι άδειος. Η διαγραφή δεν αναιρείται.'
-                : 'Ο φάκελος δεν είναι άδειος — μετακίνησε ή διάγραψε πρώτα ό,τι περιέχει (αρχεία ή υποφακέλους).'}
-            </AlertDialogDescription>
+            <AlertDialogDescription>Ο φάκελος είναι άδειος. Η διαγραφή δεν αναιρείται.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Άκυρο</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              disabled={!isEmpty || pending}
-              onClick={handleDelete}
-            >
+            <AlertDialogAction variant="destructive" disabled={pending} onClick={handleDelete}>
               {pending ? 'Διαγραφή…' : 'Διαγραφή'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FolderRecursiveDeleteDialog
+        open={recursiveDeleteOpen}
+        onOpenChange={setRecursiveDeleteOpen}
+        folderId={node.id}
+        folderName={node.name}
+        preview={recursivePreview}
+        loadingPreview={recursivePreviewLoading}
+        onDeleted={handleRecursiveDeleted}
+      />
     </div>
+  )
+}
+
+/**
+ * Διαγραφή φακέλου ΜΕ περιεχόμενα — δείχνει πόσα αρχεία/υποφάκελοι θα χαθούν
+ * και απαιτεί πληκτρολόγηση «ΔΙΑΓΡΑΦΗ» πριν ενεργοποιηθεί το κουμπί.
+ *
+ * Καθαρά παρουσιαστικό ως προς το preview — το FolderRow (γονιός) ξεκινάει
+ * το fetch ΤΗΝ ΩΡΑ που ανοίγει το dialog (στο ΙΔΙΟ click handler), όχι εδώ:
+ * το open=true φτάνει εδώ ΑΠΕΥΘΕΙΑΣ ως prop, όχι μέσω onOpenChange, οπότε ένα
+ * "φόρτωσε στο άνοιγμα" idiom μέσα σε αυτό το component δεν θα έτρεχε ποτέ.
+ */
+function FolderRecursiveDeleteDialog({
+  open,
+  onOpenChange,
+  folderId,
+  folderName,
+  preview,
+  loadingPreview,
+  onDeleted,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  folderId: string
+  folderName: string
+  preview: { assetCount: number; folderCount: number } | null
+  loadingPreview: boolean
+  onDeleted: () => void
+}) {
+  const [confirmText, setConfirmText] = useState('')
+  const [pending, startTransition] = useTransition()
+
+  // Reset του πεδίου επιβεβαίωσης όταν ο χρήστης κλείνει το dialog (Esc /
+  // backdrop / Cancel) — αυτό ΕΙΝΑΙ μονοπάτι που περνάει από το onOpenChange
+  // του base-ui primitive, σε αντίθεση με το άνοιγμα (βλ. σχόλιο πάνω).
+  function handleOpenChange(next: boolean) {
+    onOpenChange(next)
+    if (!next) setConfirmText('')
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const res = await deleteFolderRecursive(folderId)
+      if (res.ok) {
+        toast.success(res.message)
+        onOpenChange(false)
+        onDeleted()
+      } else {
+        toast.error(res.message)
+      }
+    })
+  }
+
+  const subfolderCount = preview ? preview.folderCount - 1 : 0
+  const ready = !loadingPreview && preview !== null
+
+  return (
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Διαγραφή φακέλου «{folderName}» ΜΕ όλα τα περιεχόμενά του;</AlertDialogTitle>
+          <AlertDialogDescription>
+            {!ready ? (
+              'Υπολογισμός περιεχομένων…'
+            ) : (
+              <>
+                Θα διαγραφούν οριστικά <b>{preview.assetCount}</b> {preview.assetCount === 1 ? 'αρχείο' : 'αρχεία'}
+                {subfolderCount > 0 && <> και <b>{subfolderCount}</b> {subfolderCount === 1 ? 'υποφάκελος' : 'υποφάκελοι'}</>}
+                {' '}— από το BunnyCDN ΚΑΙ τη βάση. Η ενέργεια δεν αναιρείται.
+                <br />
+                Πληκτρολόγησε <b>{RECURSIVE_DELETE_WORD}</b> για να ενεργοποιηθεί το κουμπί.
+              </>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="field">
+          <label htmlFor="folder-recursive-delete-confirm">Επιβεβαίωση</label>
+          <Input
+            id="folder-recursive-delete-confirm"
+            value={confirmText}
+            onChange={e => setConfirmText(e.target.value)}
+            placeholder={RECURSIVE_DELETE_WORD}
+            autoComplete="off"
+            disabled={!ready}
+          />
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel>Άκυρο</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={!ready || confirmText !== RECURSIVE_DELETE_WORD || pending}
+            onClick={handleDelete}
+          >
+            {pending ? 'Διαγραφή…' : 'Διαγραφή'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 

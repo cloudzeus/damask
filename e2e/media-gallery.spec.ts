@@ -191,3 +191,102 @@ test('Media Gallery: φάκελοι, upload, και το MediaPicker end-to-end'
   await expect(page.getByText(`Ο φάκελος «${FOLDER_RENAMED}» διαγράφηκε.`)).toBeVisible()
   await expect(page.getByRole('button', { name: FOLDER_RENAMED, exact: true })).toBeHidden()
 })
+
+// ── Media Gallery v2: lightbox, ρυθμιζόμενα thumbnails, bulk + αναδρομική διαγραφή ──
+
+const V2_ASSET_1 = `e2e-media-gallery-v2-${RUN_ID}-a`
+const V2_ASSET_2 = `e2e-media-gallery-v2-${RUN_ID}-b`
+const V2_FOLDER_NAME = `E2E Φάκελος V2 ${RUN_ID}`
+const V2_FORCE_ASSET = `e2e-media-gallery-v2-${RUN_ID}-force`
+
+test('Media Gallery v2: lightbox, slider μεγέθους, bulk delete, και force-delete φακέλου με «ΔΙΑΓΡΑΦΗ»', async ({ page }) => {
+  test.setTimeout(120_000) // πραγματικά uploads/deletes στο BunnyCDN
+
+  await loginAsAdmin(page)
+  await page.goto('/media')
+  await expect(page.getByRole('heading', { name: 'Media Gallery' })).toBeVisible()
+
+  // ── 1) Upload 2 εικόνων στη ρίζα ("Όλα τα αρχεία") ──────────────────────
+  await page.getByRole('button', { name: 'Μεταφόρτωση', exact: true }).click()
+  const uploadDialog = page.getByRole('dialog')
+  await expect(uploadDialog.getByText('Μεταφόρτωση αρχείων')).toBeVisible()
+
+  await uploadDialog.locator('input[type=file]').setInputFiles([
+    { name: `${V2_ASSET_1}.png`, mimeType: 'image/png', buffer: makeSolidPng(40, 40, [10, 120, 200]) },
+    { name: `${V2_ASSET_2}.png`, mimeType: 'image/png', buffer: makeSolidPng(40, 40, [200, 60, 10]) },
+  ])
+  await expect(page.getByText('2/2 ολοκληρώθηκαν')).toBeVisible({ timeout: 60_000 })
+  await page.keyboard.press('Escape')
+  await expect(uploadDialog).toBeHidden()
+
+  await expect(page.getByText(V2_ASSET_1)).toBeVisible()
+  await expect(page.getByText(V2_ASSET_2)).toBeVisible()
+
+  // ── 2) Slider μεγέθους μικρογραφιών — αλλάζει --thumb-size στο grid ─────
+  const grid = page.locator('.stagger.grid')
+  const initialThumbSize = await grid.evaluate(el => (el as HTMLElement).style.getPropertyValue('--thumb-size'))
+  const slider = page.getByLabel('Μέγεθος μικρογραφιών')
+  await slider.focus()
+  await slider.press('End') // άκρη του range → THUMB_SIZE_MAX (280px)
+  await expect.poll(() => grid.evaluate(el => (el as HTMLElement).style.getPropertyValue('--thumb-size'))).toBe('280px')
+  expect(initialThumbSize).not.toBe('280px')
+
+  // ── 3) Lightbox: κλικ σε asset ανοίγει full-res προβολή, ESC κλείνει ────
+  await page.getByRole('button', { name: `Προβολή ${V2_ASSET_1} σε πλήρη ανάλυση` }).click()
+  const lightbox = page.getByRole('dialog', { name: `Προβολή «${V2_ASSET_1}»` })
+  await expect(lightbox).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(lightbox).toBeHidden()
+
+  // ── 4) Bulk delete: «Επιλογή» → checkboxes → «Διαγραφή επιλεγμένων (2)» ─
+  await page.getByRole('button', { name: 'Επιλογή', exact: true }).click()
+  await page.getByRole('checkbox', { name: `Επιλογή ${V2_ASSET_1}` }).click()
+  await page.getByRole('checkbox', { name: `Επιλογή ${V2_ASSET_2}` }).click()
+  await expect(page.getByText('2 επιλεγμένα')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Διαγραφή επιλεγμένων (2)' }).click()
+  const bulkDeleteDialog = page.getByRole('alertdialog')
+  await expect(bulkDeleteDialog.getByText('Διαγραφή 2 επιλεγμένων αρχείων;')).toBeVisible()
+  await bulkDeleteDialog.getByRole('button', { name: 'Διαγραφή', exact: true }).click()
+  await expect(page.getByText('2 αρχεία διαγράφηκαν.')).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(V2_ASSET_1, { exact: true })).toBeHidden()
+  await expect(page.getByText(V2_ASSET_2, { exact: true })).toBeHidden()
+
+  // ── 5) Φάκελος ΜΕ περιεχόμενα — force-delete flow με πληκτρολόγηση «ΔΙΑΓΡΑΦΗ» ──
+  await page.getByRole('button', { name: 'Νέος φάκελος' }).click()
+  const createDialog = page.getByRole('dialog')
+  await page.fill('#folder-name-input', V2_FOLDER_NAME)
+  await createDialog.getByRole('button', { name: 'Αποθήκευση' }).click()
+  await expect(page.getByText(`Ο φάκελος «${V2_FOLDER_NAME}» δημιουργήθηκε.`)).toBeVisible()
+
+  const v2FolderRow = page.getByRole('button', { name: V2_FOLDER_NAME, exact: true })
+  await v2FolderRow.click()
+
+  await page.getByRole('button', { name: 'Μεταφόρτωση', exact: true }).click()
+  const uploadDialog2 = page.getByRole('dialog')
+  await uploadDialog2.locator('input[type=file]').setInputFiles({
+    name: `${V2_FORCE_ASSET}.png`,
+    mimeType: 'image/png',
+    buffer: makeSolidPng(40, 40, [60, 200, 90]),
+  })
+  await expect(page.getByText('1/1 ολοκληρώθηκαν')).toBeVisible({ timeout: 60_000 })
+  await page.keyboard.press('Escape')
+  await expect(uploadDialog2).toBeHidden()
+  await expect(page.getByText(V2_FORCE_ASSET)).toBeVisible()
+
+  await page.getByRole('button', { name: `Ενέργειες για τον φάκελο ${V2_FOLDER_NAME}` }).click()
+  await page.getByRole('menuitem', { name: 'Διαγραφή' }).click()
+
+  const forceDeleteDialog = page.getByRole('alertdialog')
+  await expect(forceDeleteDialog.getByText(`Διαγραφή φακέλου «${V2_FOLDER_NAME}» ΜΕ όλα τα περιεχόμενά του;`)).toBeVisible()
+  await expect(forceDeleteDialog.getByText(/Θα διαγραφούν οριστικά/)).toBeVisible({ timeout: 15_000 })
+
+  const forceDeleteButton = forceDeleteDialog.getByRole('button', { name: 'Διαγραφή', exact: true })
+  await expect(forceDeleteButton).toBeDisabled()
+  await forceDeleteDialog.getByLabel('Επιβεβαίωση').fill('ΔΙΑΓΡΑΦΗ')
+  await expect(forceDeleteButton).toBeEnabled()
+  await forceDeleteButton.click()
+
+  await expect(page.getByText(`Ο φάκελος «${V2_FOLDER_NAME}» διαγράφηκε μαζί με 1 αρχείο.`)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: V2_FOLDER_NAME, exact: true })).toBeHidden()
+})

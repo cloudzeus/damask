@@ -7,11 +7,18 @@ import { FolderPanel } from './folder-panel'
 import { AssetToolbar } from './asset-toolbar'
 import { AssetGrid } from './asset-grid'
 import { UploadDialog } from './upload-dialog'
+import { BulkActionBar } from './bulk-action-bar'
+import { MediaLightbox } from './media-lightbox'
 import { MediaPicker } from '@/components/media/media-picker'
 import { ProductImageCollection, type CollectionImage } from '@/components/media/product-image-collection'
-import type { MediaAssetDTO, MediaFolderDTO, MediaKind, MediaListResponse, PickedAsset } from '@/components/media/media-types'
+import {
+  THUMB_SIZE_MAX, THUMB_SIZE_MIN,
+  type MediaAssetDTO, type MediaFolderDTO, type MediaKind, type MediaListResponse, type PickedAsset,
+} from '@/components/media/media-types'
 
 const SEARCH_DEBOUNCE_MS = 300
+const THUMB_SIZE_DEFAULT = 160
+const THUMB_SIZE_STORAGE_KEY = 'damask:media-thumb-size'
 
 export function MediaGallery({
   initialFolders,
@@ -33,7 +40,30 @@ export function MediaGallery({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickedImages, setPickedImages] = useState<CollectionImage[]>([])
 
+  const [thumbSize, setThumbSize] = useState(THUMB_SIZE_DEFAULT)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+
   const isFirstRun = useRef(true)
+
+  // Προτίμηση μεγέθους μικρογραφίας — φορτώνεται μία φορά από localStorage
+  // στο mount (client-only), μετά αποθηκεύεται σε κάθε αλλαγή. Το localStorage
+  // δεν είναι διαθέσιμο στο SSR pass, γι' αυτό ΔΕΝ μπαίνει στο useState lazy
+  // initializer (θα προκαλούσε hydration mismatch) — παραμένει σε effect,
+  // που είναι η επίσημα προτεινόμενη χρήση Effect για sync με εξωτερικό
+  // σύστημα (browser storage) εκτός React.
+  useEffect(() => {
+    const saved = Number(localStorage.getItem(THUMB_SIZE_STORAGE_KEY))
+    if (Number.isFinite(saved) && saved >= THUMB_SIZE_MIN && saved <= THUMB_SIZE_MAX) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setThumbSize(saved)
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(THUMB_SIZE_STORAGE_KEY, String(thumbSize))
+  }, [thumbSize])
 
   const fetchList = useCallback(async (filters: { folderId: string | null; type: MediaKind | null; q: string }) => {
     setLoading(true)
@@ -75,6 +105,33 @@ export function MediaGallery({
     setTypeFilter(null)
     setQueryInput('')
     setDebouncedQuery('')
+    setSelectedIds(new Set())
+  }
+
+  function toggleSelectionMode() {
+    setSelectionMode(prev => {
+      if (prev) setSelectedIds(new Set())
+      return !prev
+    })
+  }
+
+  // Καθαρή επιλογή σε κάθε αλλαγή φακέλου/φίλτρου — δεν έχει νόημα να μείνει
+  // "επιλεγμένο" ένα asset που δεν είναι πια ορατό στη λίστα. Καθαρίζεται
+  // ΜΕΣΑ στους ίδιους τους handlers (όχι σε useEffect keyed στα φίλτρα) —
+  // ίδιο idiom με τα υπόλοιπα reset-on-change σημεία της οθόνης.
+  function handleSelectFolder(folderId: string | null) {
+    setSelectedFolderId(folderId)
+    setSelectedIds(new Set())
+  }
+
+  function handleTypeFilterChange(type: MediaKind | null) {
+    setTypeFilter(type)
+    setSelectedIds(new Set())
+  }
+
+  function handleQueryChange(q: string) {
+    setQueryInput(q)
+    setSelectedIds(new Set())
   }
 
   const selectedFolder = folders.find(f => f.id === selectedFolderId) ?? null
@@ -101,17 +158,21 @@ export function MediaGallery({
         <FolderPanel
           folders={folders}
           selectedFolderId={selectedFolderId}
-          onSelect={setSelectedFolderId}
+          onSelect={handleSelectFolder}
           onChanged={refresh}
         />
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <AssetToolbar
             query={queryInput}
-            onQueryChange={setQueryInput}
+            onQueryChange={handleQueryChange}
             typeFilter={typeFilter}
-            onTypeFilterChange={setTypeFilter}
+            onTypeFilterChange={handleTypeFilterChange}
             onUploadClick={() => setUploadOpen(true)}
+            thumbSize={thumbSize}
+            onThumbSizeChange={setThumbSize}
+            selectionMode={selectionMode}
+            onToggleSelectionMode={toggleSelectionMode}
           />
 
           <div className="mt-3">
@@ -123,6 +184,11 @@ export function MediaGallery({
               onClearFilters={clearFilters}
               onUploadClick={() => setUploadOpen(true)}
               onChanged={refresh}
+              thumbSize={thumbSize}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onSelectedIdsChange={setSelectedIds}
+              onOpenLightbox={setLightboxIndex}
             />
           </div>
         </div>
@@ -142,6 +208,20 @@ export function MediaGallery({
         onSelect={handlePicked}
         multiple
         accept={['IMAGE']}
+      />
+
+      <MediaLightbox
+        assets={assets}
+        index={lightboxIndex}
+        onIndexChange={setLightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onChanged={refresh}
+      />
+
+      <BulkActionBar
+        selectedIds={Array.from(selectedIds)}
+        onClear={() => setSelectedIds(new Set())}
+        onDeleted={() => { setSelectedIds(new Set()); refresh() }}
       />
 
       {pickedImages.length > 0 && (

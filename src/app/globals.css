@@ -1574,3 +1574,57 @@ input[type='checkbox'] {
   color: var(--foreground);
   text-decoration: underline;
 }
+
+/* ── Media Gallery v2 (/media): lightbox, thumbnail slider, bulk selection ──
+   Ο lightbox παραμένει σκούρος ανεξαρτήτως app theme (μαύρο backdrop 85%) —
+   δεν χρειάζεται ξεχωριστό .dark treatment, το chrome του είναι ήδη σταθερό. */
+.lightbox-header {
+  background: rgb(20 26 32 / 70%);
+  backdrop-filter: blur(16px);
+  color: #F2F6F6;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+}
+.lightbox-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(255 255 255 / 8%);
+  backdrop-filter: blur(10px);
+  color: #F2F6F6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  flex: none;
+}
+.lightbox-icon-btn:hover {
+  background: rgb(255 255 255 / 16%);
+}
+.lightbox-icon-btn.danger {
+  background: rgb(228 87 77 / 20%);
+  border-color: rgb(228 87 77 / 40%);
+  color: #FF9C94;
+}
+.lightbox-icon-btn.danger:hover {
+  background: rgb(228 87 77 / 32%);
+}
+
+.thumb-size-slider {
+  accent-color: var(--navy);
+  width: 100px;
+  cursor: pointer;
+}
+
+.select-check {
+  accent-color: var(--navy);
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+}
+
+.btn-destructive-pill {
+  background: var(--destructive);
+  color: #fff;
+  box-shadow: 0 8px 22px rgb(192 57 43 / 32%);
+}

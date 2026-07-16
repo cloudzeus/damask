@@ -65,10 +65,23 @@ vi.mock('@/lib/prisma', () => ({
         Object.assign(folder, data)
         return { ...folder }
       }),
+      // Mimics Prisma's onDelete: Cascade on MediaFolder.parent — διαγράφει και
+      // όλους τους απογόνους, όπως θα έκανε η πραγματική Postgres FK cascade.
       delete: vi.fn(async ({ where }: { where: { id: string } }) => {
-        store.folders = store.folders.filter(f => f.id !== where.id)
+        const toRemove = new Set([where.id])
+        let frontier = [where.id]
+        while (frontier.length > 0) {
+          const children = store.folders.filter(f => f.parentId !== null && frontier.includes(f.parentId)).map(f => f.id)
+          if (children.length === 0) break
+          children.forEach(id => toRemove.add(id))
+          frontier = children
+        }
+        store.folders = store.folders.filter(f => !toRemove.has(f.id))
         return {}
       }),
+      findMany: vi.fn(async ({ where }: { where: { parentId: { in: string[] } } }) =>
+        store.folders.filter(f => f.parentId !== null && where.parentId.in.includes(f.parentId)).map(f => ({ id: f.id })),
+      ),
     },
     mediaAsset: {
       findUnique: vi.fn(async ({ where }: { where: { id: string } }) => store.assets.find(a => a.id === where.id) ?? null),
@@ -82,12 +95,28 @@ vi.mock('@/lib/prisma', () => ({
         store.assets = store.assets.filter(a => a.id !== where.id)
         return {}
       }),
+      findMany: vi.fn(async ({ where }: { where: { folderId?: { in: string[] }; id?: { in: string[] } } }) => {
+        let result = store.assets
+        if (where.folderId) result = result.filter(a => a.folderId !== null && where.folderId!.in.includes(a.folderId))
+        if (where.id) result = result.filter(a => where.id!.in.includes(a.id))
+        return result.map(a => ({ ...a }))
+      }),
+      count: vi.fn(async ({ where }: { where: { folderId: { in: string[] } } }) =>
+        store.assets.filter(a => a.folderId !== null && where.folderId.in.includes(a.folderId)).length,
+      ),
+      deleteMany: vi.fn(async ({ where }: { where: { id: { in: string[] } } }) => {
+        const before = store.assets.length
+        store.assets = store.assets.filter(a => !where.id.in.includes(a.id))
+        return { count: before - store.assets.length }
+      }),
     },
+    $transaction: vi.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
   },
 }))
 
 import {
   createFolder, renameFolder, deleteFolder, renameAsset, moveAsset, deleteAsset,
+  getFolderDeletePreview, deleteFolderRecursive, bulkDeleteAssets,
 } from '@/app/(app)/media/actions'
 
 const fetchMock = vi.fn()
@@ -97,10 +126,12 @@ beforeEach(() => {
     { id: 'folder-living', name: 'Καθιστικό', parentId: null },
     { id: 'folder-bedroom', name: 'Υπνοδωμάτιο', parentId: null },
     { id: 'folder-living-sofas', name: 'Καναπέδες', parentId: 'folder-living' },
+    { id: 'folder-living-sofas-leather', name: 'Δερμάτινοι', parentId: 'folder-living-sofas' },
   ]
   store.assets = [
     { id: 'asset-1', name: 'sofa-1', folderId: 'folder-living-sofas', cdnUrl: 'https://cdn.example.com/media-gallery/folder-living-sofas/sofa-1.webp', type: 'IMAGE' },
     { id: 'asset-2', name: 'root-file', folderId: null, cdnUrl: 'https://cdn.example.com/media-gallery/root/root-file.webp', type: 'IMAGE' },
+    { id: 'asset-3', name: 'leather-sofa', folderId: 'folder-living-sofas-leather', cdnUrl: 'https://cdn.example.com/media-gallery/folder-living-sofas-leather/leather-sofa.webp', type: 'IMAGE' },
   ]
   nextFolderId = 100
   fetchMock.mockReset()
@@ -281,5 +312,126 @@ describe('deleteAsset()', () => {
     const res = await deleteAsset('does-not-exist')
     expect(res.ok).toBe(false)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+// ── getFolderDeletePreview() / deleteFolderRecursive() ──────────────────
+// Δοκιμάζουν έμμεσα το εσωτερικό BFS collectFolderIds() πάνω σε δέντρο 3
+// επιπέδων: folder-living > folder-living-sofas > folder-living-sofas-leather
+// (asset-1 στο μεσαίο επίπεδο, asset-3 στο βαθύτερο).
+
+describe('getFolderDeletePreview()', () => {
+  it('μετράει αναδρομικά αρχεία/υποφακέλους σε δέντρο πολλών επιπέδων', async () => {
+    const res = await getFolderDeletePreview('folder-living')
+    expect(res).toMatchObject({ ok: true, assetCount: 2, folderCount: 3 })
+  })
+
+  it('μετράει σωστά ξεκινώντας από ενδιάμεσο επίπεδο (όχι τη ρίζα)', async () => {
+    const res = await getFolderDeletePreview('folder-living-sofas')
+    expect(res).toMatchObject({ ok: true, assetCount: 2, folderCount: 2 })
+  })
+
+  it('φύλλο χωρίς υποφακέλους/αρχεία → assetCount 0, folderCount 1 (μόνο ο εαυτός του)', async () => {
+    const res = await getFolderDeletePreview('folder-bedroom')
+    expect(res).toMatchObject({ ok: true, assetCount: 0, folderCount: 1 })
+  })
+
+  it('επιστρέφει σφάλμα για άγνωστο φάκελο', async () => {
+    const res = await getFolderDeletePreview('does-not-exist')
+    expect(res.ok).toBe(false)
+  })
+})
+
+describe('deleteFolderRecursive()', () => {
+  it('διαγράφει αρχεία (Bunny + DB) ΚΑΙ υποφακέλους αναδρομικά, αφήνει τον γονιό ανέπαφο', async () => {
+    const res = await deleteFolderRecursive('folder-living-sofas')
+    expect(res).toMatchObject({ ok: true })
+
+    expect(store.assets.some(a => a.id === 'asset-1')).toBe(false)
+    expect(store.assets.some(a => a.id === 'asset-3')).toBe(false)
+    expect(store.assets.some(a => a.id === 'asset-2')).toBe(true) // άσχετο root asset — ανέπαφο
+
+    expect(store.folders.some(f => f.id === 'folder-living-sofas')).toBe(false)
+    expect(store.folders.some(f => f.id === 'folder-living-sofas-leather')).toBe(false)
+    expect(store.folders.some(f => f.id === 'folder-living')).toBe(true) // ο γονιός ΔΕΝ διαγράφεται
+
+    // 2 αρχεία διαγράφηκαν από το Bunny (μία παρτίδα, καθώς < 50)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const urls = fetchMock.mock.calls.map(call => call[0]).sort()
+    expect(urls).toEqual([
+      'https://storage.bunnycdn.com/test-zone/media-gallery/folder-living-sofas-leather/leather-sofa.webp',
+      'https://storage.bunnycdn.com/test-zone/media-gallery/folder-living-sofas/sofa-1.webp',
+    ].sort())
+  })
+
+  it('σφάλμα Bunny εμποδίζει ΟΛΟΚΛΗΡΗ τη διαγραφή — τίποτα δεν αλλάζει στη DB', async () => {
+    fetchMock.mockImplementation(async () => new Response(null, { status: 500 }))
+    const res = await deleteFolderRecursive('folder-living-sofas')
+    expect(res.ok).toBe(false)
+
+    expect(store.assets.some(a => a.id === 'asset-1')).toBe(true)
+    expect(store.assets.some(a => a.id === 'asset-3')).toBe(true)
+    expect(store.folders.some(f => f.id === 'folder-living-sofas')).toBe(true)
+    expect(store.folders.some(f => f.id === 'folder-living-sofas-leather')).toBe(true)
+  })
+
+  it('φάκελος χωρίς περιεχόμενο διαγράφεται κανονικά (μηδενικά Bunny calls)', async () => {
+    const res = await deleteFolderRecursive('folder-bedroom')
+    expect(res).toMatchObject({ ok: true })
+    expect(store.folders.some(f => f.id === 'folder-bedroom')).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('επιστρέφει σφάλμα για άγνωστο φάκελο', async () => {
+    const res = await deleteFolderRecursive('does-not-exist')
+    expect(res.ok).toBe(false)
+  })
+})
+
+describe('bulkDeleteAssets()', () => {
+  it('διαγράφει πολλαπλά αρχεία από Bunny + DB', async () => {
+    const res = await bulkDeleteAssets(['asset-1', 'asset-2'])
+    expect(res).toMatchObject({ ok: true })
+    expect(store.assets.some(a => a.id === 'asset-1')).toBe(false)
+    expect(store.assets.some(a => a.id === 'asset-2')).toBe(false)
+    expect(store.assets.some(a => a.id === 'asset-3')).toBe(true) // δεν επιλέχθηκε — ανέπαφο
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('guard: άδειος πίνακας ids → σφάλμα, καμία κλήση Bunny', async () => {
+    const res = await bulkDeleteAssets([])
+    expect(res.ok).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('guard: μόνο κενά strings → σφάλμα', async () => {
+    const res = await bulkDeleteAssets(['', '   '])
+    expect(res.ok).toBe(false)
+  })
+
+  it('guard: κανένα από τα ids δεν βρέθηκε → σφάλμα', async () => {
+    const res = await bulkDeleteAssets(['does-not-exist-1', 'does-not-exist-2'])
+    expect(res.ok).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('αγνοεί διπλότυπα ids στην είσοδο (ίδιο αρχείο δύο φορές)', async () => {
+    const res = await bulkDeleteAssets(['asset-1', 'asset-1'])
+    expect(res).toMatchObject({ ok: true })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('προχωράει με τα ids που βρέθηκαν, αγνοώντας τα άγνωστα', async () => {
+    const res = await bulkDeleteAssets(['asset-1', 'does-not-exist'])
+    expect(res).toMatchObject({ ok: true })
+    expect(store.assets.some(a => a.id === 'asset-1')).toBe(false)
+  })
+
+  it('σφάλμα Bunny εμποδίζει τη διαγραφή — οι εγγραφές ΜΕΝΟΥΝ', async () => {
+    fetchMock.mockImplementation(async () => new Response(null, { status: 500 }))
+    const res = await bulkDeleteAssets(['asset-1', 'asset-2'])
+    expect(res.ok).toBe(false)
+    expect(store.assets.some(a => a.id === 'asset-1')).toBe(true)
+    expect(store.assets.some(a => a.id === 'asset-2')).toBe(true)
   })
 })
