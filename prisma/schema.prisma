@@ -673,3 +673,26 @@ model AiUsage {
   @@index([createdAt])
   @@index([provider, createdAt])
 }
+
+/// Μετρημένη χρήση API υπηρεσιών (ΟΧΙ AI — αυτά μένουν στο AiUsage): Mailgun
+/// (per_email), BunnyCDN (per_gb, μόνο uploads μέσω δικών μας routes), Viva
+/// (per_transaction, ενημερωτικά), ΑΑΔΕ/vat.wwa.gr (per_lookup), geocoding
+/// (per_request — θα ενεργοποιηθεί με το traders task). units: emails=1,
+/// GB=δεκαδικός (bytes/1e9), lookups/συναλλαγές=1. costEur = ακατέργαστο κόστος
+/// ΤΗΣ ΓΡΑΜΜΗΣ σε EUR (units × basePrice κατά τη στιγμή του logging) — ΧΩΡΙΣ
+/// markup ΚΑΙ ΧΩΡΙΣ την έκπτωση free quota (αυτή εφαρμόζεται ΜΙΑ φορά στο
+/// μηνιαίο άθροισμα μονάδων ανά service — βλ. computeMonthlyCost στο
+/// src/lib/api-costs.ts — όχι per-row, ίδιο idiom με το AiUsage.totalCost που
+/// είναι base cost πριν το markup, το οποίο εφαρμόζεται στο render).
+model ApiUsage {
+  id        String   @id @default(cuid())
+  service   String   // "mailgun" | "bunnycdn" | "viva" | "aade" | "geocoding"
+  operation String?
+  units     Float
+  costEur   Float?
+  userId    String?
+  refType   String?
+  refId     String?
+  createdAt DateTime @default(now())
+  @@index([service, createdAt])
+}

@@ -10,6 +10,8 @@
  * κανονικοποιείται πάντα σε array. firm_act_kind === '1' ⇒ κύρια δραστηριότητα.
  */
 
+import { logApiUsage } from '@/lib/api-usage'
+
 const AADE_ENDPOINT = 'https://vat.wwa.gr/afm2info'
 const REQUEST_TIMEOUT_MS = 10_000
 
@@ -105,6 +107,10 @@ export async function aadeLookup(afm: string): Promise<AadeCompany | null> {
     }
     throw new AadeLookupError('Αδυναμία σύνδεσης με την υπηρεσία ΑΑΔΕ (vat.wwa.gr). Δοκίμασε ξανά σε λίγο.')
   }
+
+  // "Επιτυχία" εδώ σημαίνει ότι η υπηρεσία απάντησε (HTTP ok + JSON parse) —
+  // μετράει ως 1 αναζήτηση ΑΝΕΞΑΡΤΗΤΑ αν το ΑΦΜ βρέθηκε στο μητρώο ή όχι.
+  void logApiUsage({ service: 'aade', operation: 'lookup', units: 1 })
 
   const b = raw?.basic_rec
   if (!b || !s(b.afm)) return null

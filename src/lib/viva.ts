@@ -1,6 +1,7 @@
 import type { PaymentOrder, PaymentStatus, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getSetting, setSetting, type CheckResult } from '@/lib/settings'
+import { logApiUsage } from '@/lib/api-usage'
 
 /**
  * Viva Payments (viva.com) — Smart Checkout integration. Δύο πλήρως ξεχωριστά
@@ -276,6 +277,11 @@ export async function createPaymentOrder(input: CreatePaymentOrderInput): Promis
       raw: json as Prisma.InputJsonValue,
       createdById: input.createdById || null,
     },
+  })
+
+  void logApiUsage({
+    service: 'viva', operation: 'create_order', units: 1,
+    userId: input.createdById, refType: 'paymentOrder', refId: payment.id,
   })
 
   return { payment, checkoutUrl: vivaCheckoutUrl(environment, orderCode) }

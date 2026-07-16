@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { auth } from '@/auth'
 import { can } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
+import { logApiUsage } from '@/lib/api-usage'
 import type { MediaType } from '@prisma/client'
 
 export const runtime = 'nodejs'
@@ -155,6 +156,11 @@ export async function POST(request: Request) {
       size: file.size,
       mimeType: file.type || null,
     },
+  })
+
+  void logApiUsage({
+    service: 'bunnycdn', operation: 'upload', units: file.size / 1e9,
+    userId: session?.user?.id, refType: 'mediaAsset', refId: asset.id,
   })
 
   return NextResponse.json({

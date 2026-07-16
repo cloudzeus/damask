@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+const logApiUsageMock = vi.fn()
+vi.mock('@/lib/api-usage', () => ({ logApiUsage: (...args: unknown[]) => logApiUsageMock(...args) }))
+
 import { aadeLookup, AadeLookupError } from '@/lib/aade'
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -59,12 +63,26 @@ describe('aadeLookup', () => {
   beforeEach(() => {
     fetchMock.mockReset()
     vi.stubGlobal('fetch', fetchMock)
+    logApiUsageMock.mockReset()
   })
   afterEach(() => vi.unstubAllGlobals())
 
   it('rejects a malformed AFM before making any network call', async () => {
     await expect(aadeLookup('123')).rejects.toThrow(AadeLookupError)
     expect(fetchMock).not.toHaveBeenCalled()
+    expect(logApiUsageMock).not.toHaveBeenCalled()
+  })
+
+  it('logs 1 aade lookup unit on a successful response, regardless of whether the AFM was found', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ basic_rec: {}, firm_act_tab: {} }))
+    await aadeLookup('999999999')
+    expect(logApiUsageMock).toHaveBeenCalledWith({ service: 'aade', operation: 'lookup', units: 1 })
+  })
+
+  it('does not log usage when the HTTP call fails', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 502))
+    await expect(aadeLookup('094019245')).rejects.toThrow(AadeLookupError)
+    expect(logApiUsageMock).not.toHaveBeenCalled()
   })
 
   it('posts the AFM to vat.wwa.gr/afm2info and maps an active company with an array of activities', async () => {

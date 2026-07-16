@@ -28,3 +28,9 @@ export function formatDuration(ms: number | null): string {
   if (ms < 1000) return `${ms}ms`
   return `${(ms / 1000).toFixed(1)}s`
 }
+
+/** Μονάδες υπηρεσιών API (emails/GB/συναλλαγές/…) — δεκαδικά μόνο για GB, ακέραιο αλλού. */
+export function formatUnits(value: number, unitLabel: string): string {
+  const decimals = unitLabel === 'GB' ? 2 : 0
+  return `${value.toLocaleString('el-GR', { minimumFractionDigits: 0, maximumFractionDigits: decimals })} ${unitLabel}`
+}

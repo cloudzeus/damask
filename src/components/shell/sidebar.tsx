@@ -31,7 +31,7 @@ const NAV = [
   { group: 'Διαχείριση', items: [
     { href: '/users', label: 'Χρήστες', icon: UserCog, permission: 'user.manage' },
     { href: '/roles', label: 'Ρόλοι & Δικαιώματα', icon: Shield, permission: 'user.manage' },
-    { href: '/costs', label: 'Κόστη AI', icon: Coins, permission: 'costs.view' },
+    { href: '/costs', label: 'Κόστη', icon: Coins, permission: 'costs.view' },
     { href: '/settings', label: 'Ρυθμίσεις', icon: Settings, permission: 'settings.manage' },
   ] },
 ] as const

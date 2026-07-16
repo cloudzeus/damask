@@ -6,6 +6,7 @@ import { randomBytes } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { getSetting } from '@/lib/settings'
 import { bunnyUploadPrivate, bunnyDownload, bunnyDeleteOne, bunnyDeleteMany } from '@/lib/bunny-storage'
+import { logApiUsage } from '@/lib/api-usage'
 import type { DbBackup, DbBackupStatus } from '@prisma/client'
 
 /**
@@ -161,6 +162,10 @@ export async function runBackup(opts: {
 
     const buf = await fs.readFile(tmpFile)
     await bunnyUploadPrivate({ key: storageKey, body: buf, contentType: 'application/octet-stream' })
+    void logApiUsage({
+      service: 'bunnycdn', operation: 'backup', units: buf.length / 1e9,
+      userId: opts.userId, refType: 'dbBackup', refId: record.id,
+    })
 
     const updated = await prisma.dbBackup.update({
       where: { id: record.id },

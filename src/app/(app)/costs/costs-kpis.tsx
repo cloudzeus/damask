@@ -1,11 +1,16 @@
-import { Coins, Phone, Cpu, PieChart } from 'lucide-react'
+import { Coins, Phone, Cpu, PieChart, Server } from 'lucide-react'
 import type { CostsKpis } from './costs-data'
 import { formatEur, formatTokens } from './costs-format'
 
-/** 4 KPI κάρτες (glass, thin numbers) — ίδιο idiom με src/app/(app)/dashboard/page.tsx. */
-export function CostsKpiCards({ kpis }: { kpis: CostsKpis }) {
+/**
+ * KPI κάρτες (glass, thin numbers) — ίδιο idiom με src/app/(app)/dashboard/page.tsx.
+ * `apiMonthCostEur` (τελικό €, ΜΕ markup) προστίθεται δίπλα στο κόστος AI —
+ * πάντα τρέχων ημερολογιακός μήνας (ίδιο scope με το tab «API Υπηρεσίες»),
+ * ΑΝΕΞΑΡΤΗΤΑ από το επιλεγμένο εύρος `range` της σελίδας.
+ */
+export function CostsKpiCards({ kpis, apiMonthCostEur }: { kpis: CostsKpis; apiMonthCostEur: number }) {
   return (
-    <div className="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <div className="glass lift relative px-[17px] pt-[15px] pb-[13px]">
         <div
           className="absolute top-[13px] right-[13px] flex size-[30px] items-center justify-center rounded-[11px]"
@@ -65,6 +70,19 @@ export function CostsKpiCards({ kpis }: { kpis: CostsKpis }) {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="glass lift relative px-[17px] pt-[15px] pb-[13px]">
+        <div
+          className="absolute top-[13px] right-[13px] flex size-[30px] items-center justify-center rounded-[11px]"
+          style={{ background: 'var(--info-soft)', color: 'var(--info)' }}
+        >
+          <Server className="size-[15px]" strokeWidth={1.8} />
+        </div>
+        <div className="text-[11.5px] font-bold text-muted-foreground">API κόστος μήνα</div>
+        <div className="mt-[3px] text-[33px] leading-none font-[250] tracking-[-0.015em] tabular-nums">
+          {formatEur(apiMonthCostEur)}
+        </div>
       </div>
     </div>
   )

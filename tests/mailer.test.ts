@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/settings', () => ({ getIntegration: vi.fn(async () => ({})) }))
 
+const logApiUsageMock = vi.fn()
+vi.mock('@/lib/api-usage', () => ({ logApiUsage: (...args: unknown[]) => logApiUsageMock(...args) }))
+
 import { getIntegration } from '@/lib/settings'
 import { sendMail, isMailerConfigured, renderEmailShell } from '@/lib/mailer'
 
@@ -11,6 +14,7 @@ beforeEach(() => {
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
   vi.mocked(getIntegration).mockReset()
+  logApiUsageMock.mockReset().mockResolvedValue(undefined)
 })
 afterEach(() => vi.unstubAllGlobals())
 
@@ -32,6 +36,7 @@ describe('sendMail', () => {
     const result = await sendMail({ to: 'x@y.com', subject: 'Hi', html: '<p>hi</p>' })
     expect(result.ok).toBe(false)
     expect(fetchMock).not.toHaveBeenCalled()
+    expect(logApiUsageMock).not.toHaveBeenCalled()
   })
 
   it('builds the correct Mailgun /messages request against the US endpoint by default', async () => {
@@ -54,6 +59,22 @@ describe('sendMail', () => {
     expect(body.get('subject')).toBe('Subj')
     expect(body.get('html')).toBe('<p>Hello <b>World</b></p>')
     expect(body.get('text')).toBe('Hello World') // auto-stripped plain-text fallback
+    expect(logApiUsageMock).toHaveBeenCalledWith({
+      service: 'mailgun', operation: 'send', units: 1,
+      userId: undefined, refType: undefined, refId: undefined,
+    })
+  })
+
+  it('passes userId/refType/refId through to logApiUsage for cost attribution', async () => {
+    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k', domain: 'mg.example.com', fromEmail: 'a@b.com' })
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }))
+
+    await sendMail({ to: 'x@y.com', subject: 's', html: '<p>x</p>', userId: 'u1', refType: 'accessRequest', refId: 'r1' })
+
+    expect(logApiUsageMock).toHaveBeenCalledWith({
+      service: 'mailgun', operation: 'send', units: 1,
+      userId: 'u1', refType: 'accessRequest', refId: 'r1',
+    })
   })
 
   it('uses the EU endpoint when region is "EU"', async () => {
@@ -93,6 +114,7 @@ describe('sendMail', () => {
 
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toMatch(/403/)
+    expect(logApiUsageMock).not.toHaveBeenCalled()
   })
 
   it('returns ok:false (not a throw) when fetch rejects with a network error', async () => {
@@ -102,6 +124,7 @@ describe('sendMail', () => {
     const result = await sendMail({ to: 'x@y.com', subject: 's', html: '<p>x</p>' })
 
     expect(result.ok).toBe(false)
+    expect(logApiUsageMock).not.toHaveBeenCalled()
   })
 })
 

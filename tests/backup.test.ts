@@ -37,12 +37,14 @@ const h = vi.hoisted(() => ({
     bunnyDeleteOne: vi.fn(async () => {}),
     bunnyDeleteMany: vi.fn(async () => {}),
   },
+  logApiUsage: vi.fn(async () => {}) as unknown as ReturnType<typeof vi.fn<(...args: unknown[]) => Promise<void>>>,
 }))
 
 vi.mock('@/lib/settings', () => ({
   getSetting: vi.fn(async (key: string) => h.settingsStore.get(key) ?? null),
 }))
 vi.mock('@/lib/bunny-storage', () => h.bunny)
+vi.mock('@/lib/api-usage', () => ({ logApiUsage: (...args: unknown[]) => h.logApiUsage(...args) }))
 vi.mock('node:fs', () => ({ promises: h.fs }))
 vi.mock('node:child_process', () => ({
   spawn: vi.fn(() => {
@@ -143,6 +145,7 @@ beforeEach(() => {
   h.bunny.bunnyDownload.mockImplementation(async () => Buffer.from('fake-dump-bytes'))
   h.bunny.bunnyDeleteOne.mockImplementation(async () => {})
   h.bunny.bunnyDeleteMany.mockImplementation(async () => {})
+  h.logApiUsage.mockImplementation(async () => {})
   delete process.env.PG_DUMP
   delete process.env.PG_RESTORE
   delete process.env.DATABASE_URL
@@ -248,6 +251,11 @@ describe('runBackup', () => {
     expect(backup.createdById).toBe('user-1')
     expect(h.bunny.bunnyUploadPrivate).toHaveBeenCalledTimes(1)
     expect(h.fs.unlink).toHaveBeenCalled() // tmp file καθαρίζεται πάντα (finally)
+    expect(h.logApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      service: 'bunnycdn', operation: 'backup', userId: 'user-1',
+    }))
+    const loggedArgs = h.logApiUsage.mock.calls[0][0] as { units: number }
+    expect(loggedArgs.units).toBeCloseTo(Buffer.from('fake-dump-bytes').length / 1e9, 12)
   })
 
   it('φτιάχνει filename με το ζητούμενο πρόθεμα (χρησιμοποιείται από το restore safety backup)', async () => {

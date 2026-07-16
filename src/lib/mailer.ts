@@ -1,4 +1,5 @@
 import { getIntegration } from '@/lib/settings'
+import { logApiUsage } from '@/lib/api-usage'
 
 /**
  * Αποστολή email μέσω Mailgun REST (messages endpoint). Ρυθμίσεις από
@@ -8,7 +9,16 @@ import { getIntegration } from '@/lib/settings'
  * fallback όταν δεν έχει ρυθμιστεί ακόμα Mailgun.
  */
 
-export type SendMailInput = { to: string; subject: string; html: string; text?: string }
+export type SendMailInput = {
+  to: string
+  subject: string
+  html: string
+  text?: string
+  /** Προαιρετικά — μόνο για μέτρηση κόστους (src/lib/api-usage.ts), ΔΕΝ επηρεάζουν την αποστολή. */
+  userId?: string
+  refType?: string
+  refId?: string
+}
 export type SendMailResult = { ok: true; id?: string } | { ok: false; error: string }
 
 type StoredMailgunConfig = { apiKey?: string; domain?: string; region?: string; fromEmail?: string; fromName?: string }
@@ -72,6 +82,10 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
       return { ok: false, error: `Mailgun HTTP ${res.status}: ${detail.slice(0, 300)}` }
     }
     const data = (await res.json().catch(() => ({}))) as { id?: string }
+    void logApiUsage({
+      service: 'mailgun', operation: 'send', units: 1,
+      userId: input.userId, refType: input.refType, refId: input.refId,
+    })
     return { ok: true, id: data.id }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }

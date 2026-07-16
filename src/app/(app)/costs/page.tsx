@@ -4,11 +4,15 @@ import { getSetting } from '@/lib/settings'
 import { loadAiMarkup, DEFAULT_USD_TO_EUR_FALLBACK } from '@/lib/ai/markup'
 import { getUsdToEurLatest, getUsdToEurSeries, dayKey } from '@/lib/ai/fx'
 import type { PricingOverrides } from '@/lib/ai/pricing'
+import { loadAllApiCostConfigs } from '@/lib/api-costs'
 import { groupUsageRows, computeKpis, costForRow, rangeFromParam, cutoffForRange, type AiUsageRow } from './costs-data'
+import { summarizeApiUsageByService, totalApiCostEur, startOfCurrentMonth, type ApiUsageRow } from './api-costs-data'
 import { CostsView } from './costs-view'
 
 /** Ανώτατο πλήθος γραμμών που φορτώνουμε ανά περίοδο για aggregation — αρκετό για εσωτερικό cost dashboard, όχι απεριόριστο. */
 const MAX_ROWS = 5000
+/** Ανώτατο πλήθος ApiUsage γραμμών για τον τρέχοντα μήνα — αρκετό για ένα εσωτερικό dashboard (π.χ. Mailgun 5000/μήνα free tier + ό,τι ξεπερνά). */
+const MAX_API_ROWS = 20000
 
 export default async function CostsPage({
   searchParams,
@@ -20,7 +24,9 @@ export default async function CostsPage({
   const range = rangeFromParam(rawRange)
   const cutoff = cutoffForRange(range)
 
-  const [dbRows, markup, pricingOverrides] = await Promise.all([
+  const monthStart = startOfCurrentMonth()
+
+  const [dbRows, markup, pricingOverrides, apiDbRows, apiCostConfigs] = await Promise.all([
     prisma.aiUsage.findMany({
       where: cutoff ? { createdAt: { gte: cutoff } } : {},
       orderBy: { createdAt: 'desc' },
@@ -28,6 +34,12 @@ export default async function CostsPage({
     }),
     loadAiMarkup(),
     getSetting<PricingOverrides>('ai.pricingOverrides'),
+    prisma.apiUsage.findMany({
+      where: { createdAt: { gte: monthStart } },
+      orderBy: { createdAt: 'desc' },
+      take: MAX_API_ROWS,
+    }),
+    loadAllApiCostConfigs(),
   ])
 
   const rows: AiUsageRow[] = dbRows.map(r => ({
@@ -46,6 +58,20 @@ export default async function CostsPage({
     refId: r.refId,
     createdAt: r.createdAt,
   }))
+
+  const apiRows: ApiUsageRow[] = apiDbRows.map(r => ({
+    id: r.id,
+    service: r.service,
+    operation: r.operation,
+    units: r.units,
+    costEur: r.costEur,
+    userId: r.userId,
+    refType: r.refType,
+    refId: r.refId,
+    createdAt: r.createdAt,
+  }))
+  const apiSummaries = summarizeApiUsageByService(apiRows, apiCostConfigs)
+  const apiMonthCostEur = totalApiCostEur(apiSummaries)
 
   const oldestRow = rows[rows.length - 1]
   const fromISO = cutoff ? dayKey(cutoff) : (oldestRow ? dayKey(oldestRow.createdAt) : dayKey(new Date()))
@@ -69,11 +95,11 @@ export default async function CostsPage({
       <div className="mb-4 flex items-end gap-3 pt-1.5">
         <div>
           <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Διαχείριση <span aria-hidden>›</span> <b className="text-foreground">Κόστη AI</b>
+            Διαχείριση <span aria-hidden>›</span> <b className="text-foreground">Κόστη</b>
           </div>
-          <h1 className="text-[22px]">Κόστη AI</h1>
+          <h1 className="text-[22px]">Κόστη</h1>
           <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Κόστος χρήσης API/AI υπηρεσιών (DeepSeek, Gemini, Claude…) — tokens, USD βάσης, markup, τελικό κόστος σε EUR.
+            Κόστος χρήσης AI (DeepSeek, Gemini, Claude…) και API υπηρεσιών (Mailgun, BunnyCDN, Viva, ΑΑΔΕ…) — μονάδες, free quotas, markup, τελικό κόστος σε EUR.
           </p>
         </div>
       </div>
@@ -88,6 +114,9 @@ export default async function CostsPage({
         pricingOverrides={pricingOverrides ?? {}}
         fxLatest={fxLatest}
         fxDay={toISO}
+        apiSummaries={apiSummaries}
+        apiCostConfigs={apiCostConfigs}
+        apiMonthCostEur={apiMonthCostEur}
       />
     </div>
   )

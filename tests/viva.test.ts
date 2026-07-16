@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+const logApiUsageMock = vi.fn()
+vi.mock('@/lib/api-usage', () => ({ logApiUsage: (...args: unknown[]) => logApiUsageMock(...args) }))
+
 type SettingRow = { key: string; value: unknown; updatedAt: Date }
 const settingStore = new Map<string, SettingRow>()
 
@@ -82,6 +85,7 @@ beforeEach(() => {
   resetVivaTokenCache()
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
+  logApiUsageMock.mockReset()
 })
 afterEach(() => vi.unstubAllGlobals())
 
@@ -295,14 +299,19 @@ describe('createPaymentOrder', () => {
     expect(body.sourceCode).toBe('1234')
     expect(body.customer.email).toBe('a@b.gr')
     expect(body.customer.countryCode).toBe('GR')
+    expect(logApiUsageMock).toHaveBeenCalledWith({
+      service: 'viva', operation: 'create_order', units: 1,
+      userId: undefined, refType: 'paymentOrder', refId: payment.id,
+    })
   })
 
-  it('throws a descriptive Error when Viva does not return an orderCode', async () => {
+  it('throws a descriptive Error when Viva does not return an orderCode, and does not log usage', async () => {
     await seedDemoCreds()
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ access_token: 'tok1', expires_in: 3600 }))
       .mockResolvedValueOnce(jsonResponse({ error: 'invalid sourceCode' }, 400))
     await expect(createPaymentOrder({ amountCents: 1000, description: 'x' })).rejects.toThrow(/invalid sourceCode/)
+    expect(logApiUsageMock).not.toHaveBeenCalled()
   })
 })
 

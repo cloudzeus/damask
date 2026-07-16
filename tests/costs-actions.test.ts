@@ -12,7 +12,7 @@ vi.mock('@/lib/settings', () => ({
   setSetting: (...args: unknown[]) => setSettingMock(...args),
 }))
 
-import { saveAiMarkup, savePricingOverride, deletePricingOverride } from '@/app/(app)/costs/actions'
+import { saveAiMarkup, savePricingOverride, deletePricingOverride, saveApiCostConfig } from '@/app/(app)/costs/actions'
 
 function sessionFor(role: string) {
   return { user: { id: 'u1', role, permissions: ['costs.view'], customerId: null } }
@@ -120,5 +120,42 @@ describe('deletePricingOverride — role gating', () => {
     const res = await deletePricingOverride('claude-sonnet-5')
     expect(res.ok).toBe(true)
     expect(setSettingMock).toHaveBeenCalledWith('ai.pricingOverrides', { 'other-model': { inputPerMTokens: 1, outputPerMTokens: 1 } })
+  })
+})
+
+const VALID_API_COST_CONFIG = { service: 'mailgun', basePrice: '0.001', freeQuota: '10000', markupPercent: '15' }
+
+describe('saveApiCostConfig — role gating (SUPER_ADMIN only)', () => {
+  it('SUPER_ADMIN can save a service override', async () => {
+    requirePermissionMock.mockResolvedValue(sessionFor('SUPER_ADMIN'))
+    const res = await saveApiCostConfig(VALID_API_COST_CONFIG)
+    expect(res.ok).toBe(true)
+    expect(setSettingMock).toHaveBeenCalledWith('api.costConfig', {
+      mailgun: { basePrice: 0.001, freeQuota: 10000, markupPercent: 15 },
+    })
+  })
+
+  it('ADMIN cannot save an API cost override', async () => {
+    requirePermissionMock.mockResolvedValue(sessionFor('ADMIN'))
+    const res = await saveApiCostConfig(VALID_API_COST_CONFIG)
+    expect(res.ok).toBe(false)
+    expect(setSettingMock).not.toHaveBeenCalled()
+  })
+
+  it('merges into the existing per-service map rather than replacing it', async () => {
+    requirePermissionMock.mockResolvedValue(sessionFor('SUPER_ADMIN'))
+    getSettingMock.mockResolvedValue({ bunnycdn: { basePrice: 0.01, freeQuota: 10, markupPercent: 0 } })
+    await saveApiCostConfig(VALID_API_COST_CONFIG)
+    expect(setSettingMock).toHaveBeenCalledWith('api.costConfig', {
+      bunnycdn: { basePrice: 0.01, freeQuota: 10, markupPercent: 0 },
+      mailgun: { basePrice: 0.001, freeQuota: 10000, markupPercent: 15 },
+    })
+  })
+
+  it('rejects a negative basePrice', async () => {
+    requirePermissionMock.mockResolvedValue(sessionFor('SUPER_ADMIN'))
+    const res = await saveApiCostConfig({ ...VALID_API_COST_CONFIG, basePrice: '-1' })
+    expect(res.ok).toBe(false)
+    expect(setSettingMock).not.toHaveBeenCalled()
   })
 })

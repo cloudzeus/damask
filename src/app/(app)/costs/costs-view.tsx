@@ -2,16 +2,20 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, ListTree } from 'lucide-react'
+import { LayoutGrid, ListTree, Server } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AiMarkupSettings } from '@/lib/ai/markup'
 import type { PricingOverrides } from '@/lib/ai/pricing'
+import type { ResolvedApiCostConfig } from '@/lib/api-costs'
 import type { GroupedRow, CostsKpis, CostsRange } from './costs-data'
+import type { ApiServiceSummary } from './api-costs-data'
 import { CostsKpiCards } from './costs-kpis'
 import { CostsGroupedTable } from './costs-grouped-table'
 import { CostsAnalyticsTable, type AnalyticsEntry } from './costs-analytics-table'
 import { MarkupCard } from './markup-card'
 import { PricingOverridesCard } from './pricing-overrides-card'
+import { ApiServicesTable } from './api-services-table'
+import { ApiCostConfigCard } from './api-cost-config-card'
 
 const RANGE_OPTIONS: { value: CostsRange; label: string }[] = [
   { value: '7', label: '7 ημέρες' },
@@ -23,11 +27,13 @@ const RANGE_OPTIONS: { value: CostsRange; label: string }[] = [
 const TABS = [
   { key: 'overview', label: 'Επισκόπηση', icon: LayoutGrid },
   { key: 'analytics', label: 'Αναλυτικά', icon: ListTree },
+  { key: 'api', label: 'API Υπηρεσίες', icon: Server },
 ] as const
 type TabKey = (typeof TABS)[number]['key']
 
 export function CostsView({
   role, range, grouped, kpis, last100, markup, pricingOverrides, fxLatest, fxDay,
+  apiSummaries, apiCostConfigs, apiMonthCostEur,
 }: {
   role: string
   range: CostsRange
@@ -38,6 +44,10 @@ export function CostsView({
   pricingOverrides: PricingOverrides
   fxLatest: number
   fxDay: string
+  apiSummaries: ApiServiceSummary[]
+  apiCostConfigs: Record<string, ResolvedApiCostConfig>
+  /** Άθροισμα billedCostEur όλων των apiSummaries — υπολογισμένο server-side (page.tsx) ώστε αυτό το client component να ΜΗΝ χρειάζεται να εισάγει το api-costs-data.ts (το οποίο σέρνει prisma/pg στο browser bundle). */
+  apiMonthCostEur: number
 }) {
   const [tab, setTab] = useState<TabKey>('overview')
   const isSuperAdmin = role === 'SUPER_ADMIN'
@@ -75,7 +85,7 @@ export function CostsView({
         </div>
       </div>
 
-      <CostsKpiCards kpis={kpis} />
+      <CostsKpiCards kpis={kpis} apiMonthCostEur={apiMonthCostEur} />
 
       <div id="costs-panel-overview" role="tabpanel" aria-labelledby="costs-tab-overview" hidden={tab !== 'overview'}>
         <CostsGroupedTable grouped={grouped} isSuperAdmin={isSuperAdmin} fxLatest={fxLatest} fxDay={fxDay} />
@@ -90,6 +100,19 @@ export function CostsView({
 
       <div id="costs-panel-analytics" role="tabpanel" aria-labelledby="costs-tab-analytics" hidden={tab !== 'analytics'}>
         <CostsAnalyticsTable entries={last100} isSuperAdmin={isSuperAdmin} />
+      </div>
+
+      <div id="costs-panel-api" role="tabpanel" aria-labelledby="costs-tab-api" hidden={tab !== 'api'}>
+        <p className="mb-2.5 text-[12px] text-muted-foreground">
+          Χρήση API υπηρεσιών (Mailgun/BunnyCDN/Viva/ΑΑΔΕ/geocoding) — τρέχων ημερολογιακός μήνας, ανεξάρτητα από το επιλεγμένο εύρος πάνω.
+        </p>
+        <ApiServicesTable summaries={apiSummaries} isSuperAdmin={isSuperAdmin} />
+
+        {isSuperAdmin && (
+          <div className="mt-3.5">
+            <ApiCostConfigCard initial={apiCostConfigs} />
+          </div>
+        )}
       </div>
     </div>
   )

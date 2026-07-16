@@ -6,6 +6,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { getSetting, setSetting } from '@/lib/settings'
 import type { AiMarkupSettings } from '@/lib/ai/markup'
 import type { PricingEntry, PricingOverrides } from '@/lib/ai/pricing'
+import type { ApiCostConfigSettings } from '@/lib/api-costs'
 
 export type ActionResult =
   | { ok: true; message: string }
@@ -137,4 +138,42 @@ export async function deletePricingOverride(model: string): Promise<ActionResult
 
   revalidateCosts()
   return { ok: true, message: `Το override για «${model}» αφαιρέθηκε.` }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Ρυθμίσεις κόστους API υπηρεσιών (setting "api.costConfig") — Mailgun/
+// BunnyCDN/Viva/ΑΑΔΕ/geocoding, ΟΧΙ AI (εκείνα μένουν στο ai.markup/
+// ai.pricingOverrides παραπάνω). Ίδιο role gating με τις κάρτες AI.
+// ══════════════════════════════════════════════════════════════════════════
+
+const apiCostConfigSchema = z.object({
+  service: z.string().trim().min(1),
+  basePrice: z.coerce.number().min(0, 'Πρέπει να είναι ≥ 0.'),
+  freeQuota: z.coerce.number().min(0, 'Πρέπει να είναι ≥ 0.'),
+  markupPercent: z.coerce.number().finite(),
+})
+
+export type ApiCostConfigFormValues = { service: string; basePrice: string; freeQuota: string; markupPercent: string }
+
+export async function saveApiCostConfig(values: ApiCostConfigFormValues): Promise<ActionResult> {
+  try {
+    await requireSuperAdmin()
+  } catch {
+    return { ok: false, message: 'Μόνο ο SUPER_ADMIN μπορεί να αλλάξει τις ρυθμίσεις κόστους API.' }
+  }
+
+  const parsed = apiCostConfigSchema.safeParse(values)
+  if (!parsed.success) {
+    return { ok: false, message: 'Έλεγξε τις τιμές κόστους.', fieldErrors: fieldErrorsFromZod(parsed.error) }
+  }
+  const data = parsed.data
+
+  const existing = (await getSetting<ApiCostConfigSettings>('api.costConfig')) ?? {}
+  await setSetting('api.costConfig', {
+    ...existing,
+    [data.service]: { basePrice: data.basePrice, freeQuota: data.freeQuota, markupPercent: data.markupPercent },
+  })
+
+  revalidateCosts()
+  return { ok: true, message: `Οι ρυθμίσεις για «${data.service}» αποθηκεύτηκαν.` }
 }
