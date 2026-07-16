@@ -38,6 +38,12 @@ export async function verifyIssuerAfm(afm: string): Promise<VerifyIssuerAfmResul
 const createCustomerFromOcrSchema = z.object({
   name: z.string().trim().min(1, 'Η επωνυμία είναι υποχρεωτική.').max(200),
   afm: z.union([z.literal(''), z.string().trim().regex(/^\d{9}$/, 'Το ΑΦΜ πρέπει να έχει 9 ψηφία.')]),
+  // sodtype: 13 πελάτης / 12 προμηθευτής (SoftOne TRDR convention, βλ. prisma
+  // schema comment) — προεπιλογή 12 (Προμηθευτής) στο UI callsite (customer-card-panel.tsx)
+  // γιατί ο εκδότης παραστατικού ΑΓΟΡΑΣ είναι σχεδόν πάντα προμηθευτής.
+  sodtype: z.union([z.literal(12), z.literal(13)]).default(12),
+  doy: z.string().trim().max(120).optional(),
+  website: z.string().trim().max(300).optional(),
   address: z.string().trim().max(200).optional(),
   city: z.string().trim().max(120).optional(),
   zip: z.string().trim().max(20).optional(),
@@ -71,7 +77,7 @@ export async function createCustomerFromOcr(input: CreateCustomerFromOcrInput): 
     return { ok: false, duplicate: false, message: 'Έλεγξε τα στοιχεία που συμπλήρωσες.', fieldErrors }
   }
 
-  const { name, afm, address, city, zip, phones, emails } = parsed.data
+  const { name, afm, sodtype, doy, website, address, city, zip, phones, emails } = parsed.data
   const afmClean = afm || null
 
   if (afmClean) {
@@ -95,8 +101,12 @@ export async function createCustomerFromOcr(input: CreateCustomerFromOcrInput): 
   const customer = await prisma.customer.create({
     data: {
       trdr: null,
+      sodtype,
+      status: 'CUSTOMER', // OCR καρτέλες προκύπτουν από πραγματικό παραστατικό, όχι lead pipeline
       name,
       afm: afmClean,
+      doy: doy || null,
+      website: website || null,
       email: emails[0] ?? null,
       phone: phones[0] ?? null,
       address: address || null,

@@ -64,6 +64,12 @@ const ACCESS_REQUEST_ROLE_NAMES = new Set(['CUSTOMER', 'ARCHITECT', 'SUPPLIER'])
  * Εγκρίνει ένα B2B αίτημα πρόσβασης: δημιουργεί User (CUSTOMER, ARCHITECT ή
  * SUPPLIER — το type του αιτήματος γίνεται απευθείας το όνομα του ρόλου),
  * ενεργό, με τυχαίο προσωρινό password· σημειώνει το αίτημα ως APPROVED.
+ *
+ * Όταν το αίτημα προέρχεται από επαφή συναλλασσόμενου (contactId — βλ.
+ * requestContactAccess, src/app/(app)/partners/actions.ts) ο νέος χρήστης
+ * συνδέεται ΚΑΙ με την καρτέλα Customer της επαφής (User.customerId) ΚΑΙ η
+ * ίδια η επαφή γράφεται ως «έχει λογαριασμό» (Contact.userId) — ώστε το
+ * /partners/[id] να δείχνει «User ✓» στη λίστα επαφών.
  */
 export async function approveAccessRequest(requestId: string): Promise<ActionResult> {
   await requirePermission('user.manage')
@@ -77,23 +83,34 @@ export async function approveAccessRequest(requestId: string): Promise<ActionRes
   const role = await prisma.role.findUnique({ where: { name: roleName } })
   if (!role) return { ok: false, message: `Ο ρόλος ${roleName} δεν υπάρχει.` }
 
+  const contact = request.contactId
+    ? await prisma.contact.findUnique({ where: { id: request.contactId } })
+    : null
+
   const tempPassword = randomTempPassword()
 
+  let newUserId: string
   try {
-    await prisma.user.create({
+    const created = await prisma.user.create({
       data: {
         email: request.email,
         name: request.name,
         passwordHash: await bcrypt.hash(tempPassword, 12),
         active: true,
         roleId: role.id,
+        customerId: contact?.customerId ?? null,
       },
     })
+    newUserId = created.id
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       return { ok: false, message: 'Υπάρχει ήδη χρήστης με αυτό το email.' }
     }
     throw e
+  }
+
+  if (contact) {
+    await prisma.contact.update({ where: { id: contact.id }, data: { userId: newUserId } })
   }
 
   await prisma.accessRequest.update({ where: { id: requestId }, data: { status: 'APPROVED' } })
@@ -121,6 +138,10 @@ export async function approveAccessRequest(requestId: string): Promise<ActionRes
   }
 
   revalidatePath('/users')
+  if (contact) {
+    revalidatePath('/partners')
+    revalidatePath(`/partners/${contact.customerId}`)
+  }
   return { ok: true, message: `Ο λογαριασμός για ${request.name} δημιουργήθηκε.` }
 }
 

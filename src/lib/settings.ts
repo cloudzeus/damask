@@ -33,9 +33,9 @@ export type CheckResult = { ok: boolean; message: string; at: string }
  */
 export const PUBLIC_TRACKING_CACHE_TAG = 'public-tracking-settings'
 
-/** Οι 8 κάρτες της καρτέλας «Διασυνδέσεις». Το AADE (καρτέλα «Εταιρεία») ΔΕΝ είναι πλέον integration-shaped
+/** Οι 9 κάρτες της καρτέλας «Διασυνδέσεις». Το AADE (καρτέλα «Εταιρεία») ΔΕΝ είναι πλέον integration-shaped
  * — η αναζήτηση vat.wwa.gr (src/lib/aade.ts) δεν χρειάζεται credentials, οπότε δεν αποθηκεύεται εδώ. */
-export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook'
+export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook' | 'maps'
 
 function settingKeyFor(name: IntegrationName): string {
   return `integration.${name}`
@@ -78,6 +78,15 @@ function envFallbackFor(name: IntegrationName): Record<string, string | undefine
       return {
         apiKey: process.env.DEEPSEEK_API_KEY,
         apiUrl: process.env.DEEPSEEK_API_URL,
+      }
+    // Χάρτες & Geocoding (traders task) — τα 4 κλειδιά ήδη υπάρχουν στο .env,
+    // fallback εδώ ίδιο idiom με softone/bunny/deepseek παραπάνω.
+    case 'maps':
+      return {
+        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+        maptilerApiKey: process.env.MAPTILER_API_KEY,
+        geocodeApiKey: process.env.GEOCODE_API,
+        gemiApiKey: process.env.GEMI_API_KEY,
       }
     // Mailgun/Claude/Gemini/Google Tags/Facebook: integrations χωρίς προϋπάρχον .env — DB-only.
     default:
@@ -163,6 +172,9 @@ const REQUIRED_FIELDS: Record<IntegrationName, string[]> = {
   gemini: ['apiKey'],
   gtags: [], // ειδική περίπτωση — βλ. παρακάτω (gtagId Ή gtmId αρκεί)
   facebook: ['pixelId'],
+  // gemiApiKey ΔΕΝ είναι required — αποθηκεύεται για μελλοντική χρήση (opendata.businessportal.gr),
+  // δεν χρησιμοποιείται ακόμα σε καμία ροή, άρα δεν πρέπει να μπλοκάρει το badge «Ρυθμισμένο».
+  maps: ['googleMapsApiKey', 'maptilerApiKey', 'geocodeApiKey'],
 }
 
 function nonEmpty(value: unknown): boolean {

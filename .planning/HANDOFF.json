@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-15T19:31:08.648Z",
+  "timestamp": "2026-07-16T02:01:09.433Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,5 +26,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n6c8fe22 feat: legal pages with DeepSeek translation, configurable consent modal, full consent logging (IP/OS/time)\n0ffa7d4 feat: CMS — Νέα posts with authors/categories, DeepSeek article auto-generation and EL→EN translation\n3864219 feat: settings — integrations with connection tests, company profile with AADE lookup and logo picker, SEO defaults\nedafbe5 feat: Media Gallery with folders and reusable MediaPicker (Gallery-or-Upload pattern)\n23a12ed feat: full users CRUD with contact fields (phone/mobile/address/city/country)"
+  "context_notes": "Recent commits:\n79679f3 feat: OCR component for invoices/receipts/packing lists — Gemini vision with model fallback, client PDF rasterize, review panel\n4eb3d04 feat: daily DB backups to BunnyCDN with 30-day retention and guarded restore\neb7138e feat: Viva Payments — env-switchable settings, unique payment codes, card checkout, webhook tracking\n5300dd0 feat: Excel Import Engine — multi-sheet picker, column excludes, Excel-like preview, mapping templates, chunked execution\n6c8fe22 feat: legal pages with DeepSeek translation, configurable consent modal, full consent logging (IP/OS/time)"
 }

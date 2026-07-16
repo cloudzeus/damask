@@ -18,6 +18,7 @@ model User {
   customerId   String?
   customer     Customer? @relation(fields: [customerId], references: [id])
   architect    ArchitectProfile?
+  contact      Contact?
   phone        String?
   mobile       String?
   address      String?
@@ -237,17 +238,38 @@ model MediaAsset {
 }
 
 // ── Πελάτες / Επαφές / Αρχιτέκτονες ──────────────────
+/// Κατάσταση πελατοποίησης — LEAD (υποψήφιος, δεν έχει αγοράσει ακόμα) →
+/// CUSTOMER (πελατοποιήθηκε). Ανεξάρτητο του sodtype: ένας προμηθευτής (12)
+/// δεν εμφανίζει καν το badge στο UI (βλ. /partners), αλλά το πεδίο υπάρχει
+/// σε όλες τις γραμμές Customer για ομοιομορφία.
+enum TraderStatus {
+  LEAD
+  CUSTOMER
+}
+
 model Customer {
   id        String    @id @default(cuid())
   trdr      Int?      @unique // null = καρτέλα που δεν έχει συγχρονιστεί ακόμα με SoftOne (π.χ. δημιουργήθηκε από OCR)
   code      String?
+  /// SoftOne SODTYPE (TRDR convention) — 13 = Πελάτης, 12 = Προμηθευτής. Καθορίζει
+  /// σε ποιο tab εμφανίζεται στο /partners (Πελάτες/Προμηθευτές/Leads).
+  sodtype   Int       @default(13)
+  status    TraderStatus @default(CUSTOMER)
   name      String
   afm       String?
+  doy       String?
+  legalForm String?
+  profession String?
   email     String?
   phone     String?
+  website   String?
   address   String?
   city      String?
   zip       String?
+  lat       Float?
+  lng       Float?
+  logoUrl   String?
+  notes     String?
   users     User[]
   contacts  Contact[]
   orders    Order[]
@@ -256,6 +278,7 @@ model Customer {
   syncedAt  DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  @@index([sodtype, status])
 }
 
 model Contact {
@@ -265,8 +288,16 @@ model Contact {
   s1Id       Int?
   name       String
   roleTitle  String?
+  position   String?
   email      String?
   phone      String?
+  mobile     String?
+  isPrimary  Boolean  @default(false)
+  /// Σύνδεση με User όταν εγκρίνεται το αίτημα πρόσβασης της επαφής (βλ.
+  /// approveAccessRequest, src/app/(app)/users/actions.ts) — ίδιο idiom με
+  /// ArchitectProfile.userId παρακάτω.
+  userId     String?  @unique
+  user       User?    @relation(fields: [userId], references: [id])
   @@index([customerId])
 }
 
@@ -474,12 +505,17 @@ enum AccessRequestStatus {
 
 model AccessRequest {
   id        String              @id @default(cuid())
-  type      String              // "CUSTOMER" | "ARCHITECT"
+  type      String              // "CUSTOMER" | "ARCHITECT" | "SUPPLIER"
   name      String
   company   String
   afm       String
   phone     String
   email     String              @unique
+  /// Αίτημα καταχωρημένο από επαφή (⋮ «Αίτημα πρόσβασης user» στο /partners/[id])
+  /// αντί για το δημόσιο /register — ΧΩΡΙΣ @relation (soft reference, ίδιο idiom
+  /// με PaymentOrder.createdById παραπάνω). approveAccessRequest το διαβάζει για
+  /// να γράψει πίσω Contact.userId + User.customerId.
+  contactId String?
   status    AccessRequestStatus @default(PENDING)
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt

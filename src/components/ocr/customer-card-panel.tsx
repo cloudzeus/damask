@@ -17,10 +17,12 @@ import { isNameMismatch } from '@/lib/ocr/name-similarity'
  * κάτω από τα στοιχεία εκδότη. Αυτόματα (αν issuer.afm είναι 9ψήφιο) επαληθεύει
  * την εταιρεία μέσω ΑΑΔΕ (vat.wwa.gr, src/lib/ocr/customer-actions.ts →
  * src/lib/aade.ts), δείχνει σύγκριση με τα OCR-extracted στοιχεία, και επιτρέπει
- * δημιουργία καρτέλας πελάτη (trdr=null — δεν έχει συγχρονιστεί ακόμα με SoftOne).
+ * δημιουργία καρτέλας πελάτη/προμηθευτή (trdr=null — δεν έχει συγχρονιστεί ακόμα
+ * με SoftOne, sodtype toggle Πελάτης/Προμηθευτής — default Προμηθευτής, ο
+ * εκδότης ενός παραστατικού ΑΓΟΡΑΣ είναι σχεδόν πάντα προμηθευτής).
  *
- * ΣΗΜ.: δεν υπάρχει ακόμα σελίδα λίστας πελατών (/customers) — το `href` προς
- * την καρτέλα είναι forward-compatible placeholder, όχι ενεργό link σήμερα.
+ * Η καρτέλα ζει στο /partners/[id] (Συναλλασσόμενοι κατά SoftOne SODTYPE) — το
+ * `href` παρακάτω είναι πλέον ενεργό link.
  */
 
 type AadeState =
@@ -159,6 +161,9 @@ export interface CustomerCardPanelProps {
 export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
   const [aade, setAade] = useState<AadeState>({ status: 'idle' })
   const [fields, setFields] = useState<CardFields>(() => initialCardFields(issuer))
+  // Ο εκδότης ενός παραστατικού ΑΓΟΡΑΣ είναι σχεδόν πάντα προμηθευτής (12) —
+  // toggle ώστε ο χρήστης να διορθώσει σε Πελάτη (13) όταν χρειάζεται.
+  const [sodtype, setSodtype] = useState<12 | 13>(12)
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<{ customerId: string } | null>(null)
   const [duplicate, setDuplicate] = useState<{ customerId: string; customerName: string } | null>(null)
@@ -213,6 +218,9 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
     createCustomerFromOcr({
       name: fields.name,
       afm: fields.afm,
+      sodtype,
+      doy: fields.doy,
+      website: fields.website,
       address: fields.address,
       city: fields.city,
       zip: fields.zip,
@@ -297,9 +305,27 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
 
       {/* ── Section «Στοιχεία καρτέλας» ─────────────────────────────── */}
       <div className="rounded-2xl border border-border p-3.5">
-        <span className="mb-2.5 flex items-center gap-1.5 text-[12.5px] font-bold">
-          <LuUserPlus className="size-3.5" aria-hidden /> Στοιχεία καρτέλας
-        </span>
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-[12.5px] font-bold">
+            <LuUserPlus className="size-3.5" aria-hidden /> Στοιχεία καρτέλας
+          </span>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              className={`pill${sodtype === 13 ? ' on' : ''}`}
+              onClick={() => setSodtype(13)}
+            >
+              Πελάτης
+            </button>
+            <button
+              type="button"
+              className={`pill${sodtype === 12 ? ' on' : ''}`}
+              onClick={() => setSodtype(12)}
+            >
+              Προμηθευτής
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <FieldLabel icon={LuBuilding2}>Επωνυμία</FieldLabel>
@@ -342,7 +368,7 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
             <LuTriangleAlert aria-hidden />
             <span>
               Υπάρχει ήδη καρτέλα με αυτό το ΑΦΜ: «{duplicate.customerName}».{' '}
-              <a href={`/customers/${duplicate.customerId}`} className="font-semibold underline">Άνοιγμα καρτέλας</a>
+              <a href={`/partners/${duplicate.customerId}`} className="font-semibold underline">Άνοιγμα καρτέλας</a>
             </span>
           </div>
         )}
@@ -359,7 +385,7 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
           </Button>
           {created && (
             <a
-              href={`/customers/${created.customerId}`}
+              href={`/partners/${created.customerId}`}
               className="inline-flex items-center gap-1 text-[12px] font-semibold text-(--info) hover:underline"
             >
               Άνοιγμα καρτέλας <LuExternalLink className="size-3" aria-hidden />

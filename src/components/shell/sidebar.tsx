@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Package, FolderTree, Ruler, Users, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale, Cookie, CreditCard, ScanText, Coins,
+  LayoutDashboard, Package, FolderTree, Ruler, Handshake, ClipboardList, Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale, Cookie, CreditCard, ScanText, Coins,
 } from 'lucide-react'
 
 const NAV = [
@@ -13,7 +13,7 @@ const NAV = [
     { href: '/products', label: 'Προϊόντα', icon: Package, permission: 'product.view' },
     { href: '/categories', label: 'Κατηγορίες', icon: FolderTree, permission: 'category.manage' },
     { href: '/units', label: 'Μονάδες μέτρησης', icon: Ruler, permission: 'unit.manage' },
-    { href: '/customers', label: 'Πελάτες', icon: Users, permission: 'customer.view' },
+    { href: '/partners', label: 'Συναλλασσόμενοι', icon: Handshake, permission: 'customer.view' },
     { href: '/orders', label: 'Παραγγελίες', icon: ClipboardList, permission: 'order.view' },
     { href: '/payments', label: 'Πληρωμές', icon: CreditCard, permission: 'payment.view' },
     { href: '/containers', label: 'Containers', icon: Container, permission: 'container.manage' },

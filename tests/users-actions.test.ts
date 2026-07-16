@@ -20,6 +20,7 @@ type FakeUser = {
   passwordHash: string
   active: boolean
   roleId: string
+  customerId?: string | null
   phone?: string | null
   mobile?: string | null
   address?: string | null
@@ -35,13 +36,16 @@ type FakeAccessRequest = {
   afm: string
   phone: string
   email: string
+  contactId?: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
 }
+type FakeContact = { id: string; customerId: string; name: string; userId?: string | null }
 
-const store: { users: FakeUser[]; roles: FakeRole[]; requests: FakeAccessRequest[] } = {
+const store: { users: FakeUser[]; roles: FakeRole[]; requests: FakeAccessRequest[]; contacts: FakeContact[] } = {
   users: [],
   roles: [],
   requests: [],
+  contacts: [],
 }
 
 const CURRENT_USER_ID = 'admin-1'
@@ -94,6 +98,17 @@ vi.mock('@/lib/prisma', () => ({
         return { ...request }
       }),
     },
+    contact: {
+      findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
+        store.contacts.find(c => c.id === where.id) ?? null,
+      ),
+      update: vi.fn(async ({ where, data }: { where: { id: string }; data: Partial<FakeContact> }) => {
+        const contact = store.contacts.find(c => c.id === where.id)
+        if (!contact) throw new Error('not found')
+        Object.assign(contact, data)
+        return { ...contact }
+      }),
+    },
     // approveAccessRequest() πλέον ελέγχει isMailerConfigured() (src/lib/mailer.ts →
     // getIntegration('mailgun') → prisma.setting) πριν αποφασίσει αν στέλνει email ή
     // κάνει fallback σε console.log — καμία ρύθμιση Mailgun σε αυτά τα tests.
@@ -142,6 +157,10 @@ beforeEach(() => {
     { id: 'req-2', type: 'ARCHITECT', name: 'Μαρία Παπαδάκη', company: 'Atelier Nord', afm: '987654321', phone: '2109876543', email: 'maria@atelier.gr', status: 'PENDING' },
     { id: 'req-3', type: 'CUSTOMER', name: 'Ήδη εγκεκριμένος', company: 'X', afm: '111111111', phone: '210', email: 'approved@x.gr', status: 'APPROVED' },
     { id: 'req-4', type: 'SUPPLIER', name: 'Κώστας Προμηθευτής', company: 'Ξυλεία Βορρά', afm: '222222222', phone: '2104445566', email: 'kostas@xylia.gr', status: 'PENDING' },
+    { id: 'req-5', type: 'CUSTOMER', name: 'Ελένη Επαφή', company: 'Damask Partner ΑΕ', afm: '333333333', phone: '2105556677', email: 'eleni@partner.gr', status: 'PENDING', contactId: 'contact-1' },
+  ]
+  store.contacts = [
+    { id: 'contact-1', customerId: 'customer-1', name: 'Ελένη Επαφή', userId: null },
   ]
 })
 
@@ -222,6 +241,18 @@ describe('approveAccessRequest()', () => {
   it('αρνείται άγνωστο αίτημα', async () => {
     const res = await approveAccessRequest('does-not-exist')
     expect(res.ok).toBe(false)
+  })
+
+  it('αίτημα από επαφή (contactId): γράφει Contact.userId ΚΑΙ User.customerId', async () => {
+    const res = await approveAccessRequest('req-5')
+    expect(res).toMatchObject({ ok: true })
+
+    const created = store.users.find(u => u.email === 'eleni@partner.gr')
+    expect(created).toBeTruthy()
+    expect(created?.customerId).toBe('customer-1')
+
+    const contact = store.contacts.find(c => c.id === 'contact-1')
+    expect(contact?.userId).toBe(created?.id)
   })
 })
 

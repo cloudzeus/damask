@@ -63,6 +63,7 @@ export default async function UsersPage() {
     company: r.company,
     afm: r.afm,
     email: r.email,
+    fromContact: Boolean(r.contactId),
   }))
 
   const kpis = [

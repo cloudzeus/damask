@@ -8,8 +8,8 @@ import {
   type CheckResult, PUBLIC_TRACKING_CACHE_TAG,
 } from '@/lib/settings'
 import {
-  testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude, testGemini, testViva,
-  type SoftOneTestConfig, type MailgunTestConfig, type BunnyTestConfig, type DeepSeekTestConfig, type ClaudeTestConfig, type GeminiTestConfig,
+  testSoftOne, testMailgun, testBunny, testDeepSeek, testClaude, testGemini, testViva, testGeocodeApi,
+  type SoftOneTestConfig, type MailgunTestConfig, type BunnyTestConfig, type DeepSeekTestConfig, type ClaudeTestConfig, type GeminiTestConfig, type MapsTestConfig,
 } from '@/lib/connection-tests'
 import { aadeLookup } from '@/lib/aade'
 import {
@@ -288,6 +288,41 @@ export async function saveFacebookSettings(values: FacebookValues): Promise<Acti
   revalidateSettings()
   revalidateTag(PUBLIC_TRACKING_CACHE_TAG, 'max')
   return { ok: true, message: 'Οι ρυθμίσεις Facebook αποθηκεύτηκαν.' }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 8α. Χάρτες & Geocoding (integration.maps — traders task): Google Places
+//     Autocomplete (client, /partners), MapTiler tiles (/partners/[id]),
+//     geocode.maps.co search/reverse (src/lib/geocode.ts), ΓΕΜΗ (αποθηκεύεται,
+//     χρήση αργότερα). Και τα 4 κλειδιά έχουν ήδη .env fallback (βλ. settings.ts).
+// ══════════════════════════════════════════════════════════════════════════
+
+export type MapsValues = { googleMapsApiKey: string; maptilerApiKey: string; geocodeApiKey: string; gemiApiKey: string }
+
+const mapsSchema = z.object({
+  googleMapsApiKey: z.string().max(200),
+  maptilerApiKey: z.string().max(200),
+  geocodeApiKey: z.string().max(200),
+  gemiApiKey: z.string().max(200),
+})
+
+export async function saveMapsSettings(values: MapsValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = mapsSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
+  await saveIntegration('maps', parsed.data, ['googleMapsApiKey', 'maptilerApiKey', 'geocodeApiKey', 'gemiApiKey'])
+  revalidateSettings()
+  return { ok: true, message: 'Οι ρυθμίσεις Χάρτες & Geocoding αποθηκεύτηκαν.' }
+}
+
+/** Μόνο το geocode.maps.co κλειδί ελέγχεται live — Google Maps/MapTiler δεν έχουν φθηνό/χωρίς-χρέωση ping endpoint. */
+export async function testMapsSettings(values: MapsValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const stored = await getIntegration<MapsTestConfig>('maps')
+  const result = await testGeocodeApi(mergeNonEmpty(stored, { geocodeApiKey: values.geocodeApiKey }))
+  const check = await saveLastCheck('maps', result)
+  revalidateSettings()
+  return check
 }
 
 // ══════════════════════════════════════════════════════════════════════════

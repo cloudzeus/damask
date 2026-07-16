@@ -261,6 +261,28 @@ export async function testViva(environment: 'demo' | 'production', config: VivaT
   }
 }
 
+// ── Χάρτες & Geocoding (geocode.maps.co) ────────────────
+
+export type MapsTestConfig = { geocodeApiKey?: string }
+
+/** Standalone ping στο geocode.maps.co/search — δεν αγγίζει logApiUsage (ΔΕΝ είναι η πραγματική geocode ροή, βλ. src/lib/geocode.ts). */
+export async function testGeocodeApi(config: MapsTestConfig): Promise<TestResult> {
+  if (!config.geocodeApiKey?.trim()) return { ok: false, message: missingFieldsMessage(['geocodeApiKey']) }
+
+  try {
+    const url = `https://geocode.maps.co/search?q=${encodeURIComponent('Athens, Greece')}&api_key=${encodeURIComponent(config.geocodeApiKey)}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(TEST_TIMEOUT_MS) })
+    if (res.status === 401 || res.status === 403) return { ok: false, message: 'Μη έγκυρο API key.' }
+    if (res.status === 429) return { ok: false, message: 'Έχει εξαντληθεί το όριο αιτημάτων (rate limit).' }
+    if (!res.ok) return { ok: false, message: `Το geocode.maps.co επέστρεψε HTTP ${res.status}.` }
+    const data = await res.json()
+    if (!Array.isArray(data) || data.length === 0) return { ok: false, message: 'Η απάντηση δεν περιείχε αποτελέσματα.' }
+    return { ok: true, message: 'Επιτυχής σύνδεση με το geocode.maps.co.' }
+  } catch (err) {
+    return { ok: false, message: `Αποτυχία σύνδεσης με το geocode.maps.co (${errMsg(err)}).` }
+  }
+}
+
 // ── helpers ──────────────────────────────────────────────
 
 async function safeErrorDetail(res: Response): Promise<string | null> {

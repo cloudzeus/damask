@@ -11,6 +11,8 @@ export type AccessRequestRow = {
   company: string
   afm: string
   email: string
+  /** Αίτημα καταχωρημένο από επαφή συναλλασσόμενου (/partners/[id] ⋮ «Αίτημα πρόσβασης user»), όχι από το δημόσιο /register. */
+  fromContact: boolean
 }
 
 export function AccessRequestsPanel({ requests }: { requests: AccessRequestRow[] }) {
@@ -49,6 +51,7 @@ export function AccessRequestsPanel({ requests }: { requests: AccessRequestRow[]
               <small className="block text-[11px] text-muted-foreground">
                 ΑΦΜ {request.afm} · {request.email} ·{' '}
                 {request.type === 'ARCHITECT' ? 'Αρχιτέκτονας' : request.type === 'SUPPLIER' ? 'Προμηθευτής' : 'Πελάτης'}
+                {request.fromContact ? ' · Από επαφή συναλλασσόμενου' : ''}
               </small>
             </div>
             <div className="flex shrink-0 gap-2">

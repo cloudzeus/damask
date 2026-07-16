@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 type FakeCustomer = {
   id: string; trdr: number | null; name: string; afm: string | null
   email: string | null; phone: string | null; address: string | null; city: string | null; zip: string | null
+  sodtype: number; status: string; doy: string | null; website: string | null
 }
 type FakeContact = { id: string; customerId: string; name: string; email: string | null; phone: string | null }
 
@@ -33,6 +34,10 @@ vi.mock('@/lib/prisma', () => ({
           address: (data.address as string | null) ?? null,
           city: (data.city as string | null) ?? null,
           zip: (data.zip as string | null) ?? null,
+          sodtype: (data.sodtype as number | undefined) ?? 12,
+          status: (data.status as string | undefined) ?? 'CUSTOMER',
+          doy: (data.doy as string | null) ?? null,
+          website: (data.website as string | null) ?? null,
         }
         store.customers.push(customer)
         const contactsCreate = (data.contacts as { create?: { name: string; email?: string; phone?: string }[] } | undefined)?.create
@@ -103,6 +108,7 @@ describe('createCustomerFromOcr', () => {
     store.customers.push({
       id: 'cust-existing', trdr: 555, name: 'Ήδη Υπάρχων', afm: '094014201',
       email: null, phone: null, address: null, city: null, zip: null,
+      sodtype: 12, status: 'CUSTOMER', doy: null, website: null,
     })
 
     const res = await createCustomerFromOcr({
@@ -140,6 +146,28 @@ describe('createCustomerFromOcr', () => {
   it('allows creation without an ΑΦΜ (skips the duplicate check)', async () => {
     const res = await createCustomerFromOcr({ name: 'Χωρίς ΑΦΜ', afm: '', phones: [], emails: [] })
     expect(res.ok).toBe(true)
+  })
+
+  it('defaults sodtype to 12 (Προμηθευτής) and always sets status=CUSTOMER when not given explicitly', async () => {
+    const res = await createCustomerFromOcr({ name: 'Default Sodtype', afm: '', phones: [], emails: [] })
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
+    const customer = store.customers.find(c => c.id === res.customerId)
+    expect(customer?.sodtype).toBe(12)
+    expect(customer?.status).toBe('CUSTOMER')
+  })
+
+  it('persists sodtype=13 (Πελάτης), doy and website when the panel toggle overrides them', async () => {
+    const res = await createCustomerFromOcr({
+      name: 'Πελάτης Από OCR', afm: '', sodtype: 13, doy: 'Δ.Ο.Υ. Αθηνών', website: 'https://example.gr',
+      phones: [], emails: [],
+    })
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
+    const customer = store.customers.find(c => c.id === res.customerId)
+    expect(customer?.sodtype).toBe(13)
+    expect(customer?.doy).toBe('Δ.Ο.Υ. Αθηνών')
+    expect(customer?.website).toBe('https://example.gr')
   })
 })
 
