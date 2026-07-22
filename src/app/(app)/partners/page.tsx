@@ -6,6 +6,7 @@ import { PartnersTable, type PartnerRow } from './partners-table'
 import { NewPartnerButton } from './new-partner-button'
 import { getMapsClientConfig } from './actions'
 import { getPartnerFormOptions } from '@/lib/s1-options'
+import { IngestEntryButton } from '@/components/ingestion/ingest-entry-button'
 
 export default async function PartnersPage() {
   await requirePermission('customer.view')
@@ -70,6 +71,7 @@ export default async function PartnersPage() {
           <h1 className="text-[22px]">Συναλλασσόμενοι</h1>
         </div>
         <div className="flex-1" />
+        <IngestEntryButton targetKey="partner" />
         <NewPartnerButton mapsConfig={mapsConfig} formOptions={formOptions} />
       </div>
 
