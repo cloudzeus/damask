@@ -103,7 +103,7 @@ export function CorrectionGrid({
             {rows.map(row => {
               const low = row.confidence != null && row.confidence < LOW_CONFIDENCE
               return (
-                <TableRow key={row.fieldKey} className={low ? 'bg-[color:var(--coral-soft)]' : undefined}>
+                <TableRow key={row.fieldKey} style={low ? { background: 'var(--coral-soft)' } : undefined}>
                   <TableCell className="whitespace-normal">
                     <div className="font-medium">{row.label}</div>
                     <div className="font-mono text-[11px] text-muted-foreground">{row.fieldKey}</div>
@@ -112,7 +112,7 @@ export function CorrectionGrid({
                     <Input
                       value={row.raw ?? ''}
                       onChange={e => updateRaw(row.fieldKey, e.target.value)}
-                      className={low ? 'border-coral' : undefined}
+                      style={low ? { borderColor: 'var(--coral)' } : undefined}
                     />
                     {row.value != null && row.valueType !== 'DATE' && (
                       <div className="mt-0.5 text-[11px] text-muted-foreground">→ {row.value.toLocaleString('el-GR')}</div>
