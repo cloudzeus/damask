@@ -62,7 +62,7 @@ export function DeleteRoleDialog({
           {needsReassign && (
             <div className="field">
               <label htmlFor="delete-role-reassign">Μετακίνηση χρηστών σε*</label>
-              <Select value={reassignTo} onValueChange={setReassignTo}>
+              <Select value={reassignTo} onValueChange={value => setReassignTo(value as string)}>
                 <SelectTrigger id="delete-role-reassign" aria-label="Μετακίνηση χρηστών σε" className="h-11 w-full rounded-full border-border bg-card px-4">
                   <SelectValue>
                     {(v: string) => otherRoles.find(r => r.id === v)?.name ?? 'Επίλεξε ρόλο…'}

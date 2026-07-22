@@ -101,7 +101,7 @@ export function CreateRoleDialog({
 
           <div className="field">
             <label htmlFor="create-role-copy">Αντιγραφή δικαιωμάτων από</label>
-            <Select value={copyFrom} onValueChange={setCopyFrom}>
+            <Select value={copyFrom} onValueChange={value => setCopyFrom(value as string)}>
               <SelectTrigger id="create-role-copy" aria-label="Αντιγραφή δικαιωμάτων από" className="h-11 w-full rounded-full border-border bg-card px-4">
                 <SelectValue>
                   {(v: string) => (v === NO_COPY ? 'Κανένα (κενός ρόλος)' : roles.find(r => r.id === v)?.name ?? '—')}
