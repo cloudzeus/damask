@@ -1,9 +1,14 @@
 'use server'
 
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { revalidatePath } from 'next/cache'
+import { prepareFieldWrites } from '@/lib/tax/field-prep'
+import { extractFields } from '@/lib/tax/tax-extract'
+import { coerceFinancialValue } from '@/lib/tax/greek-format'
+import type { TemplateField } from '@/lib/tax/template'
 
 /**
  * Server orchestration για την authoring πλευρά των Tax Form Templates:
@@ -102,4 +107,58 @@ export async function uploadSample(
   })
   revalidatePath(`/tax-templates/${templateId}`)
   return { storageKey: key }
+}
+
+/**
+ * Αντικαθιστά ΟΛΑ τα fields ενός template — delete-all + recreate σε
+ * transaction (ο editor στέλνει πάντα το πλήρες, τελικό σετ). `order`
+ * σταθεροποιείται από prepareFieldWrites (θέση στο array).
+ */
+export async function saveFields(templateId: string, fields: unknown[]): Promise<void> {
+  await requirePermission('taxform.manage')
+  const writes = prepareFieldWrites(fields as Partial<TemplateField>[])
+  await prisma.$transaction([
+    prisma.taxFormTemplateField.deleteMany({ where: { templateId } }),
+    ...writes.map(w => prisma.taxFormTemplateField.create({
+      data: {
+        templateId,
+        fieldKey: w.fieldKey,
+        label: w.label,
+        section: w.section,
+        valueType: w.valueType,
+        kind: w.kind,
+        config: w.config != null ? (w.config as Prisma.InputJsonValue) : undefined,
+        regionHint: w.regionHint != null ? (w.regionHint as Prisma.InputJsonValue) : undefined,
+        aiHint: w.aiHint,
+        required: w.required,
+        order: w.order,
+      },
+    })),
+  ])
+  revalidatePath(`/tax-templates/${templateId}`)
+}
+
+/**
+ * OCR-άρει μία ήδη-cropped περιοχή εικόνας πάνω σε ένα υποψήφιο field, ώστε
+ * ο author να επιβεβαιώσει ότι η περιοχή διαβάζεται σωστά πριν πάει live.
+ * Δεν persist-άρει τίποτα — μόνο extractFields + coerceFinancialValue.
+ */
+export async function testField(input: {
+  image: { base64: string; mimeType: string }
+  label: string
+  valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+  kind?: 'SINGLE' | 'SERIES'
+  aiHint?: string | null
+}): Promise<{ raw: string | null; value: number | null; model: string }> {
+  await requirePermission('taxform.manage')
+  const key = 'test'
+  const r = await extractFields([input.image], [{
+    fieldKey: key,
+    label: input.label,
+    valueType: input.valueType,
+    kind: input.kind ?? 'SINGLE',
+    aiHint: input.aiHint ?? null,
+  }])
+  const raw = r.values[key] ?? null
+  return { raw, value: coerceFinancialValue(raw, input.valueType), model: r.model }
 }
