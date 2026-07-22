@@ -3,7 +3,6 @@ import { startBoss } from '@/lib/queue'
 import { prisma } from '@/lib/prisma'
 import { runProductImport, type RawImportRow, type ImportTotals } from '@/lib/import/product-upsert'
 import { runBackup } from '@/lib/backup'
-import { syncAllReferences } from '@/lib/s1-sync'
 
 export const QUEUE_HEALTH = 'health'
 /** Μεγάλες εισαγωγές Excel (>500 γραμμές — src/app/(app)/import/actions.ts executeImport). */
@@ -16,8 +15,10 @@ export const QUEUE_BACKUP = 'backup'
  * Το χειροκίνητο κουμπί «Sync βοηθητικών από SoftOne» (καρτέλα «Διασυνδέσεις»)
  * ΔΕΝ περνάει από αυτή την ουρά — καλεί syncAllReferences απευθείας από το server
  * action (src/app/(app)/settings/s1-sync-actions.ts), ίδιο idiom με QUEUE_BACKUP.
- * Η ουρά υπάρχει για μελλοντικό scheduled sync (δεν είναι scheduled ακόμα — δεν
- * υπάρχουν S1 credentials σε αυτό το περιβάλλον). */
+ * Η ουρά είναι πλέον scheduled dispatcher tick (κάθε 5′, Europe/Athens): διαβάζει
+ * το objects.sync, βρίσκει ποια sync targets είναι due (enabled + non-manual +
+ * πέρασε το interval) και τρέχει το καθένα μέσω runSyncTarget. Μόνο το
+ * 's1-references' έχει engine σήμερα· products/partners εκκρεμούν (pending). */
 export const QUEUE_S1_REF_SYNC = 's1-ref-sync'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
@@ -71,16 +72,27 @@ export async function startQueue(): Promise<void> {
   await boss.schedule(QUEUE_BACKUP, '30 3 * * *', null, { tz: 'Europe/Athens' })
 
   await boss.createQueue(QUEUE_S1_REF_SYNC)
+  // Dispatcher tick: κάθε 5′ διαβάζει το objects.sync, βρίσκει ποια targets είναι due
+  // (enabled + non-manual + πέρασε το interval) και τρέχει το engine τους. Μόνο το
+  // 's1-references' έχει engine· products/partners επιστρέφουν "pending" (no-op).
   await boss.work(QUEUE_S1_REF_SYNC, async () => {
     try {
-      const results = await syncAllReferences()
-      const failed = results.filter(r => !r.ok)
-      if (failed.length > 0) console.warn('[pg-boss] s1-ref-sync ολοκληρώθηκε με σφάλματα', failed)
+      const { getSyncConfigs } = await import('@/lib/sync-config-server')
+      const { dueTargetKeys } = await import('@/lib/sync-targets')
+      const { runSyncTarget } = await import('@/lib/sync-engines')
+      const configs = await getSyncConfigs()
+      const due = dueTargetKeys(configs, Date.now())
+      for (const key of due) {
+        const res = await runSyncTarget(key, () => new Date().toISOString())
+        if (!res.ok && !res.pending) console.warn('[pg-boss] s1 sync target απέτυχε', key, res.message)
+      }
     } catch (err) {
-      console.error('[pg-boss] s1-ref-sync job απέτυχε', err)
-      throw err // ίδιο idiom με QUEUE_BACKUP/QUEUE_IMPORT — pg-boss κάνει retry
+      // Ποτέ throw προς το pg-boss εδώ — infra failure (π.χ. DB outage στο getSyncConfigs/SyncLog)
+      // θα προκαλούσε retry-storm στον scheduled dispatcher. Log + swallow.
+      console.error('[pg-boss] s1 sync dispatcher απέτυχε', err)
     }
   })
+  await boss.schedule(QUEUE_S1_REF_SYNC, '*/5 * * * *', null, { tz: 'Europe/Athens' })
 
   console.log('[pg-boss] started')
 }
