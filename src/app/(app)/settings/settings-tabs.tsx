@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Boxes, Building2, Plug, Search } from 'lucide-react'
+import { Boxes, Building2, Plug, RefreshCw, Search } from 'lucide-react'
 import { LuDatabaseBackup } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 
@@ -13,8 +13,9 @@ const TABS = [
 ] as const
 
 const OBJECTS_TAB = { key: 'objects', label: 'Αντικείμενα', icon: Boxes } as const
+const SYNC_TAB = { key: 'sync', label: 'Συγχρονισμός', icon: RefreshCw } as const
 
-type TabKey = (typeof TABS)[number]['key'] | typeof OBJECTS_TAB['key']
+type TabKey = (typeof TABS)[number]['key'] | typeof OBJECTS_TAB['key'] | typeof SYNC_TAB['key']
 
 /**
  * Pill tabs, client-side (MASTER §4β «Pills παντού»/ίδιο idiom με τα tabs
@@ -24,16 +25,21 @@ type TabKey = (typeof TABS)[number]['key'] | typeof OBJECTS_TAB['key']
  * tab (SUPER_ADMIN only) εμφανίζεται μόνο όταν περνιέται το `objects` prop.
  */
 export function SettingsTabs({
-  company, integrations, seo, backups, objects,
+  company, integrations, seo, backups, objects, sync,
 }: {
   company: React.ReactNode
   integrations: React.ReactNode
   seo: React.ReactNode
   backups: React.ReactNode
   objects?: React.ReactNode
+  sync?: React.ReactNode
 }) {
   const [active, setActive] = useState<TabKey>('company')
-  const tabs = objects !== undefined ? [...TABS, OBJECTS_TAB] : TABS
+  const tabs = [
+    ...TABS,
+    ...(objects !== undefined ? [OBJECTS_TAB] : []),
+    ...(sync !== undefined ? [SYNC_TAB] : []),
+  ]
 
   return (
     <div>
@@ -70,6 +76,11 @@ export function SettingsTabs({
       {objects !== undefined && (
         <div id="settings-panel-objects" role="tabpanel" aria-labelledby="settings-tab-objects" hidden={active !== 'objects'}>
           {objects}
+        </div>
+      )}
+      {sync !== undefined && (
+        <div id="settings-panel-sync" role="tabpanel" aria-labelledby="settings-tab-sync" hidden={active !== 'sync'}>
+          {sync}
         </div>
       )}
     </div>
