@@ -21,6 +21,8 @@ export type DeepSeekOptions = {
   model?: string
   maxTokens?: number
   temperature?: number
+  /** Timeout για το fetch (ms) — default 60_000. Αυξάνεται π.χ. για program extraction σε μεγάλα PDF. */
+  timeoutMs?: number
   /** Scope για το AiUsage log (/costs) — προεπιλογή ανά function παρακάτω. */
   scope?: AiScope
   refType?: string | null
@@ -55,7 +57,7 @@ export async function deepseekChat(messages: ChatMessage[], opts: DeepSeekOption
       max_tokens: opts.maxTokens ?? 1024,
       temperature: opts.temperature ?? 0.3,
     }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 60_000),
   })
 
   if (!res.ok) {
