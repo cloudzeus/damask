@@ -306,6 +306,7 @@ model Trdr {
   priceCache   PriceCache[]
   formRecords     TrdrFormRecord[]
   financialValues TrdrFinancialValue[]
+  programApplications ProgramApplication[]
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
@@ -989,4 +990,227 @@ model TrdrFinancialValue {
   @@unique([trdrId, fieldKey, year])
   @@index([trdrId])
   @@index([fieldKey, year])
+}
+
+enum ProgramStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum ProgramExtractStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum ProgramBonusKind {
+  SPEED
+  INNOVATION
+  GREEN
+  EMPLOYMENT
+  OTHER
+}
+
+enum ExpenseSuggestSource {
+  AI
+  MANUAL
+}
+
+model Program {
+  id                  String                     @id @default(cuid())
+  title               String
+  summary             String?
+  referenceCode       String?
+  sourceFileName      String?
+  storageKey          String?                    @unique
+  mimeType            String?
+  size                Int?
+  publicationDate     DateTime?
+  submissionStart     DateTime?
+  submissionEnd       DateTime?
+  totalBudget         Decimal?                   @db.Decimal(18, 2)
+  fundingRate         Decimal?                   @db.Decimal(5, 2)
+  durationMonths      Int?
+  minEmployeesFte     Decimal?                   @db.Decimal(10, 2)
+  minOperationalYears Decimal?                   @db.Decimal(5, 2)
+  eligibilityNote     String?
+  status              ProgramStatus              @default(DRAFT)
+  extractStatus       ProgramExtractStatus       @default(PENDING)
+  extractedData       Json?
+  model               String?
+  tokensUsed          Int?
+  errorMessage        String?
+  notes               String?
+  createdById         String?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  expenseCats         ProgramExpenseCategory[]
+  kads                ProgramKad[]
+  bonuses             ProgramBonus[]
+  criteria            ProgramCriterion[]
+  deadlines           ProgramDeadline[]
+  phases              ProgramPhase[]
+  deliverables        ProgramDeliverable[]
+  regions             ProgramRegion[]
+  legalForms          ProgramEligibleLegalForm[]
+  applications        ProgramApplication[]
+
+  @@index([status])
+  @@index([extractStatus])
+  @@index([submissionEnd])
+}
+
+model ProgramExpenseCategory {
+  id            String           @id @default(cuid())
+  programId     String
+  program       Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name          String
+  minAmount     Decimal?         @db.Decimal(18, 2)
+  maxAmount     Decimal?         @db.Decimal(18, 2)
+  minPercentage Decimal?         @db.Decimal(5, 2)
+  maxPercentage Decimal?         @db.Decimal(5, 2)
+  mandatory     Boolean          @default(false)
+  notes         String?
+  order         Int              @default(0)
+  expenses      ProgramExpense[]
+
+  @@index([programId])
+}
+
+model ProgramKad {
+  id          String  @id @default(cuid())
+  programId   String
+  program     Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  code        String
+  description String?
+
+  @@index([programId])
+}
+
+model ProgramBonus {
+  id          String           @id @default(cuid())
+  programId   String
+  program     Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  kind        ProgramBonusKind @default(OTHER)
+  name        String
+  condition   String?
+  bonusRate   Decimal?         @db.Decimal(5, 2)
+  bonusAmount Decimal?         @db.Decimal(18, 2)
+  order       Int              @default(0)
+
+  @@index([programId])
+}
+
+model ProgramCriterion {
+  id        String   @id @default(cuid())
+  programId String
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name      String
+  weight    Decimal? @db.Decimal(5, 2)
+  notes     String?
+  order     Int      @default(0)
+
+  @@index([programId])
+}
+
+model ProgramDeadline {
+  id        String    @id @default(cuid())
+  programId String
+  program   Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name      String
+  date      DateTime?
+  notes     String?
+  order     Int       @default(0)
+
+  @@index([programId])
+}
+
+model ProgramPhase {
+  id           String               @id @default(cuid())
+  programId    String
+  program      Program              @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name         String
+  order        Int                  @default(0)
+  deliverables ProgramDeliverable[]
+
+  @@index([programId])
+}
+
+model ProgramDeliverable {
+  id          String        @id @default(cuid())
+  programId   String
+  program     Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  phaseId     String?
+  phase       ProgramPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  name        String
+  description String?
+  mandatory   Boolean       @default(true)
+  order       Int           @default(0)
+
+  @@index([programId])
+}
+
+model ProgramRegion {
+  id        String  @id @default(cuid())
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name      String
+  notes     String?
+
+  @@index([programId])
+}
+
+model ProgramEligibleLegalForm {
+  id        String  @id @default(cuid())
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name      String
+
+  @@index([programId])
+}
+
+model ProgramApplication {
+  id          String           @id @default(cuid())
+  trdrId      String
+  trdr        Trdr             @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  programId   String
+  program     Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status      String           @default("ACTIVE")
+  notes       String?
+  createdById String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  expenses    ProgramExpense[]
+
+  @@unique([trdrId, programId])
+  @@index([trdrId])
+  @@index([programId])
+}
+
+model ProgramExpense {
+  id                   String                  @id @default(cuid())
+  applicationId        String
+  application          ProgramApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  description          String
+  amount               Decimal                 @db.Decimal(18, 2)
+  vatAmount            Decimal?                @db.Decimal(18, 2)
+  date                 DateTime?
+  vendor               String?
+  vendorAfm            String?
+  docNumber            String?
+  suggestedCategoryId  String?
+  suggestionReason     String?
+  suggestionConfidence Float?
+  suggestionSource     ExpenseSuggestSource?
+  categoryId           String?
+  category             ProgramExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  confirmed            Boolean                 @default(false)
+  createdById          String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([applicationId])
+  @@index([categoryId])
 }
