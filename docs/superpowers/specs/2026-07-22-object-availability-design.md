@@ -226,12 +226,25 @@ for every item whose interval has elapsed since `lastRunAt` and whose
 Preset→interval map: `15m`→15, `1h`→60, `6h`→360, `daily`→1440, `manual`→never
 (button only). After each run the dispatcher writes `lastRunAt` and a `SyncLog` row.
 
-**Scope honesty (v1).** Only reference-table **pull** and outbox **push** exist
-today. This feature builds the **config surface + scheduler dispatch** and wires
-the *existing* pull/push. Full per-entity bidirectional engines (products,
-customers, orders…) are delivered as each object's sync is implemented — the plan
-must scope v1 to config + dispatch + the already-built flows, not to writing every
-entity's field-level merge.
+**Scope honesty (v1) — CORRECTED 2026-07-22 (pre-Plan-2).** Investigation before
+planning Plan 2 found the earlier premise here was wrong:
+- The **only implemented engine** is `syncAllReferences()` — **pull** of 8
+  reference/lookup tables (VAT/COUNTRY/IRSDATA/TRDCATEGORY/PAYMENT/SHIPMENT/
+  SOCURRENCY/SERIES). These are **not** object-registry items.
+- **`S1Outbox` (push) has no code** — it is a schema table nothing reads/writes.
+  Push (local→S1) is **unimplemented**.
+- The registry's SoftOne objects — **products (MTRL)** and **partners (TRDR)** —
+  have **no sync engine at all**.
+
+Plan 2 scope (user decision: "infra + reference pull now"): build the config
+model (`objects.sync`), the `isSoftOneConnected()` gate, the sync-config UI, and
+the pg-boss **scheduler dispatcher** driven by a decoupled **`SYNC_TARGETS`
+registry** (separate from the menu `OBJECT_REGISTRY`). Wire the **reference-pull**
+engine as the one concrete engine (making scheduled reference sync real).
+products/partners appear as sync targets whose config is stored but whose engine
+is **"pending"** (dispatcher/sync-now no-ops with a clear pending state) until
+their MTRL/TRDR pull (then push, then bidirectional) engines are built in later
+milestones. See `docs/superpowers/plans/2026-07-22-softone-sync-config.md`.
 
 ## Data flow
 
