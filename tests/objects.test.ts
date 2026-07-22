@@ -69,3 +69,19 @@ describe('groupedPermissionsFor', () => {
     expect(keys).toContain('translation.edit')
   })
 })
+
+import { PERMISSIONS as CATALOG } from '@/lib/permissions'
+
+describe('permissions.ts derives losslessly from the registry', () => {
+  const EXPECTED_KEYS = [
+    'product.view','product.edit','product.publish','import.run','translation.edit',
+    'translation.approve','media.manage','category.manage','unit.manage','customer.view',
+    'customer.edit','order.view','order.create','order.approve','order.autoapprove',
+    'container.manage','payment.view','payment.manage','commission.view','commission.manage',
+    'portal.access','sync.run','user.manage','settings.manage','cms.view','cms.edit','costs.view',
+  ]
+  it('exposes exactly the original 27 permission keys', () => {
+    expect(new Set(CATALOG.map(p => p.key))).toEqual(new Set(EXPECTED_KEYS))
+    expect(CATALOG.length).toBe(EXPECTED_KEYS.length)
+  })
+})
