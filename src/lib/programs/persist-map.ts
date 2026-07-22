@@ -36,7 +36,6 @@ export type ProgramScalars = {
   minEmployeesFte: number | null
   minOperationalYears: number | null
   eligibilityNote: string | null
-  kadRule: string | null
 }
 
 /** PURE: Program scalar-field mapping (dates parsed, numbers passed through — Prisma accepts number for Decimal). */
@@ -54,7 +53,6 @@ export function toProgramScalars(e: ExtractedProgram): ProgramScalars {
     minEmployeesFte: e.minEmployeesFte,
     minOperationalYears: e.minOperationalYears,
     eligibilityNote: e.eligibilityNote,
-    kadRule: e.kadRule,
   }
 }
 

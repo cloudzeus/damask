@@ -25,4 +25,8 @@ describe('persist mapping', () => {
     expect(r.expenseCats[0]).toMatchObject({ name: 'Εξοπλισμός', maxPercentage: 50, mandatory: true, order: 0 })
     expect(r.deliverables[0]).toMatchObject({ name: 'Έκθεση', mandatory: true, phaseName: 'Φάση Α' })
   })
+
+  it('does NOT include kadRule in program scalars (no such column)', () => {
+    expect('kadRule' in (toProgramScalars(emptyExtractedProgram()) as Record<string, unknown>)).toBe(false)
+  })
 })

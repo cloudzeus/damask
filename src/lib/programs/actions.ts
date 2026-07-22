@@ -157,10 +157,11 @@ export async function extractProgram(programId: string, text: string): Promise<{
     revalidatePath(`/programs/${programId}`)
     return { ok: true, cost }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Άγνωστο σφάλμα εξαγωγής'
+    console.error(`extractProgram: αποτυχία εξαγωγής για program ${programId}`, err)
+    const message = 'Η αποδελτίωση απέτυχε. Δοκίμασε ξανά ή έλεγξε το PDF.'
     await prisma.program.update({
       where: { id: programId },
-      data: { extractStatus: 'FAILED', errorMessage: `Η εξαγωγή απέτυχε: ${message}` },
+      data: { extractStatus: 'FAILED', errorMessage: message },
     })
     revalidatePath(`/programs/${programId}`)
     return { ok: false, cost: null, error: message }
@@ -304,19 +305,27 @@ export async function confirmExpenseCategory(expenseId: string, categoryId: stri
 
 /** Τρέχει suggestExpenseCategory σε σειρά για κάθε ΜΗ-επιβεβαιωμένη δαπάνη
  * της αίτησης (τα ήδη confirmed δεν ξαναπροτείνονται — ο χρήστης έχει ήδη
- * κλειδώσει την κατηγορία τους). */
-export async function suggestAllExpenses(applicationId: string): Promise<{ suggested: number }> {
+ * κλειδώσει την κατηγορία τους). Κάθε δαπάνη είναι απομονωμένη — μία
+ * αποτυχία (π.χ. DeepSeek error) δεν σταματά το batch, μετριέται ως failed
+ * και το loop συνεχίζει στην επόμενη δαπάνη. */
+export async function suggestAllExpenses(applicationId: string): Promise<{ suggested: number; failed: number }> {
   await requirePermission('programs.manage')
   const pending = await prisma.programExpense.findMany({
     where: { applicationId, confirmed: false },
     select: { id: true },
   })
   let suggested = 0
+  let failed = 0
   for (const e of pending) {
-    await suggestExpenseCategory(e.id)
-    suggested += 1
+    try {
+      await suggestExpenseCategory(e.id)
+      suggested += 1
+    } catch (err) {
+      console.error(`suggestAllExpenses: αποτυχία πρότασης για expense ${e.id}`, err)
+      failed += 1
+    }
   }
-  return { suggested }
+  return { suggested, failed }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

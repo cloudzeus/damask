@@ -149,9 +149,13 @@ export function ExpenseList({ applicationId, categories }: { applicationId: stri
     setSuggestingAll(true)
     setSuggestAllProgress(5)
     try {
-      const { suggested } = await suggestAllExpenses(applicationId)
+      const { suggested, failed } = await suggestAllExpenses(applicationId)
       setSuggestAllProgress(100)
-      toast.success(`Προτάθηκε κατηγορία για ${suggested} δαπάνες.`)
+      if (failed > 0) {
+        toast.warning(`Προτάθηκαν ${suggested}, απέτυχαν ${failed}. Δοκίμασε ξανά τις δαπάνες χωρίς πρόταση.`)
+      } else {
+        toast.success(`Προτάθηκε κατηγορία για ${suggested} δαπάνες.`)
+      }
       load()
     } catch {
       toast.error('Η μαζική πρόταση κατηγοριών απέτυχε.')
