@@ -318,3 +318,74 @@ export async function suggestAllExpenses(applicationId: string): Promise<{ sugge
   }
   return { suggested }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * Task 15 — read helpers για το UI (Σύνδεση εταιρείας / λίστα εφαρμογών /
+ * confirm <select> επιλογές κατηγορίας). Μικρά, gated read actions —
+ * καμία απαιτεί side-effect πέρα από query.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+export type ProgramApplicationItem = {
+  id: string
+  trdrId: string
+  trdrName: string
+  status: string
+  expenseCount: number
+  confirmedCount: number
+}
+
+/** Οι αιτήσεις (συνδεδεμένες εταιρείες) ενός προγράμματος, με μετρητές
+ * δαπανών/επιβεβαιωμένων ώστε το ApplicationsPanel να δείχνει πρόοδο χωρίς
+ * να χρειάζεται ξεχωριστό round-trip ανά γραμμή. */
+export async function listApplications(programId: string): Promise<ProgramApplicationItem[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.programApplication.findMany({
+    where: { programId },
+    include: { trdr: { select: { NAME: true } }, expenses: { select: { confirmed: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
+  return rows.map(r => ({
+    id: r.id,
+    trdrId: r.trdrId,
+    trdrName: r.trdr.NAME,
+    status: r.status,
+    expenseCount: r.expenses.length,
+    confirmedCount: r.expenses.filter(e => e.confirmed).length,
+  }))
+}
+
+export type ExpenseCategoryOption = { id: string; name: string }
+
+/** id+name λίστα των κατηγοριών δαπανών ενός προγράμματος — για το confirm
+ * `<select>` στο ExpenseList (χωρίς τα ποσοστώσεις/όρια που ήδη κρύβονται
+ * πίσω από το AI suggestion). */
+export async function getProgramExpenseCategories(programId: string): Promise<ExpenseCategoryOption[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.programExpenseCategory.findMany({
+    where: { programId },
+    orderBy: { order: 'asc' },
+    select: { id: true, name: true },
+  })
+  return rows
+}
+
+export type TrdrOption = { id: string; name: string; afm: string | null }
+
+/** Ελαφριά αναζήτηση συναλλασσόμενων (μέχρι 20, μόνο ενεργές καρτέλες) για
+ * το «Σύνδεση εταιρείας» dialog — δεν υπάρχει ήδη κάποιο γενικό Trdr search
+ * action στο /partners (μόνο πλήρης λίστα σε server component), οπότε
+ * προστίθεται εδώ, gated ίδια με τα υπόλοιπα programs actions. */
+export async function listTrdrOptions(query?: string): Promise<TrdrOption[]> {
+  await requirePermission('programs.manage')
+  const q = (query ?? '').trim()
+  const rows = await prisma.trdr.findMany({
+    where: {
+      ISACTIVE: 1,
+      ...(q ? { OR: [{ NAME: { contains: q, mode: 'insensitive' } }, { AFM: { contains: q, mode: 'insensitive' } }] } : {}),
+    },
+    orderBy: { NAME: 'asc' },
+    take: 20,
+    select: { id: true, NAME: true, AFM: true },
+  })
+  return rows.map(r => ({ id: r.id, name: r.NAME, afm: r.AFM }))
+}

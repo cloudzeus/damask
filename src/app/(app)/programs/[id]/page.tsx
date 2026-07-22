@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { ProgramEditor, type ProgramData } from '@/components/programs/program-editor'
+import { ApplicationsPanel } from '@/components/programs/applications-panel'
 
 /**
  * Detail/editor οθόνη ενός Προγράμματος (Task 14): μετά την αρχική AI
@@ -117,6 +118,10 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <ProgramEditor program={data} />
+
+      <div className="mt-3">
+        <ApplicationsPanel programId={program.id} />
+      </div>
     </div>
   )
 }
