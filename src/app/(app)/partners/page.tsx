@@ -1,5 +1,6 @@
 import { Users, Truck, Sparkles, CalendarPlus } from 'lucide-react'
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { PartnersTable, type PartnerRow } from './partners-table'
 import { NewPartnerButton } from './new-partner-button'
@@ -8,6 +9,7 @@ import { getPartnerFormOptions } from '@/lib/s1-options'
 
 export default async function PartnersPage() {
   await requirePermission('customer.view')
+  await assertObjectEnabled('partners')
 
   const monthStart = new Date()
   monthStart.setDate(1)

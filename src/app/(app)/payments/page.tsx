@@ -1,5 +1,6 @@
 import { LuHourglass, LuCircleCheck, LuCircleX } from 'react-icons/lu'
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { getVivaSettings, vivaCheckoutUrl } from '@/lib/viva'
 import { relativeTime } from '@/lib/relative-time'
@@ -12,6 +13,7 @@ const PAYMENT_TIMEOUT_MS = 30 * 60 * 1000
 
 export default async function PaymentsPage() {
   const session = await requirePermission('payment.view')
+  await assertObjectEnabled('payments')
   const canManage = session.user.permissions.includes('payment.manage')
 
   const now = new Date()

@@ -1,34 +1,9 @@
-export type PermissionDef = { key: string; description: string }
+import { allItems, type PermissionDef } from '@/lib/objects'
 
-export const PERMISSIONS: PermissionDef[] = [
-  { key: 'product.view', description: 'Προβολή προϊόντων' },
-  { key: 'product.edit', description: 'Επεξεργασία προϊόντων' },
-  { key: 'product.publish', description: 'Δημοσίευση προϊόντων' },
-  { key: 'import.run', description: 'Εκτέλεση εισαγωγών Excel' },
-  { key: 'translation.edit', description: 'Επεξεργασία μεταφράσεων' },
-  { key: 'translation.approve', description: 'Έγκριση μεταφράσεων' },
-  { key: 'media.manage', description: 'Διαχείριση media' },
-  { key: 'category.manage', description: 'Διαχείριση κατηγοριών/ομάδων' },
-  { key: 'unit.manage', description: 'Διαχείριση μονάδων μέτρησης' },
-  { key: 'customer.view', description: 'Προβολή πελατών' },
-  { key: 'customer.edit', description: 'Επεξεργασία πελατών/επαφών' },
-  { key: 'order.view', description: 'Προβολή παραγγελιών' },
-  { key: 'order.create', description: 'Δημιουργία παραγγελιών' },
-  { key: 'order.approve', description: 'Έγκριση παραγγελιών' },
-  { key: 'order.autoapprove', description: 'Παράκαμψη έγκρισης' },
-  { key: 'container.manage', description: 'Διαχείριση containers & τιμολόγησης' },
-  { key: 'payment.view', description: 'Προβολή πληρωμών (Viva)' },
-  { key: 'payment.manage', description: 'Διαχείριση πληρωμών — δημιουργία, ακύρωση, ρυθμίσεις Viva' },
-  { key: 'commission.view', description: 'Προβολή προμηθειών (δικών του)' },
-  { key: 'commission.manage', description: 'Διαχείριση προμηθειών' },
-  { key: 'portal.access', description: 'Πρόσβαση B2B portal' },
-  { key: 'sync.run', description: 'Εκτέλεση sync με SoftOne' },
-  { key: 'user.manage', description: 'Διαχείριση χρηστών/ρόλων' },
-  { key: 'settings.manage', description: 'Ρυθμίσεις συστήματος' },
-  { key: 'cms.view', description: 'Προβολή CMS' },
-  { key: 'cms.edit', description: 'Διαχείριση άρθρων/CMS' },
-  { key: 'costs.view', description: 'Προβολή κόστους AI/API (SUPER_ADMIN βλέπει markup, ADMIN μόνο το τελικό κόστος)' },
-]
+export type { PermissionDef }
+
+/** Full permission catalog — derived from the object registry (single source of truth). */
+export const PERMISSIONS: PermissionDef[] = allItems().flatMap(i => i.permissions)
 
 const ALL = PERMISSIONS.map(p => p.key)
 

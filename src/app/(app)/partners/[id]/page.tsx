@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requirePermission } from '@/lib/rbac-server'
 import { can } from '@/lib/rbac'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { getMapsClientConfig } from '../actions'
 import { getPartnerFormOptions } from '@/lib/s1-options'
@@ -12,6 +13,7 @@ import { ContactsPanel, type ContactRow } from './contacts-panel'
 
 export default async function PartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requirePermission('customer.view')
+  await assertObjectEnabled('partners')
   const { id } = await params
 
   const [trdr, mapsConfig, formOptions] = await Promise.all([

@@ -76,9 +76,9 @@ describe('groupedPermissions()', () => {
     expect(catalog.items.map(i => i.key)).toEqual([
       'customer.view', 'customer.edit',
       'order.view', 'order.create', 'order.approve', 'order.autoapprove',
-      'payment.view', 'payment.manage',
       'commission.view', 'commission.manage',
       'portal.access',
+      'payment.view', 'payment.manage',
     ])
   })
 })

@@ -1,4 +1,5 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { loadConsentConfig } from '@/lib/settings'
 import { relativeTime } from '@/lib/relative-time'
@@ -8,6 +9,7 @@ import { ConsentModalTab } from './consent-modal-tab'
 
 export default async function CmsLegalPage() {
   const session = await requirePermission('cms.view')
+  await assertObjectEnabled('cms-legal')
   const canEdit = session.user.permissions.includes('cms.edit')
 
   const [pages, consentConfig] = await Promise.all([

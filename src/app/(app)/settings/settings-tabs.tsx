@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, Plug, Search } from 'lucide-react'
+import { Boxes, Building2, Plug, Search } from 'lucide-react'
 import { LuDatabaseBackup } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 
@@ -12,28 +12,33 @@ const TABS = [
   { key: 'backups', label: 'Backups', icon: LuDatabaseBackup },
 ] as const
 
-type TabKey = (typeof TABS)[number]['key']
+const OBJECTS_TAB = { key: 'objects', label: 'Αντικείμενα', icon: Boxes } as const
+
+type TabKey = (typeof TABS)[number]['key'] | typeof OBJECTS_TAB['key']
 
 /**
  * Pill tabs, client-side (MASTER §4β «Pills παντού»/ίδιο idiom με τα tabs
- * gallery/upload του MediaPicker). Και τα 4 tab panels είναι server-rendered
+ * gallery/upload του MediaPicker). Και τα tab panels είναι server-rendered
  * ΜΙΑ φορά στο page.tsx (παράλληλα) και περνάνε εδώ ως children — η εναλλαγή
- * tab είναι απλή εναλλαγή ορατότητας (`hidden`), όχι re-fetch.
+ * tab είναι απλή εναλλαγή ορατότητας (`hidden`), όχι re-fetch. Το «Αντικείμενα»
+ * tab (SUPER_ADMIN only) εμφανίζεται μόνο όταν περνιέται το `objects` prop.
  */
 export function SettingsTabs({
-  company, integrations, seo, backups,
+  company, integrations, seo, backups, objects,
 }: {
   company: React.ReactNode
   integrations: React.ReactNode
   seo: React.ReactNode
   backups: React.ReactNode
+  objects?: React.ReactNode
 }) {
   const [active, setActive] = useState<TabKey>('company')
+  const tabs = objects !== undefined ? [...TABS, OBJECTS_TAB] : TABS
 
   return (
     <div>
       <div className="mb-3.5 flex flex-wrap gap-1.5" role="tablist" aria-label="Ενότητες ρυθμίσεων">
-        {TABS.map(tab => (
+        {tabs.map(tab => (
           <button
             key={tab.key}
             type="button"
@@ -62,6 +67,11 @@ export function SettingsTabs({
       <div id="settings-panel-backups" role="tabpanel" aria-labelledby="settings-tab-backups" hidden={active !== 'backups'}>
         {backups}
       </div>
+      {objects !== undefined && (
+        <div id="settings-panel-objects" role="tabpanel" aria-labelledby="settings-tab-objects" hidden={active !== 'objects'}>
+          {objects}
+        </div>
+      )}
     </div>
   )
 }

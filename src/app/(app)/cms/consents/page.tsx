@@ -1,4 +1,5 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { relativeTime } from '@/lib/relative-time'
 import { ConsentsTable, type ConsentRow } from './consents-table'
@@ -15,6 +16,7 @@ export default async function CmsConsentsPage({
   searchParams: Promise<{ range?: string }>
 }) {
   await requirePermission('cms.view')
+  await assertObjectEnabled('cms-consents')
   const { range: rawRange } = await searchParams
   const range = rangeFromSearchParam(rawRange)
   const days = RANGE_DAYS[range]

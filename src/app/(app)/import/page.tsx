@@ -1,10 +1,12 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { ExcelImportWizard } from './import-wizard'
 import type { MappingTemplate } from './step-mapping'
 
 export default async function ImportPage() {
   await requirePermission('import.run')
+  await assertObjectEnabled('import')
 
   const savedMappings = await prisma.importMapping.findMany({
     where: { entity: 'product' },

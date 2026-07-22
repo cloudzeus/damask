@@ -1,4 +1,5 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { relativeTime } from '@/lib/relative-time'
 import { CmsPostsTabs } from './cms-tabs'
@@ -10,6 +11,7 @@ import { AiGenerateButton } from './ai-generate-dialog'
 
 export default async function CmsPostsPage() {
   const session = await requirePermission('cms.view')
+  await assertObjectEnabled('cms-posts')
   const canEdit = session.user.permissions.includes('cms.edit')
 
   const [posts, categories, authors, users] = await Promise.all([
