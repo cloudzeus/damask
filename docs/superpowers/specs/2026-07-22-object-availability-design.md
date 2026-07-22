@@ -31,6 +31,8 @@ not be reachable by URL, and must not clutter the roles permission matrix.
 - No multi-tenant / per-user object sets. One global config per deployment.
 - No change to the runtime auth pipeline (JWT/session/`can()`).
 - No hard dependency on SoftOne configuration (see SoftOne section).
+- Not building every entity's field-level bidirectional merge engine now — v1 wires
+  the existing reference-table pull + outbox push behind the new config (see §7).
 
 ## Decisions (locked during brainstorming)
 
@@ -43,6 +45,10 @@ not be reachable by URL, and must not clutter the roles permission matrix.
 | 5 | Who controls it | **SUPER_ADMIN only.** |
 | 6 | SoftOne-dependent objects | Object is modeled per SoftOne field structure (using the `softone` skill) but **works standalone on our own Postgres**. The SoftOne badge is **informational** (indicates sync availability when the integration is configured) — it never blocks enabling. |
 | 7 | Permission grants on disable | **Non-destructive.** `RolePermission` rows persist; re-enabling restores prior grants. |
+| 8 | Per-table sync direction | **3 options + master:** `pull` (S1→local), `push` (local→S1), `bidirectional`. For bidirectional the SUPER_ADMIN picks the **master side** (`softone`\|`local`) as conflict winner. |
+| 9 | Sync frequency | **Presets:** Χειροκίνητα / 15′ / 1ώρα / 6ώρες / Ημερήσια. Scheduler maps presets → cron/interval. |
+| 10 | When sync config is shown | **Only on active connection:** SoftOne configured **and** last «Δοκιμή σύνδεσης» (`_lastCheck.ok`) succeeded. |
+| 11 | Sync config UI location | **In the object row** — expandable per SoftOne-backed object inside the «Αντικείμενα» tab. |
 
 ## Architecture (Approach A — unified object registry)
 
@@ -166,6 +172,67 @@ migration (the generic `Setting` model already exists).
 enforces availability regardless of a user's cached permissions, and the menu is
 filtered by both availability and permission. No re-login required after toggling.
 
+### 7. Per-table SoftOne sync configuration
+
+Builds on the existing machinery: `syncAllReferences()` (pull, `REF_CONFIGS`),
+`S1Outbox` (push), `SyncLog` (audit), and the currently-unscheduled pg-boss
+`QUEUE_S1_REF_SYNC` worker in `src/server/queue-start.ts`.
+
+**Config model** (per SoftOne-backed object item only):
+
+```ts
+export type SyncDirection = 'pull' | 'push' | 'bidirectional'
+export type SyncMaster = 'softone' | 'local'   // conflict winner (bidirectional)
+export type SyncFrequency = 'manual' | '15m' | '1h' | '6h' | 'daily'
+
+export type ObjectSyncConfig = {
+  syncEnabled: boolean       // sync on/off — INDEPENDENT of object availability
+  direction: SyncDirection
+  master: SyncMaster         // meaningful for bidirectional; stored always
+  frequency: SyncFrequency
+  lastRunAt?: string         // ISO — written by the scheduler for "due" calc
+}
+```
+
+Stored as one `Setting` row: key `objects.sync` → `Record<itemKey, ObjectSyncConfig>`.
+Only items with a `softone` mapping have an entry. Defaults on first sight:
+`{ syncEnabled: false, direction: 'pull', master: 'softone', frequency: 'manual' }`.
+
+**Active-connection gate.** All sync UI + actions are gated behind
+`isSoftOneConnected()` — a new helper reading `getIntegration('softone')`,
+requiring both `isIntegrationConfigured('softone', …)` **and**
+`_lastCheck.ok === true`. When not connected, the object row shows only the
+informational badge «απαιτεί SoftOne για sync» (no config controls).
+
+**UI** — inside the «Αντικείμενα» tab, each SoftOne-backed object row is
+expandable (smart-DataTable expand idiom). The expansion renders:
+- direction radios (Pull / Push / Bidirectional),
+- master radios (SoftOne / Τοπικά) — shown only when direction = bidirectional,
+- frequency select (the 5 presets),
+- a sync on/off switch,
+- «Sync τώρα» button, and last-run / last-result read from `SyncLog`.
+
+Save via a SUPER_ADMIN server action writing `objects.sync`.
+
+**Scheduler wiring.** `QUEUE_S1_REF_SYNC` becomes a **scheduled dispatcher tick**
+(default `*/5 * * * *`, `tz: 'Europe/Athens'`). Each tick reads `objects.sync` and,
+for every item whose interval has elapsed since `lastRunAt` and whose
+`syncEnabled` is true, runs the configured direction:
+- `pull` → the item's S1→local pull (reference tables reuse the
+  `syncAllReferences`/`REF_CONFIGS` path; entity pulls land per object),
+- `push` → drain `S1Outbox` for that S1 object,
+- `bidirectional` → pull + push, with `master` deciding the conflict winner.
+
+Preset→interval map: `15m`→15, `1h`→60, `6h`→360, `daily`→1440, `manual`→never
+(button only). After each run the dispatcher writes `lastRunAt` and a `SyncLog` row.
+
+**Scope honesty (v1).** Only reference-table **pull** and outbox **push** exist
+today. This feature builds the **config surface + scheduler dispatch** and wires
+the *existing* pull/push. Full per-entity bidirectional engines (products,
+customers, orders…) are delivered as each object's sync is implemented — the plan
+must scope v1 to config + dispatch + the already-built flows, not to writing every
+entity's field-level merge.
+
 ## Data flow
 
 ```
@@ -188,16 +255,25 @@ SUPER_ADMIN toggles item in Settings → save action (requireSuperAdmin)
 - Route guard: disabled item route returns 404; enabled passes.
 - Settings save: non-SUPER_ADMIN rejected; core keys stripped before persist;
   re-enabling restores prior `RolePermission` grants (integration test).
+- Sync config: `isSoftOneConnected()` false when not configured or `_lastCheck.ok`
+  falsy → no sync controls; defaults applied for unseen items; save rejected for
+  non-SUPER_ADMIN.
+- Scheduler dispatch: preset→interval «due» calc against `lastRunAt`; only
+  `syncEnabled` items run; direction routes to pull/push/both; `SyncLog` written.
 
 ## Affected files
 
 - **New:** `src/lib/objects.ts`, `src/lib/objects-server.ts`,
-  `src/app/(app)/settings/objects-tab.tsx`, objects save action.
+  `src/app/(app)/settings/objects-tab.tsx`, objects availability + sync save
+  actions, `objects.sync` config helpers (`getObjectSyncConfig`,
+  `setObjectSyncConfig`, `isSoftOneConnected`), sync dispatcher in
+  `src/lib/s1-sync.ts` (or a new `s1-sync-dispatch.ts`).
 - **Changed:** `src/lib/permissions.ts` (derive `PERMISSIONS` from registry;
   `groupedPermissions(enabledKeys)`), `src/components/shell/sidebar.tsx` +
   app layout (server-side nav derivation), `src/app/(app)/roles/page.tsx`
   (filter groups), `src/app/(app)/settings/settings-tabs.tsx` (+ page.tsx) for
-  the new tab, and each toggle-able `page.tsx` (add `assertObjectEnabled`).
+  the new tab, each toggle-able `page.tsx` (add `assertObjectEnabled`), and
+  `src/server/queue-start.ts` (schedule `QUEUE_S1_REF_SYNC` as the dispatcher tick).
 
 ## Open items for the plan
 
@@ -205,3 +281,10 @@ SUPER_ADMIN toggles item in Settings → save action (requireSuperAdmin)
   `PERMISSIONS` list.
 - Decide whether ocr-demo/media-demo remain items or are dropped.
 - Confirm `import` belongs to its own module vs. Καθημερινά.
+- List which registry objects are SoftOne-backed for v1 (reference tables already
+  in `REF_CONFIGS`; which entity objects — products/customers — get pull engines
+  in this milestone vs. later).
+- Decide dispatcher tick storage for `lastRunAt` (inside `objects.sync` Setting vs.
+  derived from `SyncLog.createdAt`) — spec assumes the former.
+- Confirm bidirectional field-level conflict semantics per entity (master overwrites
+  vs. field-wise last-writer) when those engines are built.
