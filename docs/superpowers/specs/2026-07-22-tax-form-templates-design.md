@@ -12,12 +12,17 @@
 
 Ο χρήστης θέλει σελίδα με **φορολογικά έντυπα** (π.χ. Ε3): σε κάθε έντυπο **σχεδιάζει περιοχές και τις ονομάζει**, ώστε να αποθηκεύει τα στοιχεία του εντύπου **ανά πελάτη**. Εύρος αυτής της επανάληψης (επιβεβαιωμένο 2026-07-22): **χαρτογράφηση + extraction** end-to-end.
 
+### Ορολογία (απόφαση χρήστη 2026-07-22)
+- Το **template** ονομάζεται «**Οδηγός Εντύπου**» και ζει σε menu item «**Οδηγοί Εντύπων**». Ορίζει τα **πεδία + τύπο + περιοχές** ενός εντύπου (Ε3/Ε1/…) μία φορά.
+- Όταν χρησιμοποιείται για έναν πελάτη, δημιουργείται μια **εγγραφή εντύπου** (association/scan record, `TrdrFormRecord`) που **συσχετίζει οδηγό ↔ `Trdr`** και κρατά **όνομα + χρήση (σκοπός) + χρονολογία + τα εξαγόμενα πεδία**. Είσοδος από τα **row actions του συναλλασσόμενου** («Καταχώριση OCR εντύπου»).
+
 ### Κλειδωμένες αποφάσεις
-1. **Πελάτης = `Trdr`** (DAMASK equivalent του `Company` του reference). Τα εξαγόμενα δεδομένα αποθηκεύονται ανά `Trdr` + έτος.
+1. **Πελάτης = `Trdr`** (DAMASK equivalent του `Company` του reference). Τα εξαγόμενα δεδομένα αποθηκεύονται ανά `Trdr` + έτος, μέσω μιας `TrdrFormRecord`.
 2. **Client-side crop**: το cropping περιοχής γίνεται στον browser (canvas), συνεπές με το υπάρχον client-only `src/lib/ocr/rasterize.ts` (pdfjs + OffscreenCanvas· κανένα server `sharp`/`canvas`). Δεν αντιγράφουμε το server-side `cropRegionToImage` του reference.
 3. **Δεν** είναι A ingestion target (τα tax data δεν είναι upsert σε γραμμή `Trdr`/`Product`) — ξεχωριστή αποθήκευση, αλλά **ξαναχρησιμοποιεί** gemini vision, Bunny, και το role-gated cost view του A.
 4. **Extraction ανά περιοχή (crop)**: κάθε πεδίο SINGLE/SERIES διαβάζεται από το crop της περιοχής του (το μοντέλο βλέπει μόνο εκείνο το κελί). TABLE μέσω ξεχωριστού scan-table flow.
 5. **bbox normalized 0-1** ως `[x, y, w, h]` σχετικά με τη σελίδα· `regionHint = { page: number (0-based), bbox }`.
+6. **Αποθήκευση τιμών = ΚΑΙ τα δύο**: πλήρες extracted payload ως `extractedData` JSON πάνω στην `TrdrFormRecord` (audit), ΚΑΙ ανά-πεδίο `TrdrFinancialValue` (queryable, σύγκριση ετών). Τα per-field values δείχνουν στην εγγραφή μέσω `sourceRecordId`.
 
 ### Reuse από DAMASK (verified)
 | Υπάρχον | Χρήση |
@@ -56,7 +61,7 @@ model TaxFormTemplate {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   fields           TaxFormTemplateField[]
-  documents        TaxFormDocument[]
+  records          TrdrFormRecord[]
   @@unique([code, year])
   @@index([status])
 }
@@ -81,6 +86,32 @@ model TaxFormTemplateField {
   @@index([templateId])
 }
 
+// ── ΝΕΟ association model (απόφαση χρήστη): συσχετίζει οδηγό ↔ Trdr = «εγγραφή εντύπου» ──
+model TrdrFormRecord {
+  id            String   @id @default(cuid())
+  name          String                            // π.χ. «Ε3 2024 — [Πελάτης]» (ελεύθερο)
+  usage         String?                           // χρήση/σκοπός, ελεύθερο κείμενο (π.χ. «για δάνειο»)
+  trdrId        String
+  trdr          Trdr     @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  templateId    String
+  template      TaxFormTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  year          Int
+  storageKey    String                            // Bunny path του συμπληρωμένου εντύπου
+  pageCount     Int?
+  status        String   @default("PENDING")       // PENDING | EXTRACTED | FAILED
+  extractedData Json?                              // πλήρες payload (fieldKey → raw) — audit
+  model         String?
+  tokensUsed    Int?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  values        TrdrFinancialValue[]
+  @@index([trdrId])
+  @@index([templateId])
+  @@index([trdrId, year])
+}
+
+// ── per-field queryable τιμές (σύγκριση ετών) — δείχνουν στην εγγραφή ──
 model TrdrFinancialValue {
   id               String   @id @default(cuid())
   trdrId           String
@@ -94,7 +125,8 @@ model TrdrFinancialValue {
   kind             TaxFieldKind @default(SINGLE)
   valueType        FinancialValueType
   source           FinancialValueSource @default(OCR)
-  sourceDocumentId String?
+  sourceRecordId   String?                         // → TrdrFormRecord.id
+  sourceRecord     TrdrFormRecord? @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
   confidence       Float?
   verified         Boolean  @default(false)
   verifiedById     String?
@@ -105,27 +137,8 @@ model TrdrFinancialValue {
   @@index([trdrId])
   @@index([fieldKey, year])
 }
-
-model TaxFormDocument {
-  id            String   @id @default(cuid())
-  trdrId        String
-  trdr          Trdr     @relation(fields: [trdrId], references: [id], onDelete: Cascade)
-  templateId    String
-  template      TaxFormTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  fiscalYear    Int
-  storageKey    String                            // Bunny path του συμπληρωμένου εντύπου
-  pageCount     Int?
-  status        String   @default("PENDING")       // PENDING | EXTRACTED | FAILED
-  extractedData Json?                              // πλήρες payload (fieldKey → raw)
-  model         String?
-  tokensUsed    Int?
-  createdById   String?
-  createdAt     DateTime @default(now())
-  @@index([trdrId])
-  @@index([templateId])
-}
 ```
-`Trdr` παίρνει back-relations `financialValues TrdrFinancialValue[]` + `taxDocuments TaxFormDocument[]`. Νέα migration.
+`Trdr` παίρνει back-relations `formRecords TrdrFormRecord[]` + `financialValues TrdrFinancialValue[]`. `TaxFormTemplate` παίρνει `records TrdrFormRecord[]` (αντί `documents`). Νέα migration.
 
 ---
 
@@ -143,13 +156,15 @@ src/components/tax/
   region-editor.tsx        # canvas: render page + draw/resize bbox, page nav, zoom, saved-region overlays
   field-list.tsx           # πεδία: label/fieldKey/section/valueType/kind/columns/aiHint/required + «Δοκιμή πεδίου»
   template-editor.tsx      # wrapper: meta (name/year/status) + sample upload + region-editor + field-list
-  scan-panel.tsx           # καρτέλα Trdr: pick template+year, upload filled form, extract, preview grid + confidence
+  scan-form-dialog.tsx     # από Trdr row action: pick οδηγό + έτος + όνομα + χρήση + upload + extract
   correction-grid.tsx      # edit εξαγόμενων τιμών πριν save, mark verified
-  financials-tab.tsx       # Trdr tab: TrdrFinancialValue ανά έτος (πίνακας)
+  financials-tab.tsx       # Trdr tab «Φορολογικά»: TrdrFormRecord λίστα + TrdrFinancialValue ανά έτος
+  scan-action-item.tsx     # 'use client' row-action «Καταχώριση OCR εντύπου» (ανοίγει scan-form-dialog)
 src/app/(app)/tax-templates/
-  page.tsx                 # ΛΙΣΤΑ εντύπων (name, code/year, description, #πεδία, status) + «Νέο έντυπο»
+  page.tsx                 # ΛΙΣΤΑ «Οδηγοί Εντύπων» (name, code/year, description, #πεδία, status) + «Νέος οδηγός»
   [id]/page.tsx            # editor σελίδα (server: fetch template+fields → <TemplateEditor/>)
 ```
+**Wiring:** το `scan-action-item` προστίθεται στο row-actions dropdown της λίστας `partners` (μαζί με τα υπάρχοντα actions), gated `taxform.scan`. Η καρτέλα `partners/[id]` παίρνει tab «Φορολογικά» → `financials-tab`.
 
 ---
 
@@ -164,12 +179,13 @@ src/app/(app)/tax-templates/
    - **«Δοκιμή πεδίου»**: client-crop της περιοχής → `testField` server action → `extractFields` (Gemini) → εμφανίζει raw + coerced τιμή + μοντέλο. (Επιβεβαίωση ότι διαβάζει σωστά πριν το production.)
    - status DRAFT→READY όταν έτοιμο.
 
-### 3β. Extraction πελάτη
-1. Στην καρτέλα `Trdr` (`partners/[id]`) tab «**Φορολογικά**» → `financials-tab` (τιμές ανά έτος) + κουμπί «**Σάρωση εντύπου**».
-2. `scan-panel`: επιλογή template (READY) + έτος + ανέβασμα συμπληρωμένου εντύπου (pdf/εικόνα).
-3. `scanForm` server action: αποθηκεύει `TaxFormDocument` (Bunny)· για κάθε SINGLE/SERIES πεδίο → client-crop της περιοχής → `extractFields` (Gemini, dynamic prompt από `buildFieldsPrompt`) → `coerceFinancialValue`. TABLE → `scanTable`. Επιστρέφει grid { fieldKey, label, raw, value, confidence }.
+### 3β. Extraction πελάτη (από row actions του συναλλασσόμενου)
+1. Στη λίστα/καρτέλα `Trdr` (`partners`), στο **row-actions dropdown** → «**Καταχώριση OCR εντύπου**» (gated). Ανοίγει ο `scan-panel`.
+2. `scan-panel`: επιλογή **οδηγού** (READY) + **έτος** + **όνομα** (auto π.χ. «Ε3 2024 — [Πελάτης]», επεξεργάσιμο) + **χρήση** (ελεύθερο) + ανέβασμα συμπληρωμένου εντύπου (pdf/εικόνα).
+3. `scanForm` server action: δημιουργεί `TrdrFormRecord` (name/usage/year/trdr/template + Bunny storage)· για κάθε SINGLE/SERIES πεδίο του οδηγού → client-crop της περιοχής → `extractFields` (Gemini, dynamic prompt από `buildFieldsPrompt`) → `coerceFinancialValue`. TABLE → `scanTable`. Γράφει το πλήρες payload στο `record.extractedData`. Επιστρέφει grid { fieldKey, label, raw, value, confidence }.
 4. **Cost panel** role-gated (reuse `buildOcrCostViewForSession`).
-5. `correction-grid`: ο χρήστης διορθώνει/επιβεβαιώνει → `saveFinancialValues` → upsert `TrdrFinancialValue` by `[trdrId, fieldKey, year]` (source OCR, confidence, sourceDocumentId). Χειροκίνητη επεξεργασία → source MANUAL, verified.
+5. `correction-grid`: ο χρήστης διορθώνει/επιβεβαιώνει → `saveFinancialValues` → upsert `TrdrFinancialValue` by `[trdrId, fieldKey, year]` (source OCR, confidence, `sourceRecordId`). Χειροκίνητη επεξεργασία → source MANUAL, verified.
+6. Καρτέλα `Trdr` tab «**Φορολογικά**» (view-only) → `financials-tab`: λίστα `TrdrFormRecord` (name/usage/year/status) + πίνακας `TrdrFinancialValue` ανά έτος. Re-scan/edit από εκεί.
 
 ---
 
@@ -201,7 +217,7 @@ Port του reference `buildFieldsPrompt`/`extractTaxForm`, προσαρμοσμ
 ---
 
 ## 7. Object registry + permissions
-Νέο module/item στο `OBJECT_REGISTRY`: `{ key:'tax-templates', href:'/tax-templates', label:'Φορολογικά έντυπα', icon: <lucide>, menuPermission:'taxform.manage', permissions:[{taxform.manage},{taxform.scan}] }`. Το tab στην καρτέλα Trdr gated με `taxform.scan` (ή `customer.edit`).
+Νέο item στο `OBJECT_REGISTRY`: `{ key:'form-guides', href:'/tax-templates', label:'Οδηγοί Εντύπων', icon: FileText (react-icons/lu ή lucide), menuPermission:'taxform.manage', permissions:[{ key:'taxform.manage', description:'Διαχείριση οδηγών εντύπων' }, { key:'taxform.scan', description:'Σάρωση OCR εντύπων σε συναλλασσόμενο' }] }`. Το row-action «Καταχώριση OCR εντύπου» + το tab «Φορολογικά» στην καρτέλα Trdr gated με `taxform.scan`.
 
 ---
 
@@ -221,7 +237,8 @@ Port του reference `buildFieldsPrompt`/`extractTaxForm`, προσαρμοσμ
 ---
 
 ## 10. Definition of Done
-- Migration + 4 models applied· `Trdr` relations.
-- `/tax-templates` λίστα + editor: upload δείγματος, σχεδίαση/ονομασία περιοχών, πεδία (SINGLE/SERIES/TABLE), «Δοκιμή πεδίου» διαβάζει σωστά.
-- Καρτέλα Trdr «Φορολογικά»: σάρωση συμπληρωμένου εντύπου → extraction → διόρθωση → αποθήκευση `TrdrFinancialValue` ανά έτος, με role-gated cost.
+- Migration + models (`TaxFormTemplate`, `TaxFormTemplateField`, `TrdrFormRecord`, `TrdrFinancialValue`) + enums applied· `Trdr` relations (`formRecords`, `financialValues`).
+- Menu «**Οδηγοί Εντύπων**» (`/tax-templates`): λίστα + editor — upload δείγματος, σχεδίαση/ονομασία περιοχών, πεδία (SINGLE/SERIES/TABLE), «Δοκιμή πεδίου» διαβάζει σωστά.
+- Row action «**Καταχώριση OCR εντύπου**» στους `partners`: επιλογή οδηγού + έτος + όνομα + χρήση + upload → extraction → διόρθωση → `TrdrFormRecord` (+ `extractedData` JSON) + per-field `TrdrFinancialValue`, με role-gated cost.
+- Καρτέλα Trdr tab «Φορολογικά»: προβολή εγγραφών + τιμών ανά έτος.
 - Pure units + server tests πράσινα· `tsc` clean· build ΟΚ· Steel & Frost + Ελληνικά.
