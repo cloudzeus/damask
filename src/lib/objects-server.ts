@@ -4,7 +4,7 @@ import { allItems, coreItemKeys, effectiveEnabledKeys } from '@/lib/objects'
 
 const SETTING_KEY = 'objects.enabled'
 
-/** Effective enabled item keys (stored ∪ core), read from the Setting store. */
+/** Effective enabled item keys (stored ∩ known) ∪ core, read from the Setting store. */
 export async function getEnabledObjectKeys(): Promise<Set<string>> {
   const stored = (await getSetting<string[]>(SETTING_KEY)) ?? []
   return effectiveEnabledKeys(stored)

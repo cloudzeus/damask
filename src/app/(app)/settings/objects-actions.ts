@@ -9,6 +9,6 @@ import type { ActionResult } from './actions'
 export async function saveEnabledObjects(keys: string[]): Promise<ActionResult> {
   await requireSuperAdmin('settings.manage')
   await setEnabledObjectKeys(keys)
-  revalidatePath('/', 'layout')
+  revalidatePath('/', 'layout') // refresh sidebar (app layout) + /roles + /settings
   return { ok: true, message: 'Οι διαθέσιμες οντότητες αποθηκεύτηκαν.' }
 }
