@@ -63,15 +63,14 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
               {canDelete && (
                 <button
                   type="button"
-                  className="role-card-del"
+                  // Ίδιο μέγεθος/θέση με το ✓ badge (::after). Όταν η κάρτα είναι
+                  // επιλεγμένη, ο κάδος μετατοπίζεται αριστερά του ✓ (.shifted).
+                  className={`role-card-del${on ? ' shifted' : ''}`}
                   aria-label={`Διαγραφή ρόλου ${role.name}`}
                   title="Διαγραφή ρόλου"
-                  // Όταν η κάρτα είναι επιλεγμένη, το ✓ badge (::after) κάθεται top-right·
-                  // μετακίνησε τον κάδο αριστερά του ώστε να μη συμπίπτουν.
-                  style={{ position: 'absolute', top: 8, right: on ? 36 : 8, zIndex: 1 }}
                   onClick={e => { e.stopPropagation(); setDeleteRoleTarget(role) }}
                 >
-                  <Trash2 width={14} height={14} strokeWidth={1.8} aria-hidden />
+                  <Trash2 width={13} height={13} strokeWidth={1.9} aria-hidden />
                 </button>
               )}
               <button
