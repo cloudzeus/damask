@@ -6,7 +6,7 @@ export function afmField(opts: { key: string; label: string; required?: boolean;
   return {
     key: opts.key, label: opts.label, required: !!opts.required, sample: opts.sample,
     parse(raw): FieldParseResult<string> {
-      const t = raw.trim().replace(/^(EL|GR)/i, '')
+      const t = raw.replace(/\s+/g, '').replace(/^(EL|GR)/i, '')
       if (t === '') {
         return opts.required
           ? { value: null, error: `${opts.label}: το πεδίο είναι υποχρεωτικό.` }
@@ -24,9 +24,9 @@ export function emailField(opts: { key: string; label: string; required?: boolea
     parse(raw): FieldParseResult<string> {
       const t = raw.trim()
       if (t === '') {
-        return opts.required ? { value: null, error: `${opts.label}: υποχρεωτικό.` } : { value: null, error: null }
+        return opts.required ? { value: null, error: `${opts.label}: το πεδίο είναι υποχρεωτικό.` } : { value: null, error: null }
       }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return { value: null, error: `${opts.label}: μη έγκυρο email.` }
+      if (!/^[^\s@.]+(\.[^\s@.]+)*@[^\s@.]+(\.[^\s@.]+)+$/.test(t)) return { value: null, error: `${opts.label}: μη έγκυρο email.` }
       return { value: t, error: null }
     },
   }

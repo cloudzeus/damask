@@ -2,6 +2,8 @@ import { PRODUCT_TARGET } from '@/lib/import/targets'
 import { textField, emailField, afmField, intEnumField } from './fields'
 import type { IngestionTarget, IngestionFieldDef } from './target'
 
+// Per-field `aliases` are intentional: consumed by autoMatchField in src/lib/ingestion/map.ts (Task 2),
+// coexisting with the product target's existing FIELD_ALIASES/autoMatchField mechanism in @/lib/import/targets.
 const PARTNER_FIELDS: IngestionFieldDef[] = [
   { ...afmField({ key: 'afm', label: 'ΑΦΜ', required: true, sample: '094014201' }), aliases: ['vat', 'tin', 'αφμ'] },
   { ...textField({ key: 'name', label: 'Επωνυμία', required: true, sample: 'Damask AE', maxLength: 190 }), aliases: ['onomasia', 'εκδότης', 'επωνυμία', 'name'] },
