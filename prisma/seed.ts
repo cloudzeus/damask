@@ -16,11 +16,14 @@ async function main() {
 
   // 2. Ρόλοι + αναθέσεις
   const B2B_ROLE_NAMES = new Set(['ARCHITECT', 'CUSTOMER', 'SUPPLIER'])
+  // Προστατευμένοι ρόλοι (system=true, δεν διαγράφονται). Οι υπόλοιποι
+  // (SUPPLIER, ARCHITECT, SALESMAN) είναι διαγράψιμοι από τον SUPER_ADMIN.
+  const SYSTEM_ROLE_NAMES = new Set(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER'])
   for (const [name, permKeys] of Object.entries(ROLE_DEFAULTS)) {
     const role = await prisma.role.upsert({
       where: { name },
       update: {},
-      create: { name, system: true, b2b: B2B_ROLE_NAMES.has(name) },
+      create: { name, system: SYSTEM_ROLE_NAMES.has(name), b2b: B2B_ROLE_NAMES.has(name) },
     })
     const perms = await prisma.permission.findMany({ where: { key: { in: permKeys } } })
     await prisma.$transaction([
