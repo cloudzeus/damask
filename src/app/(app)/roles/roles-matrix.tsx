@@ -66,7 +66,9 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
                   className="role-card-del"
                   aria-label={`Διαγραφή ρόλου ${role.name}`}
                   title="Διαγραφή ρόλου"
-                  style={{ position: 'absolute', top: 8, right: 8 }}
+                  // Όταν η κάρτα είναι επιλεγμένη, το ✓ badge (::after) κάθεται top-right·
+                  // μετακίνησε τον κάδο αριστερά του ώστε να μη συμπίπτουν.
+                  style={{ position: 'absolute', top: 8, right: on ? 36 : 8, zIndex: 1 }}
                   onClick={e => { e.stopPropagation(); setDeleteRoleTarget(role) }}
                 >
                   <Trash2 width={14} height={14} strokeWidth={1.8} aria-hidden />
@@ -81,7 +83,7 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
               >
                 <div className="n">
                   <span className="status-dot" style={{ background: roleColorVar(role.name) }} aria-hidden />
-                  {role.name}
+                  <span className="rname" title={role.name}>{role.name}</span>
                 </div>
                 <div className="c">{role.description || ROLE_DESCRIPTIONS[role.name] || '—'}</div>
                 <div className="cnt">
