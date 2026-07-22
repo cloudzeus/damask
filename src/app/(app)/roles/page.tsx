@@ -4,7 +4,8 @@ import { ROLE_ORDER, groupedPermissions } from '@/lib/permissions'
 import { RolesMatrix, type RoleData } from './roles-matrix'
 
 export default async function RolesPage() {
-  await requirePermission('user.manage')
+  const session = await requirePermission('user.manage')
+  const isSuperAdmin = session.user.role === 'SUPER_ADMIN'
 
   const roles = await prisma.role.findMany({
     include: {
@@ -17,6 +18,9 @@ export default async function RolesPage() {
     .map(r => ({
       id: r.id,
       name: r.name,
+      description: r.description,
+      system: r.system,
+      b2b: r.b2b,
       userCount: r._count.users,
       grantedKeys: r.permissions.map(p => p.permission.key),
     }))
@@ -45,7 +49,7 @@ export default async function RolesPage() {
         </div>
       </div>
 
-      <RolesMatrix roles={rolesData} groups={groups} />
+      <RolesMatrix roles={rolesData} groups={groups} isSuperAdmin={isSuperAdmin} />
 
       <p className="mt-3 text-center text-[11.5px] text-muted-foreground">
         Οι αλλαγές ισχύουν στο επόμενο login κάθε χρήστη.

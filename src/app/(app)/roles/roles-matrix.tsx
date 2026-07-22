@@ -9,6 +9,9 @@ import { togglePermission } from './actions'
 export type RoleData = {
   id: string
   name: string
+  description: string | null
+  system: boolean
+  b2b: boolean
   userCount: number
   grantedKeys: string[]
 }
@@ -47,7 +50,7 @@ export function RolesMatrix({ roles, groups }: { roles: RoleData[]; groups: Perm
                 <span className="status-dot" style={{ background: roleColorVar(role.name) }} aria-hidden />
                 {role.name}
               </div>
-              <div className="c">{ROLE_DESCRIPTIONS[role.name] ?? '—'}</div>
+              <div className="c">{role.description || ROLE_DESCRIPTIONS[role.name] || '—'}</div>
               <div className="cnt">
                 {role.userCount}
                 <small>{role.userCount === 1 ? 'χρήστης' : 'χρήστες'}</small>
