@@ -1,12 +1,16 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { getSetting } from '@/lib/settings'
 import { SettingsTabs } from './settings-tabs'
 import { CompanyTab } from './company-tab'
 import { IntegrationsTab } from './integrations-tab'
 import { SeoTab } from './seo-tab'
 import { BackupsTab } from './backups-tab'
+import { ObjectsTab } from './objects-tab'
 
 export default async function SettingsPage() {
-  await requirePermission('settings.manage')
+  const session = await requirePermission('settings.manage')
+  const isSuperAdmin = session.user.role === 'SUPER_ADMIN'
+  const enabledObjects = isSuperAdmin ? ((await getSetting<string[]>('objects.enabled')) ?? []) : []
 
   return (
     <div>
@@ -27,6 +31,7 @@ export default async function SettingsPage() {
         integrations={<IntegrationsTab />}
         seo={<SeoTab />}
         backups={<BackupsTab />}
+        objects={isSuperAdmin ? <ObjectsTab enabled={enabledObjects} /> : undefined}
       />
     </div>
   )
