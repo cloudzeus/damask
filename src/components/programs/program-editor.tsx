@@ -14,15 +14,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { updateProgramMeta, extractProgram } from '@/lib/programs/actions'
 import { extractPdfText } from '@/lib/programs/pdf-text'
+import { RequiredFormsTab } from './required-forms-tab'
 
 /**
- * Detail/editor του αποδελτιωμένου Προγράμματος (Task 14) — mirror του
- * TemplateEditor (src/components/tax/template-editor.tsx): «Στοιχεία» card
- * επεξεργάσιμο (core scalars → updateProgramMeta) + read-only cards για τις
- * σχέσεις που γεμίζει η AI αποδελτίωση (κατηγορίες δαπανών, παραδοτέα,
- * φάσεις, ΚΑΔ, bonuses, κριτήρια, προθεσμίες, περιφέρειες, νομικές μορφές).
- * Per-row editing των λιστών είναι follow-up εργασία — v1 δείχνει την
- * εξαγωγή για ανασκόπηση/διόρθωση των βασικών στοιχείων.
+ * Detail/editor του αποδελτιωμένου Προγράμματος (Task 14, tabbed layout).
+ * Header (κατάσταση αποδελτίωσης + «Επαναποδελτίωση») παραμένει πάντα
+ * ορατό πάνω από ένα lightweight tab bar (useState — δεν υπάρχει Tabs
+ * primitive στο src/components/ui). Έξι tabs: επεξεργάσιμα core scalars
+ * (updateProgramMeta) σε «Περιγραφή & Ημερομηνίες» + «Προϋποθέσεις», και
+ * read-only cards για τις σχέσεις που γεμίζει η AI αποδελτίωση (ΚΑΔ,
+ * παραδοτέα/φάσεις, κατηγορίες δαπανών/bonuses/προθεσμίες, περιφέρειες/
+ * νομικές μορφές/κριτήρια) — plus το νέο self-fetching «Έντυπα» tab
+ * (RequiredFormsTab). Per-row editing των read-only λιστών παραμένει
+ * follow-up εργασία εκτός Έντυπα.
  */
 
 export type ProgramExpenseCatData = {
@@ -152,8 +156,47 @@ function validateNonNegativeInteger(v: string, label: string): string | null {
   return Number.isInteger(n) && n >= 0 ? null : `${label} πρέπει να είναι μη αρνητικός ακέραιος.`
 }
 
+/* ── Tab bar — lightweight, χωρίς Tabs primitive (δεν υπάρχει στο
+ * src/components/ui) — pill row, navy active state (Steel & Frost §4β). */
+
+type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms'
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'desc', label: 'Περιγραφή & Ημερομηνίες' },
+  { key: 'kad', label: 'ΚΑΔ' },
+  { key: 'terms', label: 'Προϋποθέσεις' },
+  { key: 'deliverables', label: 'Παραδοτέα' },
+  { key: 'expenses', label: 'Κατηγορίες & Όρια Δαπανών' },
+  { key: 'forms', label: 'Έντυπα' },
+]
+
+function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
+  return (
+    <div role="tablist" aria-label="Ενότητες προγράμματος" className="glass flex flex-wrap gap-1 rounded-full p-1.5">
+      {TABS.map(t => (
+        <button
+          key={t.key}
+          type="button"
+          role="tab"
+          aria-selected={active === t.key}
+          onClick={() => onChange(t.key)}
+          className={cn(
+            'rounded-full px-4 py-2 text-[12.5px] font-semibold whitespace-nowrap transition-colors',
+            active === t.key
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          )}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function ProgramEditor({ program }: { program: ProgramData }) {
   const router = useRouter()
+  const [activeTab, setActiveTab] = React.useState<TabKey>('desc')
 
   // ── «Στοιχεία» — επεξεργάσιμα core scalars ────────────────────────────
   const [title, setTitle] = React.useState(program.title)
@@ -292,9 +335,17 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
   const extract = EXTRACT_META[program.extractStatus] ?? EXTRACT_META.PENDING
   const ExtractIcon = extract.icon
 
+  const SaveMetaButton = (
+    <div className="mt-1 flex justify-end">
+      <Button type="button" onClick={handleSaveMeta} disabled={savingMeta}>
+        {savingMeta ? 'Αποθήκευση…' : 'Αποθήκευση'}
+      </Button>
+    </div>
+  )
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Κατάσταση αποδελτίωσης + επαναποδελτίωση */}
+      {/* Κατάσταση αποδελτίωσης + επαναποδελτίωση — πάντα ορατό, πάνω από τα tabs */}
       <div className="glass rounded-[22px] p-4">
         <div className="flex flex-wrap items-center gap-3">
           <span className={cn(extract.badgeClass)} style={extract.style}>
@@ -319,184 +370,204 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
           </div>
         )}
         <p className="mt-2.5 text-[11.5px] text-muted-foreground" style={{ borderTop: '1px dotted var(--dotted)', paddingTop: 10 }}>
-          Ανέβασε ξανά την προκήρυξη (π.χ. ενημερωμένη έκδοση) για να ξανατρέξει η AI αποδελτίωση — αντικαθιστά όλα τα εξαγμένα στοιχεία (κατηγορίες δαπανών, παραδοτέα, φάσεις, ΚΑΔ κ.λπ.), όχι τα «Στοιχεία» παρακάτω αν τα έχεις αποθηκεύσει ξανά μετά.
+          Ανέβασε ξανά την προκήρυξη (π.χ. ενημερωμένη έκδοση) για να ξανατρέξει η AI αποδελτίωση — αντικαθιστά όλα τα εξαγμένα στοιχεία (κατηγορίες δαπανών, παραδοτέα, φάσεις, ΚΑΔ κ.λπ.), όχι τα στοιχεία περιγραφής/προϋποθέσεων αν τα έχεις αποθηκεύσει ξανά μετά.
         </p>
       </div>
 
-      {/* Στοιχεία */}
-      <section className="glass rounded-[22px] p-4">
-        <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Στοιχεία</div>
+      <TabBar active={activeTab} onChange={setActiveTab} />
 
-        <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="field">
-            <label htmlFor="pm-title">Τίτλος</label>
-            <div className="inwrap">
-              <LuTag aria-hidden />
-              <input
-                id="pm-title" value={title} onChange={e => setTitle(e.target.value)}
-                onBlur={() => setFieldError('title', validateRequired(title))} disabled={savingMeta}
-              />
+      {/* «Περιγραφή & Ημερομηνίες» — επεξεργάσιμα core scalars */}
+      {activeTab === 'desc' && (
+        <section className="glass rounded-[22px] p-4">
+          <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="field">
+              <label htmlFor="pm-title">Τίτλος</label>
+              <div className="inwrap">
+                <LuTag aria-hidden />
+                <input
+                  id="pm-title" value={title} onChange={e => setTitle(e.target.value)}
+                  onBlur={() => setFieldError('title', validateRequired(title))} disabled={savingMeta}
+                />
+              </div>
+              {errors.title && <div className="error">{errors.title}</div>}
             </div>
-            {errors.title && <div className="error">{errors.title}</div>}
-          </div>
 
-          <div className="field">
-            <label htmlFor="pm-ref">Κωδικός αναφοράς</label>
-            <div className="inwrap">
-              <LuHash aria-hidden />
-              <input id="pm-ref" value={referenceCode} onChange={e => setReferenceCode(e.target.value)} disabled={savingMeta} />
+            <div className="field">
+              <label htmlFor="pm-ref">Κωδικός αναφοράς</label>
+              <div className="inwrap">
+                <LuHash aria-hidden />
+                <input id="pm-ref" value={referenceCode} onChange={e => setReferenceCode(e.target.value)} disabled={savingMeta} />
+              </div>
+            </div>
+
+            <div className="field">
+              <label htmlFor="pm-status">Κατάσταση</label>
+              <Select value={status} onValueChange={v => setStatus(v as ProgramData['status'])}>
+                <SelectTrigger id="pm-status" aria-label="Κατάσταση" className="h-11 w-full rounded-full border-border bg-card px-4" disabled={savingMeta}>
+                  <SelectValue>{(v: string) => STATUS_LABELS[v as ProgramData['status']]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DRAFT">Πρόχειρο</SelectItem>
+                  <SelectItem value="ACTIVE">Ενεργό</SelectItem>
+                  <SelectItem value="CLOSED">Κλειστό</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="pm-budget">Συνολικός Π/Υ (€)</label>
+              <div className="inwrap">
+                <LuEuro aria-hidden />
+                <input
+                  id="pm-budget" inputMode="decimal" value={totalBudget} onChange={e => setTotalBudget(e.target.value)}
+                  onBlur={() => setFieldError('totalBudget', validateNonNegativeNumber(totalBudget, 'Ο συνολικός προϋπολογισμός'))}
+                  disabled={savingMeta}
+                />
+              </div>
+              {errors.totalBudget && <div className="error">{errors.totalBudget}</div>}
+            </div>
+
+            <div className="field">
+              <label htmlFor="pm-rate">Ποσοστό επιχορήγησης (%)</label>
+              <div className="inwrap">
+                <LuPercent aria-hidden />
+                <input
+                  id="pm-rate" inputMode="decimal" value={fundingRate} onChange={e => setFundingRate(e.target.value)}
+                  onBlur={() => setFieldError('fundingRate', validatePercent(fundingRate))} disabled={savingMeta}
+                />
+              </div>
+              {errors.fundingRate && <div className="error">{errors.fundingRate}</div>}
+            </div>
+
+            <div className="field">
+              <label htmlFor="pm-duration">Διάρκεια (μήνες)</label>
+              <div className="inwrap">
+                <LuClock aria-hidden />
+                <input
+                  id="pm-duration" inputMode="numeric" value={durationMonths} onChange={e => setDurationMonths(e.target.value)}
+                  onBlur={() => setFieldError('durationMonths', validateNonNegativeInteger(durationMonths, 'Η διάρκεια'))}
+                  disabled={savingMeta}
+                />
+              </div>
+              {errors.durationMonths && <div className="error">{errors.durationMonths}</div>}
+            </div>
+
+            <div className="field">
+              <label htmlFor="pm-pubdate">Ημερομηνία δημοσίευσης</label>
+              <div className="inwrap">
+                <LuCalendar aria-hidden />
+                <input id="pm-pubdate" type="date" value={publicationDate} onChange={e => setPublicationDate(e.target.value)} disabled={savingMeta} />
+              </div>
+            </div>
+
+            <div className="field">
+              <label htmlFor="pm-substart">Έναρξη υποβολών</label>
+              <div className="inwrap">
+                <LuCalendar aria-hidden />
+                <input id="pm-substart" type="date" value={submissionStart} onChange={e => setSubmissionStart(e.target.value)} disabled={savingMeta} />
+              </div>
+            </div>
+
+            <div className="field">
+              <label htmlFor="pm-subend">Λήξη υποβολών</label>
+              <div className="inwrap">
+                <LuCalendar aria-hidden />
+                <input
+                  id="pm-subend" type="date" value={submissionEnd} onChange={e => setSubmissionEnd(e.target.value)}
+                  onBlur={() => setFieldError('submissionEnd', validateDateOrder())} disabled={savingMeta}
+                />
+              </div>
+              {errors.submissionEnd && <div className="error">{errors.submissionEnd}</div>}
+            </div>
+
+            <div className="field sm:col-span-2 lg:col-span-3">
+              <label htmlFor="pm-summary">Περίληψη</label>
+              <textarea id="pm-summary" className="cms-textarea" rows={3} value={summary} onChange={e => setSummary(e.target.value)} disabled={savingMeta} />
+            </div>
+
+            <div className="field sm:col-span-2 lg:col-span-3">
+              <label htmlFor="pm-notes">Σημειώσεις</label>
+              <textarea id="pm-notes" className="cms-textarea" rows={2} value={notes} onChange={e => setNotes(e.target.value)} disabled={savingMeta} />
             </div>
           </div>
 
-          <div className="field">
-            <label htmlFor="pm-status">Κατάσταση</label>
-            <Select value={status} onValueChange={v => setStatus(v as ProgramData['status'])}>
-              <SelectTrigger id="pm-status" aria-label="Κατάσταση" className="h-11 w-full rounded-full border-border bg-card px-4" disabled={savingMeta}>
-                <SelectValue>{(v: string) => STATUS_LABELS[v as ProgramData['status']]}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="DRAFT">Πρόχειρο</SelectItem>
-                <SelectItem value="ACTIVE">Ενεργό</SelectItem>
-                <SelectItem value="CLOSED">Κλειστό</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {SaveMetaButton}
+        </section>
+      )}
 
-          <div className="field">
-            <label htmlFor="pm-budget">Συνολικός Π/Υ (€)</label>
-            <div className="inwrap">
-              <LuEuro aria-hidden />
-              <input
-                id="pm-budget" inputMode="decimal" value={totalBudget} onChange={e => setTotalBudget(e.target.value)}
-                onBlur={() => setFieldError('totalBudget', validateNonNegativeNumber(totalBudget, 'Ο συνολικός προϋπολογισμός'))}
-                disabled={savingMeta}
-              />
+      {/* «ΚΑΔ» */}
+      {activeTab === 'kad' && <KadsSection kads={program.kads} kadRule={program.kadRule} />}
+
+      {/* «Προϋποθέσεις» — eligibility scalars (επεξεργάσιμα) + read-only περιφέρειες/νομικές μορφές/κριτήρια */}
+      {activeTab === 'terms' && (
+        <>
+          <section className="glass rounded-[22px] p-4">
+            <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Επιλεξιμότητα</div>
+            <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="field">
+                <label htmlFor="pm-fte">Ελάχιστες ΕΜΕ</label>
+                <div className="inwrap">
+                  <LuUsers aria-hidden />
+                  <input
+                    id="pm-fte" inputMode="decimal" value={minEmployeesFte} onChange={e => setMinEmployeesFte(e.target.value)}
+                    onBlur={() => setFieldError('minEmployeesFte', validateNonNegativeNumber(minEmployeesFte, 'Οι ελάχιστες ΕΜΕ'))}
+                    disabled={savingMeta}
+                  />
+                </div>
+                {errors.minEmployeesFte && <div className="error">{errors.minEmployeesFte}</div>}
+              </div>
+
+              <div className="field">
+                <label htmlFor="pm-years">Ελάχιστα έτη λειτουργίας</label>
+                <div className="inwrap">
+                  <LuBuilding2 aria-hidden />
+                  <input
+                    id="pm-years" inputMode="decimal" value={minOperationalYears} onChange={e => setMinOperationalYears(e.target.value)}
+                    onBlur={() => setFieldError('minOperationalYears', validateNonNegativeNumber(minOperationalYears, 'Τα ελάχιστα έτη λειτουργίας'))}
+                    disabled={savingMeta}
+                  />
+                </div>
+                {errors.minOperationalYears && <div className="error">{errors.minOperationalYears}</div>}
+              </div>
+
+              <div className="field sm:col-span-2 lg:col-span-3">
+                <label htmlFor="pm-eligibility">Σημείωση επιλεξιμότητας</label>
+                <textarea id="pm-eligibility" className="cms-textarea" rows={2} value={eligibilityNote} onChange={e => setEligibilityNote(e.target.value)} disabled={savingMeta} />
+              </div>
             </div>
-            {errors.totalBudget && <div className="error">{errors.totalBudget}</div>}
-          </div>
 
-          <div className="field">
-            <label htmlFor="pm-rate">Ποσοστό επιχορήγησης (%)</label>
-            <div className="inwrap">
-              <LuPercent aria-hidden />
-              <input
-                id="pm-rate" inputMode="decimal" value={fundingRate} onChange={e => setFundingRate(e.target.value)}
-                onBlur={() => setFieldError('fundingRate', validatePercent(fundingRate))} disabled={savingMeta}
-              />
-            </div>
-            {errors.fundingRate && <div className="error">{errors.fundingRate}</div>}
-          </div>
+            {SaveMetaButton}
+          </section>
 
-          <div className="field">
-            <label htmlFor="pm-duration">Διάρκεια (μήνες)</label>
-            <div className="inwrap">
-              <LuClock aria-hidden />
-              <input
-                id="pm-duration" inputMode="numeric" value={durationMonths} onChange={e => setDurationMonths(e.target.value)}
-                onBlur={() => setFieldError('durationMonths', validateNonNegativeInteger(durationMonths, 'Η διάρκεια'))}
-                disabled={savingMeta}
-              />
-            </div>
-            {errors.durationMonths && <div className="error">{errors.durationMonths}</div>}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <RegionsSection regions={program.regions} />
+            <LegalFormsSection legalForms={program.legalForms} />
+            <CriteriaSection criteria={program.criteria} />
           </div>
+        </>
+      )}
 
-          <div className="field">
-            <label htmlFor="pm-pubdate">Ημερομηνία δημοσίευσης</label>
-            <div className="inwrap">
-              <LuCalendar aria-hidden />
-              <input id="pm-pubdate" type="date" value={publicationDate} onChange={e => setPublicationDate(e.target.value)} disabled={savingMeta} />
-            </div>
-          </div>
-
-          <div className="field">
-            <label htmlFor="pm-substart">Έναρξη υποβολών</label>
-            <div className="inwrap">
-              <LuCalendar aria-hidden />
-              <input id="pm-substart" type="date" value={submissionStart} onChange={e => setSubmissionStart(e.target.value)} disabled={savingMeta} />
-            </div>
-          </div>
-
-          <div className="field">
-            <label htmlFor="pm-subend">Λήξη υποβολών</label>
-            <div className="inwrap">
-              <LuCalendar aria-hidden />
-              <input
-                id="pm-subend" type="date" value={submissionEnd} onChange={e => setSubmissionEnd(e.target.value)}
-                onBlur={() => setFieldError('submissionEnd', validateDateOrder())} disabled={savingMeta}
-              />
-            </div>
-            {errors.submissionEnd && <div className="error">{errors.submissionEnd}</div>}
-          </div>
-
-          <div className="field">
-            <label htmlFor="pm-fte">Ελάχιστες ΕΜΕ</label>
-            <div className="inwrap">
-              <LuUsers aria-hidden />
-              <input
-                id="pm-fte" inputMode="decimal" value={minEmployeesFte} onChange={e => setMinEmployeesFte(e.target.value)}
-                onBlur={() => setFieldError('minEmployeesFte', validateNonNegativeNumber(minEmployeesFte, 'Οι ελάχιστες ΕΜΕ'))}
-                disabled={savingMeta}
-              />
-            </div>
-            {errors.minEmployeesFte && <div className="error">{errors.minEmployeesFte}</div>}
-          </div>
-
-          <div className="field">
-            <label htmlFor="pm-years">Ελάχιστα έτη λειτουργίας</label>
-            <div className="inwrap">
-              <LuBuilding2 aria-hidden />
-              <input
-                id="pm-years" inputMode="decimal" value={minOperationalYears} onChange={e => setMinOperationalYears(e.target.value)}
-                onBlur={() => setFieldError('minOperationalYears', validateNonNegativeNumber(minOperationalYears, 'Τα ελάχιστα έτη λειτουργίας'))}
-                disabled={savingMeta}
-              />
-            </div>
-            {errors.minOperationalYears && <div className="error">{errors.minOperationalYears}</div>}
-          </div>
-
-          <div className="field sm:col-span-2 lg:col-span-3">
-            <label htmlFor="pm-summary">Περίληψη</label>
-            <textarea id="pm-summary" className="cms-textarea" rows={3} value={summary} onChange={e => setSummary(e.target.value)} disabled={savingMeta} />
-          </div>
-
-          <div className="field sm:col-span-2 lg:col-span-3">
-            <label htmlFor="pm-eligibility">Σημείωση επιλεξιμότητας</label>
-            <textarea id="pm-eligibility" className="cms-textarea" rows={2} value={eligibilityNote} onChange={e => setEligibilityNote(e.target.value)} disabled={savingMeta} />
-          </div>
-
-          <div className="field sm:col-span-2 lg:col-span-3">
-            <label htmlFor="pm-notes">Σημειώσεις</label>
-            <textarea id="pm-notes" className="cms-textarea" rows={2} value={notes} onChange={e => setNotes(e.target.value)} disabled={savingMeta} />
-          </div>
+      {/* «Παραδοτέα» */}
+      {activeTab === 'deliverables' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <DeliverablesSection deliverables={program.deliverables} />
+          <PhasesSection phases={program.phases} />
         </div>
+      )}
 
-        <div className="mt-1 flex justify-end">
-          <Button type="button" onClick={handleSaveMeta} disabled={savingMeta}>
-            {savingMeta ? 'Αποθήκευση…' : 'Αποθήκευση'}
-          </Button>
-        </div>
-      </section>
+      {/* «Κατηγορίες & Όρια Δαπανών» — C3-relevant */}
+      {activeTab === 'expenses' && (
+        <>
+          <ExpenseCategoriesSection categories={program.expenseCats} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <BonusesSection bonuses={program.bonuses} />
+            <DeadlinesSection deadlines={program.deadlines} />
+          </div>
+        </>
+      )}
 
-      {/* Κατηγορίες δαπανών — αυτές που χρησιμοποιεί το C3 για προτάσεις κατηγοριοποίησης δαπανών */}
-      <ExpenseCategoriesSection categories={program.expenseCats} />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <DeliverablesSection deliverables={program.deliverables} />
-        <PhasesSection phases={program.phases} />
-      </div>
-
-      <KadsSection kads={program.kads} kadRule={program.kadRule} />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <BonusesSection bonuses={program.bonuses} />
-        <CriteriaSection criteria={program.criteria} />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <DeadlinesSection deadlines={program.deadlines} />
-        <RegionsSection regions={program.regions} />
-        <LegalFormsSection legalForms={program.legalForms} />
-      </div>
+      {/* «Έντυπα» — νέο, self-fetching tab */}
+      {activeTab === 'forms' && <RequiredFormsTab programId={program.id} />}
     </div>
   )
 }
