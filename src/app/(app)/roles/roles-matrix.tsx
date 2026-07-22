@@ -5,6 +5,10 @@ import { toast } from 'sonner'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { roleColorVar, ROLE_DESCRIPTIONS } from '@/lib/role-meta'
 import { togglePermission } from './actions'
+import { Plus, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CreateRoleDialog } from './create-role-dialog'
+import { DeleteRoleDialog } from './delete-role-dialog'
 
 export type RoleData = {
   id: string
@@ -21,9 +25,11 @@ export type PermGroup = {
   items: { key: string; description: string }[]
 }
 
-export function RolesMatrix({ roles, groups }: { roles: RoleData[]; groups: PermGroup[] }) {
+export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]; groups: PermGroup[]; isSuperAdmin: boolean }) {
   const [selectedRole, setSelectedRole] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [deleteRoleTarget, setDeleteRoleTarget] = useState<RoleData | null>(null)
 
   function handleToggle(roleName: string, permKey: string) {
     startTransition(async () => {
@@ -35,27 +41,50 @@ export function RolesMatrix({ roles, groups }: { roles: RoleData[]; groups: Perm
 
   return (
     <>
+      {isSuperAdmin && (
+        <div className="mb-3 flex justify-end">
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus width={15} height={15} strokeWidth={2} aria-hidden /> Νέος ρόλος
+          </Button>
+        </div>
+      )}
+
       <div className="roles-row stagger">
         {roles.map(role => {
           const on = selectedRole === role.name
+          const canDelete = isSuperAdmin && !role.system
           return (
-            <button
-              key={role.id}
-              type="button"
-              className={`role-card glass lift${on ? ' on' : ''}`}
-              aria-pressed={on}
-              onClick={() => setSelectedRole(prev => (prev === role.name ? null : role.name))}
-            >
-              <div className="n">
-                <span className="status-dot" style={{ background: roleColorVar(role.name) }} aria-hidden />
-                {role.name}
-              </div>
-              <div className="c">{role.description || ROLE_DESCRIPTIONS[role.name] || '—'}</div>
-              <div className="cnt">
-                {role.userCount}
-                <small>{role.userCount === 1 ? 'χρήστης' : 'χρήστες'}</small>
-              </div>
-            </button>
+            <div key={role.id} className={`role-card glass lift${on ? ' on' : ''}`} style={{ position: 'relative' }}>
+              {canDelete && (
+                <button
+                  type="button"
+                  className="role-card-del"
+                  aria-label={`Διαγραφή ρόλου ${role.name}`}
+                  title="Διαγραφή ρόλου"
+                  style={{ position: 'absolute', top: 8, right: 8 }}
+                  onClick={e => { e.stopPropagation(); setDeleteRoleTarget(role) }}
+                >
+                  <Trash2 width={14} height={14} strokeWidth={1.8} aria-hidden />
+                </button>
+              )}
+              <button
+                type="button"
+                className="role-card-body"
+                aria-pressed={on}
+                style={{ all: 'unset', cursor: 'pointer', display: 'block' }}
+                onClick={() => setSelectedRole(prev => (prev === role.name ? null : role.name))}
+              >
+                <div className="n">
+                  <span className="status-dot" style={{ background: roleColorVar(role.name) }} aria-hidden />
+                  {role.name}
+                </div>
+                <div className="c">{role.description || ROLE_DESCRIPTIONS[role.name] || '—'}</div>
+                <div className="cnt">
+                  {role.userCount}
+                  <small>{role.userCount === 1 ? 'χρήστης' : 'χρήστες'}</small>
+                </div>
+              </button>
+            </div>
           )
         })}
       </div>
@@ -135,6 +164,18 @@ export function RolesMatrix({ roles, groups }: { roles: RoleData[]; groups: Perm
           </table>
         </div>
       </div>
+
+      {isSuperAdmin && (
+        <CreateRoleDialog roles={roles} open={createOpen} onOpenChange={setCreateOpen} />
+      )}
+      {deleteRoleTarget && (
+        <DeleteRoleDialog
+          role={deleteRoleTarget}
+          roles={roles}
+          open={deleteRoleTarget !== null}
+          onOpenChange={openState => { if (!openState) setDeleteRoleTarget(null) }}
+        />
+      )}
     </>
   )
 }
