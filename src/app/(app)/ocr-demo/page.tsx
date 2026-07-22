@@ -1,4 +1,5 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { OcrDemoClient } from './ocr-demo-client'
 
 export default async function OcrDemoPage() {
@@ -6,6 +7,7 @@ export default async function OcrDemoPage() {
   // για OCR. TODO: αντικατάσταση (π.χ. 'findocs.ocr') όταν το <OcrUploader> δεθεί
   // στη μόνιμη ροή παραστατικών (findocs) και αυτή η demo σελίδα αποσυρθεί.
   await requirePermission('media.manage')
+  await assertObjectEnabled('ocr-demo')
 
   return (
     <div>

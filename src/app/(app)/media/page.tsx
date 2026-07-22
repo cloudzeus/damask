@@ -1,9 +1,11 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { getMediaList } from '@/lib/media'
 import { MediaGallery } from './media-gallery'
 
 export default async function MediaPage() {
   await requirePermission('media.manage')
+  await assertObjectEnabled('media')
 
   const initial = await getMediaList()
 
