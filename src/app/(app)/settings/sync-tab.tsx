@@ -36,6 +36,11 @@ function TargetRow({
   start: (cb: () => void) => void
 }) {
   const [local, setLocal] = useState(cfg)
+  const [prevCfg, setPrevCfg] = useState(cfg)
+  if (cfg !== prevCfg) {
+    setPrevCfg(cfg)
+    setLocal(cfg)
+  }
   const patch = (p: Partial<ObjectSyncConfig>) => setLocal(prev => ({ ...prev, ...p }))
 
   function save() {
@@ -66,16 +71,16 @@ function TargetRow({
           <input type="checkbox" checked={local.syncEnabled} disabled={pending} onChange={e => patch({ syncEnabled: e.target.checked })} />
           Ενεργό
         </label>
-        <select className="rounded-lg border border-[var(--glass-border)] bg-transparent px-2 py-1" value={local.direction} disabled={pending} onChange={e => patch({ direction: e.target.value as SyncDirection })}>
+        <select aria-label="Κατεύθυνση" className="rounded-lg border border-[var(--glass-border)] bg-transparent px-2 py-1" value={local.direction} disabled={pending} onChange={e => patch({ direction: e.target.value as SyncDirection })}>
           {target.supportedDirections.map(d => <option key={d} value={d}>{DIR_LABELS[d]}</option>)}
         </select>
         {local.direction === 'bidirectional' && (
-          <select className="rounded-lg border border-[var(--glass-border)] bg-transparent px-2 py-1" value={local.master} disabled={pending} onChange={e => patch({ master: e.target.value as ObjectSyncConfig['master'] })}>
+          <select aria-label="Master" className="rounded-lg border border-[var(--glass-border)] bg-transparent px-2 py-1" value={local.master} disabled={pending} onChange={e => patch({ master: e.target.value as ObjectSyncConfig['master'] })}>
             <option value="softone">Master: SoftOne</option>
             <option value="local">Master: Τοπικά</option>
           </select>
         )}
-        <select className="rounded-lg border border-[var(--glass-border)] bg-transparent px-2 py-1" value={local.frequency} disabled={pending} onChange={e => patch({ frequency: e.target.value as SyncFrequency })}>
+        <select aria-label="Συχνότητα" className="rounded-lg border border-[var(--glass-border)] bg-transparent px-2 py-1" value={local.frequency} disabled={pending} onChange={e => patch({ frequency: e.target.value as SyncFrequency })}>
           {(Object.keys(FREQ_LABELS) as SyncFrequency[]).map(f => <option key={f} value={f}>{FREQ_LABELS[f]}</option>)}
         </select>
         <Button onClick={save} disabled={pending}>Αποθήκευση</Button>
