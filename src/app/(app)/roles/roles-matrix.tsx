@@ -165,7 +165,8 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
         </div>
       </div>
 
-      {isSuperAdmin && (
+      {isSuperAdmin && createOpen && (
+        // Mount only while open (like DeleteRoleDialog) so the form starts fresh each time.
         <CreateRoleDialog roles={roles} open={createOpen} onOpenChange={setCreateOpen} />
       )}
       {deleteRoleTarget && (

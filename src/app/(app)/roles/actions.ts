@@ -148,6 +148,8 @@ export async function deleteRole(roleId: string, reassignToRoleId?: string): Pro
   })
   if (!role) return { ok: false, message: 'Ο ρόλος δεν βρέθηκε.' }
   if (role.system) return { ok: false, message: 'Οι βασικοί ρόλοι δεν διαγράφονται.' }
+  // Άμυνα σε βάθος: σήμερα μόνο ο SUPER_ADMIN (system=true) φτάνει εδώ, οπότε ο
+  // έλεγχος system παραπάνω ήδη τον καλύπτει — μένει για αν αλλάξει το gating.
   if (role.name === session.user.role) return { ok: false, message: 'Δεν μπορείς να διαγράψεις τον δικό σου ρόλο.' }
 
   const userCount = role._count.users
