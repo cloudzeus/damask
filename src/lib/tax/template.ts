@@ -33,6 +33,15 @@ export function slugFieldKey(label: string): string {
   return transliterated.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
 }
 
+/** Region-key of a field — MUST mirror the identical (private) `regionKeyOf` in
+ * src/components/tax/region-editor.tsx (Task 12): already-saved fields key on
+ * `id`, new (unsaved) ones on `fieldKey`, falling back to `field-{index}`.
+ * Shared here so template-editor.tsx / field-list.tsx stay in lockstep with
+ * the region overlay's selection/highlight without duplicating the logic. */
+export function regionKeyOf(field: TemplateField, index: number): string {
+  return field.id ?? (field.fieldKey.trim() || `field-${index}`)
+}
+
 export function isValidBbox(bbox: unknown): bbox is Bbox {
   if (!Array.isArray(bbox) || bbox.length !== 4) return false
   const [x, y, w, h] = bbox as number[]
