@@ -79,8 +79,9 @@ describe('permissions.ts derives losslessly from the registry', () => {
     'customer.edit','order.view','order.create','order.approve','order.autoapprove',
     'container.manage','payment.view','payment.manage','commission.view','commission.manage',
     'portal.access','sync.run','user.manage','settings.manage','cms.view','cms.edit','costs.view',
+    'taxform.manage','taxform.scan',
   ]
-  it('exposes exactly the original 27 permission keys', () => {
+  it('exposes exactly the original 27 permission keys, plus taxform.manage/taxform.scan', () => {
     expect(new Set(CATALOG.map(p => p.key))).toEqual(new Set(EXPECTED_KEYS))
     expect(CATALOG.length).toBe(EXPECTED_KEYS.length)
   })

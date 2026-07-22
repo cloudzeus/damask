@@ -66,6 +66,7 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   settings: 'Διαχείριση',
   cms: 'Διαχείριση',
   costs: 'Διαχείριση',
+  taxform: 'Διαχείριση',
 }
 
 export type PermissionGroup = { label: string; items: PermissionDef[] }
