@@ -15,7 +15,7 @@ export function StepIngestValidate({ target, state, patch }: StepProps) {
     setLoading(true)
     try {
       const r = await validateBatch(target.key, state.batch, state.mappings)
-      patch({ validation: { toCreate: r.toCreate, errors: r.errors, validRows: r.validRows } })
+      patch({ validation: { errors: r.errors, validRows: r.validRows } })
     } finally {
       setLoading(false)
     }

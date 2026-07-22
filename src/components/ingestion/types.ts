@@ -11,7 +11,7 @@ export type IngestState = {
   batch: NormalizedBatch | null
   ocrCost: OcrCostView | null
   mappings: IngestionMapping[]
-  validation: { toCreate: number; errors: FieldError[]; validRows: number } | null
+  validation: { errors: FieldError[]; validRows: number } | null
   totals: ImportTotals | null
 }
 

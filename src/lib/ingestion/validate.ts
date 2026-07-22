@@ -37,8 +37,3 @@ export function validateRows(rows: RawIngestionRow[], target: IngestionTarget): 
   }
   return { parsed, errors }
 }
-
-export function validationSummary(result: ValidateResult): { valid: number; invalid: number; errors: number } {
-  const valid = result.parsed.filter(p => p.ok).length
-  return { valid, invalid: result.parsed.length - valid, errors: result.errors.length }
-}

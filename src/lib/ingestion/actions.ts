@@ -107,7 +107,7 @@ export async function acquireFromApi(
   return { source: 'api', sourceKeys, records, meta: { api: { url: safe.toString(), fetchedAt: Date.now(), count: records.length } } }
 }
 
-export type ValidateBatchResult = { toCreate: number; toUpdate: number; errors: FieldError[]; validRows: number }
+export type ValidateBatchResult = { errors: FieldError[]; validRows: number }
 
 export async function validateBatch(
   targetKey: string,
@@ -118,7 +118,7 @@ export async function validateBatch(
   const rows = mapToRows(batch, mappings, target)
   const { parsed, errors } = validateRows(rows, target)
   const validRows = parsed.filter(p => p.ok).length
-  return { toCreate: validRows, toUpdate: 0, errors, validRows }
+  return { errors, validRows }
 }
 
 export async function commitBatch(
