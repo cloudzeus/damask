@@ -15,8 +15,10 @@ export const QUEUE_BACKUP = 'backup'
  * Το χειροκίνητο κουμπί «Sync βοηθητικών από SoftOne» (καρτέλα «Διασυνδέσεις»)
  * ΔΕΝ περνάει από αυτή την ουρά — καλεί syncAllReferences απευθείας από το server
  * action (src/app/(app)/settings/s1-sync-actions.ts), ίδιο idiom με QUEUE_BACKUP.
- * Η ουρά υπάρχει για μελλοντικό scheduled sync (δεν είναι scheduled ακόμα — δεν
- * υπάρχουν S1 credentials σε αυτό το περιβάλλον). */
+ * Η ουρά είναι πλέον scheduled dispatcher tick (κάθε 5′, Europe/Athens): διαβάζει
+ * το objects.sync, βρίσκει ποια sync targets είναι due (enabled + non-manual +
+ * πέρασε το interval) και τρέχει το καθένα μέσω runSyncTarget. Μόνο το
+ * 's1-references' έχει engine σήμερα· products/partners εκκρεμούν (pending). */
 export const QUEUE_S1_REF_SYNC = 's1-ref-sync'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
