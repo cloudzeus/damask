@@ -76,14 +76,20 @@ export async function startQueue(): Promise<void> {
   // (enabled + non-manual + πέρασε το interval) και τρέχει το engine τους. Μόνο το
   // 's1-references' έχει engine· products/partners επιστρέφουν "pending" (no-op).
   await boss.work(QUEUE_S1_REF_SYNC, async () => {
-    const { getSyncConfigs } = await import('@/lib/sync-config-server')
-    const { dueTargetKeys } = await import('@/lib/sync-targets')
-    const { runSyncTarget } = await import('@/lib/sync-engines')
-    const configs = await getSyncConfigs()
-    const due = dueTargetKeys(configs, Date.now())
-    for (const key of due) {
-      const res = await runSyncTarget(key, () => new Date().toISOString())
-      if (!res.ok && !res.pending) console.warn('[pg-boss] s1 sync target απέτυχε', key, res.message)
+    try {
+      const { getSyncConfigs } = await import('@/lib/sync-config-server')
+      const { dueTargetKeys } = await import('@/lib/sync-targets')
+      const { runSyncTarget } = await import('@/lib/sync-engines')
+      const configs = await getSyncConfigs()
+      const due = dueTargetKeys(configs, Date.now())
+      for (const key of due) {
+        const res = await runSyncTarget(key, () => new Date().toISOString())
+        if (!res.ok && !res.pending) console.warn('[pg-boss] s1 sync target απέτυχε', key, res.message)
+      }
+    } catch (err) {
+      // Ποτέ throw προς το pg-boss εδώ — infra failure (π.χ. DB outage στο getSyncConfigs/SyncLog)
+      // θα προκαλούσε retry-storm στον scheduled dispatcher. Log + swallow.
+      console.error('[pg-boss] s1 sync dispatcher απέτυχε', err)
     }
   })
   await boss.schedule(QUEUE_S1_REF_SYNC, '*/5 * * * *', null, { tz: 'Europe/Athens' })

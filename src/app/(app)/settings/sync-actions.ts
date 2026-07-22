@@ -11,7 +11,11 @@ import type { ActionResult } from './actions'
 export async function saveSyncConfig(key: string, patch: Partial<ObjectSyncConfig>): Promise<ActionResult> {
   await requireSuperAdmin('settings.manage')
   if (!(await isSoftOneConnected())) return { ok: false, message: 'Δεν υπάρχει ενεργή σύνδεση SoftOne.' }
-  await setSyncConfig(key, patch)
+  // Το lastRunAt είναι runtime state του engine (updateLastRun) — ένα stale ανοιχτό tab
+  // δεν πρέπει να το κάνει regress μέσω αυτού του user-facing save.
+  const { lastRunAt: _ignore, ...safe } = patch
+  void _ignore
+  await setSyncConfig(key, safe)
   revalidatePath('/settings')
   return { ok: true, message: 'Οι ρυθμίσεις συγχρονισμού αποθηκεύτηκαν.' }
 }
