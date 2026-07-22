@@ -94,6 +94,9 @@ function normalize(raw: Record<string, unknown>): ExtractedProgram {
         mandatory: d.mandatory !== false,
       }))
       .filter(d => d.name),
+    requiredForms: arr('requiredForms')
+      .map(f => ({ name: str(f.name) ?? '', mandatory: f.mandatory !== false, notes: str(f.notes) }))
+      .filter(f => f.name),
     phases: arr('phases')
       .map(p => ({ name: str(p.name) ?? '' }))
       .filter(p => p.name),

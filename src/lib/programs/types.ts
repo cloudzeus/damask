@@ -15,6 +15,12 @@ export type ExtractedDeliverable = {
   mandatory: boolean
 }
 
+export type ExtractedRequiredForm = {
+  name: string
+  mandatory: boolean
+  notes?: string | null
+}
+
 export type ExtractedProgram = {
   title: string | null
   summary: string | null
@@ -31,6 +37,7 @@ export type ExtractedProgram = {
   kadRule: string | null
   expenseCategories: ExtractedExpenseCategory[]
   deliverables: ExtractedDeliverable[]
+  requiredForms: ExtractedRequiredForm[]
   phases: { name: string }[]
   kads: { code: string; description?: string | null }[]
   bonuses: { kind?: string | null; name: string; condition?: string | null; bonusRate?: number | null; bonusAmount?: number | null }[]
@@ -73,6 +80,7 @@ export function emptyExtractedProgram(): ExtractedProgram {
     kadRule: null,
     expenseCategories: [],
     deliverables: [],
+    requiredForms: [],
     phases: [],
     kads: [],
     bonuses: [],

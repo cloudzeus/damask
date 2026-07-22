@@ -918,6 +918,7 @@ model TaxFormTemplate {
   updatedAt        DateTime @updatedAt
   fields           TaxFormTemplateField[]
   records          TrdrFormRecord[]
+  requiredForms    ProgramRequiredForm[]
   @@unique([code, year])
   @@index([status])
 }
@@ -1056,6 +1057,7 @@ model Program {
   regions             ProgramRegion[]
   legalForms          ProgramEligibleLegalForm[]
   applications        ProgramApplication[]
+  requiredForms       ProgramRequiredForm[]
 
   @@index([status])
   @@index([extractStatus])
@@ -1169,6 +1171,22 @@ model ProgramEligibleLegalForm {
   name      String
 
   @@index([programId])
+}
+
+model ProgramRequiredForm {
+  id         String  @id @default(cuid())
+  programId  String
+  program    Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name       String                              // π.χ. «Ε3», «Βεβαίωση έναρξης» (from extraction or manual)
+  mandatory  Boolean @default(true)
+  notes      String?
+  order      Int     @default(0)
+  templateId String?                             // optional link to a «Οδηγός Εντύπου» (TaxFormTemplate)
+  template   TaxFormTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([programId])
+  @@index([templateId])
 }
 
 model ProgramApplication {

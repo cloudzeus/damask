@@ -82,6 +82,7 @@ export type RelatedRows = {
   deliverables: { name: string; description: string | null; mandatory: boolean; order: number; phaseName: string | null }[]
   regions: { name: string; notes: string | null }[]
   legalForms: { name: string }[]
+  requiredForms: { name: string; mandatory: boolean; notes: string | null; order: number }[]
 }
 
 /** PURE: related-collection mapping, each array element stamped with `order: index`. */
@@ -118,5 +119,6 @@ export function toRelatedRows(e: ExtractedProgram): RelatedRows {
     })),
     regions: e.regions.map(r => ({ name: r.name, notes: r.notes ?? null })),
     legalForms: e.eligibleLegalForms.map(name => ({ name })),
+    requiredForms: e.requiredForms.map((f, i) => ({ name: f.name, mandatory: f.mandatory, notes: f.notes ?? null, order: i })),
   }
 }

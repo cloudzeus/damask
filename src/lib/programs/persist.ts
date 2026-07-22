@@ -36,6 +36,7 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
     await tx.programPhase.deleteMany({ where: { programId } })
     await tx.programRegion.deleteMany({ where: { programId } })
     await tx.programEligibleLegalForm.deleteMany({ where: { programId } })
+    await tx.programRequiredForm.deleteMany({ where: { programId } })
 
     if (rows.expenseCats.length) {
       await tx.programExpenseCategory.createMany({
@@ -59,6 +60,11 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
     }
     if (rows.legalForms.length) {
       await tx.programEligibleLegalForm.createMany({ data: rows.legalForms.map(f => ({ ...f, programId })) })
+    }
+    if (rows.requiredForms.length) {
+      // NOTE: extraction never sets templateId — the user links a required
+      // form to a «Οδηγός Εντύπου» (TaxFormTemplate) later via updateRequiredForm.
+      await tx.programRequiredForm.createMany({ data: rows.requiredForms.map(r => ({ ...r, programId })) })
     }
 
     // Phases first, then deliverables resolve phaseName → phaseId.

@@ -9,6 +9,7 @@ vi.mock('@/lib/deepseek', () => ({
     fundingRate: '65',
     expenseCategories: [{ name: 'Εξοπλισμός', maxPercentage: '50', mandatory: false }],
     deliverables: [{ name: 'Έκθεση', mandatory: true }],
+    requiredForms: [{ name: 'Ε3', mandatory: true }],
   })),
 }))
 
@@ -21,6 +22,7 @@ describe('extractProgramFromText', () => {
     expect(r.data.totalBudget).toBeCloseTo(1000000, 2)
     expect(r.data.fundingRate).toBe(65)
     expect(r.data.expenseCategories[0]).toMatchObject({ name: 'Εξοπλισμός', maxPercentage: 50 })
+    expect(r.data.requiredForms[0]).toMatchObject({ name: 'Ε3', mandatory: true })
     expect(r.model).toBeDefined()
   })
 })

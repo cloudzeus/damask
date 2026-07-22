@@ -398,3 +398,92 @@ export async function listTrdrOptions(query?: string): Promise<TrdrOption[]> {
   })
   return rows.map(r => ({ id: r.id, name: r.NAME, afm: r.AFM }))
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * ProgramRequiredForm — «Έντυπα που χρειάζονται» tab: required supporting
+ * documents/forms (extracted from the PDF or added manually), each
+ * optionally LINKED by the user to a «Οδηγός Εντύπου» (TaxFormTemplate).
+ * Extraction never sets templateId (see persist.ts) — linking is a
+ * deliberate user action via updateRequiredForm.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+export type ProgramRequiredFormItem = {
+  id: string
+  name: string
+  mandatory: boolean
+  notes: string | null
+  templateId: string | null
+  templateName: string | null
+}
+
+export async function listProgramRequiredForms(programId: string): Promise<ProgramRequiredFormItem[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.programRequiredForm.findMany({
+    where: { programId },
+    orderBy: { order: 'asc' },
+    include: { template: { select: { name: true, code: true } } },
+  })
+  return rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    mandatory: r.mandatory,
+    notes: r.notes,
+    templateId: r.templateId,
+    templateName: r.template ? `${r.template.name} (${r.template.code})` : null,
+  }))
+}
+
+export async function addRequiredForm(
+  programId: string,
+  input: { name: string; mandatory?: boolean; notes?: string | null },
+): Promise<{ id: string }> {
+  await requirePermission('programs.manage')
+  const count = await prisma.programRequiredForm.count({ where: { programId } })
+  const row = await prisma.programRequiredForm.create({
+    data: {
+      programId,
+      name: input.name.trim(),
+      mandatory: input.mandatory ?? true,
+      notes: input.notes ?? null,
+      order: count,
+    },
+  })
+  revalidatePath(`/programs/${programId}`)
+  return { id: row.id }
+}
+
+export async function updateRequiredForm(
+  id: string,
+  input: { name?: string; mandatory?: boolean; notes?: string | null; templateId?: string | null },
+): Promise<void> {
+  await requirePermission('programs.manage')
+  const row = await prisma.programRequiredForm.update({
+    where: { id },
+    data: {
+      ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+      ...(input.mandatory !== undefined ? { mandatory: input.mandatory } : {}),
+      ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      ...(input.templateId !== undefined ? { templateId: input.templateId } : {}),
+    },
+  })
+  revalidatePath(`/programs/${row.programId}`)
+}
+
+export async function removeRequiredForm(id: string): Promise<void> {
+  await requirePermission('programs.manage')
+  const row = await prisma.programRequiredForm.delete({ where: { id } })
+  revalidatePath(`/programs/${row.programId}`)
+}
+
+export type TaxTemplateOption = { id: string; code: string; name: string; year: number | null }
+
+/** id+code+name+year λίστα των «Οδηγών Εντύπων» — για το <select> σύνδεσης
+ * στο ProgramRequiredForm (βλ. updateRequiredForm). */
+export async function listTaxTemplateOptions(): Promise<TaxTemplateOption[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.taxFormTemplate.findMany({
+    orderBy: [{ name: 'asc' }],
+    select: { id: true, code: true, name: true, year: true },
+  })
+  return rows
+}

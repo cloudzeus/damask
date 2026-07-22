@@ -98,6 +98,7 @@ You MUST follow this loop before producing JSON.
 - **ΥΠΟΧΡΕΩΤΙΚΕΣ δαπάνες**: αναζητείστε λέξεις όπως "υποχρεωτική κατηγορία", "απαιτείται", "πρέπει να περιλαμβάνει", "οφείλει". Σημαδέψτε αυτές τις κατηγορίες δαπανών με "mandatory": true.
 - **Φάσεις υλοποίησης**: "ΦΑΣΕΙΣ ΥΛΟΠΟΙΗΣΗΣ", "ΣΤΑΔΙΑ ΕΡΓΟΥ" — αν το έγγραφο ορίζει διακριτές φάσεις (π.χ. Φάση Α: Προμήθεια εξοπλισμού, Φάση Β: Θέση σε λειτουργία), καταχώρησέ τες στο "phases[]" array με το όνομα της κάθε φάσης.
 - **Παραδοτέα**: "ΠΑΡΑΔΟΤΕΑ", "ΥΠΟΧΡΕΩΣΕΙΣ ΔΙΚΑΙΟΥΧΟΥ" — συγκεκριμένα έγγραφα/ενέργειες που πρέπει να παραδοθούν/ολοκληρωθούν (π.χ. πινακίδα δημοσιότητας, τελική έκθεση) → στο "deliverables[]" array, με "mandatory": true αν είναι υποχρεωτικό.
+- **Απαιτούμενα δικαιολογητικά/έντυπα**: "ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ ΣΥΜΜΕΤΟΧΗΣ", "ΑΠΑΙΤΟΥΜΕΝΑ ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ", "ΕΝΤΥΠΑ ΥΠΟΒΟΛΗΣ", "ΣΥΝΗΜΜΕΝΑ ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ" — συγκεκριμένα φορολογικά/ασφαλιστικά έντυπα και βεβαιώσεις που πρέπει να επισυναφθούν με την αίτηση (π.χ. έντυπο Ε3, φορολογική ενημερότητα, ασφαλιστική ενημερότητα, βεβαίωση έναρξης/μεταβολής εργασιών, ισολογισμός) → στο "requiredForms[]" array, με "mandatory": true αν ρητά απαιτείται (false αν αναφέρεται ως προαιρετικό/κατά περίπτωση).
 
 # CRITICAL: kadRule (κρίσιμο πεδίο)
 
@@ -164,6 +165,7 @@ export const PROGRAM_JSON_SHAPE = `# Output JSON shape
   "kadRule": "ALL_EXCEPT_LISTED"|"ONLY_LISTED"|"MIXED"|"UNSPECIFIED",
   "expenseCategories": [ { "name": string, "minPercentage": number|null, "maxPercentage": number|null, "minAmount": number|null, "maxAmount": number|null, "mandatory": boolean, "notes": string|null } ],
   "deliverables": [ { "name": string, "description": string|null, "phase": string|null, "mandatory": boolean } ],
+  "requiredForms": [ { "name": string, "mandatory": boolean, "notes": string|null } ],
   "phases": [ { "name": string } ],
   "kads": [ { "code": string, "description": string|null } ],
   "bonuses": [ { "kind": string|null, "name": string, "condition": string|null, "bonusRate": number|null, "bonusAmount": number|null } ],

@@ -14,6 +14,7 @@ describe('persist mapping', () => {
         { name: 'Εξοπλισμός', minPercentage: null, maxPercentage: 50, minAmount: null, maxAmount: null, mandatory: true },
       ],
       deliverables: [{ name: 'Έκθεση', description: null, phase: 'Φάση Α', mandatory: true }],
+      requiredForms: [{ name: 'Ε3', mandatory: true, notes: null }],
     }
     const s = toProgramScalars(e)
     expect(s.title).toBe('T')
@@ -24,6 +25,7 @@ describe('persist mapping', () => {
     const r = toRelatedRows(e)
     expect(r.expenseCats[0]).toMatchObject({ name: 'Εξοπλισμός', maxPercentage: 50, mandatory: true, order: 0 })
     expect(r.deliverables[0]).toMatchObject({ name: 'Έκθεση', mandatory: true, phaseName: 'Φάση Α' })
+    expect(r.requiredForms[0]).toMatchObject({ name: 'Ε3', mandatory: true, order: 0 })
   })
 
   it('does NOT include kadRule in program scalars (no such column)', () => {
