@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
-import { requirePermission } from '@/lib/rbac-server'
+import { requirePermission, requireSuperAdmin } from '@/lib/rbac-server'
 import { getSetting, setSetting } from '@/lib/settings'
 import type { AiMarkupSettings } from '@/lib/ai/markup'
 import type { PricingEntry, PricingOverrides } from '@/lib/ai/pricing'
@@ -19,22 +19,6 @@ function fieldErrorsFromZod(error: z.ZodError): Record<string, string> {
     if (key && !out[key]) out[key] = issue.message
   }
   return out
-}
-
-/**
- * Οι κάρτες «Markup ανά υπηρεσία» / «Overrides τιμολόγησης μοντέλων» (SUPER_ADMIN
- * μόνο, βλ. markup-card.tsx/pricing-overrides-card.tsx) γράφουν στα settings
- * "ai.markup"/"ai.pricingOverrides" — requirePermission('costs.view') ελέγχει ότι
- * ο χρήστης βλέπει καν τη σελίδα, αλλά ΔΕΝ αρκεί: ο ADMIN έχει επίσης costs.view
- * (βλέπει το κόστος ΜΕ markup) αλλά ΔΕΝ επιτρέπεται να αλλάξει markup/τιμές —
- * γι' αυτό ελέγχουμε ρητά session.user.role === 'SUPER_ADMIN' εδώ, όχι μόνο permission.
- */
-async function requireSuperAdmin() {
-  const session = await requirePermission('costs.view')
-  if (session.user.role !== 'SUPER_ADMIN') {
-    throw new Error('Forbidden: απαιτείται ρόλος SUPER_ADMIN')
-  }
-  return session
 }
 
 function revalidateCosts() {
@@ -63,7 +47,7 @@ export type AiMarkupFormValues = {
 
 export async function saveAiMarkup(values: AiMarkupFormValues): Promise<ActionResult> {
   try {
-    await requireSuperAdmin()
+    await requireSuperAdmin('costs.view')
   } catch {
     return { ok: false, message: 'Μόνο ο SUPER_ADMIN μπορεί να αλλάξει το markup.' }
   }
@@ -103,7 +87,7 @@ export type PricingOverrideFormValues = { model: string; inputPerMTokens: string
 
 export async function savePricingOverride(values: PricingOverrideFormValues): Promise<ActionResult> {
   try {
-    await requireSuperAdmin()
+    await requireSuperAdmin('costs.view')
   } catch {
     return { ok: false, message: 'Μόνο ο SUPER_ADMIN μπορεί να αλλάξει τιμολόγηση μοντέλων.' }
   }
@@ -124,7 +108,7 @@ export async function savePricingOverride(values: PricingOverrideFormValues): Pr
 
 export async function deletePricingOverride(model: string): Promise<ActionResult> {
   try {
-    await requireSuperAdmin()
+    await requireSuperAdmin('costs.view')
   } catch {
     return { ok: false, message: 'Μόνο ο SUPER_ADMIN μπορεί να αλλάξει τιμολόγηση μοντέλων.' }
   }
@@ -157,7 +141,7 @@ export type ApiCostConfigFormValues = { service: string; basePrice: string; free
 
 export async function saveApiCostConfig(values: ApiCostConfigFormValues): Promise<ActionResult> {
   try {
-    await requireSuperAdmin()
+    await requireSuperAdmin('costs.view')
   } catch {
     return { ok: false, message: 'Μόνο ο SUPER_ADMIN μπορεί να αλλάξει τις ρυθμίσεις κόστους API.' }
   }
