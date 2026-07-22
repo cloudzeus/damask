@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { PostEditor, type Option } from '../../post-editor'
 import type { PostFormValues } from '../../actions'
@@ -8,6 +9,7 @@ const EMPTY_LOCALE = { title: '', excerpt: '', body: '', seoTitle: '', seoDescri
 
 export default async function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   await requirePermission('cms.edit')
+  await assertObjectEnabled('cms-posts')
   const { id } = await params
 
   const [post, categories, authors] = await Promise.all([

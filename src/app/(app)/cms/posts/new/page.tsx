@@ -1,4 +1,5 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { assertObjectEnabled } from '@/lib/objects-server'
 import { prisma } from '@/lib/prisma'
 import { PostEditor, type Option } from '../post-editor'
 import type { PostFormValues } from '../actions'
@@ -7,6 +8,7 @@ const EMPTY_LOCALE = { title: '', excerpt: '', body: '', seoTitle: '', seoDescri
 
 export default async function NewPostPage() {
   await requirePermission('cms.edit')
+  await assertObjectEnabled('cms-posts')
 
   const [categories, authors] = await Promise.all([
     prisma.postCategory.findMany({
