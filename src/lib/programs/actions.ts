@@ -7,6 +7,8 @@ import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { revalidatePath } from 'next/cache'
 import { extractProgramFromText } from '@/lib/programs/extract'
 import { persistExtractedProgram } from '@/lib/programs/persist'
+import { suggestCategory } from '@/lib/programs/categorize'
+import { expenseCatInput } from '@/lib/programs/expense-prep'
 import { buildOcrCostViewForSession, type OcrCostView } from '@/lib/ingestion/ocr-cost'
 
 /**
@@ -163,4 +165,156 @@ export async function extractProgram(programId: string, text: string): Promise<{
     revalidatePath(`/programs/${programId}`)
     return { ok: false, cost: null, error: message }
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * Task 11 — applications + expenses + AI category suggest/confirm.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+export async function createApplication(input: { trdrId: string; programId: string }): Promise<{ id: string }> {
+  const session = await requirePermission('programs.manage')
+  const app = await prisma.programApplication.upsert({
+    where: { trdrId_programId: { trdrId: input.trdrId, programId: input.programId } },
+    create: { trdrId: input.trdrId, programId: input.programId, createdById: session.user.id },
+    update: {},
+  })
+  return { id: app.id }
+}
+
+export type ProgramExpenseItem = {
+  id: string
+  description: string
+  amount: number
+  vatAmount: number | null
+  date: string | null
+  vendor: string | null
+  docNumber: string | null
+  suggestedCategoryId: string | null
+  suggestionReason: string | null
+  suggestionConfidence: number | null
+  categoryId: string | null
+  confirmed: boolean
+}
+
+export async function listApplicationExpenses(applicationId: string): Promise<ProgramExpenseItem[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.programExpense.findMany({
+    where: { applicationId },
+    orderBy: { createdAt: 'desc' },
+  })
+  return rows.map(r => ({
+    id: r.id,
+    description: r.description,
+    amount: Number(r.amount),
+    vatAmount: r.vatAmount != null ? Number(r.vatAmount) : null,
+    date: r.date ? r.date.toISOString() : null,
+    vendor: r.vendor,
+    docNumber: r.docNumber,
+    suggestedCategoryId: r.suggestedCategoryId,
+    suggestionReason: r.suggestionReason,
+    suggestionConfidence: r.suggestionConfidence,
+    categoryId: r.categoryId,
+    confirmed: r.confirmed,
+  }))
+}
+
+export async function createExpense(
+  applicationId: string,
+  input: {
+    description: string
+    amount: number
+    vatAmount?: number | null
+    date?: string | null
+    vendor?: string | null
+    vendorAfm?: string | null
+    docNumber?: string | null
+  },
+): Promise<{ id: string }> {
+  await requirePermission('programs.manage')
+  const row = await prisma.programExpense.create({
+    data: {
+      applicationId,
+      description: input.description.trim(),
+      amount: input.amount,
+      vatAmount: input.vatAmount ?? null,
+      date: parseDateOrNull(input.date) ?? null,
+      vendor: input.vendor ?? null,
+      vendorAfm: input.vendorAfm ?? null,
+      docNumber: input.docNumber ?? null,
+    },
+  })
+  return { id: row.id }
+}
+
+/**
+ * Φορτώνει τη δαπάνη → application → program (με τις eligible expense
+ * categories του), τη μετατρέπει σε CatInput (expenseCatInput — Decimal→
+ * Number ΕΔΩ, πριν φύγει προς το prompt) και ζητά AI πρόταση κατηγορίας.
+ * Δεν θέτει confirmed=true — αυτό γίνεται ρητά από τον χρήστη μέσω
+ * confirmExpenseCategory.
+ */
+export async function suggestExpenseCategory(expenseId: string) {
+  const session = await requirePermission('programs.manage')
+  const expense = await prisma.programExpense.findUniqueOrThrow({
+    where: { id: expenseId },
+    include: { application: { include: { program: { include: { expenseCats: true } } } } },
+  })
+
+  const catInput = expenseCatInput(
+    {
+      expenseCats: expense.application.program.expenseCats.map(c => ({
+        id: c.id,
+        name: c.name,
+        minPercentage: c.minPercentage != null ? Number(c.minPercentage) : null,
+        maxPercentage: c.maxPercentage != null ? Number(c.maxPercentage) : null,
+        mandatory: c.mandatory,
+        notes: c.notes,
+      })),
+    },
+    {
+      description: expense.description,
+      amount: Number(expense.amount),
+      vendor: expense.vendor,
+    },
+  )
+
+  const s = await suggestCategory(catInput, { refId: expenseId, userId: session.user.id })
+
+  await prisma.programExpense.update({
+    where: { id: expenseId },
+    data: {
+      suggestedCategoryId: s.categoryId,
+      suggestionReason: s.reason,
+      suggestionConfidence: s.confidence,
+      suggestionSource: 'AI',
+    },
+  })
+
+  return s
+}
+
+export async function confirmExpenseCategory(expenseId: string, categoryId: string): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  await prisma.programExpense.update({
+    where: { id: expenseId },
+    data: { categoryId, confirmed: true },
+  })
+  return { ok: true }
+}
+
+/** Τρέχει suggestExpenseCategory σε σειρά για κάθε ΜΗ-επιβεβαιωμένη δαπάνη
+ * της αίτησης (τα ήδη confirmed δεν ξαναπροτείνονται — ο χρήστης έχει ήδη
+ * κλειδώσει την κατηγορία τους). */
+export async function suggestAllExpenses(applicationId: string): Promise<{ suggested: number }> {
+  await requirePermission('programs.manage')
+  const pending = await prisma.programExpense.findMany({
+    where: { applicationId, confirmed: false },
+    select: { id: true },
+  })
+  let suggested = 0
+  for (const e of pending) {
+    await suggestExpenseCategory(e.id)
+    suggested += 1
+  }
+  return { suggested }
 }
