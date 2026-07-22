@@ -9,6 +9,8 @@ import { prepareFieldWrites } from '@/lib/tax/field-prep'
 import { extractFields } from '@/lib/tax/tax-extract'
 import { coerceFinancialValue } from '@/lib/tax/greek-format'
 import type { TemplateField } from '@/lib/tax/template'
+import { buildOcrCostViewForSession } from '@/lib/ingestion/ocr-cost'
+import { prepareValueWrites, type GridEntry } from '@/lib/tax/value-prep'
 
 /**
  * Server orchestration για την authoring πλευρά των Tax Form Templates:
@@ -161,4 +163,119 @@ export async function testField(input: {
   }])
   const raw = r.values[key] ?? null
   return { raw, value: coerceFinancialValue(raw, input.valueType), model: r.model }
+}
+
+/**
+ * Σαρώνει ένα ΣΥΜΠΛΗΡΩΜΕΝΟ έντυπο για συγκεκριμένο πελάτη/χρονιά: ανεβάζει το
+ * δείγμα στο ιδιωτικό Bunny, OCR-άρει ΚΑΘΕ ήδη-cropped πεδίο ξεχωριστά (ένα
+ * geminiGenerate call ανά field-region — ίδιο idiom με testField, πολλαπλές
+ * μικρές εικόνες αντί μία ολόκληρη σελίδα, ώστε το hint της περιοχής να μην
+ * χαθεί), γράφει ένα TrdrFormRecord με το πλήρες payload, και επιστρέφει ένα
+ * correction grid (προς επιβεβαίωση από τον χρήστη πριν το saveFinancialValues)
+ * μαζί με role-gated κόστος OCR (buildOcrCostViewForSession — SUPER_ADMIN/ADMIN
+ * βλέπουν ποσό, μόνο SUPER_ADMIN βλέπει breakdown).
+ */
+export async function scanForm(input: {
+  trdrId: string
+  templateId: string
+  year: number
+  name: string
+  usage?: string | null
+  sample: { base64: string; mimeType: string; ext: string; pageCount: number }
+  fieldImages: {
+    fieldKey: string
+    label: string
+    valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+    kind: 'SINGLE' | 'SERIES'
+    aiHint?: string | null
+    image: { base64: string; mimeType: string }
+  }[]
+}) {
+  const session = await requirePermission('taxform.scan')
+  const recordId = crypto.randomUUID()
+  const key = `tax-records/${input.trdrId}/${recordId}.${input.sample.ext}`
+  await bunnyUploadPrivate({ key, body: Buffer.from(input.sample.base64, 'base64'), contentType: input.sample.mimeType })
+
+  const grid: { fieldKey: string; label: string; raw: string | null; value: number | null; valueType: string; kind: string; confidence: number | null }[] = []
+  let model = ''
+  let tokens = 0
+  const payload: Record<string, unknown> = {}
+  for (const fi of input.fieldImages) {
+    const r = await extractFields(
+      [fi.image],
+      [{ fieldKey: fi.fieldKey, label: fi.label, valueType: fi.valueType, kind: fi.kind, aiHint: fi.aiHint ?? null }],
+      { refId: recordId, userId: session.user.id },
+    )
+    model = r.model
+    tokens += r.tokensUsed ?? 0
+    const raw = fi.kind === 'SERIES' ? JSON.stringify(r.series[fi.fieldKey] ?? []) : (r.values[fi.fieldKey] ?? null)
+    payload[fi.fieldKey] = raw
+    grid.push({ fieldKey: fi.fieldKey, label: fi.label, raw, value: coerceFinancialValue(raw, fi.valueType), valueType: fi.valueType, kind: fi.kind, confidence: null })
+  }
+
+  const record = await prisma.trdrFormRecord.create({
+    data: {
+      id: recordId,
+      name: input.name.trim(),
+      usage: input.usage?.trim() || null,
+      trdrId: input.trdrId,
+      templateId: input.templateId,
+      year: input.year,
+      storageKey: key,
+      pageCount: input.sample.pageCount,
+      status: 'EXTRACTED',
+      extractedData: payload as Prisma.InputJsonValue,
+      model,
+      tokensUsed: tokens,
+      createdById: session.user.id,
+    },
+  })
+  const cost = await buildOcrCostViewForSession(session.user.role, model, tokens)
+  return { recordId: record.id, grid, cost }
+}
+
+/**
+ * Upsert-άρει τα (πιθανά διορθωμένα από τον χρήστη) grid entries ως
+ * TrdrFinancialValue rows, ένα ανά (trdrId, fieldKey, year) — δες
+ * prepareValueWrites (pure) για το mapping raw/json → value/valueText/valueJson
+ * ανά valueType. Idempotent: επαναληπτικό saveFinancialValues πάνω στο ίδιο
+ * (trdr, field, year) αντικαθιστά την τιμή, δεν διπλασιάζει γραμμές.
+ */
+export async function saveFinancialValues(input: {
+  trdrId: string
+  templateId: string
+  year: number
+  recordId: string
+  entries: GridEntry[]
+}): Promise<{ saved: number }> {
+  await requirePermission('taxform.scan')
+  const writes = prepareValueWrites(input)
+  await prisma.$transaction(writes.map(w => prisma.trdrFinancialValue.upsert({
+    where: { trdrId_fieldKey_year: { trdrId: w.trdrId, fieldKey: w.fieldKey, year: w.year } },
+    create: {
+      trdrId: w.trdrId,
+      fieldKey: w.fieldKey,
+      templateId: w.templateId,
+      year: w.year,
+      kind: w.kind,
+      valueType: w.valueType,
+      value: w.value ?? undefined,
+      valueText: w.valueText ?? undefined,
+      valueJson: w.valueJson != null ? (w.valueJson as Prisma.InputJsonValue) : undefined,
+      source: 'OCR',
+      sourceRecordId: w.sourceRecordId,
+      confidence: w.confidence ?? undefined,
+    },
+    update: {
+      value: w.value ?? null,
+      valueText: w.valueText ?? null,
+      valueJson: w.valueJson != null ? (w.valueJson as Prisma.InputJsonValue) : undefined,
+      kind: w.kind,
+      valueType: w.valueType,
+      source: 'OCR',
+      sourceRecordId: w.sourceRecordId,
+      confidence: w.confidence ?? null,
+    },
+  })))
+  return { saved: writes.length }
 }
