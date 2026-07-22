@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Package, FolderTree, Ruler, Handshake, ClipboardList,
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
-  Cookie, CreditCard, ScanText, Coins, FileText,
+  Cookie, CreditCard, ScanText, Coins, FileText, Landmark,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -101,6 +101,9 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     { key: 'form-guides', href: '/tax-templates', label: 'Οδηγοί Εντύπων', icon: FileText, menuPermission: 'taxform.manage', permissions: [
       { key: 'taxform.manage', description: 'Διαχείριση οδηγών εντύπων' },
       { key: 'taxform.scan', description: 'Σάρωση OCR εντύπων σε συναλλασσόμενο' },
+    ] },
+    { key: 'programs', href: '/programs', label: 'Προγράμματα', icon: Landmark, menuPermission: 'programs.manage', permissions: [
+      { key: 'programs.manage', description: 'Διαχείριση προγραμμάτων & δαπανών' },
     ] },
   ] },
 ]
