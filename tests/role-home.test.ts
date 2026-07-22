@@ -18,4 +18,13 @@ describe('roleHome()', () => {
     expect(roleHome('')).toBe('/login')
     expect(roleHome('SOMETHING_ELSE')).toBe('/login')
   })
+  it('χρησιμοποιεί το b2b flag όταν δοθεί (υπερισχύει του ονόματος)', () => {
+    expect(roleHome('CUSTOM_ROLE', true)).toBe('/portal')
+    expect(roleHome('CUSTOM_ROLE', false)).toBe('/dashboard')
+  })
+  it('χωρίς b2b flag πέφτει πίσω στα γνωστά ονόματα', () => {
+    expect(roleHome('ADMIN')).toBe('/dashboard')
+    expect(roleHome('CUSTOMER')).toBe('/portal')
+    expect(roleHome('CUSTOM_ROLE')).toBe('/login')
+  })
 })

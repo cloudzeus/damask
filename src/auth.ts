@@ -30,6 +30,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = u.role
         token.permissions = u.permissions
         token.trdrId = u.trdrId
+        token.portalHome = u.portalHome
         token.permsAt = Date.now()
         return token
       }
@@ -47,6 +48,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = dbUser.role.name
         token.permissions = dbUser.role.permissions.map(rp => rp.permission.key)
         token.trdrId = dbUser.trdrId ?? null
+        token.portalHome = dbUser.role.b2b
         token.permsAt = Date.now()
       }
       return token
@@ -56,6 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.role = token.role as string
       session.user.permissions = (token.permissions as string[]) ?? []
       session.user.trdrId = (token.trdrId as string | null) ?? null
+      session.user.portalHome = (token.portalHome as boolean) ?? false
       return session
     },
   },

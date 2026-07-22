@@ -8,6 +8,7 @@ export type AuthUserPayload = {
   role: string
   permissions: string[]
   trdrId: string | null
+  portalHome: boolean
 }
 
 export async function verifyCredentials(
@@ -27,5 +28,6 @@ export async function verifyCredentials(
     role: user.role.name,
     permissions: user.role.permissions.map(rp => rp.permission.key),
     trdrId: user.trdrId ?? null,
+    portalHome: user.role.b2b ?? false,
   }
 }

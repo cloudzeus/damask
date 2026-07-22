@@ -9,7 +9,7 @@ export default async function LoginPage({
   searchParams: Promise<{ reset?: string }>
 }) {
   const session = await auth()
-  if (session?.user) redirect(roleHome(session.user.role))
+  if (session?.user) redirect(roleHome(session.user.role, session.user.portalHome))
   const { reset } = await searchParams
   return <LoginForm justReset={reset === '1'} />
 }

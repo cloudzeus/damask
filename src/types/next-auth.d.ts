@@ -7,6 +7,7 @@ declare module 'next-auth' {
       role: string
       permissions: string[]
       trdrId: string | null
+      portalHome: boolean
     }
   }
 }

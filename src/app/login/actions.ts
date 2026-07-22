@@ -24,5 +24,5 @@ export async function loginAction(
   // Το redirect() πετάει NEXT_REDIRECT εκτός try/catch — δεν πρέπει να καταπιεί
   // ποτέ από το catch(AuthError) παραπάνω, γι' αυτό ζει εδώ έξω.
   const session = await auth()
-  redirect(roleHome(session?.user?.role ?? ''))
+  redirect(roleHome(session?.user?.role ?? '', session?.user?.portalHome))
 }
