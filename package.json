@@ -11,6 +11,7 @@
     "test:e2e": "playwright test",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:sync-permissions": "tsx prisma/sync-permissions.ts",
     "s1:test": "tsx scripts/s1-live-test.ts"
   },
   "prisma": {

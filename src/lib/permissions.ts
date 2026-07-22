@@ -67,14 +67,14 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   cms: 'Διαχείριση',
   costs: 'Διαχείριση',
   taxform: 'Διαχείριση',
-  programs: 'Διαχείριση',
+  programs: 'Ευρωπαϊκά Προγράμματα',
 }
 
 export type PermissionGroup = { label: string; items: PermissionDef[] }
 
 /**
  * Ομαδοποιεί το PERMISSIONS catalog ανά πρόθεμα (product/order/user/…) στις
- * 3 ενότητες του permissions matrix, διατηρώντας τη σειρά εμφάνισης της
+ * ενότητες του permissions matrix, διατηρώντας τη σειρά εμφάνισης της
  * πρώτης ετικέτας που συναντάται (όχι απαραίτητα η σειρά μέσα σε κάθε ομάδα —
  * αυτή ακολουθεί πάντα τη δηλωμένη σειρά του PERMISSIONS).
  */

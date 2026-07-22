@@ -40,12 +40,13 @@ describe('groupedPermissions()', () => {
     expect(new Set(flat).size).toBe(PERMISSIONS.length)
   })
 
-  it('παράγει τις 3 ενότητες στη σωστή σειρά με τη σωστή ετικέτα ανά permission', () => {
+  it('παράγει τις 4 ενότητες στη σωστή σειρά με τη σωστή ετικέτα ανά permission', () => {
     const groups = groupedPermissions()
     expect(groups.map(g => g.label)).toEqual([
       'Προϊόντα & Κατάλογος',
       'Πελάτες & Παραγγελίες',
       'Διαχείριση',
+      'Ευρωπαϊκά Προγράμματα',
     ])
 
     const labelOf = (key: string) =>
@@ -68,6 +69,9 @@ describe('groupedPermissions()', () => {
     expect(labelOf('sync.run')).toBe('Διαχείριση')
     expect(labelOf('user.manage')).toBe('Διαχείριση')
     expect(labelOf('settings.manage')).toBe('Διαχείριση')
+    expect(labelOf('taxform.manage')).toBe('Διαχείριση')
+
+    expect(labelOf('programs.manage')).toBe('Ευρωπαϊκά Προγράμματα')
   })
 
   it('διατηρεί τη δηλωμένη σειρά του PERMISSIONS μέσα σε κάθε ομάδα', () => {

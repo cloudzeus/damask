@@ -72,6 +72,11 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
       { key: 'import.run', description: 'Εκτέλεση εισαγωγών Excel' },
     ] },
   ] },
+  { key: 'eu-programs', label: 'Ευρωπαϊκά Προγράμματα', items: [
+    { key: 'programs', href: '/programs', label: 'Προγράμματα', icon: Landmark, menuPermission: 'programs.manage', permissions: [
+      { key: 'programs.manage', description: 'Διαχείριση προγραμμάτων & δαπανών' },
+    ] },
+  ] },
   { key: 'media', label: 'Media', items: [
     { key: 'media', href: '/media', label: 'Media Gallery', icon: Images, menuPermission: 'media.manage', permissions: [
       { key: 'media.manage', description: 'Διαχείριση media' },
@@ -101,9 +106,6 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     { key: 'form-guides', href: '/tax-templates', label: 'Οδηγοί Εντύπων', icon: FileText, menuPermission: 'taxform.manage', permissions: [
       { key: 'taxform.manage', description: 'Διαχείριση οδηγών εντύπων' },
       { key: 'taxform.scan', description: 'Σάρωση OCR εντύπων σε συναλλασσόμενο' },
-    ] },
-    { key: 'programs', href: '/programs', label: 'Προγράμματα', icon: Landmark, menuPermission: 'programs.manage', permissions: [
-      { key: 'programs.manage', description: 'Διαχείριση προγραμμάτων & δαπανών' },
     ] },
   ] },
 ]
