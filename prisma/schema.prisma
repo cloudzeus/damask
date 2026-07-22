@@ -38,7 +38,7 @@ model Role {
   id          String           @id @default(cuid())
   name        String           @unique
   description String?
-  system      Boolean          @default(false) // οι βασικοί ρόλοι δεν διαγράφονται
+  system      Boolean          @default(false) // προστατευμένοι (δεν διαγράφονται): SUPER_ADMIN, ADMIN, MANAGER, EMPLOYEE, CUSTOMER
   b2b         Boolean          @default(false) // true → home /portal (B2B), false → /dashboard
   users       User[]
   permissions RolePermission[]
