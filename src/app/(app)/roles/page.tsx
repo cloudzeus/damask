@@ -1,6 +1,8 @@
 import { requirePermission } from '@/lib/rbac-server'
 import { prisma } from '@/lib/prisma'
-import { ROLE_ORDER, groupedPermissions } from '@/lib/permissions'
+import { ROLE_ORDER } from '@/lib/permissions'
+import { groupedPermissionsFor } from '@/lib/objects'
+import { getEnabledObjectKeys } from '@/lib/objects-server'
 import { RolesMatrix, type RoleData } from './roles-matrix'
 
 export default async function RolesPage() {
@@ -33,7 +35,7 @@ export default async function RolesPage() {
       return ia - ib
     })
 
-  const groups = groupedPermissions()
+  const groups = groupedPermissionsFor(await getEnabledObjectKeys())
 
   return (
     <div>
