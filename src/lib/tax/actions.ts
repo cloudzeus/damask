@@ -6,7 +6,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { revalidatePath } from 'next/cache'
 import { prepareFieldWrites } from '@/lib/tax/field-prep'
-import { extractFields } from '@/lib/tax/tax-extract'
+import { extractFields, type SeriesPoint } from '@/lib/tax/tax-extract'
 import { coerceFinancialValue } from '@/lib/tax/greek-format'
 import type { TemplateField, RegionHint } from '@/lib/tax/template'
 import { buildOcrCostViewForSession } from '@/lib/ingestion/ocr-cost'
@@ -289,7 +289,7 @@ export async function scanForm(input: {
   const key = `tax-records/${input.trdrId}/${recordId}.${input.sample.ext}`
   await bunnyUploadPrivate({ key, body: Buffer.from(input.sample.base64, 'base64'), contentType: input.sample.mimeType })
 
-  const grid: { fieldKey: string; label: string; raw: string | null; value: number | null; valueType: string; kind: string; confidence: number | null }[] = []
+  const grid: { fieldKey: string; label: string; raw: string | null; value: number | null; valueType: string; kind: string; confidence: number | null; series?: SeriesPoint[] }[] = []
   let model = ''
   let tokens = 0
   const payload: Record<string, unknown> = {}
@@ -301,9 +301,18 @@ export async function scanForm(input: {
     )
     model = r.model
     tokens += r.tokensUsed ?? 0
-    const raw = fi.kind === 'SERIES' ? JSON.stringify(r.series[fi.fieldKey] ?? []) : (r.values[fi.fieldKey] ?? null)
-    payload[fi.fieldKey] = raw
-    grid.push({ fieldKey: fi.fieldKey, label: fi.label, raw, value: coerceFinancialValue(raw, fi.valueType), valueType: fi.valueType, kind: fi.kind, confidence: null })
+    if (fi.kind === 'SERIES') {
+      // SERIES holds multi-year data ({year,value}[]) — keep it as an array end
+      // to end (payload archival + grid), never squash it through the scalar
+      // coerceFinancialValue parser (that used to stringify + garbage-parse it).
+      const points = r.series[fi.fieldKey] ?? []
+      payload[fi.fieldKey] = points
+      grid.push({ fieldKey: fi.fieldKey, label: fi.label, raw: null, value: null, valueType: fi.valueType, kind: fi.kind, confidence: null, series: points })
+    } else {
+      const raw = r.values[fi.fieldKey] ?? null
+      payload[fi.fieldKey] = raw
+      grid.push({ fieldKey: fi.fieldKey, label: fi.label, raw, value: coerceFinancialValue(raw, fi.valueType), valueType: fi.valueType, kind: fi.kind, confidence: null })
+    }
   }
 
   const record = await prisma.trdrFormRecord.create({

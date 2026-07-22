@@ -12,4 +12,11 @@ describe('prepareFieldWrites', () => {
     expect(rows[1].fieldKey).toBe('tziros')
     expect(rows[1].order).toBe(1)
   })
+
+  it('drops regionHint when its bbox fails isValidBbox (out-of-range coordinates)', () => {
+    const rows = prepareFieldWrites([
+      { label: 'Ζημιά', valueType: 'CURRENCY', kind: 'SINGLE', regionHint: { page: 0, bbox: [0.9, 0.9, 0.5, 0.5] } },
+    ] as any)
+    expect(rows[0].regionHint).toBeNull()
+  })
 })

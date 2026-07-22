@@ -1,5 +1,5 @@
 // src/lib/tax/field-prep.ts — PURE (no prisma/react)
-import { slugFieldKey, type TemplateField } from '@/lib/tax/template'
+import { slugFieldKey, isValidBbox, type TemplateField } from '@/lib/tax/template'
 
 /**
  * Normalizes editor-submitted fields (partial, author-facing) into
@@ -29,7 +29,8 @@ export function prepareFieldWrites(fields: Partial<TemplateField>[]): FieldWrite
     valueType: f.valueType ?? 'CURRENCY',
     kind: f.kind ?? 'SINGLE',
     config: f.kind === 'TABLE' ? { columns: f.config?.columns ?? [] } : null,
-    regionHint: f.regionHint ?? null,
+    // Drop regionHint if its bbox fails validation rather than persist garbage coordinates.
+    regionHint: f.regionHint != null && isValidBbox(f.regionHint.bbox) ? f.regionHint : null,
     aiHint: f.aiHint?.trim() || null,
     required: !!f.required,
     order: i,

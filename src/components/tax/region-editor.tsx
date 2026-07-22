@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { LuChevronLeft, LuChevronRight, LuZoomIn, LuZoomOut, LuImageOff } from 'react-icons/lu'
 import type { TemplateField, Bbox } from '@/lib/tax/template'
+import { regionKeyOf } from '@/lib/tax/template'
 import type { RasterizedPage } from '@/lib/ocr/rasterize'
 import { cn } from '@/lib/utils'
 
@@ -39,14 +40,6 @@ interface RegionEditorProps {
   /** Κλειδί περιοχής προς highlight (coral) — αν παραλειφθεί, χρησιμοποιείται το activeFieldLocalId. */
   selectedRegionKey?: string | null
   onSelectRegion?: (key: string) => void
-}
-
-/** Σταθερή ταυτότητα ενός (πιθανά μη-αποθηκευμένου ακόμη) πεδίου: τα ήδη
- * αποθηκευμένα κλειδώνουν στο `id`, τα νέα (πριν το «Αποθήκευση») στο
- * `fieldKey` — ο caller (field-list/template-editor) πρέπει να περνάει το
- * ίδιο κλειδί ως activeFieldLocalId/selectedRegionKey. */
-function regionKeyOf(field: TemplateField, index: number): string {
-  return field.id ?? (field.fieldKey.trim() || `field-${index}`)
 }
 
 function round3(n: number): number {

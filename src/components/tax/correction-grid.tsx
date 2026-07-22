@@ -2,13 +2,14 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { LuTriangleAlert, LuSave } from 'react-icons/lu'
+import { LuTriangleAlert, LuSave, LuPlus, LuX } from 'react-icons/lu'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { OcrCostPanel } from '@/components/ingestion/ocr-cost-panel'
 import { coerceFinancialValue, type FinancialValueTypeStr } from '@/lib/tax/greek-format'
 import { saveFinancialValues } from '@/lib/tax/actions'
+import type { GridEntry, SeriesEntryPoint } from '@/lib/tax/value-prep'
 import type { OcrCostView } from '@/lib/ingestion/ocr-cost'
 
 export type GridRow = {
@@ -19,6 +20,8 @@ export type GridRow = {
   valueType: string
   kind: string
   confidence: number | null
+  /** Μόνο για kind==='SERIES' — σημεία {year,value} από το scanForm OCR (ή προσθήκες/διορθώσεις του χρήστη). */
+  series?: SeriesEntryPoint[]
 }
 
 const VALUE_TYPE_LABELS: Record<string, string> = {
@@ -65,14 +68,33 @@ export function CorrectionGrid({
       : r)))
   }
 
+  function updateSeriesPoint(fieldKey: string, idx: number, patch: Partial<SeriesEntryPoint>) {
+    setRows(prev => prev.map(r => (r.fieldKey === fieldKey
+      ? { ...r, series: (r.series ?? []).map((p, i) => (i === idx ? { ...p, ...patch } : p)) }
+      : r)))
+  }
+
+  function addSeriesPoint(fieldKey: string) {
+    setRows(prev => prev.map(r => (r.fieldKey === fieldKey
+      ? { ...r, series: [...(r.series ?? []), { year: null, value: null }] }
+      : r)))
+  }
+
+  function removeSeriesPoint(fieldKey: string, idx: number) {
+    setRows(prev => prev.map(r => (r.fieldKey === fieldKey
+      ? { ...r, series: (r.series ?? []).filter((_, i) => i !== idx) }
+      : r)))
+  }
+
   async function handleSave() {
     setSaving(true)
     try {
-      const entries = rows.map(r => ({
+      const entries: GridEntry[] = rows.map(r => ({
         fieldKey: r.fieldKey,
-        kind: r.kind as 'SINGLE' | 'SERIES',
+        kind: r.kind as 'SINGLE' | 'SERIES' | 'TABLE',
         valueType: r.valueType as FinancialValueTypeStr,
         raw: r.raw,
+        series: r.series,
         confidence: r.confidence,
       }))
       const { saved } = await saveFinancialValues({ trdrId, templateId, year, recordId, entries })
@@ -108,14 +130,59 @@ export function CorrectionGrid({
                     <div className="font-medium">{row.label}</div>
                     <div className="font-mono text-[11px] text-muted-foreground">{row.fieldKey}</div>
                   </TableCell>
-                  <TableCell className="min-w-[160px]">
-                    <Input
-                      value={row.raw ?? ''}
-                      onChange={e => updateRaw(row.fieldKey, e.target.value)}
-                      style={low ? { borderColor: 'var(--coral)' } : undefined}
-                    />
-                    {row.value != null && row.valueType !== 'DATE' && (
-                      <div className="mt-0.5 text-[11px] text-muted-foreground">→ {row.value.toLocaleString('el-GR')}</div>
+                  <TableCell className="min-w-[220px]">
+                    {row.kind === 'SERIES' ? (
+                      <div className="flex flex-col gap-1">
+                        {(row.series ?? []).map((p, idx) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <Input
+                              value={p.year ?? ''}
+                              onChange={e => {
+                                const v = e.target.value.trim()
+                                const n = v === '' ? null : Number(v)
+                                updateSeriesPoint(row.fieldKey, idx, { year: n != null && Number.isFinite(n) ? n : null })
+                              }}
+                              placeholder="Έτος"
+                              inputMode="numeric"
+                              className="w-16 shrink-0"
+                            />
+                            <Input
+                              value={p.value ?? ''}
+                              onChange={e => updateSeriesPoint(row.fieldKey, idx, { value: e.target.value })}
+                              placeholder="Τιμή"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeSeriesPoint(row.fieldKey, idx)}
+                              aria-label="Αφαίρεση σημείου σειράς"
+                              className="icon-pill size-6 shrink-0"
+                            >
+                              <LuX className="size-3" aria-hidden />
+                            </button>
+                          </div>
+                        ))}
+                        {(row.series ?? []).length === 0 && (
+                          <div className="text-[11px] text-muted-foreground">Δεν βρέθηκαν σημεία σειράς.</div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => addSeriesPoint(row.fieldKey)}
+                          className="inline-flex w-fit items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                        >
+                          <LuPlus className="size-3" aria-hidden /> Προσθήκη έτους
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <Input
+                          value={row.raw ?? ''}
+                          onChange={e => updateRaw(row.fieldKey, e.target.value)}
+                          style={low ? { borderColor: 'var(--coral)' } : undefined}
+                        />
+                        {row.value != null && row.valueType !== 'DATE' && (
+                          <div className="mt-0.5 text-[11px] text-muted-foreground">→ {row.value.toLocaleString('el-GR')}</div>
+                        )}
+                      </>
                     )}
                   </TableCell>
                   <TableCell className="whitespace-normal">

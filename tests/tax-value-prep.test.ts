@@ -16,4 +16,13 @@ describe('prepareValueWrites', () => {
     expect(rows[1].valueText).toBe('31/12/2024')
     expect(rows[2].valueJson).toEqual([{ label: 'Α', values: ['1'] }])
   })
+
+  it('explodes SERIES entries into one write per year point', () => {
+    const rows = prepareValueWrites({ trdrId: 't1', templateId: 'tpl1', year: 2024, recordId: 'r1', entries: [
+      { fieldKey: 'tziros', kind: 'SERIES', valueType: 'CURRENCY', series: [{ year: 2023, value: '1.000,00' }, { year: 2024, value: '2.000,00' }, { year: null, value: 'x' }] },
+    ] })
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({ fieldKey: 'tziros', year: 2023 }); expect(Number(rows[0].value)).toBeCloseTo(1000, 2)
+    expect(rows[1]).toMatchObject({ fieldKey: 'tziros', year: 2024 }); expect(Number(rows[1].value)).toBeCloseTo(2000, 2)
+  })
 })
