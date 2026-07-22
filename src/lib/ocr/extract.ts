@@ -40,6 +40,8 @@ export interface ExtractResult {
   model: string
   /** true όταν χρησιμοποιήθηκε το DeepSeek text-only fallback αντί για Gemini vision. */
   usedFallback: boolean
+  /** Συνολικά tokens από το Gemini usageMetadata· null στο DeepSeek text fallback. */
+  tokensUsed: number | null
 }
 
 /** Ανεκτικό parse JSON — αφαιρεί code fences και, αν χρειαστεί, κόβει το πρώτο {...} block. */
@@ -99,7 +101,7 @@ ${JSON_SHAPE}
 
 async function resolveAiCall(
   prompt: string, input: ExtractDocumentInput,
-): Promise<{ rawText: string; model: string; usedFallback: boolean }> {
+): Promise<{ rawText: string; model: string; usedFallback: boolean; tokensUsed: number | null }> {
   const hasText = !!input.text?.trim()
   const hasImages = input.images.length > 0
 
@@ -118,7 +120,7 @@ async function resolveAiCall(
       parts, systemInstruction: prompt, json: true,
       scope: 'OCR_VISION', refType: 'ocr', refId: input.refId, userId: input.userId,
     })
-    return { rawText: result.text, model: result.model, usedFallback: false }
+    return { rawText: result.text, model: result.model, usedFallback: false, tokensUsed: result.tokensUsed }
   }
 
   // Gemini δεν είναι ρυθμισμένο.
@@ -128,18 +130,18 @@ async function resolveAiCall(
   const rawText = await generateText(`${prompt}\n\n${input.text}`, {
     scope: 'OCR_TEXT', refType: 'ocr', refId: input.refId, userId: input.userId,
   })
-  return { rawText, model: 'deepseek (text fallback)', usedFallback: true }
+  return { rawText, model: 'deepseek (text fallback)', usedFallback: true, tokensUsed: null }
 }
 
 export async function extractDocument(input: ExtractDocumentInput): Promise<ExtractResult> {
   const docTypeHint = input.docType ?? 'auto'
   const prompt = buildOcrPrompt(docTypeHint)
 
-  const { rawText, model, usedFallback } = await resolveAiCall(prompt, input)
+  const { rawText, model, usedFallback, tokensUsed } = await resolveAiCall(prompt, input)
 
   const raw = parseJsonLoose(rawText)
   const data = parseExtractedDocument(raw, docTypeHint)
   const mismatches = validateExtractedDocument(data)
 
-  return { data, mismatches, model, usedFallback }
+  return { data, mismatches, model, usedFallback, tokensUsed }
 }
