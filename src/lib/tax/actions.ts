@@ -6,7 +6,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { revalidatePath } from 'next/cache'
 import { prepareFieldWrites } from '@/lib/tax/field-prep'
-import { extractFields, type SeriesPoint } from '@/lib/tax/tax-extract'
+import { extractFields, scanTable, type SeriesPoint } from '@/lib/tax/tax-extract'
 import { coerceFinancialValue } from '@/lib/tax/greek-format'
 import type { TemplateField, RegionHint } from '@/lib/tax/template'
 import { buildOcrCostViewForSession } from '@/lib/ingestion/ocr-cost'
@@ -263,10 +263,12 @@ export async function testField(input: {
  * δείγμα στο ιδιωτικό Bunny, OCR-άρει ΚΑΘΕ ήδη-cropped πεδίο ξεχωριστά (ένα
  * geminiGenerate call ανά field-region — ίδιο idiom με testField, πολλαπλές
  * μικρές εικόνες αντί μία ολόκληρη σελίδα, ώστε το hint της περιοχής να μην
- * χαθεί), γράφει ένα TrdrFormRecord με το πλήρες payload, και επιστρέφει ένα
- * correction grid (προς επιβεβαίωση από τον χρήστη πριν το saveFinancialValues)
- * μαζί με role-gated κόστος OCR (buildOcrCostViewForSession — SUPER_ADMIN/ADMIN
- * βλέπουν ποσό, μόνο SUPER_ADMIN βλέπει breakdown).
+ * χαθεί), κι έπειτα OCR-άρει ΚΑΘΕ TABLE περιοχή (tableImages) μέσω scanTable
+ * (γενικό {columns,rows} grid), γράφει ένα TrdrFormRecord με το πλήρες payload
+ * (SINGLE/SERIES/TABLE μαζί), και επιστρέφει ένα correction grid (προς
+ * επιβεβαίωση από τον χρήστη πριν το saveFinancialValues) μαζί με role-gated
+ * κόστος OCR (buildOcrCostViewForSession — SUPER_ADMIN/ADMIN βλέπουν ποσό,
+ * μόνο SUPER_ADMIN βλέπει breakdown).
  */
 export async function scanForm(input: {
   trdrId: string
@@ -283,13 +285,20 @@ export async function scanForm(input: {
     aiHint?: string | null
     image: { base64: string; mimeType: string }
   }[]
+  tableImages?: {
+    fieldKey: string
+    label: string
+    valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+    columns?: string[]
+    image: { base64: string; mimeType: string }
+  }[]
 }) {
   const session = await requirePermission('taxform.scan')
   const recordId = crypto.randomUUID()
   const key = `tax-records/${input.trdrId}/${recordId}.${input.sample.ext}`
   await bunnyUploadPrivate({ key, body: Buffer.from(input.sample.base64, 'base64'), contentType: input.sample.mimeType })
 
-  const grid: { fieldKey: string; label: string; raw: string | null; value: number | null; valueType: string; kind: string; confidence: number | null; series?: SeriesPoint[] }[] = []
+  const grid: { fieldKey: string; label: string; raw: string | null; value: number | null; valueType: string; kind: string; confidence: number | null; series?: SeriesPoint[]; json?: { columns: string[]; rows: { label: string; values: string[] }[] } }[] = []
   let model = ''
   let tokens = 0
   const payload: Record<string, unknown> = {}
@@ -313,6 +322,14 @@ export async function scanForm(input: {
       payload[fi.fieldKey] = raw
       grid.push({ fieldKey: fi.fieldKey, label: fi.label, raw, value: coerceFinancialValue(raw, fi.valueType), valueType: fi.valueType, kind: fi.kind, confidence: null })
     }
+  }
+  for (const ti of input.tableImages ?? []) {
+    const t = await scanTable([ti.image], ti.columns, { refId: recordId, userId: session.user.id })
+    model = t.model
+    tokens += t.tokensUsed ?? 0
+    const json = { columns: t.columns, rows: t.rows }
+    payload[ti.fieldKey] = json
+    grid.push({ fieldKey: ti.fieldKey, label: ti.label, raw: null, value: null, valueType: ti.valueType, kind: 'TABLE', confidence: null, json })
   }
 
   const record = await prisma.trdrFormRecord.create({

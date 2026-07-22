@@ -177,7 +177,8 @@ export function ScanFormDialog({
       setProgress(15)
       const templateFields = await getTemplateFields(t.id)
       const scannable = templateFields.filter(f => (f.kind === 'SINGLE' || f.kind === 'SERIES') && !!f.regionHint)
-      if (scannable.length === 0) throw new Error('Ο οδηγός δεν έχει χαρτογραφημένες περιοχές OCR.')
+      const scannableTables = templateFields.filter(f => f.kind === 'TABLE' && !!f.regionHint)
+      if (scannable.length === 0 && scannableTables.length === 0) throw new Error('Ο οδηγός δεν έχει χαρτογραφημένες περιοχές OCR.')
 
       const fieldImages: {
         fieldKey: string
@@ -187,12 +188,20 @@ export function ScanFormDialog({
         aiHint?: string | null
         image: { base64: string; mimeType: string }
       }[] = []
+      const tableImages: {
+        fieldKey: string
+        label: string
+        valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+        columns?: string[]
+        image: { base64: string; mimeType: string }
+      }[] = []
 
+      const totalScannable = scannable.length + scannableTables.length
       for (let i = 0; i < scannable.length; i++) {
         const f = scannable[i]
         const hint = f.regionHint!
-        setProgressLabel(`Περικοπή περιοχής «${f.label}» (${i + 1}/${scannable.length})…`)
-        setProgress(15 + Math.round(65 * (i / scannable.length)))
+        setProgressLabel(`Περικοπή περιοχής «${f.label}» (${i + 1}/${totalScannable})…`)
+        setProgress(15 + Math.round(65 * (i / totalScannable)))
         const page = pages[hint.page]
         if (!page) continue // η περιοχή δείχνει σε σελίδα που δεν υπάρχει στο ανεβασμένο αρχείο — παράλειψη, ασφαλές fallback
         const cropped = await cropRegion(page.base64, page.mimeType, hint.bbox)
@@ -205,7 +214,24 @@ export function ScanFormDialog({
           image: cropped,
         })
       }
-      if (fieldImages.length === 0) throw new Error('Καμία περιοχή δεν βρέθηκε στις σελίδες του ανεβασμένου αρχείου.')
+      for (let i = 0; i < scannableTables.length; i++) {
+        const f = scannableTables[i]
+        const hint = f.regionHint!
+        const idx = scannable.length + i
+        setProgressLabel(`Περικοπή πίνακα «${f.label}» (${idx + 1}/${totalScannable})…`)
+        setProgress(15 + Math.round(65 * (idx / totalScannable)))
+        const page = pages[hint.page]
+        if (!page) continue // η περιοχή δείχνει σε σελίδα που δεν υπάρχει στο ανεβασμένο αρχείο — παράλειψη, ασφαλές fallback
+        const cropped = await cropRegion(page.base64, page.mimeType, hint.bbox)
+        tableImages.push({
+          fieldKey: f.fieldKey,
+          label: f.label,
+          valueType: f.valueType,
+          columns: f.config?.columns ?? undefined,
+          image: cropped,
+        })
+      }
+      if (fieldImages.length === 0 && tableImages.length === 0) throw new Error('Καμία περιοχή δεν βρέθηκε στις σελίδες του ανεβασμένου αρχείου.')
 
       setProgressLabel('Σάρωση με OCR…')
       setProgress(85)
@@ -217,6 +243,7 @@ export function ScanFormDialog({
         usage: usage.trim() || null,
         sample: { base64, mimeType, ext, pageCount: pages.length },
         fieldImages,
+        tableImages,
       })
 
       setProgress(100)

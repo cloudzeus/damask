@@ -22,6 +22,8 @@ export type GridRow = {
   confidence: number | null
   /** Μόνο για kind==='SERIES' — σημεία {year,value} από το scanForm OCR (ή προσθήκες/διορθώσεις του χρήστη). */
   series?: SeriesEntryPoint[]
+  /** Μόνο για kind==='TABLE' — {columns, rows} από το scanTable OCR. Read-only προβολή, χωρίς επεξεργασία κελιών. */
+  json?: { columns: string[]; rows: { label: string; values: string[] }[] }
 }
 
 const VALUE_TYPE_LABELS: Record<string, string> = {
@@ -95,6 +97,7 @@ export function CorrectionGrid({
         valueType: r.valueType as FinancialValueTypeStr,
         raw: r.raw,
         series: r.series,
+        json: r.json,
         confidence: r.confidence,
       }))
       const { saved } = await saveFinancialValues({ trdrId, templateId, year, recordId, entries })
@@ -131,7 +134,34 @@ export function CorrectionGrid({
                     <div className="font-mono text-[11px] text-muted-foreground">{row.fieldKey}</div>
                   </TableCell>
                   <TableCell className="min-w-[220px]">
-                    {row.kind === 'SERIES' ? (
+                    {row.kind === 'TABLE' ? (
+                      row.json && row.json.rows.length > 0 ? (
+                        <div className="overflow-x-auto rounded-md border border-border">
+                          <table className="w-full text-[11px]">
+                            <thead>
+                              <tr className="border-b border-border">
+                                <th className="px-1.5 py-1 text-left font-medium text-muted-foreground">&nbsp;</th>
+                                {row.json.columns.map((c, ci) => (
+                                  <th key={ci} className="px-1.5 py-1 text-left font-medium text-muted-foreground">{c}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {row.json.rows.map((r, ri) => (
+                                <tr key={ri} className="border-b border-border last:border-0">
+                                  <td className="px-1.5 py-1 font-medium">{r.label}</td>
+                                  {r.values.map((v, vi) => (
+                                    <td key={vi} className="px-1.5 py-1">{v}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-muted-foreground">Δεν βρέθηκαν δεδομένα πίνακα.</div>
+                      )
+                    ) : row.kind === 'SERIES' ? (
                       <div className="flex flex-col gap-1">
                         {(row.series ?? []).map((p, idx) => (
                           <div key={idx} className="flex items-center gap-1">

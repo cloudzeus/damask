@@ -25,4 +25,13 @@ describe('prepareValueWrites', () => {
     expect(rows[0]).toMatchObject({ fieldKey: 'tziros', year: 2023 }); expect(Number(rows[0].value)).toBeCloseTo(1000, 2)
     expect(rows[1]).toMatchObject({ fieldKey: 'tziros', year: 2024 }); expect(Number(rows[1].value)).toBeCloseTo(2000, 2)
   })
+
+  it('routes a TABLE entry json → valueJson at the scan year', () => {
+    const rows = prepareValueWrites({ trdrId: 't1', templateId: 'tpl1', year: 2024, recordId: 'r1', entries: [
+      { fieldKey: 'analysi', kind: 'TABLE', valueType: 'CURRENCY', json: { columns: ['2023', '2024'], rows: [{ label: 'Α', values: ['1', '2'] }] } },
+    ] })
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ fieldKey: 'analysi', year: 2024, kind: 'TABLE' })
+    expect(rows[0].valueJson).toEqual({ columns: ['2023', '2024'], rows: [{ label: 'Α', values: ['1', '2'] }] })
+  })
 })
