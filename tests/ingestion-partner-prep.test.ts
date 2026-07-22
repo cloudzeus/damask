@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { preparePartnerRows } from '@/lib/ingestion/commit/partner-upsert'
+import { preparePartnerRows, buildPartnerUpdateData } from '@/lib/ingestion/commit/partner-upsert'
 
 describe('preparePartnerRows', () => {
   it('maps parsed fields to Trdr create-data with first phone/email + default sodtype', () => {
@@ -18,5 +18,12 @@ describe('preparePartnerRows', () => {
     const prepared = preparePartnerRows(parsed)
     expect(prepared).toHaveLength(1)
     expect(prepared[0].data).toMatchObject({ NAME: 'B', AFM: '999999999', ADDRESS: null, PHONE01: null, SODTYPE: 13 })
+  })
+})
+
+describe('buildPartnerUpdateData', () => {
+  it('omits SODTYPE and skips null/blank optionals, keeps NAME + provided values', () => {
+    const d = { NAME: 'Damask', AFM: '094014201', ADDRESS: null, CITY: 'Αθήνα', ZIP: null, PHONE01: null, EMAIL: 'a@b.gr', WEBPAGE: null, SODTYPE: 13 }
+    expect(buildPartnerUpdateData(d)).toEqual({ NAME: 'Damask', AFM: '094014201', CITY: 'Αθήνα', EMAIL: 'a@b.gr' })
   })
 })

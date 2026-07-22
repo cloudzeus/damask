@@ -40,26 +40,38 @@ export function preparePartnerRows(parsed: ParsedRow[]): PreparedPartner[] {
   return out
 }
 
+/** UPDATE data: never overwrite an existing field with null/blank, and never change SODTYPE on re-import
+ *  (blank type cells default to 13 upstream, which would silently flip an existing supplier 12→13). */
+export function buildPartnerUpdateData(d: PreparedPartner['data']): Record<string, unknown> {
+  const out: Record<string, unknown> = { NAME: d.NAME }
+  for (const k of ['AFM', 'ADDRESS', 'CITY', 'ZIP', 'PHONE01', 'EMAIL', 'WEBPAGE'] as const) {
+    if (d[k] != null) out[k] = d[k]
+  }
+  return out // SODTYPE intentionally omitted on update
+}
+
 /** SERVER: upsert σε Trdr by AFM (AFM δεν είναι @unique → findFirst + create/update). TRDR=null (unsynced). */
 export async function runPartnerUpsert(parsed: ParsedRow[]): Promise<ImportTotals> {
   const prepared = preparePartnerRows(parsed)
   const totals = emptyTotals(parsed.length)
   totals.failed = parsed.length - prepared.length
+  totals.processed = parsed.length - prepared.length
   for (const row of prepared) {
     try {
+      // defensive: afm is always a validated 9-digit string here
       const existing = row.afm ? await prisma.trdr.findFirst({ where: { AFM: row.afm } }) : null
       if (existing) {
-        await prisma.trdr.update({ where: { id: existing.id }, data: row.data })
+        await prisma.trdr.update({ where: { id: existing.id }, data: buildPartnerUpdateData(row.data) })
         totals.updated++
       } else {
         await prisma.trdr.create({ data: { ...row.data, TRDR: null, ISPROSP: 0 } })
         totals.created++
       }
-      totals.processed++
     } catch (err) {
       totals.failed++
       if (totals.errors.length < 50) totals.errors.push({ row: row.rowNum, column: 'Συναλλασσόμενος', message: err instanceof Error ? err.message : 'Σφάλμα αποθήκευσης.' })
     }
+    totals.processed++
   }
   return totals
 }
