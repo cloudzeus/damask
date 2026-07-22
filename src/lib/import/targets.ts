@@ -81,7 +81,7 @@ export function parseGreekNumber(raw: string, allowNegative = false): FieldParse
   return { value, error: null }
 }
 
-function textField(opts: {
+export function textField(opts: {
   key: string; label: string; description?: string; required?: boolean; sample?: string; maxLength?: number
 }): ImportFieldDef {
   const maxLength = opts.maxLength ?? 190
@@ -106,7 +106,7 @@ function textField(opts: {
   }
 }
 
-function numberField(opts: {
+export function numberField(opts: {
   key: string; label: string; description?: string; required?: boolean; sample?: string
 }): ImportFieldDef {
   return {
