@@ -3,18 +3,25 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import type { NavModule } from '@/lib/objects'
+import { buildNav } from '@/lib/objects'
 
+// ΣΗΜΑΝΤΙΚΟ: το nav υπολογίζεται ΕΔΩ (client), όχι στο (app)/layout server component.
+// Τα Lucide icons είναι functions — δεν σειριοποιούνται πάνω από το RSC boundary
+// (server→client), οπότε ο server περνά μόνο serializable string[] (enabledKeys,
+// permissions) και το buildNav (pure) φτιάχνει το nav με τα icon components client-side.
 export function Sidebar({
-  nav,
+  enabledKeys,
+  permissions,
   userName,
   userRole,
 }: {
-  nav: NavModule[]
+  enabledKeys: string[]
+  permissions: string[]
   userName: string
   userRole: string
 }) {
   const pathname = usePathname()
+  const nav = buildNav(new Set(enabledKeys), permissions)
   const initials = userName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 
   return (
