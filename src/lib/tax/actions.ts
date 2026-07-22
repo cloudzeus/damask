@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { prepareFieldWrites } from '@/lib/tax/field-prep'
 import { extractFields } from '@/lib/tax/tax-extract'
 import { coerceFinancialValue } from '@/lib/tax/greek-format'
-import type { TemplateField } from '@/lib/tax/template'
+import type { TemplateField, RegionHint } from '@/lib/tax/template'
 import { buildOcrCostViewForSession } from '@/lib/ingestion/ocr-cost'
 import { prepareValueWrites, type GridEntry } from '@/lib/tax/value-prep'
 
@@ -55,6 +55,34 @@ export async function listReadyTemplates(): Promise<{ id: string; code: string; 
     select: { id: true, code: true, name: true, year: true },
   })
   return rows
+}
+
+/**
+ * Τα χαρτογραφημένα πεδία ενός ΕΤΟΙΜΟΥ template — καταναλώνεται από το
+ * scan-form-dialog.tsx (Task 14) για να χτίσει τα per-field crops πριν
+ * καλέσει scanForm. Ίδιο δικαίωμα με scanForm/listReadyTemplates
+ * (`taxform.scan` — χαμηλότερο από `taxform.manage`, ο σαρωτής πελάτη δεν
+ * χρειάζεται δικαίωμα επεξεργασίας οδηγών).
+ */
+export async function getTemplateFields(templateId: string): Promise<TemplateField[]> {
+  await requirePermission('taxform.scan')
+  const rows = await prisma.taxFormTemplateField.findMany({
+    where: { templateId },
+    orderBy: { order: 'asc' },
+  })
+  return rows.map(r => ({
+    id: r.id,
+    fieldKey: r.fieldKey,
+    label: r.label,
+    section: r.section,
+    valueType: r.valueType,
+    kind: r.kind,
+    config: r.config as unknown as TemplateField['config'],
+    regionHint: r.regionHint as unknown as RegionHint | null,
+    aiHint: r.aiHint,
+    required: r.required,
+    order: r.order,
+  }))
 }
 
 export async function createTemplate(input: { code: string; name: string; year?: number | null; description?: string | null }): Promise<{ id: string }> {
