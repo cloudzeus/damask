@@ -1249,6 +1249,32 @@ input[type='checkbox'] {
   align-items: center;
   justify-content: center;
 }
+.role-card-del {
+  position: absolute;
+  top: 11px;
+  right: 12px;
+  width: 19px;
+  height: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 99px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  z-index: 2;
+}
+.role-card-del:hover {
+  background: color-mix(in srgb, var(--destructive) 14%, transparent);
+  color: var(--destructive);
+}
+/* Επιλεγμένη κάρτα: το ✓ badge πιάνει right:12 — ο κάδος πάει αριστερά του, ίδιο ύψος. */
+.role-card-del.shifted {
+  right: 37px;
+}
 .role-card .n {
   font-size: 12px;
   font-weight: 800;
