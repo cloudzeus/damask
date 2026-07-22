@@ -36,4 +36,14 @@ describe('assertSafeIngestUrl', () => {
   it('accepts a public https url', () => {
     expect(() => assertSafeIngestUrl('https://api.example.com/v1/data')).not.toThrow()
   })
+  it('rejects IPv6 loopback/local and IPv4-mapped IPv6', () => {
+    expect(() => assertSafeIngestUrl('https://[::1]/x')).toThrow()
+    expect(() => assertSafeIngestUrl('https://[fd00::1]/x')).toThrow()
+    expect(() => assertSafeIngestUrl('https://[fe80::1]/x')).toThrow()
+    expect(() => assertSafeIngestUrl('https://[::ffff:127.0.0.1]/x')).toThrow()
+  })
+  it('rejects numeric/hex obfuscated hosts', () => {
+    expect(() => assertSafeIngestUrl('https://2130706433/x')).toThrow()
+    expect(() => assertSafeIngestUrl('https://0x7f000001/x')).toThrow()
+  })
 })
