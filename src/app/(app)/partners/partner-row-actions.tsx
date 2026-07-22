@@ -11,6 +11,7 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
   AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import { ScanActionItem } from '@/components/tax/scan-action-item'
 import { convertLeadToCustomer, deletePartner } from './actions'
 
 export function PartnerRowActions({
@@ -60,6 +61,7 @@ export function PartnerRowActions({
           <DropdownMenuItem render={<Link href={`/partners/${id}`} />}>
             <FileText className="size-3.5" strokeWidth={1.75} /> Καρτέλα
           </DropdownMenuItem>
+          <ScanActionItem trdrId={id} trdrName={name} />
           {isProsp && (
             <DropdownMenuItem disabled={converting} onClick={handleConvert}>
               <ArrowUpRight className="size-3.5" strokeWidth={1.75} /> {converting ? 'Μετατροπή…' : 'Μετατροπή σε Πελάτη'}

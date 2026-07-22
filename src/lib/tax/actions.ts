@@ -57,6 +57,71 @@ export async function listReadyTemplates(): Promise<{ id: string; code: string; 
   return rows
 }
 
+export type TrdrFormRecordItem = {
+  id: string
+  name: string
+  usage: string | null
+  templateId: string
+  templateName: string
+  year: number
+  status: string
+  createdAt: string
+}
+
+export type TrdrFinancialValueItem = {
+  fieldKey: string
+  year: number
+  value: number | null
+  valueText: string | null
+  kind: string
+  valueType: string
+}
+
+/**
+ * Το «Φορολογικά» tab μιας καρτέλας συναλλασσόμενου (Task 15): τα
+ * TrdrFormRecord (ιστορικό σαρώσεων) + τα τρέχοντα TrdrFinancialValue
+ * (fieldKey × year matrix) του trdr. Ίδιο δικαίωμα με scanForm/
+ * saveFinancialValues (`taxform.scan`) — όποιος βλέπει τα δεδομένα μπορεί και
+ * να σαρώσει νέο έντυπο.
+ */
+export async function listTrdrFinancials(trdrId: string): Promise<{
+  records: TrdrFormRecordItem[]
+  values: TrdrFinancialValueItem[]
+}> {
+  await requirePermission('taxform.scan')
+  const [records, values] = await Promise.all([
+    prisma.trdrFormRecord.findMany({
+      where: { trdrId },
+      orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
+      include: { template: { select: { name: true } } },
+    }),
+    prisma.trdrFinancialValue.findMany({
+      where: { trdrId },
+      orderBy: [{ fieldKey: 'asc' }, { year: 'desc' }],
+    }),
+  ])
+  return {
+    records: records.map(r => ({
+      id: r.id,
+      name: r.name,
+      usage: r.usage,
+      templateId: r.templateId,
+      templateName: r.template.name,
+      year: r.year,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+    })),
+    values: values.map(v => ({
+      fieldKey: v.fieldKey,
+      year: v.year,
+      value: v.value != null ? Number(v.value) : null,
+      valueText: v.valueText,
+      kind: v.kind,
+      valueType: v.valueType,
+    })),
+  }
+}
+
 /**
  * Τα χαρτογραφημένα πεδία ενός ΕΤΟΙΜΟΥ template — καταναλώνεται από το
  * scan-form-dialog.tsx (Task 14) για να χτίσει τα per-field crops πριν
