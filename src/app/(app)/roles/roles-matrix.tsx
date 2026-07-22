@@ -39,6 +39,11 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
     })
   }
 
+  // Focus mode: όταν έχει επιλεγεί ρόλος, το matrix δείχνει μόνο τη στήλη του
+  // (καθαρή διαχείριση ενός ρόλου με πολλούς ρόλους). Αλλιώς, όλες οι στήλες.
+  const selectedRoleData = selectedRole ? roles.find(r => r.name === selectedRole) ?? null : null
+  const visibleRoles = selectedRoleData ? [selectedRoleData] : roles
+
   return (
     <>
       {isSuperAdmin && (
@@ -90,15 +95,27 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
       </div>
 
       <div className="glass table-card stagger">
-        <p className="matrix-legend">
-          💡 Κλικ σε οποιοδήποτε κελί για ενεργοποίηση/απενεργοποίηση — αποθηκεύεται αυτόματα
-        </p>
+        {selectedRole ? (
+          <div className="mb-2 flex items-center gap-2.5">
+            <Button type="button" variant="outline" onClick={() => setSelectedRole(null)}>
+              ‹ Όλοι οι ρόλοι
+            </Button>
+            <span className="text-[12.5px] text-muted-foreground">
+              Διαχείριση: <b className="text-foreground">{selectedRole}</b>
+            </span>
+          </div>
+        ) : (
+          <p className="matrix-legend">
+            💡 {roles.length > 6 ? 'Κάνε κλικ σε έναν ρόλο για εστιασμένη διαχείριση — ' : ''}
+            κλικ σε κελί για εναλλαγή, αποθηκεύεται αυτόματα
+          </p>
+        )}
         <div className="table-wrap">
           <table className="data-table matrix">
             <thead>
               <tr>
                 <th style={{ minWidth: 230 }}>Δικαίωμα</th>
-                {roles.map(role => (
+                {visibleRoles.map(role => (
                   <th key={role.id} className={selectedRole === role.name ? 'matrix-col-on' : ''}>
                     {role.name}
                   </th>
@@ -109,7 +126,7 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
               {groups.map(group => (
                 <Fragment key={group.label}>
                   <tr className="grp">
-                    <td colSpan={roles.length + 1}>
+                    <td colSpan={visibleRoles.length + 1}>
                       <span>{group.label}</span>
                     </td>
                   </tr>
@@ -119,7 +136,7 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
                         {perm.description}
                         <small>{perm.key}</small>
                       </td>
-                      {roles.map(role => {
+                      {visibleRoles.map(role => {
                         const isLocked = role.name === 'SUPER_ADMIN'
                         const granted = role.grantedKeys.includes(perm.key)
                         const cellClassName = selectedRole === role.name ? 'matrix-col-on' : ''
