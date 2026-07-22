@@ -304,6 +304,8 @@ model Trdr {
   orders       Order[]
   architects   ArchitectCustomer[]
   priceCache   PriceCache[]
+  formRecords     TrdrFormRecord[]
+  financialValues TrdrFinancialValue[]
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
@@ -873,4 +875,118 @@ model ApiUsage {
   createdAt DateTime @default(now())
 
   @@index([service, createdAt])
+}
+
+enum TaxTemplateStatus {
+  DRAFT
+  READY
+}
+
+enum TaxFieldKind {
+  SINGLE
+  SERIES
+  TABLE
+}
+
+enum FinancialValueType {
+  CURRENCY
+  NUMBER
+  PERCENT
+  INTEGER
+  DATE
+  BOOLEAN
+}
+
+enum FinancialValueSource {
+  OCR
+  MANUAL
+}
+
+model TaxFormTemplate {
+  id               String   @id @default(cuid())
+  code             String
+  name             String
+  year             Int?
+  description      String?
+  status           TaxTemplateStatus @default(DRAFT)
+  sampleStorageKey String?
+  samplePageCount  Int?
+  sampleThumbUrl   String?
+  createdById      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  fields           TaxFormTemplateField[]
+  records          TrdrFormRecord[]
+  @@unique([code, year])
+  @@index([status])
+}
+
+model TaxFormTemplateField {
+  id          String   @id @default(cuid())
+  templateId  String
+  template    TaxFormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  fieldKey    String
+  label       String
+  section     String?
+  valueType   FinancialValueType @default(CURRENCY)
+  kind        TaxFieldKind @default(SINGLE)
+  config      Json?
+  regionHint  Json?
+  aiHint      String?
+  required    Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@unique([templateId, fieldKey])
+  @@index([templateId])
+}
+
+model TrdrFormRecord {
+  id            String   @id @default(cuid())
+  name          String
+  usage         String?
+  trdrId        String
+  trdr          Trdr     @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  templateId    String
+  template      TaxFormTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  year          Int
+  storageKey    String
+  pageCount     Int?
+  status        String   @default("PENDING")
+  extractedData Json?
+  model         String?
+  tokensUsed    Int?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  values        TrdrFinancialValue[]
+  @@index([trdrId])
+  @@index([templateId])
+  @@index([trdrId, year])
+}
+
+model TrdrFinancialValue {
+  id               String   @id @default(cuid())
+  trdrId           String
+  trdr             Trdr     @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  fieldKey         String
+  templateId       String?
+  year             Int
+  value            Decimal? @db.Decimal(18, 2)
+  valueText        String?
+  valueJson        Json?
+  kind             TaxFieldKind @default(SINGLE)
+  valueType        FinancialValueType
+  source           FinancialValueSource @default(OCR)
+  sourceRecordId   String?
+  sourceRecord     TrdrFormRecord? @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  confidence       Float?
+  verified         Boolean  @default(false)
+  verifiedById     String?
+  note             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@unique([trdrId, fieldKey, year])
+  @@index([trdrId])
+  @@index([fieldKey, year])
 }
