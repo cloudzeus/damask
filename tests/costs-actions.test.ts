@@ -3,7 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 const requirePermissionMock = vi.fn()
-vi.mock('@/lib/rbac-server', () => ({ requirePermission: (...args: unknown[]) => requirePermissionMock(...args) }))
+vi.mock('@/lib/rbac-server', () => ({
+  requirePermission: (...args: unknown[]) => requirePermissionMock(...args),
+  requireSuperAdmin: async (permission: string) => {
+    const session = await requirePermissionMock(permission)
+    if (session.user.role !== 'SUPER_ADMIN') throw new Error('Forbidden: απαιτείται ρόλος SUPER_ADMIN')
+    return session
+  },
+}))
 
 const getSettingMock = vi.fn()
 const setSettingMock = vi.fn()
