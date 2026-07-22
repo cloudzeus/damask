@@ -13,6 +13,7 @@ import { mapToRows, type IngestionMapping } from '@/lib/ingestion/map'
 import type { NormalizedBatch } from '@/lib/ingestion/normalized'
 import type { ImportTotals } from '@/lib/import/product-upsert'
 import type { FieldError } from '@/lib/import/targets'
+import { presetToPersist, type ApiPreset } from '@/lib/ingestion/api-preset'
 
 /**
  * Server orchestration για το Universal Ingestion Core: συνδέει τα adapters
@@ -73,8 +74,26 @@ export async function acquireFromApi(
   try {
     const res = await fetch(safe.toString(), { headers, signal: ctrl.signal, cache: 'no-store' })
     if (!res.ok) throw new Error(`Το endpoint απάντησε HTTP ${res.status}.`)
-    const text = await res.text()
-    if (text.length > MAX_BYTES) throw new Error('Η απάντηση είναι πολύ μεγάλη.')
+    // Content-Length fast-reject for well-behaved servers
+    const declared = Number(res.headers.get('content-length') ?? '0')
+    if (Number.isFinite(declared) && declared > MAX_BYTES) throw new Error('Η απάντηση είναι πολύ μεγάλη.')
+    const reader = res.body?.getReader()
+    if (!reader) throw new Error('Κενή απάντηση από το endpoint.')
+    const chunks: Uint8Array[] = []
+    let total = 0
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value) {
+        total += value.length
+        if (total > MAX_BYTES) { ctrl.abort(); throw new Error('Η απάντηση είναι πολύ μεγάλη.') }
+        chunks.push(value)
+      }
+    }
+    const merged = new Uint8Array(total)
+    let offset = 0
+    for (const c of chunks) { merged.set(c, offset); offset += c.length }
+    const text = new TextDecoder('utf-8').decode(merged)
     json = JSON.parse(text)
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') throw new Error('Το endpoint δεν απάντησε (timeout).')
@@ -85,7 +104,7 @@ export async function acquireFromApi(
   }
   const { sourceKeys, records } = normalizeApiJson(json)
   if (records.length > MAX_RECORDS) throw new Error(`Πολλές εγγραφές (max ${MAX_RECORDS}).`)
-  return { source: 'api', sourceKeys, records, meta: { api: { url: safe.toString(), fetchedAt: 0, count: records.length } } }
+  return { source: 'api', sourceKeys, records, meta: { api: { url: safe.toString(), fetchedAt: Date.now(), count: records.length } } }
 }
 
 export type ValidateBatchResult = { toCreate: number; toUpdate: number; errors: FieldError[]; validRows: number }
@@ -114,19 +133,18 @@ export async function commitBatch(
   return commit(rows)
 }
 
-export type ApiPreset = { name: string; url: string; headerName?: string }
-
 export async function listApiPresets(targetKey: string): Promise<ApiPreset[]> {
   await requireTarget(targetKey)
   return (await getSetting<ApiPreset[]>(`ingestion.apiPresets:${targetKey}`)) ?? []
 }
 
-/** headerValue (token/secret) ΠΟΤΕ δεν αποθηκεύεται — μόνο το headerName. */
+/** headerValue (token/secret) ΠΟΤΕ δεν αποθηκεύεται — μόνο το headerName (βλ. presetToPersist whitelist). */
 export async function saveApiPreset(targetKey: string, preset: ApiPreset): Promise<ApiPreset[]> {
   await requireTarget(targetKey)
-  assertSafeIngestUrl(preset.url)
+  const safe = assertSafeIngestUrl(preset.url)
   const list = (await getSetting<ApiPreset[]>(`ingestion.apiPresets:${targetKey}`)) ?? []
-  const next = [...list.filter(p => p.name !== preset.name), { name: preset.name, url: preset.url, headerName: preset.headerName }]
+  const entry = presetToPersist({ name: preset.name, url: safe.toString(), headerName: preset.headerName })
+  const next = [...list.filter(p => p.name !== preset.name), entry]
   await setSetting(`ingestion.apiPresets:${targetKey}`, next)
   return next
 }
