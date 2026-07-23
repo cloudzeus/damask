@@ -1379,21 +1379,37 @@ model ProgramDeliverableTemplate {
   id                 String           @id @default(cuid())
   programId          String
   program            Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
-  phase              DeliverablePhase
   name               String
   description        String?
-  mandatory          Boolean          @default(true)
-  onSiteVerification Boolean          @default(false)
   appliesTo          DeliverableScope @default(EXPENSE)
   order              Int              @default(0)
   active             Boolean          @default(true)
   sourceTemplateId   String?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
+  tasks              ProgramDeliverableTask[]
   instances          ExpenseDeliverable[]
 
   @@index([programId])
-  @@index([programId, phase])
+}
+
+model ProgramDeliverableTask {
+  id                 String           @id @default(cuid())
+  templateId         String
+  template           ProgramDeliverableTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  phase              DeliverablePhase
+  name               String
+  description        String?
+  mandatory          Boolean          @default(true)
+  onSiteVerification Boolean          @default(false)
+  minFiles           Int              @default(1)
+  order              Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  instances          ExpenseDeliverableTask[]
+
+  @@index([templateId])
+  @@index([templateId, phase])
 }
 
 model ExpenseDeliverable {
@@ -1404,10 +1420,29 @@ model ExpenseDeliverable {
   expense            ProgramExpense?   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   templateId         String?
   template           ProgramDeliverableTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  name               String
+  notes              String?
+  order              Int               @default(0)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  tasks              ExpenseDeliverableTask[]
+
+  @@unique([applicationId, expenseId, templateId])
+  @@index([applicationId])
+  @@index([expenseId])
+}
+
+model ExpenseDeliverableTask {
+  id                 String            @id @default(cuid())
+  deliverableId      String
+  deliverable        ExpenseDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  taskTemplateId     String?
+  taskTemplate       ProgramDeliverableTask? @relation(fields: [taskTemplateId], references: [id], onDelete: SetNull)
   phase              DeliverablePhase
   name               String
   mandatory          Boolean           @default(true)
   onSiteVerification Boolean           @default(false)
+  minFiles           Int               @default(1)
   status             DeliverableStatus @default(PENDING)
   acceptedById       String?
   acceptedAt         DateTime?
@@ -1420,16 +1455,15 @@ model ExpenseDeliverable {
   dependents         DeliverableDependency[] @relation("Prerequisite")
   documentRequests   DocumentRequest[]
 
-  @@unique([applicationId, expenseId, templateId])
-  @@index([applicationId])
-  @@index([expenseId])
-  @@index([applicationId, phase])
+  @@unique([deliverableId, taskTemplateId])
+  @@index([deliverableId])
+  @@index([deliverableId, phase])
 }
 
 model DeliverableFile {
   id            String   @id @default(cuid())
-  deliverableId String
-  deliverable   ExpenseDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  taskId        String
+  task          ExpenseDeliverableTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
   name          String
   storageKey    String
   mimeType      String?
@@ -1437,15 +1471,15 @@ model DeliverableFile {
   uploadedById  String?
   uploadedAt    DateTime @default(now())
 
-  @@index([deliverableId])
+  @@index([taskId])
 }
 
 model DeliverableDependency {
   id             String  @id @default(cuid())
   dependentId    String
-  dependent      ExpenseDeliverable @relation("Dependent", fields: [dependentId], references: [id], onDelete: Cascade)
+  dependent      ExpenseDeliverableTask @relation("Dependent", fields: [dependentId], references: [id], onDelete: Cascade)
   prerequisiteId String
-  prerequisite   ExpenseDeliverable @relation("Prerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  prerequisite   ExpenseDeliverableTask @relation("Prerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
   auto           Boolean @default(true)
 
   @@unique([dependentId, prerequisiteId])
@@ -1586,8 +1620,8 @@ model DocumentRequest {
   application        ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   obligationId       String?
   obligation         ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
-  deliverableId      String?
-  deliverable        ExpenseDeliverable? @relation(fields: [deliverableId], references: [id], onDelete: SetNull)
+  deliverableTaskId  String?
+  deliverableTask    ExpenseDeliverableTask? @relation(fields: [deliverableTaskId], references: [id], onDelete: SetNull)
   trdrId             String
   trdr               Trdr @relation(fields: [trdrId], references: [id], onDelete: Cascade)
   title              String
@@ -1606,7 +1640,7 @@ model DocumentRequest {
   @@index([applicationId])
   @@index([trdrId])
   @@index([status])
-  @@index([deliverableId])
+  @@index([deliverableTaskId])
 }
 
 model PortalToken {
