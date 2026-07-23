@@ -94,6 +94,21 @@ function normalize(raw: Record<string, unknown>): ExtractedProgram {
         mandatory: d.mandatory !== false,
       }))
       .filter(d => d.name),
+    deliverableGroups: arr('deliverableGroups')
+      .map(g => ({
+        name: str(g.name) ?? '',
+        categoryHint: str(g.categoryHint),
+        appliesTo: g.appliesTo === 'APPLICATION' ? ('APPLICATION' as const) : ('EXPENSE' as const),
+        tasks: (Array.isArray(g.tasks) ? (g.tasks as Record<string, unknown>[]) : [])
+          .map(t => ({
+            phase: str(t.phase),
+            name: str(t.name) ?? '',
+            mandatory: t.mandatory !== false,
+            onSiteVerification: !!t.onSiteVerification,
+          }))
+          .filter(t => t.name),
+      }))
+      .filter(g => g.name && g.tasks.length > 0),
     requiredForms: arr('requiredForms')
       .map(f => ({ name: str(f.name) ?? '', mandatory: f.mandatory !== false, notes: str(f.notes) }))
       .filter(f => f.name),

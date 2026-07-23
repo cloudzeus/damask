@@ -21,6 +21,18 @@ export type ExtractedRequiredForm = {
   notes?: string | null
 }
 
+// C2g (Task 12) — «ΠΑΡΑΡΤΗΜΑ ΧΙ: ΠΑΡΑΔΟΤΕΑ ΠΙΣΤΟΠΟΙΗΣΗΣ ΦΥΣΙΚΟΥ ΚΑΙ ΟΙΚΟΝΟΜΙΚΟΥ
+// ΑΝΤΙΚΕΙΜΕΝΟΥ» annex — one group per expense category/subcategory (e.g.
+// «01.09 Μισθολογικό κόστος»), each with numbered δικαιολογητικά rows that
+// become tasks. Maps 1:1 onto the ProgramDeliverableTemplate (group) +
+// ProgramDeliverableTask (task) two-level model — see persist-map.ts.
+export type ExtractedDeliverableGroup = {
+  name: string
+  categoryHint: string | null
+  appliesTo: 'EXPENSE' | 'APPLICATION'
+  tasks: { phase: string | null; name: string; mandatory: boolean; onSiteVerification: boolean }[]
+}
+
 export type ExtractedProgram = {
   title: string | null
   summary: string | null
@@ -37,6 +49,7 @@ export type ExtractedProgram = {
   kadRule: string | null
   expenseCategories: ExtractedExpenseCategory[]
   deliverables: ExtractedDeliverable[]
+  deliverableGroups: ExtractedDeliverableGroup[]
   requiredForms: ExtractedRequiredForm[]
   phases: { name: string }[]
   kads: { code: string; description?: string | null }[]
@@ -80,6 +93,7 @@ export function emptyExtractedProgram(): ExtractedProgram {
     kadRule: null,
     expenseCategories: [],
     deliverables: [],
+    deliverableGroups: [],
     requiredForms: [],
     phases: [],
     kads: [],

@@ -14,5 +14,6 @@ describe('program types helpers', () => {
     const e = emptyExtractedProgram()
     expect(e.expenseCategories).toEqual([])
     expect(e.deliverables).toEqual([])
+    expect(e.deliverableGroups).toEqual([])
   })
 })

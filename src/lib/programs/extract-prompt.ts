@@ -99,6 +99,7 @@ You MUST follow this loop before producing JSON.
 - **Φάσεις υλοποίησης**: "ΦΑΣΕΙΣ ΥΛΟΠΟΙΗΣΗΣ", "ΣΤΑΔΙΑ ΕΡΓΟΥ" — αν το έγγραφο ορίζει διακριτές φάσεις (π.χ. Φάση Α: Προμήθεια εξοπλισμού, Φάση Β: Θέση σε λειτουργία), καταχώρησέ τες στο "phases[]" array με το όνομα της κάθε φάσης.
 - **Παραδοτέα**: "ΠΑΡΑΔΟΤΕΑ", "ΥΠΟΧΡΕΩΣΕΙΣ ΔΙΚΑΙΟΥΧΟΥ" — συγκεκριμένα έγγραφα/ενέργειες που πρέπει να παραδοθούν/ολοκληρωθούν (π.χ. πινακίδα δημοσιότητας, τελική έκθεση) → στο "deliverables[]" array, με "mandatory": true αν είναι υποχρεωτικό.
 - **Απαιτούμενα δικαιολογητικά/έντυπα**: "ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ ΣΥΜΜΕΤΟΧΗΣ", "ΑΠΑΙΤΟΥΜΕΝΑ ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ", "ΕΝΤΥΠΑ ΥΠΟΒΟΛΗΣ", "ΣΥΝΗΜΜΕΝΑ ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ" — συγκεκριμένα φορολογικά/ασφαλιστικά έντυπα και βεβαιώσεις που πρέπει να επισυναφθούν με την αίτηση (π.χ. έντυπο Ε3, φορολογική ενημερότητα, ασφαλιστική ενημερότητα, βεβαίωση έναρξης/μεταβολής εργασιών, ισολογισμός) → στο "requiredForms[]" array, με "mandatory": true αν ρητά απαιτείται (false αν αναφέρεται ως προαιρετικό/κατά περίπτωση).
+- **Παραδοτέα Πιστοποίησης (ΠΑΡΑΡΤΗΜΑ)**: "ΠΑΡΑΡΤΗΜΑ … ΠΑΡΑΔΟΤΕΑ ΠΙΣΤΟΠΟΙΗΣΗΣ ΦΥΣΙΚΟΥ ΚΑΙ ΟΙΚΟΝΟΜΙΚΟΥ ΑΝΤΙΚΕΙΜΕΝΟΥ" — ενότητες τύπου «ΠΑΡΑΔΟΤΕΑ ΠΙΣΤΟΠΟΙΗΣΗΣ ΦΥΣΙΚΟΥ/ΟΙΚΟΝΟΜΙΚΟΥ ΑΝΤΙΚΕΙΜΕΝΟΥ»: μία ομάδα ανά κατηγορία/υποκατηγορία δαπάνης (ο κωδικός π.χ. «01.09» + τίτλος → "name", η κατηγορία → "categoryHint")· κάθε αριθμημένη γραμμή δικαιολογητικού → ένα task στο "tasks[]"· στήλη «ΕΠΙΤΟΠΙΑ ΕΠΑΛΗΘΕΥΣΗ/ΠΙΣΤΟΠΟΙΗΣΗ» με ✓ → "onSiteVerification": true. Μάντεψε τη φάση ("phase") ως εξής: μισθοδοσία/πληρωμές/εξοφλήσεις/extrait → "FINAL_PAYMENT", βεβαιώσεις/φωτογραφίες/Ε4/ταυτότητες/άδειες → "FULL_CERTIFICATION", προσφορές/προτάσεις → "SUBMISSION", αλλιώς "FULL_CERTIFICATION". Ό,τι αφορά όλο το πρόγραμμα (π.χ. άδεια λειτουργίας) → "appliesTo": "APPLICATION", αλλιώς "EXPENSE". Καταχώρησε ΟΛΕΣ τις ομάδες στο "deliverableGroups[]" array.
 
 # CRITICAL: kadRule (κρίσιμο πεδίο)
 
@@ -165,6 +166,7 @@ export const PROGRAM_JSON_SHAPE = `# Output JSON shape
   "kadRule": "ALL_EXCEPT_LISTED"|"ONLY_LISTED"|"MIXED"|"UNSPECIFIED",
   "expenseCategories": [ { "name": string, "minPercentage": number|null, "maxPercentage": number|null, "minAmount": number|null, "maxAmount": number|null, "mandatory": boolean, "notes": string|null } ],
   "deliverables": [ { "name": string, "description": string|null, "phase": string|null, "mandatory": boolean } ],
+  "deliverableGroups": [ { "name": string, "categoryHint": string|null, "appliesTo": "EXPENSE"|"APPLICATION", "tasks": [ { "phase": "SUBMISSION"|"FIRST_PAYMENT"|"PHASE_A_CERTIFICATION"|"FINAL_PAYMENT"|"FULL_CERTIFICATION"|"AUTHORITY_AUDIT"|null, "name": string, "mandatory": boolean, "onSiteVerification": boolean } ] } ],
   "requiredForms": [ { "name": string, "mandatory": boolean, "notes": string|null } ],
   "phases": [ { "name": string } ],
   "kads": [ { "code": string, "description": string|null } ],

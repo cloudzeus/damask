@@ -7,5 +7,7 @@ describe('program prompt', () => {
     expect(PROGRAM_SYSTEM_PROMPT).toMatch(/ΕΣΠΑ|ΚΑΔ|δαπαν/i)
     expect(PROGRAM_SYSTEM_PROMPT).toMatch(/JSON/i)
     expect(PROGRAM_JSON_SHAPE).toMatch(/expenseCategories/)
+    expect(PROGRAM_JSON_SHAPE).toMatch(/deliverableGroups/)
+    expect(PROGRAM_SYSTEM_PROMPT).toMatch(/ΠΑΡΑΔΟΤΕΑ ΠΙΣΤΟΠΟΙΗΣΗΣ/)
   })
 })

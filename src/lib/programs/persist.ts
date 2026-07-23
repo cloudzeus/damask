@@ -28,6 +28,15 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
 
     // Delete existing related rows — deliverables BEFORE phases (FK).
     await tx.programDeliverable.deleteMany({ where: { programId } })
+    // C2g Task 12: ProgramDeliverableTemplate is FULL overwrite on
+    // re-extraction too — consistent with every other related collection in
+    // this function. This also replaces templates created manually via the
+    // wizard or copied from the library (sourceTemplateId set) — the same
+    // "extraction wins" contract that already applies to expenseCats/
+    // deliverables/etc. Tasks cascade-delete with the template; already
+    // materialized ExpenseDeliverable/ExpenseDeliverableTask rows survive
+    // (their templateId/taskTemplateId FKs are ON DELETE SET NULL).
+    await tx.programDeliverableTemplate.deleteMany({ where: { programId } })
     await tx.programExpenseCategory.deleteMany({ where: { programId } })
     await tx.programKad.deleteMany({ where: { programId } })
     await tx.programBonus.deleteMany({ where: { programId } })
@@ -65,6 +74,22 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
       // NOTE: extraction never sets templateId — the user links a required
       // form to a «Οδηγός Εντύπου» (TaxFormTemplate) later via updateRequiredForm.
       await tx.programRequiredForm.createMany({ data: rows.requiredForms.map(r => ({ ...r, programId })) })
+    }
+
+    if (rows.deliverableGroups.length) {
+      for (const g of rows.deliverableGroups) {
+        await tx.programDeliverableTemplate.create({
+          data: {
+            programId, name: g.name, description: g.description, appliesTo: g.appliesTo, order: g.order,
+            tasks: {
+              create: g.tasks.map(t => ({
+                phase: t.phase, name: t.name, mandatory: t.mandatory,
+                onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order: t.order,
+              })),
+            },
+          },
+        })
+      }
     }
 
     // Phases first, then deliverables resolve phaseName → phaseId.
