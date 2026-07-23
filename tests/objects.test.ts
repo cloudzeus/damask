@@ -79,10 +79,30 @@ describe('permissions.ts derives losslessly from the registry', () => {
     'customer.edit','order.view','order.create','order.approve','order.autoapprove',
     'container.manage','payment.view','payment.manage','commission.view','commission.manage',
     'portal.access','sync.run','user.manage','settings.manage','cms.view','cms.edit','costs.view',
-    'taxform.manage','taxform.scan','programs.manage','pm.manage','pm.work',
+    'taxform.manage','taxform.scan','programs.manage','pm.manage','pm.work','regions.view','kad.view',
   ]
-  it('exposes exactly the original 27 permission keys, plus taxform.manage/taxform.scan/programs.manage/pm.manage/pm.work', () => {
+  it('exposes exactly the original 27 permission keys, plus taxform.manage/taxform.scan/programs.manage/pm.manage/pm.work/regions.view/kad.view', () => {
     expect(new Set(CATALOG.map(p => p.key))).toEqual(new Set(EXPECTED_KEYS))
     expect(CATALOG.length).toBe(EXPECTED_KEYS.length)
+  })
+})
+
+describe('registries (Μητρώα) registry items', () => {
+  it('regions item is registered', () => {
+    const item = allItems().find(i => i.key === 'regions')
+    expect(item?.href).toBe('/regions')
+    expect(item?.menuPermission).toBe('regions.view')
+    expect(item?.permissions.map(p => p.key)).toEqual(['regions.view'])
+  })
+  it('kad item is registered', () => {
+    const item = allItems().find(i => i.key === 'kad')
+    expect(item?.href).toBe('/kad')
+    expect(item?.menuPermission).toBe('kad.view')
+    expect(item?.permissions.map(p => p.key)).toEqual(['kad.view'])
+  })
+  it('registries module is labeled Μητρώα', () => {
+    const mod = OBJECT_REGISTRY.find(m => m.key === 'registries')
+    expect(mod?.label).toBe('Μητρώα')
+    expect(mod?.items.map(i => i.key).sort()).toEqual(['kad', 'regions'])
   })
 })

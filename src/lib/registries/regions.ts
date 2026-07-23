@@ -101,13 +101,17 @@ export type RegionChildNode = {
   directChildren: number
   descendants: number
   hasChildren: boolean
+  latitude: number | null
+  longitude: number | null
 }
 
 /**
  * GET-children equivalent (ported from ref app/api/regions/children/route.ts):
  * parentCode=null|undefined → top-level (Περιφέρειες, level=3); otherwise direct
  * children of parentCode, each annotated with direct/descendant counts via
- * path startsWith.
+ * path startsWith. Also carries latitude/longitude (Task 5: lazy tree shows
+ * coords when present — small addition over the ref shape, same idea as the
+ * kad license badge).
  */
 export async function regionChildren(parentCode?: string | null): Promise<RegionChildNode[]> {
   const rows = await prisma.region.findMany({
@@ -119,6 +123,8 @@ export async function regionChildren(parentCode?: string | null): Promise<Region
       level: true,
       parentCode: true,
       path: true,
+      latitude: true,
+      longitude: true,
       _count: { select: { children: true } },
     },
   })
@@ -135,6 +141,8 @@ export async function regionChildren(parentCode?: string | null): Promise<Region
     directChildren: r._count.children,
     descendants: descendants[i],
     hasChildren: r._count.children > 0,
+    latitude: r.latitude,
+    longitude: r.longitude,
   }))
 }
 

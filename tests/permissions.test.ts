@@ -47,6 +47,7 @@ describe('groupedPermissions()', () => {
       'Πελάτες & Παραγγελίες',
       'Διαχείριση',
       'Ευρωπαϊκά Προγράμματα',
+      'Μητρώα',
     ])
 
     const labelOf = (key: string) =>
@@ -72,6 +73,9 @@ describe('groupedPermissions()', () => {
     expect(labelOf('taxform.manage')).toBe('Διαχείριση')
 
     expect(labelOf('programs.manage')).toBe('Ευρωπαϊκά Προγράμματα')
+
+    expect(labelOf('regions.view')).toBe('Μητρώα')
+    expect(labelOf('kad.view')).toBe('Μητρώα')
   })
 
   it('διατηρεί τη δηλωμένη σειρά του PERMISSIONS μέσα σε κάθε ομάδα', () => {

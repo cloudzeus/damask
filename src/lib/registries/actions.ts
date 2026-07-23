@@ -15,6 +15,8 @@ import {
   kadSearch,
   type DecodedKad,
   type KadChildNode,
+  type KadSearchResult,
+  type KadSearchResultItem,
 } from '@/lib/registries/kad'
 
 /**
@@ -26,7 +28,7 @@ import {
 
 type MatchInput = Parameters<typeof matchRegion>[0]
 
-export type { DecodedRegion, RegionChildNode, RegionMatch, DecodedKad, KadChildNode }
+export type { DecodedRegion, RegionChildNode, RegionMatch, DecodedKad, KadChildNode, KadSearchResult, KadSearchResultItem }
 export type { MatchInput }
 
 export async function regionChildrenAction(parentCode?: string | null): Promise<RegionChildNode[]> {
@@ -54,7 +56,7 @@ export async function kadDecodeAction(code: string): Promise<DecodedKad | null> 
   return decodeKADCode(code)
 }
 
-export async function kadSearchAction(q: string, limit = 50) {
+export async function kadSearchAction(q: string, limit = 50): Promise<KadSearchResult> {
   await requirePermission('kad.view')
   return kadSearch(q, Math.min(Math.max(1, limit), 100))
 }

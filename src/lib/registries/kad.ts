@@ -131,6 +131,8 @@ export type KadChildNode = {
   directChildren: number
   descendants: number
   hasChildren: boolean
+  /** true αν ο κωδικός (ή κάποιος πρόγονος — inherited) απαιτεί άδεια λειτουργίας. */
+  requiresLicense: boolean
 }
 
 /**
@@ -151,7 +153,7 @@ export async function kadChildren(parentCode?: string | null): Promise<KadChildN
       sector: true,
       parentCode: true,
       path: true,
-      _count: { select: { children: true } },
+      _count: { select: { children: true, licenseRequirements: true } },
     },
   })
 
@@ -169,14 +171,28 @@ export async function kadChildren(parentCode?: string | null): Promise<KadChildN
     directChildren: r._count.children,
     descendants: descendants[i],
     hasChildren: r._count.children > 0,
+    requiresLicense: r._count.licenseRequirements > 0,
   }))
 }
+
+export type KadSearchResultItem = {
+  code: string
+  codeWithoutDots: string | null
+  title: string | null
+  description: string
+  level: number | null
+  sector: string | null
+  requiresLicense: boolean
+}
+
+export type KadSearchResult = { codes: KadSearchResultItem[]; total: number }
 
 /**
  * Search KadCode by code OR description/title contains (ported from ref
  * app/api/admin/kad-codes/route.ts GET). Capped at 100 regardless of requested limit.
+ * Each hit is annotated with `requiresLicense` (Task 5: search table «Άδεια λειτουργίας» badge).
  */
-export async function kadSearch(q?: string | null, limit = 100) {
+export async function kadSearch(q?: string | null, limit = 100): Promise<KadSearchResult> {
   const query = (q ?? '').trim()
   const cappedLimit = Math.min(limit, 100)
 
@@ -186,10 +202,28 @@ export async function kadSearch(q?: string | null, limit = 100) {
       }
     : {}
 
-  const [codes, total] = await Promise.all([
-    prisma.kadCode.findMany({ where, orderBy: { code: 'asc' }, take: cappedLimit }),
+  const [rows, total] = await Promise.all([
+    prisma.kadCode.findMany({
+      where,
+      orderBy: { code: 'asc' },
+      take: cappedLimit,
+      select: {
+        code: true,
+        codeWithoutDots: true,
+        title: true,
+        description: true,
+        level: true,
+        sector: true,
+        _count: { select: { licenseRequirements: true } },
+      },
+    }),
     prisma.kadCode.count({ where }),
   ])
+
+  const codes: KadSearchResultItem[] = rows.map(({ _count, ...r }) => ({
+    ...r,
+    requiresLicense: _count.licenseRequirements > 0,
+  }))
   return { codes, total }
 }
 
