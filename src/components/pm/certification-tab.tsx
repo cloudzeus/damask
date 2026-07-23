@@ -260,10 +260,11 @@ function CertificationCard({
       <div className="field !mt-2.5 !mb-0">
         <label htmlFor={`cert-notes-${item.expenseId}`}>Σημείωση</label>
         <textarea
+          key={`notes-${item.expenseId}-${item.notes ?? ''}`}
           id={`cert-notes-${item.expenseId}`}
           className="cms-textarea"
           rows={2}
-          defaultValue=""
+          defaultValue={item.notes ?? ''}
           onBlur={e => handleNotesBlur(e.target.value)}
         />
       </div>

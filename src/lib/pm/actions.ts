@@ -787,6 +787,7 @@ export type CertificationItem = {
   paid: boolean
   verified: boolean
   complete: boolean
+  notes: string | null
 }
 
 export async function listCertifications(applicationId: string): Promise<CertificationItem[]> {
@@ -821,6 +822,7 @@ export async function listCertifications(applicationId: string): Promise<Certifi
       paid: state.paid,
       verified: c?.verified ?? false,
       complete: certificationComplete(state),
+      notes: c?.notes ?? null,
     }
   })
 }
@@ -838,6 +840,7 @@ export async function upsertCertification(
   },
 ): Promise<void> {
   const { session, expense } = await requireVisibleExpense(expenseId)
+  const existing = await prisma.programExpenseCertification.findUnique({ where: { expenseId } })
   const data: Record<string, unknown> = {}
   if (patch.serialNumber !== undefined) data.serialNumber = patch.serialNumber?.trim() || null
   if (patch.location !== undefined) data.location = patch.location?.trim() || null
@@ -845,10 +848,34 @@ export async function upsertCertification(
   if (patch.assetRegistryDate !== undefined) data.assetRegistryDate = patch.assetRegistryDate ? new Date(patch.assetRegistryDate) : null
   if (patch.paid !== undefined) data.paid = patch.paid
   if (patch.notes !== undefined) data.notes = patch.notes?.trim() || null
-  if (patch.verified !== undefined) {
-    data.verified = patch.verified
-    data.verifiedById = patch.verified ? session.user.id : null
+
+  /**
+   * ΚΡΙΣΙΜΟ (spec §3ζ): verified=true ΜΟΝΟ αν το certificationComplete
+   * είναι true. Το UI κλειδώνει το toggle αλλά ΔΕΝ αρκεί — ένα direct
+   * server-action call (π.χ. από devtools) μπορεί να παρακάμψει το UI. Άρα
+   * το invariant πρέπει να επιβάλλεται ΕΔΩ, σε ΚΑΘΕ write: χτίζουμε το
+   * merged state (existing row + αυτό το patch· τα file keys ΔΕΝ αλλάζουν
+   * από αυτό το action, άρα έρχονται πάντα από το existing), υπολογίζουμε
+   * complete, και γράφουμε verified = desiredVerified && complete —
+   * ΠΑΝΤΑ, ανεξάρτητα αν το patch αυτό αγγίζει καν το verified. Αυτό
+   * καλύπτει ΚΑΙ το «clear ενός mandatory field σε ήδη verified cert»: αν
+   * το merged γίνει incomplete, το verified ξαναγράφεται false αυτόματα.
+   */
+  const merged = {
+    serialNumber: patch.serialNumber !== undefined ? (patch.serialNumber?.trim() || null) : (existing?.serialNumber ?? null),
+    location: patch.location !== undefined ? (patch.location?.trim() || null) : (existing?.location ?? null),
+    assetRegistryRef: patch.assetRegistryRef !== undefined ? (patch.assetRegistryRef?.trim() || null) : (existing?.assetRegistryRef ?? null),
+    photoKey: existing?.photoKey ?? null,
+    bankStatementKey: existing?.bankStatementKey ?? null,
+    newUnusedCertKey: existing?.newUnusedCertKey ?? null,
+    paid: patch.paid !== undefined ? patch.paid : (existing?.paid ?? false),
   }
+  const complete = certificationComplete(merged)
+  const desiredVerified = patch.verified !== undefined ? patch.verified : (existing?.verified ?? false)
+  const finalVerified = desiredVerified && complete
+  data.verified = finalVerified
+  data.verifiedById = finalVerified ? session.user.id : null
+
   await prisma.programExpenseCertification.upsert({
     where: { expenseId },
     create: { expenseId, ...data },
