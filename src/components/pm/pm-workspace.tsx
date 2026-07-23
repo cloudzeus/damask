@@ -7,6 +7,7 @@ import type { VisibleApplicationItem, BoardObligation } from '@/lib/pm/actions'
 import { ApplicationsTable } from './applications-table'
 import { ObligationsBoard } from './obligations-board'
 import { DeadlinesView } from './deadlines-view'
+import { PmOverview } from './pm-overview'
 
 /**
  * `/pm` tabbed workspace (C2b) — τρεις προβολές πάνω στα ίδια δεδομένα που
@@ -16,9 +17,10 @@ import { DeadlinesView } from './deadlines-view'
  * program-editor.tsx (δεν υπάρχει Tabs primitive στο src/components/ui).
  */
 
-type ViewKey = 'applications' | 'board' | 'deadlines'
+type ViewKey = 'overview' | 'applications' | 'board' | 'deadlines'
 
 const VIEWS: { key: ViewKey; label: string }[] = [
+  { key: 'overview', label: 'Επισκόπηση' },
   { key: 'applications', label: 'Έργα' },
   { key: 'board', label: 'Πίνακας' },
   { key: 'deadlines', label: 'Προθεσμίες' },
@@ -60,6 +62,7 @@ export function PmWorkspace({
   return (
     <div>
       <ViewBar active={view} onChange={setView} />
+      {view === 'overview' && <PmOverview obligations={obligations} />}
       {view === 'applications' && <ApplicationsTable rows={applications} />}
       {view === 'board' && (
         <ObligationsBoard obligations={obligations} swimlaneBy="assignee" onStatusChange={() => router.refresh()} />
