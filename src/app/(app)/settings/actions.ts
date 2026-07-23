@@ -12,6 +12,7 @@ import {
   type SoftOneTestConfig, type MailgunTestConfig, type BunnyTestConfig, type DeepSeekTestConfig, type ClaudeTestConfig, type GeminiTestConfig, type MapsTestConfig,
 } from '@/lib/connection-tests'
 import { aadeLookup } from '@/lib/aade'
+import { gemiMetadata } from '@/lib/trdr/gemi'
 import {
   getVivaSettings, saveVivaSettings as persistVivaSettings, saveVivaLastCheck,
   type VivaEnvironment, type VivaEnvInput,
@@ -321,6 +322,44 @@ export async function testMapsSettings(values: MapsValues): Promise<CheckResult>
   const stored = await getIntegration<MapsTestConfig>('maps')
   const result = await testGeocodeApi(mergeNonEmpty(stored, { geocodeApiKey: values.geocodeApiKey }))
   const check = await saveLastCheck('maps', result)
+  revalidateSettings()
+  return check
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 8β. ΓΕΜΗ (integration.gemi — W2 traders task): κλειδί για το ΓΕΜΗ Open Data
+//     API (opendata-api.businessportal.gr), καταναλώνεται από src/lib/trdr/gemi.ts
+//     (gemiSyncTrdr κ.λπ., T3). DB-only — ΟΧΙ env fallback (§0.5 spec).
+//     Ξεχωριστό integration από το `maps.gemiApiKey` (εκείνο αχρησιμοποίητο ακόμα).
+//     «Δοκιμή σύνδεσης» καλεί απευθείας gemiMetadata.legalTypes() με το (πιθανώς
+//     μη αποθηκευμένο ακόμα) κλειδί — ίδιο idiom mergeNonEmpty με τις άλλες κάρτες.
+// ══════════════════════════════════════════════════════════════════════════
+
+export type GemiValues = { apiKey: string }
+
+const gemiSchema = z.object({ apiKey: z.string().max(200) })
+
+export async function saveGemiSettings(values: GemiValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = gemiSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
+  await saveIntegration('gemi', parsed.data, ['apiKey'])
+  revalidateSettings()
+  return { ok: true, message: 'Οι ρυθμίσεις ΓΕΜΗ αποθηκεύτηκαν.' }
+}
+
+export async function testGemiSettings(values: GemiValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const stored = await getIntegration<{ apiKey?: string }>('gemi')
+  const merged = mergeNonEmpty(stored, values)
+  let result: { ok: boolean; message: string }
+  try {
+    await gemiMetadata.legalTypes(merged.apiKey)
+    result = { ok: true, message: 'Επιτυχής σύνδεση με το ΓΕΜΗ.' }
+  } catch (err) {
+    result = { ok: false, message: err instanceof Error ? err.message : 'Αποτυχία σύνδεσης με το ΓΕΜΗ.' }
+  }
+  const check = await saveLastCheck('gemi', result)
   revalidateSettings()
   return check
 }

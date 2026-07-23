@@ -10,6 +10,7 @@ import { GoogleTagsCard } from './cards/google-tags-card'
 import { FacebookCard } from './cards/facebook-card'
 import { VivaCard, type VivaEnvCardData } from './cards/viva-card'
 import { MapsCard } from './cards/maps-card'
+import { GemiCard } from './cards/gemi-card'
 
 function str(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
@@ -37,7 +38,7 @@ function vivaEnvCardData(config: VivaEnvConfig): VivaEnvCardData {
 }
 
 export async function IntegrationsTab() {
-  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps] = await Promise.all([
+  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi] = await Promise.all([
     getIntegration('softone'),
     getIntegration('mailgun'),
     getIntegration('bunny'),
@@ -48,6 +49,7 @@ export async function IntegrationsTab() {
     getIntegration('facebook'),
     getVivaSettings(),
     getIntegration('maps'),
+    getIntegration('gemi'),
   ])
 
   return (
@@ -127,6 +129,11 @@ export async function IntegrationsTab() {
         }}
         configured={isIntegrationConfigured('maps', maps)}
         lastCheck={checkOf(maps)}
+      />
+      <GemiCard
+        maskedApiKey={maskSecret(gemi.apiKey)}
+        configured={isIntegrationConfigured('gemi', gemi)}
+        lastCheck={checkOf(gemi)}
       />
     </div>
   )

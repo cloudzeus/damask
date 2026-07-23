@@ -33,9 +33,11 @@ export type CheckResult = { ok: boolean; message: string; at: string }
  */
 export const PUBLIC_TRACKING_CACHE_TAG = 'public-tracking-settings'
 
-/** Οι 9 κάρτες της καρτέλας «Διασυνδέσεις». Το AADE (καρτέλα «Εταιρεία») ΔΕΝ είναι πλέον integration-shaped
- * — η αναζήτηση vat.wwa.gr (src/lib/aade.ts) δεν χρειάζεται credentials, οπότε δεν αποθηκεύεται εδώ. */
-export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook' | 'maps'
+/** Οι 10 κάρτες της καρτέλας «Διασυνδέσεις». Το AADE (καρτέλα «Εταιρεία») ΔΕΝ είναι πλέον integration-shaped
+ * — η αναζήτηση vat.wwa.gr (src/lib/aade.ts) δεν χρειάζεται credentials, οπότε δεν αποθηκεύεται εδώ.
+ * 'gemi' (W2): κλειδί ΓΕΜΗ opendata-api.businessportal.gr — DB-only, ΟΧΙ env (βλ. src/lib/trdr/gemi.ts).
+ * Ξεχωριστό από το ήδη υπάρχον (αχρησιμοποίητο) `maps.gemiApiKey` — αυτό είναι το ενεργό. */
+export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook' | 'maps' | 'gemi'
 
 function settingKeyFor(name: IntegrationName): string {
   return `integration.${name}`
@@ -88,7 +90,7 @@ function envFallbackFor(name: IntegrationName): Record<string, string | undefine
         geocodeApiKey: process.env.GEOCODE_API,
         gemiApiKey: process.env.GEMI_API_KEY,
       }
-    // Mailgun/Claude/Gemini/Google Tags/Facebook: integrations χωρίς προϋπάρχον .env — DB-only.
+    // Mailgun/Claude/Gemini/Google Tags/Facebook/ΓΕΜΗ ('gemi'): integrations χωρίς προϋπάρχον .env — DB-only.
     default:
       return {}
   }
@@ -175,6 +177,7 @@ const REQUIRED_FIELDS: Record<IntegrationName, string[]> = {
   // gemiApiKey ΔΕΝ είναι required — αποθηκεύεται για μελλοντική χρήση (opendata.businessportal.gr),
   // δεν χρησιμοποιείται ακόμα σε καμία ροή, άρα δεν πρέπει να μπλοκάρει το badge «Ρυθμισμένο».
   maps: ['googleMapsApiKey', 'maptilerApiKey', 'geocodeApiKey'],
+  gemi: ['apiKey'],
 }
 
 function nonEmpty(value: unknown): boolean {
