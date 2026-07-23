@@ -106,9 +106,16 @@
 | **C2a — Θεμέλιο PM** | `stage` enum + `managerId/processorId` στο ProgramApplication· `ApplicationObligation` + `ApplicationDocument`· auto-generation obligations από deliverables/forms/criteria· access scoping· **σελίδα έργου (hub)** με υποχρεώσεις/δικαιολογητικά/δαπάνες/ανάθεση· tab «Έργα» στην καρτέλα πελάτη. | Λειτουργικό tracking end-to-end ανά έργο. |
 | **C2b — Kanban & Timeline** | Global `/pm` board (dnd-kit, drag-drop stage transitions) + timeline + λίστα υποχρεώσεων ανά πρόγραμμα + φίλτρα. | Οι «πολλές προβολές». |
 | **C2c — Reminders & Reports** | pg-boss reminder job + email + notification center· dashboards/reports εκκρεμοτήτων ανά manager. | Ειδοποιήσεις + αναφορές. |
-| **C2d (προαιρετικό) — Portal πελάτη** | Ο εξωτερικός πελάτης (CUSTOMER) ανεβάζει δικαιολογητικά / βλέπει status. | Εξωτερική συμμετοχή. |
+| **C2d — Portal & Ανταλλαγή Εγγράφων πελάτη/λογιστή** | (α) **Document-request magic-link**: εσωτερικός χρήστης ζητά συγκεκριμένο έγγραφο/τιμολόγιο → tokenized link σε email → ο πελάτης/λογιστής ανεβάζει **χωρίς full login** → το αρχείο πάει ως `ApplicationDocument` και κλείνει την αντίστοιχη υποχρέωση. (β) **Portal πελάτη + λογιστή**: authenticated view (CUSTOMER user + προσκεκλημένος λογιστής) με **dashboard προόδου έργου** (στάδια, τι εκκρεμεί, τι πρέπει να προσκομίσει, υποβληθέντα) + upload. | Εξωτερική συμμετοχή. |
 
-**Σύσταση:** χτίζουμε **C2a πρώτα** (θεμέλιο), μετά C2b (όψεις), μετά C2c (reminders/reports). Κάθε φάση = δικό της spec→plan→build (όπως A/B/C1).
+**Σύσταση:** χτίζουμε **C2a πρώτα** (θεμέλιο), μετά C2b (όψεις), C2c (reminders/reports), C2d (portal/ανταλλαγή). Κάθε φάση = δικό της spec→plan→build (όπως A/B/C1).
+
+### C2d — λεπτομέρειες (για μελλοντικό spec)
+- **Actors:** πελάτης (CUSTOMER user δεμένος σε `Trdr`) + **λογιστής** (νέος εξωτερικός invited user, δεμένος στον ίδιο `Trdr` με περιορισμένη πρόσβαση).
+- **Document-request magic-link:** μοντέλο `DocumentRequest` (applicationId, obligationId?, requestedName, token (μοναδικό, hashed), expiresAt, status PENDING/UPLOADED/EXPIRED, uploadedDocumentId?). Ο εσωτερικός χρήστης το δημιουργεί → `mailer.ts` στέλνει link `/upload/{token}` (public route, token-gated, ΟΧΙ session)· ο παραλήπτης ανεβάζει ΕΝΑ αρχείο → `ApplicationDocument` + κλείνει η υποχρέωση + notify. Token single-use/expiring· rate-limit· μόνο για το συγκεκριμένο έγγραφο.
+- **Portal:** `/portal/programs` (reuse του υπάρχοντος `/portal` B2B redirect για CUSTOMER/ARCHITECT) → **dashboard πελάτη** με τα έργα του (`ProgramApplication`), στάδιο, checklist υποχρεώσεων (τι εκκρεμεί από αυτόν), upload, ιστορικό. Ο λογιστής βλέπει τα ίδια read-only + upload.
+- **Security:** magic-link = hashed token, expiry, single-use, scoped σε ΕΝΑ obligation· portal = κανονικό session με scoping στον `Trdr` του χρήστη· καμία πρόσβαση σε άλλα έργα/πελάτες.
+- Χτίζει πάνω στα `ApplicationObligation`/`ApplicationDocument` του **C2a**.
 
 ---
 
