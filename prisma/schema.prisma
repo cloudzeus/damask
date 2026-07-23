@@ -34,6 +34,7 @@ model User {
   processedApplications ProgramApplication[]    @relation("AppProcessor")
   assignedObligations   ApplicationObligation[]
   verifiedCertifications ProgramExpenseCertification[] @relation("CertVerifier")
+  reminders             ReminderLog[]           @relation("UserReminders")
 
   @@index([roleId])
   @@index([trdrId])
@@ -1246,6 +1247,12 @@ enum PaymentRequestStatus {
   REJECTED
 }
 
+enum ReminderStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model ProgramApplication {
   id          String           @id @default(cuid())
   trdrId      String
@@ -1438,4 +1445,19 @@ model ProgramTaskTemplate {
 
   @@index([programId])
   @@index([programId, stage])
+}
+
+model ReminderLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation("UserReminders", fields: [userId], references: [id], onDelete: SetNull)
+  email        String
+  dueSoonCount Int      @default(0)
+  overdueCount Int      @default(0)
+  status       ReminderStatus @default(SENT)
+  error        String?
+  sentAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([sentAt])
 }
