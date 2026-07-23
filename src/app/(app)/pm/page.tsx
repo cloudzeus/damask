@@ -1,20 +1,23 @@
-import Link from 'next/link'
 import { requirePermission } from '@/lib/rbac-server'
-import { listVisibleApplications } from '@/lib/pm/actions'
-import { stageLabel, verdictLabel } from '@/lib/pm/types'
+import { listVisibleApplications, listVisibleObligations } from '@/lib/pm/actions'
+import { PmWorkspace } from '@/components/pm/pm-workspace'
 
 /**
- * «Έργα» (Task 9 — minimal v1): λίστα των αιτήσεων/έργων που βλέπει ο
- * τρέχων χρήστης (listVisibleApplications ήδη κάνει το scoping — pm.manage
- * βλέπει όλα, pm.work μόνο τα δικά του ανατεθειμένα, βλ. src/lib/pm/scoping.ts).
+ * `/pm` workspace (Task 9 → C2b tabbed workspace): «Έργα» (πίνακας αιτήσεων)
+ * · «Πίνακας» (global status Kanban) · «Προθεσμίες» (deadline radar) — και
+ * τα τρία πάνω στα ίδια scoped δεδομένα (listVisibleApplications/
+ * listVisibleObligations ήδη κάνουν το scoping — pm.manage βλέπει όλα,
+ * pm.work μόνο τα δικά του ανατεθειμένα, βλ. src/lib/pm/scoping.ts).
  * requirePermission('pm.work') αρκεί ως gate εδώ: ο SUPER_ADMIN/ADMIN έχει
  * pm.work μέσω ROLE_DEFAULTS=ALL, ο MANAGER/EMPLOYEE το παίρνει ρητά
  * (src/lib/permissions.ts) — δεν χρειάζεται ξεχωριστό pm.manage fallback
  * σαν το requirePmAccess των actions, το permission gate είναι ήδη «broad».
+ * Το view switcher + presentational markup ζουν στο PmWorkspace (client) —
+ * το page.tsx παραμένει RSC, μόνο fetch + gate.
  */
 export default async function PmPage() {
   await requirePermission('pm.work')
-  const rows = await listVisibleApplications()
+  const [applications, obligations] = await Promise.all([listVisibleApplications(), listVisibleObligations()])
 
   return (
     <div>
@@ -28,43 +31,7 @@ export default async function PmPage() {
         </p>
       </div>
 
-      <div className="glass table-card">
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Πελάτης</th>
-                <th>Πρόγραμμα</th>
-                <th>Στάδιο</th>
-                <th>Αξιολόγηση</th>
-                <th>Διαχειριστής</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr key={row.id} className="dotted-row-bottom">
-                  <td>
-                    <Link href={`/programs/${row.programId}/applications/${row.id}`} className="font-semibold hover:underline">
-                      {row.trdrName}
-                    </Link>
-                  </td>
-                  <td>{row.programTitle}</td>
-                  <td>{stageLabel(row.stage)}</td>
-                  <td>{verdictLabel(row.assessmentVerdict)}</td>
-                  <td className="text-muted-foreground">{row.managerName ?? '—'}</td>
-                </tr>
-              ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                    Δεν υπάρχουν έργα.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <PmWorkspace applications={applications} obligations={obligations} />
     </div>
   )
 }
