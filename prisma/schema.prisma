@@ -1062,6 +1062,7 @@ model Program {
   legalForms          ProgramEligibleLegalForm[]
   applications        ProgramApplication[]
   requiredForms       ProgramRequiredForm[]
+  taskTemplates       ProgramTaskTemplate[]
 
   @@index([status])
   @@index([extractStatus])
@@ -1225,6 +1226,12 @@ enum AssessmentVerdict {
   INELIGIBLE
 }
 
+enum TaskAssignTo {
+  MANAGER
+  PROCESSOR
+  BOTH
+}
+
 model ProgramApplication {
   id          String           @id @default(cuid())
   trdrId      String
@@ -1302,10 +1309,13 @@ model ApplicationObligation {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   documents     ApplicationDocument[]
+  templateId    String?
+  template      ProgramTaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@index([applicationId])
   @@index([applicationId, stage])
   @@index([status])
+  @@index([templateId])
 }
 
 model ApplicationDocument {
@@ -1339,4 +1349,26 @@ model ApplicationCriterionScore {
 
   @@unique([applicationId, criterionId])
   @@index([applicationId])
+}
+
+model ProgramTaskTemplate {
+  id            String           @id @default(cuid())
+  programId     String
+  program       Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  stage         ApplicationStage
+  title         String
+  description   String?
+  assignTo      TaskAssignTo     @default(PROCESSOR)
+  mandatory     Boolean          @default(true)
+  dueOffsetDays Int?
+  order         Int              @default(0)
+  active        Boolean          @default(true)
+  createdById   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  obligations   ApplicationObligation[]
+
+  @@index([programId])
+  @@index([programId, stage])
 }
