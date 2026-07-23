@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Building2, KeyRound } from 'lucide-react'
+import { Building2, KeyRound, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CardHeader, SecretField, maskSecretPreview } from '../fields'
 import { saveGemiSettings, testGemiSettings, type GemiValues } from '../actions'
+import { refreshGemiMetadata } from '@/lib/trdr/enrich-actions'
 import type { CheckResult } from '@/lib/settings'
 
 /**
@@ -28,6 +29,7 @@ export function GemiCard({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [saving, startSave] = useTransition()
   const [testing, startTest] = useTransition()
+  const [refreshing, startRefresh] = useTransition()
 
   function set<K extends keyof GemiValues>(key: K, value: GemiValues[K]) {
     setValues(prev => ({ ...prev, [key]: value }))
@@ -67,6 +69,19 @@ export function GemiCard({
     })
   }
 
+  function handleRefreshMetadata() {
+    startRefresh(async () => {
+      try {
+        const { counts } = await refreshGemiMetadata()
+        toast.success(
+          `Ανανεώθηκαν τα μητρώα ΓΕΜΗ — ${counts.legalTypes} νομικές μορφές, ${counts.gemiOffices} υπηρεσίες ΓΕΜΗ, ${counts.companyStatuses} καταστάσεις, ${counts.prefectures} νομοί, ${counts.municipalities} δήμοι.`,
+        )
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Η ανανέωση των μητρώων ΓΕΜΗ απέτυχε.')
+      }
+    })
+  }
+
   return (
     <div className="glass p-4">
       <CardHeader
@@ -82,6 +97,10 @@ export function GemiCard({
       <div className="mt-1 flex items-center gap-2">
         <Button type="button" onClick={handleSave} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Button>
         <Button type="button" variant="outline" onClick={handleTest} disabled={testing}>{testing ? 'Έλεγχος…' : 'Δοκιμή σύνδεσης'}</Button>
+        <Button type="button" variant="outline" onClick={handleRefreshMetadata} disabled={refreshing}>
+          <RefreshCw className="size-3.5" />
+          {refreshing ? 'Ανανέωση…' : 'Ανανέωση μητρώων ΓΕΜΗ'}
+        </Button>
       </div>
     </div>
   )

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { notFound } from 'next/navigation'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
@@ -12,6 +12,7 @@ import {
   getGemiCompanyDocuments,
   downloadGemiFile,
   mapGemiCompany,
+  gemiMetadata,
   type GemiCompanyRaw,
   type GemiDocumentDecision,
   type GemiDocumentPublication,
@@ -77,6 +78,24 @@ async function replaceTrdrKad(tx: Prisma.TransactionClient, trdrId: string, rows
   if (rows.length > 0) await tx.trdrKad.createMany({ data: rows })
 }
 
+/**
+ * Conditional-spread patch: μόνο τα keys των οποίων η τιμή στο `obj` ΔΕΝ είναι
+ * null περνάνε στο αποτέλεσμα. Η ΑΑΔΕ/ΓΕΜΗ πηγή αναπαριστά «η πηγή δεν έχει
+ * αυτό το πεδίο» με `null` στον mapper (gemi-map.ts / aade-map.ts) — αν το
+ * γράφαμε raw σε ένα Prisma update, ΘΑ ΣΒΗΝΕ μια ήδη γνωστή τιμή στο Trdr
+ * (data loss). Mirror του `?? undefined` semantics του ref. Πεδία που ΠΡΕΠΕΙ
+ * να μπορούν να καθαρίζονται (π.χ. gemiSyncedAt/gemiData) μένουν ΕΚΤΟΣ αυτής
+ * της λίστας και γράφονται explicit στο καλούντα.
+ */
+function omitNulls<T extends Record<string, unknown>>(obj: T, keys: (keyof T)[]): Partial<T> {
+  const out: Partial<T> = {}
+  for (const k of keys) {
+    const v = obj[k]
+    if (v !== null) out[k] = v
+  }
+  return out
+}
+
 // ── ΑΑΔΕ preview + apply ────────────────────────────────────────────────────
 
 /** Preview (καμία εγγραφή) — ΑΦΜ → mapped στοιχεία + activities. */
@@ -107,13 +126,7 @@ export async function applyAadeToTrdr(trdrId: string) {
       where: { id: trdrId },
       data: {
         NAME: mapped.NAME || undefined,
-        ADDRESS: mapped.ADDRESS,
-        ZIP: mapped.ZIP,
-        CITY: mapped.CITY,
-        foundingDate: mapped.foundingDate,
-        aadeStatus: mapped.aadeStatus,
-        aadeFirmKind: mapped.aadeFirmKind,
-        appLegalForm: mapped.appLegalForm,
+        ...omitNulls(mapped, ['ADDRESS', 'ZIP', 'CITY', 'foundingDate', 'aadeStatus', 'aadeFirmKind', 'appLegalForm']),
         aadeSyncedAt: new Date(),
       },
     })
@@ -270,31 +283,32 @@ export async function gemiSyncTrdr(trdrId: string, opts: { arGemi?: string; sync
   const m = mapGemiCompany(company)
   const kadRows = m.activities.length > 0 ? await buildTrdrKadRows(trdrId, m.activities) : []
 
-  await prisma.$transaction(async (tx) => {
-    await tx.trdr.update({
-      where: { id: trdrId },
-      data: {
-        NAME: m.NAME || undefined,
-        ADDRESS: m.ADDRESS,
-        ZIP: m.ZIP,
-        CITY: m.CITY,
-        ...(m.EMAIL !== undefined ? { EMAIL: m.EMAIL } : {}),
-        arGemi: m.arGemi,
-        gemiOffice: m.gemiOffice,
-        gemiStatus: m.gemiStatus,
-        gemiObjective: m.gemiObjective,
-        gemiIsBranch: m.gemiIsBranch,
-        gemiAutoRegistered: m.gemiAutoRegistered,
-        gemiLastStatusChange: m.gemiLastStatusChange,
-        gemiSyncedAt: new Date(),
-        gemiData: company as unknown as Prisma.InputJsonValue,
-        foundingDate: m.foundingDate,
-        appLegalForm: m.appLegalForm,
-        ISACTIVE: m.ISACTIVE,
-      },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.trdr.update({
+        where: { id: trdrId },
+        data: {
+          NAME: m.NAME || undefined,
+          ...omitNulls(m, [
+            'ADDRESS', 'ZIP', 'CITY',
+            'gemiOffice', 'gemiStatus', 'gemiObjective', 'gemiIsBranch', 'gemiAutoRegistered', 'gemiLastStatusChange',
+            'foundingDate', 'appLegalForm',
+          ]),
+          ...(m.EMAIL !== undefined ? { EMAIL: m.EMAIL } : {}),
+          arGemi: m.arGemi,
+          gemiSyncedAt: new Date(),
+          gemiData: company as unknown as Prisma.InputJsonValue,
+          ISACTIVE: m.ISACTIVE,
+        },
+      })
+      await replaceTrdrKad(tx, trdrId, kadRows)
     })
-    await replaceTrdrKad(tx, trdrId, kadRows)
-  })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new Error('Ο αριθμός ΓΕΜΗ έχει ήδη συνδεθεί με άλλον συναλλασσόμενο.')
+    }
+    throw e
+  }
 
   let documentsImported = 0
   let documentsFailed = 0
@@ -521,4 +535,106 @@ export async function removeTrdrDocument(docId: string) {
   await prisma.trdrDocument.delete({ where: { id: docId } })
   revalidatePath(`/partners/${doc.trdrId}`)
   return { ok: true as const }
+}
+
+// ── ΓΕΜΗ metadata refresh (admin op — Ρυθμίσεις) ────────────────────────────
+
+export type RefreshGemiMetadataCounts = {
+  legalTypes: number
+  gemiOffices: number
+  companyStatuses: number
+  prefectures: number
+  municipalities: number
+}
+
+function toRefDate(v?: string): Date | null {
+  return v ? new Date(v) : null
+}
+
+/**
+ * Ανανέωση των 5 μητρώων αναφοράς ΓΕΜΗ (LegalType/GemiOfficeRef/CompanyStatusRef/
+ * PrefectureRef/MunicipalityRef) από το Open Data API — admin/metadata op, ΟΧΙ
+ * mutation Trdr, gated 'settings.manage' (ίδιο permission με τις υπόλοιπες
+ * κάρτες Ρυθμίσεων — βλ. src/app/(app)/settings/actions.ts).
+ *
+ * Ref: pb-ref app/api/admin/metadata/refresh-gemi/route.ts — municipalities
+ * ΤΕΛΕΥΤΑΙΑ (FK σε PrefectureRef). Το DAMASK schema δεν έχει `descrEn` στήλη
+ * (ref είχε) — παραλείπεται.
+ */
+export async function refreshGemiMetadata(): Promise<{ ok: true; counts: RefreshGemiMetadataCounts }> {
+  await requirePermission('settings.manage')
+
+  const [legalTypes, gemiOffices, statuses, prefectures, municipalities] = await Promise.all([
+    gemiMetadata.legalTypes(),
+    gemiMetadata.gemiOffices(),
+    gemiMetadata.companyStatuses(),
+    gemiMetadata.prefectures(),
+    gemiMetadata.municipalities(),
+  ])
+
+  const toInt = (v: string | number) => (typeof v === 'number' ? v : parseInt(v, 10))
+
+  await Promise.all(
+    legalTypes.map((t) => {
+      const id = toInt(t.id)
+      return prisma.legalType.upsert({
+        where: { id },
+        update: { descr: t.descr, lastUpdated: toRefDate(t.lastUpdated) },
+        create: { id, descr: t.descr, lastUpdated: toRefDate(t.lastUpdated) },
+      })
+    }),
+  )
+
+  await Promise.all(
+    gemiOffices.map((o) => {
+      const id = toInt(o.id)
+      const fields = {
+        descr: o.descr,
+        address: o.address ?? null,
+        city: o.city ?? null,
+        zip: o.zipCode ?? null,
+        phone: o.phone ?? null,
+        fax: o.fax ?? null,
+        url: o.url ?? null,
+        lastUpdated: toRefDate(o.lastUpdated),
+      }
+      return prisma.gemiOfficeRef.upsert({ where: { id }, update: fields, create: { id, ...fields } })
+    }),
+  )
+
+  await Promise.all(
+    statuses.map((s) => {
+      const id = toInt(s.id)
+      const fields = { descr: s.descr, isActive: s.isActive, lastUpdated: toRefDate(s.lastUpdated) }
+      return prisma.companyStatusRef.upsert({ where: { id }, update: fields, create: { id, ...fields } })
+    }),
+  )
+
+  await Promise.all(
+    prefectures.map((p) => {
+      const id = String(p.id)
+      const fields = { descr: p.descr, lastUpdated: toRefDate(p.lastUpdated) }
+      return prisma.prefectureRef.upsert({ where: { id }, update: fields, create: { id, ...fields } })
+    }),
+  )
+
+  // Municipalities ΤΕΛΕΥΤΑΙΑ — FK σε PrefectureRef (prefectureId).
+  await Promise.all(
+    municipalities.map((m) => {
+      const id = String(m.id)
+      const fields = { descr: m.descr, prefectureId: m.prefectureId ?? null, lastUpdated: toRefDate(m.lastUpdated) }
+      return prisma.municipalityRef.upsert({ where: { id }, update: fields, create: { id, ...fields } })
+    }),
+  )
+
+  return {
+    ok: true,
+    counts: {
+      legalTypes: legalTypes.length,
+      gemiOffices: gemiOffices.length,
+      companyStatuses: statuses.length,
+      prefectures: prefectures.length,
+      municipalities: municipalities.length,
+    },
+  }
 }
