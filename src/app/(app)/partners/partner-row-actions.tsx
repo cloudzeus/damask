@@ -12,13 +12,17 @@ import {
   AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { ScanActionItem } from '@/components/tax/scan-action-item'
+import { AadeCheckActionItem } from '@/components/trdr/aade-check-dialog'
+import { GemiSyncActionItem } from '@/components/trdr/gemi-sync-dialog'
+import { RegionMatchActionItem } from '@/components/trdr/region-match-action-item'
 import { convertLeadToCustomer, deletePartner } from './actions'
 
 export function PartnerRowActions({
-  id, name, isProsp, isLocal,
+  id, name, afm, isProsp, isLocal,
 }: {
   id: string
   name: string
+  afm: string | null
   isProsp: boolean
   /** trdr === null — δεν έχει συγχρονιστεί με SoftOne, άρα επιτρέπεται διαγραφή. */
   isLocal: boolean
@@ -62,6 +66,10 @@ export function PartnerRowActions({
             <FileText className="size-3.5" strokeWidth={1.75} /> Καρτέλα
           </DropdownMenuItem>
           <ScanActionItem trdrId={id} trdrName={name} />
+          <DropdownMenuSeparator />
+          <AadeCheckActionItem trdrId={id} afm={afm} />
+          <GemiSyncActionItem trdrId={id} name={name} />
+          <RegionMatchActionItem trdrId={id} name={name} />
           {isProsp && (
             <DropdownMenuItem disabled={converting} onClick={handleConvert}>
               <ArrowUpRight className="size-3.5" strokeWidth={1.75} /> {converting ? 'Μετατροπή…' : 'Μετατροπή σε Πελάτη'}

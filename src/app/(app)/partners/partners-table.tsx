@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { PartnerRowActions } from './partner-row-actions'
+import { BulkRegionMatchButton } from '@/components/trdr/bulk-region-match-button'
 
 export type PartnerRow = {
   id: string
@@ -16,6 +17,7 @@ export type PartnerRow = {
   isProsp: boolean
   sodtype: number
   trdr: number | null
+  regionName: string | null
 }
 
 type TabKey = 'customers' | 'suppliers' | 'leads'
@@ -82,6 +84,8 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
         <button type="button" className={`pill${tab === 'leads' ? ' on' : ''}`} onClick={() => setTab('leads')}>
           Leads <span className="cnt">{counts.leads}</span>
         </button>
+        <div className="flex-1" />
+        <BulkRegionMatchButton />
       </div>
 
       <div className="table-wrap">
@@ -90,6 +94,7 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
             <tr>
               <th>Συναλλασσόμενος</th>
               <th>Πόλη</th>
+              <th>Περιφέρεια</th>
               <th>Τηλέφωνο</th>
               <th className="num">Επαφές</th>
               <th>Κατάσταση</th>
@@ -110,6 +115,9 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
                   </Link>
                 </td>
                 <td>{p.city ?? '—'}</td>
+                <td>
+                  {p.regionName ? <span className="badge-pill muted">{p.regionName}</span> : <span className="text-muted-foreground">—</span>}
+                </td>
                 <td>{p.phone ?? '—'}</td>
                 <td className="num">{p.contactsCount}</td>
                 <td>
@@ -135,13 +143,13 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
                   )}
                 </td>
                 <td className="ctr">
-                  <PartnerRowActions id={p.id} name={p.name} isProsp={p.isProsp} isLocal={p.trdr === null} />
+                  <PartnerRowActions id={p.id} name={p.name} afm={p.afm} isProsp={p.isProsp} isLocal={p.trdr === null} />
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                <td colSpan={8} className="py-8 text-center text-muted-foreground">
                   Δεν βρέθηκαν συναλλασσόμενοι.
                 </td>
               </tr>

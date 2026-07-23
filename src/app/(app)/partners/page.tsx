@@ -18,7 +18,10 @@ export default async function PartnersPage() {
 
   const [trdrs, customerCount, supplierCount, leadCount, newThisMonth, mapsConfig, formOptions] = await Promise.all([
     prisma.trdr.findMany({
-      include: { _count: { select: { contacts: true } } },
+      include: {
+        _count: { select: { contacts: true } },
+        region: { select: { nameEL: true } },
+      },
       orderBy: { NAME: 'asc' },
     }),
     prisma.trdr.count({ where: { SODTYPE: 13, ISPROSP: 0 } }),
@@ -40,6 +43,7 @@ export default async function PartnersPage() {
     isProsp: t.ISPROSP === 1,
     sodtype: t.SODTYPE,
     trdr: t.TRDR,
+    regionName: t.region?.nameEL ?? null,
   }))
 
   const kpis = [

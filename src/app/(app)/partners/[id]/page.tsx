@@ -12,6 +12,9 @@ import { PartnerMapCard } from './partner-map-card'
 import { ContactsPanel, type ContactRow } from './contacts-panel'
 import { FinancialsTab } from '@/components/tax/financials-tab'
 import { TrdrApplicationsTab } from '@/components/pm/trdr-applications-tab'
+import {
+  GemiAadeCard, TrdrKadCard, TrdrDocumentsCard, type TrdrKadRow, type TrdrDocumentRow,
+} from '@/components/trdr/trdr-enrich-cards'
 
 export default async function PartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requirePermission('customer.view')
@@ -21,7 +24,11 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
   const [trdr, mapsConfig, formOptions] = await Promise.all([
     prisma.trdr.findUnique({
       where: { id },
-      include: { contacts: { orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }] } },
+      include: {
+        contacts: { orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }] },
+        kads: { orderBy: [{ kind: 'asc' }, { order: 'asc' }] },
+        documents: { orderBy: { createdAt: 'desc' } },
+      },
     }),
     getMapsClientConfig(),
     getPartnerFormOptions(),
@@ -56,6 +63,32 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
     hasUser: c.userId !== null,
     hasPendingRequest: pendingContactIds.has(c.id),
   }))
+
+  // «Άδεια λειτουργίας» flag ανά ΚΑΔ (W1 KadLicenseRequirement) — join server-side.
+  const kadCodes = trdr.kads.map(k => k.code)
+  const licenseRows = kadCodes.length > 0
+    ? await prisma.kadLicenseRequirement.findMany({ where: { code: { in: kadCodes } }, select: { code: true } })
+    : []
+  const licensedCodes = new Set(licenseRows.map(r => r.code))
+
+  const kadRows: TrdrKadRow[] = trdr.kads.map(k => ({
+    id: k.id,
+    code: k.code,
+    description: k.description,
+    kind: k.kind,
+    licensed: licensedCodes.has(k.code),
+  }))
+
+  const documentRows: TrdrDocumentRow[] = trdr.documents.map(d => ({
+    id: d.id,
+    title: d.title,
+    docKind: d.docKind,
+    createdAtLabel: d.createdAt.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    downloadable: d.storageKey !== null,
+  }))
+
+  const dateLabel = (d: Date | null) => d ? d.toLocaleDateString('el-GR') : null
+  const dateTimeLabel = (d: Date | null) => d ? d.toLocaleString('el-GR', { dateStyle: 'medium', timeStyle: 'short' }) : null
 
   const canEdit = can(session, 'customer.edit')
 
@@ -132,6 +165,27 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
 
       <div className="mt-3">
         <TrdrApplicationsTab trdrId={trdr.id} />
+      </div>
+
+      <div className="mt-3">
+        <GemiAadeCard
+          trdrId={trdr.id}
+          name={trdr.NAME}
+          afm={trdr.AFM}
+          arGemi={trdr.arGemi}
+          gemiOffice={trdr.gemiOffice}
+          gemiStatus={trdr.gemiStatus}
+          foundingDate={dateLabel(trdr.foundingDate)}
+          aadeStatus={trdr.aadeStatus}
+          aadeFirmKind={trdr.aadeFirmKind}
+          gemiSyncedAt={dateTimeLabel(trdr.gemiSyncedAt)}
+          aadeSyncedAt={dateTimeLabel(trdr.aadeSyncedAt)}
+        />
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <TrdrKadCard kads={kadRows} />
+        <TrdrDocumentsCard trdrId={trdr.id} arGemi={trdr.arGemi} documents={documentRows} />
       </div>
     </div>
   )
