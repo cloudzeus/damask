@@ -19,6 +19,8 @@ import { ExpensesTab } from './expenses-tab'
 import { OpskeTab } from './opske-tab'
 import { CertificationTab } from './certification-tab'
 import { PaymentsTab } from './payments-tab'
+import { DocumentRequestsTab } from './document-requests-tab'
+import { PortalAccessDialog } from './portal-access-dialog'
 
 /**
  * Το «Έργο hub» (Task 10) — κεντρική οθόνη PM για μία αίτηση προγράμματος:
@@ -91,14 +93,15 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
           <span className="badge-pill muted">{app.managerName ?? '—'}</span>
           <span className="text-[11.5px] font-semibold text-muted-foreground">Διεκπεραιωτής</span>
           <span className="badge-pill muted">{app.processorName ?? '—'}</span>
-          {app.canManage && (
-            <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <PortalAccessDialog applicationId={app.id} />
+            {app.canManage && (
               <AssignApplicationDialog
                 app={{ id: app.id, managerId: app.managerId, processorId: app.processorId }}
                 onAssigned={() => router.refresh()}
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -151,6 +154,7 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
         />
       )}
       {activeTab === 'certification' && <CertificationTab applicationId={app.id} programId={app.programId} />}
+      {activeTab === 'docrequests' && <DocumentRequestsTab applicationId={app.id} />}
       {activeTab === 'payments' && <PaymentsTab applicationId={app.id} />}
     </div>
   )
@@ -214,7 +218,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
 
 /* ── Tab bar — mirror του idiom στο program-editor.tsx (pill row, navy
  * active, χωρίς Tabs primitive). ── */
-type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'payments' | 'opske'
+type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'docrequests' | 'payments' | 'opske'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'assessment', label: 'Αξιολόγηση' },
@@ -222,6 +226,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'expenses', label: 'Δαπάνες & Πλάνο' },
   { key: 'deliverables', label: 'Παραδοτέα' },
   { key: 'certification', label: 'Πιστοποίηση' },
+  { key: 'docrequests', label: 'Αιτήματα εγγράφων' },
   { key: 'payments', label: 'Αποπληρωμές' },
   { key: 'opske', label: 'ΟΠΣΚΕ' },
 ]

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { LuPlus, LuTrash2, LuLoaderCircle, LuRefreshCw, LuListChecks } from 'react-icons/lu'
+import { LuPlus, LuTrash2, LuLoaderCircle, LuRefreshCw, LuListChecks, LuMailPlus } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,6 +23,7 @@ import {
 } from '@/lib/pm/types'
 import { ApplicationDocuments } from './application-documents'
 import { ObligationsBoard } from './obligations-board'
+import { NewDocumentRequestDialog } from './new-document-request-dialog'
 
 /** Sentinel τιμή για «— (κανένας) —» — το base-ui Select δεν επιτρέπει value="" σε Item. */
 const NONE_ASSIGNEE = '__none__'
@@ -260,6 +261,7 @@ export function ObligationsTab({
                     onNotesBlur={value => handleNotesBlur(o, value)}
                     onWaive={() => handleWaive(o)}
                     onRemove={() => handleRemove(o)}
+                    onReload={load}
                   />
                 ))}
               </div>
@@ -303,7 +305,7 @@ function ListBoardToggle({ active, onChange }: { active: 'list' | 'board'; onCha
 
 function ObligationRow({
   obligation: o, users, canManage, applicationId, programId,
-  onStatusChange, onDueDateBlur, onAssigneeChange, onNotesBlur, onWaive, onRemove,
+  onStatusChange, onDueDateBlur, onAssigneeChange, onNotesBlur, onWaive, onRemove, onReload,
 }: {
   obligation: ObligationItem
   users: InternalUserOption[]
@@ -316,6 +318,7 @@ function ObligationRow({
   onNotesBlur: (value: string) => void
   onWaive: () => void
   onRemove: () => void
+  onReload: () => void
 }) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -337,6 +340,22 @@ function ObligationRow({
             {o.status !== 'WAIVED' && (
               <Button type="button" size="sm" variant="outline" onClick={onWaive}>Απαλλαγή</Button>
             )}
+            <NewDocumentRequestDialog
+              applicationId={applicationId}
+              obligationId={o.id}
+              defaultTitle={o.name}
+              onCreated={onReload}
+              trigger={(
+                <button
+                  type="button"
+                  className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label={`Ζήτησε από πελάτη — ${o.name}`}
+                  title="Ζήτησε από πελάτη"
+                >
+                  <LuMailPlus className="size-3.5" aria-hidden />
+                </button>
+              )}
+            />
             <button
               type="button"
               onClick={onRemove}
