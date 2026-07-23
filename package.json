@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:sync-permissions": "tsx prisma/sync-permissions.ts",
-    "s1:test": "tsx scripts/s1-live-test.ts"
+    "s1:test": "tsx scripts/s1-live-test.ts",
+    "copy:registries": "tsx scripts/copy-registries.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
