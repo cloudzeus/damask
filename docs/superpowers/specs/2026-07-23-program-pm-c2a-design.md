@@ -91,6 +91,36 @@ model ApplicationCriterionScore {
   @@unique([applicationId, criterionId])
   @@index([applicationId])
 }
+
+enum ExpenseStatus { ACTIVE REPLACED }
+
+// ── ProgramExpense: επεκτάσεις (υπάρχον C3 model) για ΤΡΟΠΟΠΟΙΗΣΗ/ΑΝΤΙΚΑΤΑΣΤΑΣΗ βάσει πλάνου ──
+// status ExpenseStatus @default(ACTIVE)          // REPLACED = αντικαταστάθηκε, κρατιέται για audit, ΔΕΝ μετρά στο compliance
+// replacesExpenseId String?                      // self-relation: ποια δαπάνη αντικατέστησε αυτή
+// replacedByExpenseId String?  (inverse)
+// certification ProgramExpenseCertification?
+
+// ── Πιστοποίηση φυσικού αντικειμένου (στάδιο INSPECTION) — 1:1 με δαπάνη ──
+model ProgramExpenseCertification {
+  id             String @id @default(cuid())
+  expenseId      String @unique
+  expense        ProgramExpense @relation(fields:[expenseId], references:[id], onDelete:Cascade)
+  serialNumber   String?
+  location       String?                          // θέση εγκατάστασης
+  assetRegistryRef  String?                        // εγγραφή στο μητρώο παγίων (κωδ/αρ.)
+  assetRegistryDate DateTime?
+  // Bunny private keys για τα αποδεικτικά:
+  photoKey       String?                          // φωτογραφία
+  bankStatementKey String?                        // πληρωμή — εξτρέ τράπεζας
+  newUnusedCertKey String?                        // βεβαίωση καινούργιου & αμεταχείριστου
+  paid           Boolean @default(false)
+  verified       Boolean @default(false)          // επιβεβαιωμένο φυσικό αντικείμενο
+  verifiedById   String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@index([expenseId])
+}
 ```
 `User` παίρνει back-relations (`managedApplications`/`processedApplications`/`assignedObligations`). Νέα migration (additive).
 
@@ -121,6 +151,13 @@ model ApplicationCriterionScore {
 - `setApplicationStage(applicationId, stage)` — free-set στο C2a (το enforced drag-drop/gating έρχεται στο C2b). Απλός έλεγχος: προειδοποίηση αν υπάρχουν εκκρεμείς mandatory obligations του τρέχοντος σταδίου.
 - `updateOpske(applicationId, { opskeStatus?, opskeRef?, opskeSubmittedAt? })`.
 
+### 3στ. Τροποποίηση/αντικατάσταση δαπάνης + έλεγχος πλάνου (κατηγορίες & ποσοστώσεις)
+- **PURE engine** `checkBudgetCompliance(activeExpenses, categories, totalBudget)` → ανά κατηγορία: `spent` (Σ amount των ACTIVE δαπανών με confirmed `categoryId`), `pctOfBudget`, και `violations` (κάτω από `minAmount`/`minPercentage` όταν mandatory, ή πάνω από `maxAmount`/`maxPercentage`). Επιστρέφει `{ categories: [{ id, name, spent, pct, min/max limits, status: OK|UNDER|OVER }], uncategorized, totalSpent, ok }`. Το `%` υπολογίζεται έναντι `totalBudget`.
+- **Αντικατάσταση**: `replaceExpense(oldExpenseId, newExpenseInput)` — δημιουργεί νέα `ProgramExpense` (ACTIVE, `replacesExpenseId=old`), θέτει την παλιά `status=REPLACED` (κρατιέται για audit, δεν μετρά), τρέχει auto `suggestExpenseCategory` (C3) στη νέα, και **επαναϋπολογίζει compliance**. Κάθε add/replace/confirm-category → recompute. Το UI δείχνει live τα σύνολα ανά κατηγορία vs όρια + ⚠ παραβιάσεις (coral).
+
+### 3ζ. Πιστοποίηση φυσικού αντικειμένου (στάδιο INSPECTION)
+- Ανά ACTIVE δαπάνη: `upsertCertification(expenseId, { serialNumber?, location?, assetRegistryRef?, assetRegistryDate?, paid?, verified?, notes? })` + uploads (`uploadCertificationFile(expenseId, kind: 'photo'|'bankStatement'|'newUnusedCert', {base64,mimeType,ext})` → Bunny private → set το αντίστοιχο key). `verified=true` μόνο όταν συμπληρωθούν τα υποχρεωτικά (φωτο + σειριακό/θέση + μητρώο + πληρωμή/εξτρέ + βεβαίωση καινούργιου). Ένα «δελτίο ελέγχου» = η συγκεντρωτική προβολή όλων των certifications του έργου (export στο C2c).
+
 ---
 
 ## 4. Δομή αρχείων
@@ -129,25 +166,30 @@ src/lib/pm/
   types.ts             # ISOMORPHIC: stage/kind/status labels + helpers
   obligations-gen.ts   # PURE: (program deliverables/forms/criteria) → obligation/score write-rows (snapshot, idempotent keys)
   assessment.ts        # PURE: computeAssessmentScore(scores[]) → { score, max, pct }
+  budget-compliance.ts # PURE: checkBudgetCompliance(activeExpenses, categories, totalBudget) → per-category actual vs limits + violations
   scoping.ts           # visibleApplicationWhere(session) (pure, needs session shape only)
-  actions.ts           # 'use server': assign, generate, assessment, obligations CRUD, documents, stage, opske  (scoped/gated)
+  actions.ts           # 'use server': assign, generate, assessment, obligations CRUD, documents, stage, opske, replaceExpense, certification (scoped/gated)
 src/components/pm/
   application-hub.tsx        # η σελίδα έργου: header (stage badge, αναθέσεις) + tabs
   assessment-tab.tsx         # scored κριτήρια + σύνολο + verdict
   obligations-tab.tsx        # υποχρεώσεις ανά στάδιο + status/προθεσμία/assignee + upload δικαιολογητικών
+  budget-tab.tsx             # δαπάνες (C3 expense-list) + ΕΛΕΓΧΟΣ ΠΛΑΝΟΥ (σύνολα ανά κατηγορία vs όρια/ποσοστώσεις + ⚠) + αντικατάσταση δαπάνης
+  certification-tab.tsx      # πιστοποίηση φυσικού αντικειμένου ανά δαπάνη (σειριακό/θέση/μητρώο/φωτο/εξτρέ/βεβαίωση + verified)
   opske-tab.tsx              # καταγραφή ΟΠΣΚΕ
   assign-application-dialog.tsx  # ADMIN: manager + processor picker (User)
   application-documents.tsx  # λίστα/upload/download δικαιολογητικών
   trdr-applications-tab.tsx  # tab «Έργα» στην καρτέλα πελάτη
 src/app/(app)/programs/[id]/applications/[appId]/page.tsx  # RSC → <ApplicationHub/>
-src/app/(app)/programs/[id]/applications/[appId]/documents/[docId]/route.ts  # gated download
+src/app/(app)/programs/[id]/applications/[appId]/documents/[docId]/route.ts  # gated download (δικαιολογητικά + certification files)
 ```
-Οι δαπάνες (C3 `expense-list`) γίνονται tab «Δαπάνες» στο hub· τα παραδοτέα εμφανίζονται στο obligations-tab (stage EXPENSES_DELIVERABLES).
+Οι δαπάνες (C3 `expense-list`) γίνονται μέρος του **budget-tab** (μαζί με τον έλεγχο πλάνου + αντικατάσταση)· τα παραδοτέα στο obligations-tab (stage EXPENSES_DELIVERABLES)· η πιστοποίηση στο **certification-tab** (stage INSPECTION).
 
 ---
 
 ## 5. UI (Steel & Frost, §4β/§6)
-- **Σελίδα έργου** `/programs/[id]/applications/[appId]`: header με πελάτη+πρόγραμμα, **stage badge/stepper**, αναθέσεις (manager/processor chips + «Ανάθεση» για ADMIN), tabs: Αξιολόγηση · Υποχρεώσεις & Δικαιολογητικά · Δαπάνες (C3) · Παραδοτέα · ΟΠΣΚΕ.
+- **Σελίδα έργου** `/programs/[id]/applications/[appId]`: header με πελάτη+πρόγραμμα, **stage badge/stepper** (6 στάδια), αναθέσεις (manager/processor chips + «Ανάθεση» για ADMIN), tabs: Αξιολόγηση · Υποχρεώσεις & Δικαιολογητικά · **Δαπάνες & Πλάνο** · Παραδοτέα · **Πιστοποίηση** · ΟΠΣΚΕ.
+- **Δαπάνες & Πλάνο tab**: το C3 expense-list + πίνακας **ελέγχου πλάνου** (ανά κατηγορία: δαπανηθέν / % π/υ / όρια min-max €&% / status OK/UNDER/OVER με coral στις παραβιάσεις) + «Αντικατάσταση δαπάνης» (η παλιά → REPLACED, νέα με auto-κατηγορία, live recompute).
+- **Πιστοποίηση tab**: ανά ACTIVE δαπάνη, φόρμα φυσικού αντικειμένου (σειριακό/θέση/μητρώο παγίων+ημ/νία/πληρωμένο/verified) + uploads (φωτογραφία / εξτρέ τράπεζας / βεβαίωση καινούργιου-αμεταχείριστου) με προεπισκόπηση/download· badge «Πιστοποιημένο» όταν πλήρες.
 - **Αξιολόγηση tab**: πίνακας κριτηρίων (name, βάρος, βαθμός input, σημείωση) + σύνολο % + verdict badge + κουμπί υπολογισμού.
 - **Υποχρεώσεις tab**: ομαδοποίηση ανά στάδιο· κάθε obligation: name, mandatory, status `<select>`, προθεσμία, assignee `<select>`, σημείωση, **upload δικαιολογητικού** (+ λίστα αρχείων με download/remove). «+ Υποχρέωση», «Συγχρονισμός από πρόγραμμα».
 - **ΟΠΣΚΕ tab**: status/αρ. πρωτοκόλλου/ημ/νία υποβολής.
@@ -166,8 +208,8 @@ src/app/(app)/programs/[id]/applications/[appId]/documents/[docId]/route.ts  # g
 Κάθε action gated· scoping σε ΚΑΘΕ read/list (manager/processor μόνο assigned)· δικαιολογητικά σε private Bunny· download route gated + scoped. Καμία raw error.
 
 ## 8. Testing (TDD)
-- **Pure**: `computeAssessmentScore` (weighted %, edge: μηδέν βάρη/κενά), `obligations-gen` (snapshot rows από deliverables/forms/criteria, idempotent by sourceId), `visibleApplicationWhere` (admin `{}` vs assigned OR), stage/label helpers.
-- **Server**: action guards + scoping (mocked prisma/rbac)· document-prep.
+- **Pure**: `computeAssessmentScore` (weighted %, edge: μηδέν βάρη/κενά), `obligations-gen` (snapshot rows από deliverables/forms/criteria, idempotent by sourceId), `checkBudgetCompliance` (per-category spent/% vs min-max €&%, OVER/UNDER, uncategorized, REPLACED αγνοούνται), `visibleApplicationWhere` (admin `{}` vs assigned OR), stage/label helpers.
+- **Server**: action guards + scoping (mocked prisma/rbac)· document-prep· `replaceExpense` prep (old→REPLACED, new ACTIVE+replacesId)· certification file-kind mapping.
 - **e2e**: create app → generate obligations → assess → set status (όπου εφικτό).
 
 ## 9. Εκτός scope (C2a)
@@ -179,6 +221,6 @@ src/app/(app)/programs/[id]/applications/[appId]/documents/[docId]/route.ts  # g
 ## 10. Definition of Done
 - Migration + models/enums + ProgramApplication/User relations.
 - Ανάθεση manager/processor (ADMIN) + access scoping (assigned-only) λειτουργικά.
-- Σελίδα έργου με tabs: **scored αξιολόγηση**, **υποχρεώσεις ανά στάδιο** (auto-gen από παραδοτέα/έντυπα/κριτήρια) με status/προθεσμία/assignee + **upload/download δικαιολογητικών**, δαπάνες (C3), ΟΠΣΚΕ καταγραφή, stage.
+- Σελίδα έργου με tabs: **scored αξιολόγηση**, **υποχρεώσεις ανά στάδιο** (auto-gen από παραδοτέα/έντυπα/κριτήρια) με status/προθεσμία/assignee + **upload/download δικαιολογητικών**, **Δαπάνες & Πλάνο** (C3 + έλεγχος κατηγοριών/ποσοστώσεων + αντικατάσταση δαπάνης), **Πιστοποίηση φυσικού αντικειμένου** (φωτο/σειριακό/θέση/μητρώο/εξτρέ/βεβαίωση ανά δαπάνη), ΟΠΣΚΕ καταγραφή, stage.
 - Καρτέλα Trdr tab «Έργα». Object «Έργα» + permissions synced.
 - Pure/server tests πράσινα· tsc clean· build ΟΚ· Steel & Frost + Ελληνικά.
