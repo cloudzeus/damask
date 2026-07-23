@@ -33,6 +33,7 @@ model User {
   managedApplications   ProgramApplication[]    @relation("AppManager")
   processedApplications ProgramApplication[]    @relation("AppProcessor")
   assignedObligations   ApplicationObligation[]
+  verifiedCertifications ProgramExpenseCertification[] @relation("CertVerifier")
 
   @@index([roleId])
   @@index([trdrId])
@@ -1232,6 +1233,11 @@ enum TaskAssignTo {
   BOTH
 }
 
+enum ExpenseStatus {
+  ACTIVE
+  REPLACED
+}
+
 model ProgramApplication {
   id          String           @id @default(cuid())
   trdrId      String
@@ -1283,12 +1289,40 @@ model ProgramExpense {
   categoryId           String?
   category             ProgramExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   confirmed            Boolean                 @default(false)
+  status               ExpenseStatus           @default(ACTIVE)
+  replacesExpenseId    String?                 @unique
+  replaces             ProgramExpense?         @relation("ExpenseReplacement", fields: [replacesExpenseId], references: [id], onDelete: SetNull)
+  replacedBy           ProgramExpense?         @relation("ExpenseReplacement")
+  certification        ProgramExpenseCertification?
   createdById          String?
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
 
   @@index([applicationId])
   @@index([categoryId])
+  @@index([status])
+}
+
+model ProgramExpenseCertification {
+  id                String   @id @default(cuid())
+  expenseId         String   @unique
+  expense           ProgramExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  serialNumber      String?
+  location          String?
+  assetRegistryRef  String?
+  assetRegistryDate DateTime?
+  photoKey          String?
+  bankStatementKey  String?
+  newUnusedCertKey  String?
+  paid              Boolean  @default(false)
+  verified          Boolean  @default(false)
+  verifiedById      String?
+  verifiedBy        User?    @relation("CertVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([expenseId])
 }
 
 model ApplicationObligation {
