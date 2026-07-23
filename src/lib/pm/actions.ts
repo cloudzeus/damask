@@ -16,7 +16,7 @@ import { certificationComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type
 import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type PaymentStatusStr } from '@/lib/pm/payment'
 import { newToken } from '@/lib/pm/portal-token'
 import { sendMail, isMailerConfigured, escapeHtml } from '@/lib/mailer'
-import type { DeliverablePhaseStr, DeliverableScopeStr } from '@/lib/pm/deliverable-phases'
+import { buildAutoDependencyPairs, OPTIONAL_PHASES, type DagTask, type DeliverablePhaseStr, type DeliverableScopeStr } from '@/lib/pm/deliverable-phases'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -682,6 +682,14 @@ export async function replaceExpense(
     await suggestExpenseCategory(created.id)
   } catch (err) {
     console.error('[replaceExpense] suggest failed', err)
+  }
+
+  // C2g (Task 4): re-materialize deliverable groups for the replacement
+  // expense (same module — direct call, no dynamic import needed). Non-fatal.
+  try {
+    await generateExpenseDeliverables(old.applicationId)
+  } catch (err) {
+    console.error('[replaceExpense] deliverable generation failed', err)
   }
 
   revalidatePath(`/pm/applications/${old.applicationId}`)
@@ -1455,4 +1463,144 @@ export async function copyDeliverableTemplates(targetProgramId: string, template
   })
   revalidatePath(`/programs/${targetProgramId}`)
   return { copied: sources.length }
+}
+
+/**
+ * C2g (Task 4, amended two-level) — υλοποίηση (materialization) των
+ * ProgramDeliverableTemplate/ProgramDeliverableTask groups του προγράμματος
+ * σε συγκεκριμένα ExpenseDeliverable/ExpenseDeliverableTask instances πάνω
+ * σε μια αίτηση: ένα group EXPENSE υλοποιείται ΜΙΑ φορά ανά ενεργή δαπάνη,
+ * ένα group APPLICATION ΜΙΑ φορά συνολικά (expenseId=null). Idempotent μέσω
+ * ζεύγους (templateId, expenseId) — ΠΡΟΣΟΧΗ: το @@unique([applicationId,
+ * expenseId, templateId]) στη Postgres θεωρεί τα NULL "distinct" (δύο NULL
+ * expenseId ΔΕΝ συγκρούονται σε επίπεδο DB), άρα ο έλεγχος idempotency εδώ
+ * ΠΡΕΠΕΙ να γίνεται σε επίπεδο κώδικα — Map keyed `${templateId}::${expenseId
+ * ?? ''}` — όχι με βάση constraint violation. Για ΗΔΗ υλοποιημένα groups,
+ * συμπληρώνει (top-up) task instances για template tasks που προστέθηκαν
+ * ΜΕΤΑ την πρώτη υλοποίηση. Στο τέλος ξαναχτίζει το auto-DAG
+ * (DeliverableDependency auto=true) για ΟΛΗ την αίτηση από το ΤΡΕΧΟΝ σύνολο
+ * task instances — χειροκίνητα (auto=false) edges ΔΕΝ αγγίζονται ποτέ.
+ * pm-scoped μέσω requireVisibleApplication (ίδιο idiom με generateObligations
+ * παραπάνω) — όχι programs.manage, γιατί δουλεύει πάνω σε ΣΥΓΚΕΚΡΙΜΕΝΗ αίτηση.
+ */
+export async function generateExpenseDeliverables(applicationId: string): Promise<{
+  addedDeliverables: number
+  addedTasks: number
+  rebuiltEdges: number
+}> {
+  const { app } = await requireVisibleApplication(applicationId)
+
+  const groups = await prisma.programDeliverableTemplate.findMany({
+    where: { programId: app.programId, active: true },
+    include: { tasks: { orderBy: { order: 'asc' } } },
+    orderBy: { order: 'asc' },
+  })
+
+  const activeExpenses = await prisma.programExpense.findMany({
+    where: { applicationId, status: 'ACTIVE' },
+    select: { id: true },
+  })
+
+  const existing = await prisma.expenseDeliverable.findMany({
+    where: { applicationId },
+    select: {
+      id: true,
+      templateId: true,
+      expenseId: true,
+      tasks: { select: { id: true, taskTemplateId: true } },
+    },
+  })
+  const existingByKey = new Map(existing.map((d) => [`${d.templateId ?? ''}::${d.expenseId ?? ''}`, d]))
+
+  type TemplateTask = (typeof groups)[number]['tasks'][number]
+  type WantedGroup = { templateId: string; expenseId: string | null; name: string; tasks: TemplateTask[] }
+  const wanted: WantedGroup[] = []
+  for (const g of groups) {
+    if (g.appliesTo === 'EXPENSE') {
+      for (const exp of activeExpenses) {
+        wanted.push({ templateId: g.id, expenseId: exp.id, name: g.name, tasks: g.tasks })
+      }
+    } else {
+      wanted.push({ templateId: g.id, expenseId: null, name: g.name, tasks: g.tasks })
+    }
+  }
+
+  let addedDeliverables = 0
+  let addedTasks = 0
+
+  for (const w of wanted) {
+    const key = `${w.templateId}::${w.expenseId ?? ''}`
+    const found = existingByKey.get(key)
+
+    if (!found) {
+      await prisma.expenseDeliverable.create({
+        data: {
+          applicationId,
+          expenseId: w.expenseId,
+          templateId: w.templateId,
+          name: w.name,
+          tasks: {
+            create: w.tasks.map((t) => ({
+              taskTemplateId: t.id,
+              phase: t.phase,
+              name: t.name,
+              mandatory: t.mandatory,
+              onSiteVerification: t.onSiteVerification,
+              minFiles: t.minFiles,
+              order: t.order,
+            })),
+          },
+        },
+      })
+      addedDeliverables += 1
+      addedTasks += w.tasks.length
+      continue
+    }
+
+    // Top-up: template tasks added to the group AFTER this instance already materialized.
+    const haveTaskTemplateIds = new Set(found.tasks.map((t) => t.taskTemplateId))
+    const missing = w.tasks.filter((t) => !haveTaskTemplateIds.has(t.id))
+    if (missing.length > 0) {
+      await prisma.expenseDeliverableTask.createMany({
+        data: missing.map((t) => ({
+          deliverableId: found.id,
+          taskTemplateId: t.id,
+          phase: t.phase,
+          name: t.name,
+          mandatory: t.mandatory,
+          onSiteVerification: t.onSiteVerification,
+          minFiles: t.minFiles,
+          order: t.order,
+        })),
+      })
+      addedTasks += missing.length
+    }
+  }
+
+  // Rebuild the auto-DAG for the whole application from the CURRENT task instance set.
+  const allTasks = await prisma.expenseDeliverableTask.findMany({
+    where: { deliverable: { applicationId } },
+    select: { id: true, phase: true, mandatory: true, deliverable: { select: { expenseId: true } } },
+  })
+  const dagTasks: DagTask[] = allTasks.map((t) => ({
+    id: t.id,
+    phase: t.phase as DeliverablePhaseStr,
+    expenseId: t.deliverable.expenseId,
+    mandatory: t.mandatory,
+  }))
+  const usedOptional = [...new Set(dagTasks.map((t) => t.phase))].filter((p) => OPTIONAL_PHASES.has(p))
+  const pairs = buildAutoDependencyPairs(dagTasks, usedOptional)
+
+  await prisma.deliverableDependency.deleteMany({
+    where: { auto: true, dependent: { deliverable: { applicationId } } },
+  })
+  if (pairs.length > 0) {
+    await prisma.deliverableDependency.createMany({
+      data: pairs.map((p) => ({ dependentId: p.dependentId, prerequisiteId: p.prerequisiteId, auto: true })),
+      skipDuplicates: true,
+    })
+  }
+
+  revalidatePath(`/pm/applications/${applicationId}`)
+  return { addedDeliverables, addedTasks, rebuiltEdges: pairs.length }
 }

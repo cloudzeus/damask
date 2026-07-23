@@ -190,6 +190,18 @@ export async function createApplication(input: { trdrId: string; programId: stri
     console.error('[createApplication] task generation failed', err)
   }
 
+  // C2g (Task 4): materialize APPLICATION-level deliverable groups right
+  // away (e.g. ASSESSMENT-phase tasks) — EXPENSE-level groups materialize
+  // per-expense once createExpense/replaceExpense runs below. Non-fatal,
+  // same idiom as generateObligations above — enrollment must never roll
+  // back because deliverable generation failed.
+  try {
+    const { generateExpenseDeliverables } = await import('@/lib/pm/actions')
+    await generateExpenseDeliverables(app.id)
+  } catch (err) {
+    console.error('[createApplication] deliverable generation failed', err)
+  }
+
   return { id: app.id }
 }
 
@@ -259,6 +271,18 @@ export async function createExpense(
       docNumber: input.docNumber ?? null,
     },
   })
+
+  // C2g (Task 4): materialize per-expense deliverable groups onto the new
+  // expense. Non-fatal — mirrors the generateObligations idiom in
+  // createApplication: the expense must exist even if deliverable
+  // generation fails; the manager can retry via the UI.
+  try {
+    const { generateExpenseDeliverables } = await import('@/lib/pm/actions')
+    await generateExpenseDeliverables(applicationId)
+  } catch (err) {
+    console.error('[createExpense] deliverable generation failed', err)
+  }
+
   return { id: row.id }
 }
 
