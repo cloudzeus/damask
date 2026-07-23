@@ -123,7 +123,7 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
       <TabBar active={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'assessment' && <AssessmentTab applicationId={app.id} canManage={app.canManage} />}
-      {activeTab === 'obligations' && <ObligationsTab applicationId={app.id} canManage={app.canManage} />}
+      {activeTab === 'obligations' && <ObligationsTab applicationId={app.id} canManage={app.canManage} programId={app.programId} />}
       {activeTab === 'expenses' && <PlaceholderSection />}
       {activeTab === 'deliverables' && <PlaceholderSection />}
       {activeTab === 'opske' && (
