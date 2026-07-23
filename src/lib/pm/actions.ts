@@ -1052,3 +1052,77 @@ export async function removeExpenseFromRequest(expenseId: string): Promise<void>
   await prisma.programExpense.update({ where: { id: expenseId }, data: { paymentRequestId: null } })
   revalidatePath(`/pm/applications/${exp.applicationId}`)
 }
+
+/**
+ * C2b — global Kanban + deadline radar πάνω σε ApplicationObligation.
+ * Read-only context-rich DTO (BoardObligation) που κουβαλάει μαζί με την
+ * υποχρέωση και τα στοιχεία πλαισίου (πελάτης/πρόγραμμα/ανάθεση) ώστε το
+ * board να μη χρειάζεται επιπλέον fetch ανά κάρτα. Καμία μετάβαση/mutation
+ * εδώ — το drag-and-drop του board ξαναχρησιμοποιεί το ήδη scoped
+ * updateObligation παραπάνω.
+ */
+export type BoardObligation = {
+  id: string
+  name: string
+  stage: StageStr
+  kind: ObligationKindStr
+  status: ObligationStatusStr
+  dueDate: string | null
+  mandatory: boolean
+  templateId: string | null
+  assigneeId: string | null
+  assigneeName: string | null
+  applicationId: string
+  programId: string
+  customerName: string
+  programTitle: string
+}
+
+const BOARD_INCLUDE = {
+  application: { select: { id: true, programId: true, trdr: { select: { NAME: true } }, program: { select: { title: true } } } },
+  assignee: { select: { name: true } },
+} as const
+
+function toBoardObligation(r: any): BoardObligation {
+  return {
+    id: r.id,
+    name: r.name,
+    stage: r.stage as StageStr,
+    kind: r.kind as ObligationKindStr,
+    status: r.status as ObligationStatusStr,
+    dueDate: r.dueDate ? r.dueDate.toISOString() : null,
+    mandatory: r.mandatory,
+    templateId: r.templateId ?? null,
+    assigneeId: r.assigneeId ?? null,
+    assigneeName: r.assignee?.name ?? null,
+    applicationId: r.applicationId,
+    programId: r.application?.programId ?? r.application?.id ?? '',
+    customerName: r.application?.trdr?.NAME ?? '—',
+    programTitle: r.application?.program?.title ?? '—',
+  }
+}
+
+/** Όλες οι ΟΡΑΤΕΣ υποχρεώσεις στον τρέχοντα χρήστη — global board, ΟΧΙ
+ * scoped σε μια αίτηση (ίδιο idiom με listVisibleApplications: pm.manage
+ * βλέπει τα πάντα, pm.work μόνο τις δικές του αναθέσεις). */
+export async function listVisibleObligations(): Promise<BoardObligation[]> {
+  const session = await requirePmAccess()
+  const rows = await prisma.applicationObligation.findMany({
+    where: { application: visibleApplicationWhere({ id: session.user.id, permissions: session.user.permissions ?? [] }) },
+    include: BOARD_INCLUDE,
+    orderBy: [{ dueDate: 'asc' }, { order: 'asc' }],
+  })
+  return rows.map(toBoardObligation)
+}
+
+/** Board obligations μιας ΣΥΓΚΕΚΡΙΜΕΝΗΣ αίτησης — περνάει από
+ * requireVisibleApplication (το μοναδικό σημείο ελέγχου ορατότητας). */
+export async function listApplicationBoardObligations(applicationId: string): Promise<BoardObligation[]> {
+  await requireVisibleApplication(applicationId)
+  const rows = await prisma.applicationObligation.findMany({
+    where: { applicationId },
+    include: BOARD_INCLUDE,
+    orderBy: [{ stage: 'asc' }, { order: 'asc' }],
+  })
+  return rows.map(toBoardObligation)
+}
