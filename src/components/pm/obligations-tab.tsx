@@ -28,7 +28,7 @@ const NONE_ASSIGNEE = '__none__'
 const STATUSES: ObligationStatusStr[] = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 'APPROVED', 'REJECTED', 'WAIVED']
 
 /**
- * «Υποχρεώσεις & Δικαιολογητικά» tab (Task 12) — υποχρεώσεις της αίτησης
+ * «Εργασίες & Υποχρεώσεις» tab (Task 12, ονομασία C2e) — υποχρεώσεις της αίτησης
  * (γεννημένες από απαιτούμενα έντυπα/παραδοτέα του Προγράμματος μέσω
  * generateObligations, ή προστιθέμενες χειροκίνητα), ομαδοποιημένες ανά
  * STAGE_ORDER, με inline ανέβασμα/λήψη εγγράφων ανά υποχρέωση.
@@ -40,7 +40,7 @@ const STATUSES: ObligationStatusStr[] = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 
  * ξεχωριστό read-only component).
  */
 export function ObligationsTab({
-  applicationId, canManage, programId, filterKind, title = 'Υποχρεώσεις', emptyMessage = 'Δεν υπάρχουν υποχρεώσεις για αυτή την αίτηση.',
+  applicationId, canManage, programId, filterKind, title = 'Εργασίες & Υποχρεώσεις', emptyMessage = 'Δεν υπάρχουν υποχρεώσεις για αυτή την αίτηση.',
 }: {
   applicationId: string
   canManage: boolean
@@ -140,8 +140,13 @@ export function ObligationsTab({
   async function handleSync() {
     setSyncing(true)
     try {
-      const { addedObligations } = await generateObligations(applicationId)
-      toast.success(`Προστέθηκαν ${addedObligations} υποχρεώσεις.`)
+      const { addedObligations, addedTasks } = await generateObligations(applicationId)
+      const total = addedObligations + addedTasks
+      if (total === 0) {
+        toast.success('Δεν υπάρχουν νέες εγγραφές.')
+      } else {
+        toast.success(`Προστέθηκαν ${addedTasks} βήματα και ${addedObligations} υποχρεώσεις.`)
+      }
       router.refresh()
       load()
     } catch {
@@ -235,12 +240,19 @@ function ObligationRow({
   onWaive: () => void
   onRemove: () => void
 }) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const isOverdue = !!o.dueDate && new Date(o.dueDate) < today && o.status !== 'APPROVED' && o.status !== 'WAIVED'
+
   return (
     <div className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <span className="text-[13px] font-semibold">{o.name}</span>
           <span className="badge-pill muted shrink-0">{obligationKindLabel(o.kind)}</span>
+          <span className={cn('badge-pill shrink-0', o.templateId ? 'ok' : 'muted')}>
+            {o.templateId ? 'Βήμα' : 'Πρόγραμμα'}
+          </span>
           {o.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>}
         </div>
         {canManage && (
@@ -276,7 +288,10 @@ function ObligationRow({
           </Select>
         </div>
         <div className="field !mb-0">
-          <label htmlFor={`ob-due-${o.id}`}>Προθεσμία</label>
+          <label htmlFor={`ob-due-${o.id}`} className="flex items-center gap-1.5">
+            Προθεσμία
+            {isOverdue && <span className="badge-pill shrink-0" style={{ color: 'var(--coral)', background: 'var(--coral-soft)' }}>Εκπρόθεσμο</span>}
+          </label>
           <input
             id={`ob-due-${o.id}`}
             type="date"

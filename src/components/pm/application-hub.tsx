@@ -22,8 +22,8 @@ import { OpskeTab } from './opske-tab'
  * Το «Έργο hub» (Task 10) — κεντρική οθόνη PM για μία αίτηση προγράμματος:
  * header (πελάτης/πρόγραμμα + verdict/βαθμολογία), assignment row, stage
  * stepper (STAGE_ORDER, με ελεύθερο jump + «Επόμενο στάδιο»), και tab bar
- * που φιλοξενεί τη ροή εργασίας: Αξιολόγηση (Task 11), Υποχρεώσεις &
- * Δικαιολογητικά (Task 12), Δαπάνες (Task 13 — wrapper πάνω στο C3
+ * που φιλοξενεί τη ροή εργασίας: Αξιολόγηση (Task 11), Εργασίες &
+ * Υποχρεώσεις (Task 12, ονομασία C2e), Δαπάνες (Task 13 — wrapper πάνω στο C3
  * <ExpenseList>), Παραδοτέα (Task 13 — <ObligationsTab filterKind=
  * "DELIVERABLE">, ίδιο component με το tab Υποχρεώσεων αλλά φιλτραρισμένη
  * προβολή) και ΟΠΣΚΕ (Task 13). Mirror του TabBar idiom από
@@ -213,7 +213,7 @@ type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'opsk
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'assessment', label: 'Αξιολόγηση' },
-  { key: 'obligations', label: 'Υποχρεώσεις & Δικαιολογητικά' },
+  { key: 'obligations', label: 'Εργασίες & Υποχρεώσεις' },
   { key: 'expenses', label: 'Δαπάνες' },
   { key: 'deliverables', label: 'Παραδοτέα' },
   { key: 'opske', label: 'ΟΠΣΚΕ' },

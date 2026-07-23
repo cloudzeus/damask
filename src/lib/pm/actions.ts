@@ -390,6 +390,7 @@ export type ObligationItem = {
   assigneeName: string | null
   notes: string | null
   order: number
+  templateId: string | null
 }
 
 export async function listObligations(applicationId: string): Promise<ObligationItem[]> {
@@ -411,6 +412,7 @@ export async function listObligations(applicationId: string): Promise<Obligation
       assigneeName: r.assignee?.name ?? null,
       notes: r.notes,
       order: r.order,
+      templateId: r.templateId,
     }))
     .sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage) || a.order - b.order)
 }
