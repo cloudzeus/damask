@@ -227,7 +227,7 @@ export function DeliverableWizard({
       </span>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="glass sm:max-w-[880px]">
+        <DialogContent className="glass w-[calc(100vw-2rem)] sm:max-w-[1180px]">
           <DialogHeader>
             <DialogTitle>{isEdit ? `Επεξεργασία παραδοτέου — ${existing?.name}` : 'Νέο παραδοτέο'}</DialogTitle>
             <DialogDescription>
