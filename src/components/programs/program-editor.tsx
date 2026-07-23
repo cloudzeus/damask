@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress'
 import { updateProgramMeta, extractProgram } from '@/lib/programs/actions'
 import { extractPdfText } from '@/lib/programs/pdf-text'
 import { RequiredFormsTab } from './required-forms-tab'
+import { TaskTemplatesTab } from './task-templates-tab'
 
 /**
  * Detail/editor του αποδελτιωμένου Προγράμματος (Task 14, tabbed layout).
@@ -159,7 +160,7 @@ function validateNonNegativeInteger(v: string, label: string): string | null {
 /* ── Tab bar — lightweight, χωρίς Tabs primitive (δεν υπάρχει στο
  * src/components/ui) — pill row, navy active state (Steel & Frost §4β). */
 
-type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms'
+type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'desc', label: 'Περιγραφή & Ημερομηνίες' },
@@ -168,6 +169,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'deliverables', label: 'Παραδοτέα' },
   { key: 'expenses', label: 'Κατηγορίες & Όρια Δαπανών' },
   { key: 'forms', label: 'Έντυπα' },
+  { key: 'tasks', label: 'Βήματα Διαχείρισης' },
 ]
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
@@ -568,6 +570,9 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
 
       {/* «Έντυπα» — νέο, self-fetching tab */}
       {activeTab === 'forms' && <RequiredFormsTab programId={program.id} />}
+
+      {/* «Βήματα Διαχείρισης» (C2e) — admin-authored ανά-στάδιο πρότυπα εργασιών */}
+      {activeTab === 'tasks' && <TaskTemplatesTab programId={program.id} />}
     </div>
   )
 }
