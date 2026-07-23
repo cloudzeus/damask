@@ -303,6 +303,26 @@ model Trdr {
   appLegalForm String?
   appNotes     String?
   syncedAt     DateTime?
+  // ΓΕΜΗ (Open Data businessportal.gr)
+  arGemi               String?   @unique // Αριθμός ΓΕΜΗ
+  gemiOffice           String? // Τοπική Υπηρεσία ΓΕΜΗ
+  gemiStatus           String? // Κατάσταση επιχείρησης (ΓΕΜΗ)
+  gemiObjective        String? // Σκοπός εταιρείας
+  gemiIsBranch         Boolean? // Υποκατάστημα ή Μητρική
+  gemiAutoRegistered   Boolean? // Ολοκληρωμένη αυτοαπογραφή
+  gemiLastStatusChange DateTime?
+  gemiSyncedAt         DateTime?
+  gemiData             Json? // raw GEMI response για future-proofing
+  // ΑΑΔΕ (vat.wwa.gr/afm2info)
+  foundingDate DateTime? // ημερομηνία ίδρυσης (regist_date)
+  aadeStatus   String? // deactivation_flag_descr
+  aadeFirmKind String? // firm_flag_descr
+  aadeSyncedAt DateTime?
+  // Geocoding / Region (reuse appLat/appLng — ΟΧΙ νέα lat/lng)
+  geocodedAt      DateTime?
+  geocodedAddress String? // canonical address returned by geocoder
+  regionCode      String?
+  region          Region?   @relation(fields: [regionCode], references: [code], onDelete: SetNull)
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   users        User[]
@@ -315,10 +335,13 @@ model Trdr {
   programApplications ProgramApplication[]
   documentRequests DocumentRequest[]
   portalTokens     PortalToken[]
+  kads             TrdrKad[]
+  documents        TrdrDocument[]
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
   @@index([AFM])
+  @@index([regionCode])
 }
 
 model Contact {
@@ -1673,6 +1696,7 @@ model Region {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  trdrs       Trdr[]
 
   @@index([parentCode])
   @@index([level])
@@ -1741,4 +1765,125 @@ model KadImportLog {
   sourceVersion String   @default("2026")
   status        String   @default("completed")
   notes         String?
+}
+
+// ============================================================
+// W2 — ΓΕΜΗ/ΑΑΔΕ extras (mirror ref pb-ref Company/CompanyActivity/
+// CompanyDocument area, adapted to Trdr). Γράφεται μέσω
+// src/lib/trdr/enrich-actions.ts (gemiSyncTrdr/applyAadeToTrdr).
+// ============================================================
+
+enum ActivityKind {
+  PRIMARY // ΚΥΡΙΑ (firm_act_kind = 1)
+  SECONDARY // ΔΕΥΤΕΡΕΥΟΥΣΑ (firm_act_kind = 2)
+}
+
+// ΚΑΔ ανά Trdr — γράφεται ΜΟΝΟ μέσω resolve (resolveKadForActivity, W1).
+// Ο πρωτεύων ΚΑΔ = kind PRIMARY.
+model TrdrKad {
+  id              String       @id @default(cuid())
+  trdrId          String
+  trdr            Trdr         @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  code            String // ΚΑΔ canonical με τελείες (από KadCode), π.χ. "43.21.00"
+  codeWithoutDots String? // ΚΑΔ canonical χωρίς τελείες, π.χ. "432100"
+  codeAade        String? // ΚΑΔ ακριβώς όπως ήρθε από ΑΑΔΕ (firm_act_code), zero-padded 8-ψήφια
+  description     String // firm_act_descr
+  kind            ActivityKind @default(SECONDARY)
+  order           Int          @default(0)
+  createdAt       DateTime     @default(now())
+
+  @@unique([trdrId, code])
+  @@index([trdrId])
+  @@index([codeWithoutDots])
+  @@index([codeAade])
+}
+
+enum DocumentSource {
+  GEMI
+  MANUAL
+}
+
+enum TrdrDocumentKind {
+  DECISION // απόφαση οργάνου
+  PUBLICATION // ΥΜΣ
+  OTHER
+}
+
+// Έγγραφα ανά Trdr (ΓΕΜΗ ή χειροκίνητα). Αρχείο σε Bunny private
+// (storageKey) — βλ. bunnyUploadPrivate/bunnyDownload.
+model TrdrDocument {
+  id               String            @id @default(cuid())
+  trdrId           String
+  trdr             Trdr              @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  source           DocumentSource    @default(GEMI)
+  docKind          TrdrDocumentKind  @default(OTHER)
+  title            String // τίτλος (decisionSubject ή summary ή filename)
+  // GEMI document metadata
+  kak              String? // Κωδικός Αριθμός Καταχώρισης
+  assembly         String? // είδος οργάνου
+  summary          String? // περίληψη
+  decisionSubject  String?
+  dateAssemblyDecided DateTime?
+  dateAnnounced       DateTime?
+  dateRegistrated     DateTime?
+  applicationStatus String?
+  // File on Bunny CDN (private)
+  sourceUrl        String? // αρχική URL στο businessportal
+  storageKey       String? // path στο Bunny zone
+  mimeType         String?
+  sizeBytes        Int?
+  metadata         Json? // raw GEMI item για debugging
+  createdAt        DateTime          @default(now())
+
+  @@unique([trdrId, kak])
+  @@index([trdrId])
+  @@index([kak])
+}
+
+// ============================================================
+// ΓΕΜΗ metadata refs — seeded/refreshed από ΓΕΜΗ Open Data /metadata/*
+// (refreshGemiMetadata action). Ονόματα PrefectureRef/MunicipalityRef
+// για να μη συγκρουστούν μελλοντικά με το Region (Καλλικράτης) μοντέλο.
+// ============================================================
+
+model LegalType {
+  id          Int       @id // GEMI legalType.id
+  descr       String
+  lastUpdated DateTime?
+}
+
+model GemiOfficeRef {
+  id          Int       @id // GEMI gemiOffice.id
+  descr       String
+  address     String?
+  city        String?
+  zip         String?
+  phone       String?
+  fax         String?
+  url         String?
+  lastUpdated DateTime?
+}
+
+model CompanyStatusRef {
+  id          Int       @id // GEMI status.id
+  descr       String
+  isActive    Boolean?
+  lastUpdated DateTime?
+}
+
+model PrefectureRef {
+  id            String          @id // GEMI prefecture.id (string)
+  descr         String
+  lastUpdated   DateTime?
+  municipalities MunicipalityRef[]
+}
+
+model MunicipalityRef {
+  id           String         @id // GEMI municipality.id (string)
+  prefectureId String?
+  prefecture   PrefectureRef? @relation(fields: [prefectureId], references: [id], onDelete: SetNull)
+  descr        String
+  lastUpdated  DateTime?
+
+  @@index([prefectureId])
 }
