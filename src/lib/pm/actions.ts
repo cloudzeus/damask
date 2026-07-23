@@ -8,7 +8,9 @@ import { notFound } from 'next/navigation'
 import { visibleApplicationWhere } from '@/lib/pm/scoping'
 import { computeAssessmentScore } from '@/lib/pm/assessment'
 import { buildObligationRows, buildCriterionScoreRows } from '@/lib/pm/obligations-gen'
-import type { StageStr, VerdictStr } from '@/lib/pm/types'
+import { bunnyUploadPrivate } from '@/lib/bunny-storage'
+import { applicationDocKey } from '@/lib/pm/doc-prep'
+import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr } from '@/lib/pm/types'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -299,5 +301,189 @@ export async function recomputeAssessment(applicationId: string): Promise<{ pct:
 export async function setAssessmentVerdict(applicationId: string, verdict: VerdictStr): Promise<void> {
   await requireVisibleApplication(applicationId)
   await prisma.programApplication.update({ where: { id: applicationId }, data: { assessmentVerdict: verdict } })
+  revalidatePath(`/pm/applications/${applicationId}`)
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * Task 7 — obligations CRUD + documents + στάδιο + ΟΠΣΚΕ
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+export type ObligationItem = {
+  id: string
+  stage: StageStr
+  kind: ObligationKindStr
+  name: string
+  mandatory: boolean
+  status: ObligationStatusStr
+  dueDate: string | null
+  assigneeId: string | null
+  assigneeName: string | null
+  notes: string | null
+  order: number
+}
+
+export async function listObligations(applicationId: string): Promise<ObligationItem[]> {
+  await requireVisibleApplication(applicationId)
+  const rows = await prisma.applicationObligation.findMany({
+    where: { applicationId },
+    include: { assignee: { select: { name: true } } },
+  })
+  return rows
+    .map(r => ({
+      id: r.id,
+      stage: r.stage as StageStr,
+      kind: r.kind as ObligationKindStr,
+      name: r.name,
+      mandatory: r.mandatory,
+      status: r.status as ObligationStatusStr,
+      dueDate: r.dueDate ? r.dueDate.toISOString() : null,
+      assigneeId: r.assigneeId,
+      assigneeName: r.assignee?.name ?? null,
+      notes: r.notes,
+      order: r.order,
+    }))
+    .sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage) || a.order - b.order)
+}
+
+export async function addObligation(
+  applicationId: string,
+  input: { stage: StageStr; name: string; mandatory?: boolean; kind?: ObligationKindStr },
+): Promise<{ id: string }> {
+  await requireVisibleApplication(applicationId)
+  const count = await prisma.applicationObligation.count({ where: { applicationId, stage: input.stage } })
+  const row = await prisma.applicationObligation.create({
+    data: {
+      applicationId,
+      stage: input.stage,
+      kind: input.kind ?? 'CUSTOM',
+      name: input.name.trim(),
+      mandatory: input.mandatory ?? true,
+      status: 'PENDING',
+      order: count,
+    },
+  })
+  revalidatePath(`/pm/applications/${applicationId}`)
+  return { id: row.id }
+}
+
+export async function updateObligation(
+  id: string,
+  input: { status?: ObligationStatusStr; dueDate?: string | null; assigneeId?: string | null; notes?: string | null },
+): Promise<void> {
+  const row = await prisma.applicationObligation.findUniqueOrThrow({ where: { id }, select: { applicationId: true } })
+  await requireVisibleApplication(row.applicationId)
+  await prisma.applicationObligation.update({
+    where: { id },
+    data: {
+      ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(input.dueDate !== undefined ? { dueDate: parseDateOrNull(input.dueDate) } : {}),
+      ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),
+      ...(input.notes !== undefined ? { notes: input.notes } : {}),
+    },
+  })
+  revalidatePath(`/pm/applications/${row.applicationId}`)
+}
+
+export async function removeObligation(id: string): Promise<void> {
+  const row = await prisma.applicationObligation.findUniqueOrThrow({ where: { id }, select: { applicationId: true } })
+  await requireVisibleApplication(row.applicationId)
+  await prisma.applicationObligation.delete({ where: { id } })
+  revalidatePath(`/pm/applications/${row.applicationId}`)
+}
+
+export async function waiveObligation(id: string): Promise<void> {
+  const row = await prisma.applicationObligation.findUniqueOrThrow({ where: { id }, select: { applicationId: true } })
+  await requireVisibleApplication(row.applicationId)
+  await prisma.applicationObligation.update({ where: { id }, data: { status: 'WAIVED' } })
+  revalidatePath(`/pm/applications/${row.applicationId}`)
+}
+
+export async function uploadApplicationDocument(
+  applicationId: string,
+  obligationId: string | null,
+  input: { name: string; base64: string; mimeType: string; ext: string },
+): Promise<{ id: string }> {
+  const { session } = await requireVisibleApplication(applicationId)
+  const id = crypto.randomUUID()
+  const key = applicationDocKey(applicationId, id, input.ext)
+  const body = Buffer.from(input.base64, 'base64')
+  await bunnyUploadPrivate({ key, body, contentType: input.mimeType })
+  await prisma.applicationDocument.create({
+    data: {
+      id,
+      applicationId,
+      obligationId: obligationId ?? null,
+      name: input.name.trim(),
+      storageKey: key,
+      mimeType: input.mimeType,
+      size: Buffer.byteLength(body),
+      uploadedById: session.user.id,
+    },
+  })
+  revalidatePath(`/pm/applications/${applicationId}`)
+  return { id }
+}
+
+export type ApplicationDocumentItem = {
+  id: string
+  obligationId: string | null
+  name: string
+  mimeType: string | null
+  size: number | null
+  uploadedAt: string
+}
+
+export async function listApplicationDocuments(applicationId: string, obligationId?: string): Promise<ApplicationDocumentItem[]> {
+  await requireVisibleApplication(applicationId)
+  const rows = await prisma.applicationDocument.findMany({
+    where: { applicationId, ...(obligationId !== undefined ? { obligationId } : {}) },
+    orderBy: { uploadedAt: 'desc' },
+  })
+  return rows.map(r => ({
+    id: r.id,
+    obligationId: r.obligationId,
+    name: r.name,
+    mimeType: r.mimeType,
+    size: r.size,
+    uploadedAt: r.uploadedAt.toISOString(),
+  }))
+}
+
+/** Αφαιρεί μόνο τη γραμμή DB — v1 δεν διαγράφει το αντικείμενο από το
+ * BunnyCDN (bunnyDeleteOne θα μπορούσε να προστεθεί αργότερα αν χρειαστεί
+ * σκληρό cleanup· προς το παρόν το ορφανό blob είναι αποδεκτό κόστος). */
+export async function removeApplicationDocument(id: string): Promise<void> {
+  const row = await prisma.applicationDocument.findUniqueOrThrow({ where: { id }, select: { applicationId: true } })
+  await requireVisibleApplication(row.applicationId)
+  await prisma.applicationDocument.delete({ where: { id } })
+  revalidatePath(`/pm/applications/${row.applicationId}`)
+}
+
+/** Αλλάζει στάδιο αίτησης· πριν αλλάξει μετράει πόσες mandatory υποχρεώσεις
+ * του ΤΡΕΧΟΝΤΟΣ σταδίου είναι ακόμα PENDING — καθαρά ενημερωτικό (δεν μπλοκάρει
+ * τη μετάβαση), το UI αποφασίζει αν θα προειδοποιήσει τον χρήστη. */
+export async function setApplicationStage(applicationId: string, stage: StageStr): Promise<{ pendingMandatory: number }> {
+  const { app } = await requireVisibleApplication(applicationId)
+  const pendingMandatory = await prisma.applicationObligation.count({
+    where: { applicationId, stage: app.stage, mandatory: true, status: 'PENDING' },
+  })
+  await prisma.programApplication.update({ where: { id: applicationId }, data: { stage } })
+  revalidatePath(`/pm/applications/${applicationId}`)
+  return { pendingMandatory }
+}
+
+export async function updateOpske(
+  applicationId: string,
+  input: { opskeStatus?: string | null; opskeRef?: string | null; opskeSubmittedAt?: string | null },
+): Promise<void> {
+  await requireVisibleApplication(applicationId)
+  await prisma.programApplication.update({
+    where: { id: applicationId },
+    data: {
+      ...(input.opskeStatus !== undefined ? { opskeStatus: input.opskeStatus } : {}),
+      ...(input.opskeRef !== undefined ? { opskeRef: input.opskeRef } : {}),
+      ...(input.opskeSubmittedAt !== undefined ? { opskeSubmittedAt: parseDateOrNull(input.opskeSubmittedAt) } : {}),
+    },
+  })
   revalidatePath(`/pm/applications/${applicationId}`)
 }

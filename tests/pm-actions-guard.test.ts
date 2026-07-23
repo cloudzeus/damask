@@ -91,4 +91,21 @@ describe('pm actions surface', () => {
       expect(typeof (actions as Record<string, unknown>)[k]).toBe('function')
     }
   })
+
+  it('exports the Task 7 actions', () => {
+    for (const k of [
+      'listObligations',
+      'addObligation',
+      'updateObligation',
+      'removeObligation',
+      'waiveObligation',
+      'uploadApplicationDocument',
+      'listApplicationDocuments',
+      'removeApplicationDocument',
+      'setApplicationStage',
+      'updateOpske',
+    ]) {
+      expect(typeof (actions as Record<string, unknown>)[k]).toBe('function')
+    }
+  })
 })
