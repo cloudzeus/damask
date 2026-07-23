@@ -214,7 +214,7 @@ type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'opsk
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'assessment', label: 'Αξιολόγηση' },
   { key: 'obligations', label: 'Εργασίες & Υποχρεώσεις' },
-  { key: 'expenses', label: 'Δαπάνες' },
+  { key: 'expenses', label: 'Δαπάνες & Πλάνο' },
   { key: 'deliverables', label: 'Παραδοτέα' },
   { key: 'opske', label: 'ΟΠΣΚΕ' },
 ]
