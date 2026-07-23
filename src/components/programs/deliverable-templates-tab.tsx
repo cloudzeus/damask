@@ -163,6 +163,7 @@ function TemplateCard({
             <b className="text-[13.5px]">{item.name}</b>
             <span className="badge-pill info">{item.appliesTo === 'EXPENSE' ? 'Ανά δαπάνη' : 'Ανά έργο'}</span>
             <span className="badge-pill muted">{item.tasks.length} {item.tasks.length === 1 ? 'task' : 'tasks'}</span>
+            {item.fromExtraction && <span className="badge-pill muted">Από αποδελτίωση</span>}
             {!item.active && <span className="badge-pill muted">Ανενεργό</span>}
           </div>
           {item.description && <p className="mt-0.5 text-[12px] text-muted-foreground">{item.description}</p>}

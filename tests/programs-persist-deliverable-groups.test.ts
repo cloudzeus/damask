@@ -36,10 +36,10 @@ function freshDb() {
 describe('persistExtractedProgram — deliverableGroups (C2g Task 12)', () => {
   beforeEach(freshDb)
 
-  it('re-extraction: deletes existing ProgramDeliverableTemplate rows before recreating (full overwrite, same strategy as every other related collection)', async () => {
+  it('re-extraction: deletes ONLY extraction-created ProgramDeliverableTemplate rows before recreating (wizard/library groups — fromExtraction:false — must survive)', async () => {
     const e = { ...emptyExtractedProgram(), title: 'T' }
     await persistExtractedProgram('p1', e)
-    expect(h.db.programDeliverableTemplate.deleteMany).toHaveBeenCalledWith({ where: { programId: 'p1' } })
+    expect(h.db.programDeliverableTemplate.deleteMany).toHaveBeenCalledWith({ where: { programId: 'p1', fromExtraction: true } })
     expect(h.db.programDeliverableTemplate.create).not.toHaveBeenCalled()
   })
 
@@ -67,19 +67,20 @@ describe('persistExtractedProgram — deliverableGroups (C2g Task 12)', () => {
     }
     await persistExtractedProgram('p1', e)
 
-    expect(h.db.programDeliverableTemplate.deleteMany).toHaveBeenCalledWith({ where: { programId: 'p1' } })
+    expect(h.db.programDeliverableTemplate.deleteMany).toHaveBeenCalledWith({ where: { programId: 'p1', fromExtraction: true } })
     expect(h.db.programDeliverableTemplate.create).toHaveBeenCalledTimes(2)
 
     const [firstCall, secondCall] = h.db.programDeliverableTemplate.create.mock.calls.map((c: any) => c[0].data)
     expect(firstCall).toMatchObject({
       programId: 'p1', name: '01.09 Μισθολογικό κόστος', description: '[Δαπάνες προσωπικού]', appliesTo: 'EXPENSE', order: 0,
+      fromExtraction: true,
     })
     expect(firstCall.tasks.create).toEqual([
       { phase: 'FINAL_PAYMENT', name: 'Μισθοδοτικές καταστάσεις', mandatory: true, onSiteVerification: true, minFiles: 1, order: 0 },
       { phase: 'FULL_CERTIFICATION', name: 'Ε4', mandatory: true, onSiteVerification: true, minFiles: 1, order: 1 },
     ])
 
-    expect(secondCall).toMatchObject({ programId: 'p1', name: 'Άδεια λειτουργίας', description: null, appliesTo: 'APPLICATION', order: 1 })
+    expect(secondCall).toMatchObject({ programId: 'p1', name: 'Άδεια λειτουργίας', description: null, appliesTo: 'APPLICATION', order: 1, fromExtraction: true })
     expect(secondCall.tasks.create).toEqual([
       { phase: 'FULL_CERTIFICATION', name: 'Άδεια σε ισχύ', mandatory: true, onSiteVerification: true, minFiles: 1, order: 0 },
     ])

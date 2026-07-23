@@ -10,7 +10,7 @@ describe('C2g schema', () => {
   })
   for (const [model, fields] of [
     // Παραδοτέο (group) — ΧΩΡΙΣ phase/mandatory/onSiteVerification (κατέβηκαν στα tasks)
-    ['ProgramDeliverableTemplate', ['programId', 'name', 'description', 'appliesTo', 'order', 'active', 'sourceTemplateId', 'tasks', 'instances']],
+    ['ProgramDeliverableTemplate', ['programId', 'name', 'description', 'appliesTo', 'order', 'active', 'sourceTemplateId', 'fromExtraction', 'tasks', 'instances']],
     // Task (βήμα ανά φάση) — ΝΕΟ, template-level
     ['ProgramDeliverableTask', ['templateId', 'template', 'phase', 'name', 'description', 'mandatory', 'onSiteVerification', 'minFiles', 'order', 'instances']],
     // Instance ομάδας ανά δαπάνη/έργο — ΧΩΡΙΣ phase/mandatory/onSiteVerification/status/acceptedById/acceptedAt/files/dependencies

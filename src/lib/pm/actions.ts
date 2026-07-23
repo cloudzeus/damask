@@ -1291,6 +1291,7 @@ export type DeliverableTemplateItem = {
   order: number
   active: boolean
   sourceTemplateId: string | null
+  fromExtraction: boolean
   tasks: {
     id: string
     phase: DeliverablePhaseStr
@@ -1306,7 +1307,7 @@ export type DeliverableTemplateItem = {
 function mapDeliverableTemplateRow(r: any): DeliverableTemplateItem {
   return {
     id: r.id, name: r.name, description: r.description, appliesTo: r.appliesTo as DeliverableScopeStr,
-    order: r.order, active: r.active, sourceTemplateId: r.sourceTemplateId,
+    order: r.order, active: r.active, sourceTemplateId: r.sourceTemplateId, fromExtraction: r.fromExtraction,
     tasks: r.tasks.map((t: any) => ({
       id: t.id, phase: t.phase as DeliverablePhaseStr, name: t.name, description: t.description,
       mandatory: t.mandatory, onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order: t.order,

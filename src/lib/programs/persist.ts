@@ -28,15 +28,17 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
 
     // Delete existing related rows — deliverables BEFORE phases (FK).
     await tx.programDeliverable.deleteMany({ where: { programId } })
-    // C2g Task 12: ProgramDeliverableTemplate is FULL overwrite on
-    // re-extraction too — consistent with every other related collection in
-    // this function. This also replaces templates created manually via the
-    // wizard or copied from the library (sourceTemplateId set) — the same
-    // "extraction wins" contract that already applies to expenseCats/
-    // deliverables/etc. Tasks cascade-delete with the template; already
+    // C2g Task 12 (amended): "extraction wins" applies ONLY to template
+    // groups that extraction itself created (fromExtraction: true) — NOT to
+    // every ProgramDeliverableTemplate row, unlike the other related
+    // collections in this function. Admin-authored groups (wizard, T7) and
+    // groups copied from the library (copyDeliverableTemplates) always have
+    // fromExtraction: false and MUST survive re-extraction — that work is
+    // not reproducible from the source document, so wiping it is data loss.
+    // Tasks cascade-delete with the (extraction-owned) template; already
     // materialized ExpenseDeliverable/ExpenseDeliverableTask rows survive
-    // (their templateId/taskTemplateId FKs are ON DELETE SET NULL).
-    await tx.programDeliverableTemplate.deleteMany({ where: { programId } })
+    // regardless (their templateId/taskTemplateId FKs are ON DELETE SET NULL).
+    await tx.programDeliverableTemplate.deleteMany({ where: { programId, fromExtraction: true } })
     await tx.programExpenseCategory.deleteMany({ where: { programId } })
     await tx.programKad.deleteMany({ where: { programId } })
     await tx.programBonus.deleteMany({ where: { programId } })
@@ -81,6 +83,7 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
         await tx.programDeliverableTemplate.create({
           data: {
             programId, name: g.name, description: g.description, appliesTo: g.appliesTo, order: g.order,
+            fromExtraction: true,
             tasks: {
               create: g.tasks.map(t => ({
                 phase: t.phase, name: t.name, mandatory: t.mandatory,
