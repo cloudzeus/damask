@@ -10,7 +10,7 @@ import { computeAssessmentScore } from '@/lib/pm/assessment'
 import { buildObligationRows, buildCriterionScoreRows } from '@/lib/pm/obligations-gen'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { applicationDocKey } from '@/lib/pm/doc-prep'
-import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr } from '@/lib/pm/types'
+import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr, type TaskAssignToStr } from '@/lib/pm/types'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -540,4 +540,91 @@ export async function listApplicationExpenseCategories(applicationId: string): P
     select: { id: true, name: true },
   })
   return rows
+}
+
+/**
+ * C2e — admin-authored ανά-πρόγραμμα/ανά-στάδιο πρότυπα εργασιών
+ * (ProgramTaskTemplate). PROGRAM-GLOBAL config, όχι application-scoped — άρα
+ * κλειδωμένα πίσω από `programs.manage` (ίδιο idiom με τα actions του
+ * src/lib/programs/actions.ts), ΟΧΙ πίσω από requirePmAccess/requireVisibleApplication.
+ * Η υλοποίηση των προτύπων σε συγκεκριμένες αιτήσεις (materialize σε
+ * ApplicationObligation) είναι επόμενο task — εκτός scope εδώ.
+ */
+
+export type TaskTemplateItem = {
+  id: string
+  stage: StageStr
+  title: string
+  description: string | null
+  assignTo: TaskAssignToStr
+  mandatory: boolean
+  dueOffsetDays: number | null
+  order: number
+  active: boolean
+}
+
+export async function listProgramTaskTemplates(programId: string): Promise<TaskTemplateItem[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.programTaskTemplate.findMany({
+    where: { programId },
+    orderBy: [{ stage: 'asc' }, { order: 'asc' }],
+  })
+  return rows.map(r => ({
+    id: r.id, stage: r.stage as StageStr, title: r.title, description: r.description,
+    assignTo: r.assignTo as TaskAssignToStr, mandatory: r.mandatory, dueOffsetDays: r.dueOffsetDays,
+    order: r.order, active: r.active,
+  }))
+}
+
+export async function createProgramTaskTemplate(input: {
+  programId: string; stage: StageStr; title: string; description?: string | null
+  assignTo: TaskAssignToStr; mandatory: boolean; dueOffsetDays: number | null
+}): Promise<{ id: string }> {
+  const session = await requirePermission('programs.manage')
+  const title = input.title.trim()
+  if (!title) throw new Error('Ο τίτλος του βήματος είναι υποχρεωτικός.')
+  const max = await prisma.programTaskTemplate.aggregate({
+    where: { programId: input.programId, stage: input.stage }, _max: { order: true },
+  })
+  const t = await prisma.programTaskTemplate.create({
+    data: {
+      programId: input.programId, stage: input.stage, title, description: input.description?.trim() || null,
+      assignTo: input.assignTo, mandatory: input.mandatory, dueOffsetDays: input.dueOffsetDays,
+      order: (max._max.order ?? -1) + 1, createdById: session.user.id,
+    },
+  })
+  revalidatePath(`/programs/${input.programId}`)
+  return { id: t.id }
+}
+
+export async function updateProgramTaskTemplate(id: string, patch: {
+  title?: string; description?: string | null; assignTo?: TaskAssignToStr
+  mandatory?: boolean; dueOffsetDays?: number | null; active?: boolean
+}): Promise<void> {
+  await requirePermission('programs.manage')
+  const data: Record<string, unknown> = {}
+  if (patch.title !== undefined) { const t = patch.title.trim(); if (!t) throw new Error('Ο τίτλος του βήματος είναι υποχρεωτικός.'); data.title = t }
+  if (patch.description !== undefined) data.description = patch.description?.trim() || null
+  if (patch.assignTo !== undefined) data.assignTo = patch.assignTo
+  if (patch.mandatory !== undefined) data.mandatory = patch.mandatory
+  if (patch.dueOffsetDays !== undefined) data.dueOffsetDays = patch.dueOffsetDays
+  if (patch.active !== undefined) data.active = patch.active
+  const t = await prisma.programTaskTemplate.update({ where: { id }, data })
+  revalidatePath(`/programs/${t.programId}`)
+}
+
+export async function deleteProgramTaskTemplate(id: string): Promise<void> {
+  await requirePermission('programs.manage')
+  const t = await prisma.programTaskTemplate.delete({ where: { id } })
+  revalidatePath(`/programs/${t.programId}`)
+}
+
+export async function reorderProgramTaskTemplates(programId: string, stage: StageStr, orderedIds: string[]): Promise<void> {
+  await requirePermission('programs.manage')
+  await prisma.$transaction(
+    orderedIds.map((id, i) =>
+      prisma.programTaskTemplate.updateMany({ where: { id, programId, stage }, data: { order: i } }),
+    ),
+  )
+  revalidatePath(`/programs/${programId}`)
 }
