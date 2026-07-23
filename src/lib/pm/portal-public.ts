@@ -3,7 +3,9 @@ import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { hashToken, isExpired } from '@/lib/pm/portal-token'
 import { stageLabel } from '@/lib/pm/types'
 
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+// 8MB file → ~11MB base64 body, under the 12mb serverActions bodySizeLimit
+// (next.config.ts). Keep these two in sync.
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
 export type UploadRequestView = { ok: true; request: { title: string; description: string | null; customerName: string; programTitle: string; status: string; alreadyUploaded: boolean } } | { ok: false; reason: 'invalid' | 'expired' | 'closed' }
 

@@ -12,7 +12,9 @@ const nextConfig: NextConfig = {
       // βλ. src/app/(app)/import/actions.ts). Το validateImportChunk στέλνει chunks
       // των 1000 γραμμών που μένουν πολύ κάτω από το default 1MB· αυτό το όριο
       // υπάρχει σαν ασφάλεια για μεγάλα φύλλα (έως το όριο αρχείου 10MB — spec).
-      bodySizeLimit: '8mb',
+      // Καλύπτει επίσης τα portal document uploads (C2d): αρχείο έως ~8MB → base64
+      // (~1.37×) ≈ 11MB body, άνετα κάτω από το 12mb όριο.
+      bodySizeLimit: '12mb',
     },
   },
 }

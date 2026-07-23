@@ -4,7 +4,7 @@ import * as React from 'react'
 import { LuUpload, LuLoaderCircle, LuCircleCheck, LuCircleAlert } from 'react-icons/lu'
 import { uploadPortalDocument } from '@/app/portal/upload/[token]/actions'
 
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024 // keep in sync with portal-public.ts + next.config bodySizeLimit
 
 /**
  * Μετατρέπει ArrayBuffer → base64 σε chunks (32KB) — ίδιο idiom με
@@ -23,7 +23,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 function reasonMessage(reason: string | undefined): string {
-  if (reason === 'too_large') return 'Το αρχείο είναι πολύ μεγάλο (μέγιστο 25MB).'
+  if (reason === 'too_large') return 'Το αρχείο είναι πολύ μεγάλο (μέγιστο 8MB).'
   if (reason === 'expired') return 'Ο σύνδεσμος έχει λήξει.'
   return 'Κάτι πήγε στραβά.'
 }
