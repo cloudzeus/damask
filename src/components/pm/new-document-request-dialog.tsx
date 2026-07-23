@@ -24,10 +24,11 @@ import { listTrdrContactEmails, createDocumentRequest } from '@/lib/pm/actions'
  * `trigger` (π.χ. icon-button ανά γραμμή υποχρέωσης).
  */
 export function NewDocumentRequestDialog({
-  applicationId, obligationId = null, defaultTitle, trigger, onCreated,
+  applicationId, obligationId = null, deliverableTaskId = null, defaultTitle, trigger, onCreated,
 }: {
   applicationId: string
   obligationId?: string | null
+  deliverableTaskId?: string | null
   defaultTitle?: string
   trigger?: React.ReactNode
   onCreated?: () => void
@@ -63,6 +64,7 @@ export function NewDocumentRequestDialog({
     try {
       const { url } = await createDocumentRequest(applicationId, {
         obligationId,
+        deliverableTaskId,
         title: trimmedTitle,
         description: description.trim() || undefined,
         email: trimmedEmail,

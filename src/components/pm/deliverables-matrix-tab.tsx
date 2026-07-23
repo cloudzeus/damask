@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   LuUpload, LuDownload, LuTrash2, LuLoaderCircle, LuRefreshCw, LuChevronDown, LuChevronUp,
-  LuX, LuFolderOpen,
+  LuX, LuFolderOpen, LuMailPlus,
 } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,7 @@ import {
   listCertifications, upsertCertification,
   type DeliverableMatrixItem, type CertificationItem,
 } from '@/lib/pm/actions'
+import { NewDocumentRequestDialog } from '@/components/pm/new-document-request-dialog'
 import {
   DELIVERABLE_PHASE_ORDER, deliverablePhaseLabel, deliverableStatusLabel,
   type DeliverablePhaseStr, type DeliverableStatusStr,
@@ -488,6 +489,22 @@ function TaskRow({
           )}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-1">
+          <NewDocumentRequestDialog
+            applicationId={applicationId}
+            deliverableTaskId={task.id}
+            defaultTitle={task.name}
+            onCreated={onReload}
+            trigger={(
+              <button
+                type="button"
+                className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label={`Ζήτησε από πελάτη — ${task.name}`}
+                title="Ζήτησε από πελάτη"
+              >
+                <LuMailPlus className="size-3.5" aria-hidden />
+              </button>
+            )}
+          />
           {task.status !== 'PENDING' && (
             <Button type="button" size="sm" variant="outline" onClick={() => void handleStatus('PENDING')} disabled={busy}>
               Επαναφορά

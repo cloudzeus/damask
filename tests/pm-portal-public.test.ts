@@ -25,7 +25,11 @@ describe('getUploadRequestByToken', () => {
   })
 })
 describe('submitDocumentUpload', () => {
-  const okRec = { id: 'req1', applicationId: 'app-REAL', obligationId: 'ob-REAL', status: 'PENDING', expiresAt: FUTURE, uploadedDocumentId: null }
+  const okRec = { id: 'req1', applicationId: 'app-REAL', obligationId: 'ob-REAL', deliverableTaskId: null as string | null, status: 'PENDING', expiresAt: FUTURE, uploadedDocumentId: null }
+  beforeEach(() => {
+    h.db.deliverableFile = { create: vi.fn().mockResolvedValue({ id: 'df1' }) }
+    h.db.expenseDeliverableTask = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) }
+  })
   it('re-derives applicationId/obligationId from the RECORD (ignores any client id)', async () => {
     h.db.documentRequest = { findUnique: vi.fn().mockResolvedValue(okRec), update: vi.fn().mockResolvedValue({}) }
     h.db.applicationDocument = { create: vi.fn().mockResolvedValue({ id: 'doc1' }) }
@@ -46,6 +50,39 @@ describe('submitDocumentUpload', () => {
     const big = Buffer.alloc(26 * 1024 * 1024).toString('base64')
     const r = await submitDocumentUpload('x', { filename: 'a.pdf', base64: big, mimeType: 'application/pdf' })
     expect(r.ok).toBe(false); expect(h.bunnyUploadPrivate).not.toHaveBeenCalled()
+  })
+  it('deliverableTaskId set → also lands as DeliverableFile on the SAME task (same bunny key) and flips task to UPLOADED', async () => {
+    const rec = { ...okRec, deliverableTaskId: 'task-REAL' }
+    h.db.documentRequest = { findUnique: vi.fn().mockResolvedValue(rec), update: vi.fn().mockResolvedValue({}) }
+    h.db.applicationDocument = { create: vi.fn().mockResolvedValue({ id: 'doc1' }) }
+    const r = await submitDocumentUpload('x', { filename: 'a.pdf', base64: Buffer.from('hi').toString('base64'), mimeType: 'application/pdf' })
+    expect(r.ok).toBe(true)
+    expect(h.db.deliverableFile.create).toHaveBeenCalledTimes(1)
+    const dfData = h.db.deliverableFile.create.mock.calls[0][0].data
+    expect(dfData.taskId).toBe('task-REAL')
+    const uploadedKey = h.bunnyUploadPrivate.mock.calls[0][0].key
+    expect(dfData.storageKey).toBe(uploadedKey)
+    expect(h.db.expenseDeliverableTask.updateMany).toHaveBeenCalledTimes(1)
+    expect(h.db.expenseDeliverableTask.updateMany.mock.calls[0][0]).toMatchObject({
+      where: { id: 'task-REAL', status: { in: ['PENDING', 'REJECTED'] } },
+      data: { status: 'UPLOADED' },
+    })
+  })
+  it('deliverableTaskId null → old behaviour intact, no DeliverableFile write', async () => {
+    h.db.documentRequest = { findUnique: vi.fn().mockResolvedValue(okRec), update: vi.fn().mockResolvedValue({}) }
+    h.db.applicationDocument = { create: vi.fn().mockResolvedValue({ id: 'doc1' }) }
+    const r = await submitDocumentUpload('x', { filename: 'a.pdf', base64: Buffer.from('hi').toString('base64'), mimeType: 'application/pdf' })
+    expect(r.ok).toBe(true)
+    expect(h.db.deliverableFile.create).not.toHaveBeenCalled()
+    expect(h.db.expenseDeliverableTask.updateMany).not.toHaveBeenCalled()
+  })
+  it('deliverable-side create throws → submitDocumentUpload still returns ok:true (non-fatal)', async () => {
+    const rec = { ...okRec, deliverableTaskId: 'task-REAL' }
+    h.db.documentRequest = { findUnique: vi.fn().mockResolvedValue(rec), update: vi.fn().mockResolvedValue({}) }
+    h.db.applicationDocument = { create: vi.fn().mockResolvedValue({ id: 'doc1' }) }
+    h.db.deliverableFile.create.mockRejectedValue(new Error('boom'))
+    const r = await submitDocumentUpload('x', { filename: 'a.pdf', base64: Buffer.from('hi').toString('base64'), mimeType: 'application/pdf' })
+    expect(r.ok).toBe(true)
   })
 })
 describe('getPortalDashboardByToken', () => {

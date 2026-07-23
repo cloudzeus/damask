@@ -1194,16 +1194,17 @@ async function emailRequestLink(to: string, title: string, url: string, customer
   await sendMail({ to, subject: `Αίτημα εγγράφου: ${title}`, html, refType: 'pm-doc-request' }).catch(() => {})
 }
 
-export async function createDocumentRequest(applicationId: string, input: { obligationId?: string | null; title: string; description?: string | null; email: string; expiresInDays?: number }): Promise<{ id: string; url: string }> {
+export async function createDocumentRequest(applicationId: string, input: { obligationId?: string | null; deliverableTaskId?: string | null; title: string; description?: string | null; email: string; expiresInDays?: number }): Promise<{ id: string; url: string }> {
   const { session, app } = await requireVisibleApplication(applicationId)
   const title = input.title.trim(); const email = input.email.trim()
   if (!title) throw new Error('Ο τίτλος του αιτήματος είναι υποχρεωτικός.')
   if (!email) throw new Error('Το email παραλήπτη είναι υποχρεωτικό.')
   if (input.obligationId) { const ob = await prisma.applicationObligation.findUnique({ where: { id: input.obligationId }, select: { applicationId: true } }); if (ob?.applicationId !== applicationId) throw new Error('Η υποχρέωση ανήκει σε άλλο έργο.') }
+  if (input.deliverableTaskId) { const t = await prisma.expenseDeliverableTask.findUnique({ where: { id: input.deliverableTaskId }, select: { deliverable: { select: { applicationId: true } } } }); if (t?.deliverable.applicationId !== applicationId) throw new Error('Το παραδοτέο ανήκει σε άλλο έργο.') }
   const { raw, hash } = newToken()
   const expiresAt = new Date(Date.now() + (input.expiresInDays ?? 14) * 86_400_000)
   const trdr = await prisma.trdr.findUniqueOrThrow({ where: { id: app.trdrId }, select: { NAME: true } })
-  const r = await prisma.documentRequest.create({ data: { applicationId, obligationId: input.obligationId ?? null, trdrId: app.trdrId, title, description: input.description?.trim() || null, email, tokenHash: hash, expiresAt, createdById: session.user.id } })
+  const r = await prisma.documentRequest.create({ data: { applicationId, obligationId: input.obligationId ?? null, deliverableTaskId: input.deliverableTaskId ?? null, trdrId: app.trdrId, title, description: input.description?.trim() || null, email, tokenHash: hash, expiresAt, createdById: session.user.id } })
   const url = `${APP_URL}/portal/upload/${raw}`
   await emailRequestLink(email, title, url, trdr.NAME)
   revalidatePath(`/pm/applications/${applicationId}`)

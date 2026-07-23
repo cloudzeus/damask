@@ -18,7 +18,7 @@ export async function getUploadRequestByToken(raw: string): Promise<UploadReques
 }
 
 export async function submitDocumentUpload(raw: string, file: { filename: string; base64: string; mimeType: string }): Promise<{ ok: boolean; reason?: string }> {
-  const rec = await prisma.documentRequest.findUnique({ where: { tokenHash: hashToken(raw) }, select: { id: true, applicationId: true, obligationId: true, status: true, expiresAt: true, uploadedDocumentId: true } })
+  const rec = await prisma.documentRequest.findUnique({ where: { tokenHash: hashToken(raw) }, select: { id: true, applicationId: true, obligationId: true, deliverableTaskId: true, status: true, expiresAt: true, uploadedDocumentId: true } })
   if (!rec) return { ok: false, reason: 'invalid' }
   if (rec.status === 'CANCELLED' || rec.status === 'FULFILLED') return { ok: false, reason: 'closed' }
   if (isExpired(rec.expiresAt, Date.now())) return { ok: false, reason: 'expired' }
@@ -33,6 +33,14 @@ export async function submitDocumentUpload(raw: string, file: { filename: string
     ? await prisma.applicationDocument.update({ where: { id: rec.uploadedDocumentId }, data: { name, storageKey: key, mimeType: file.mimeType, size: body.length } })
     : await prisma.applicationDocument.create({ data: { applicationId: rec.applicationId, obligationId: rec.obligationId, name, storageKey: key, mimeType: file.mimeType, size: body.length, uploadedById: null } })
   await prisma.documentRequest.update({ where: { id: rec.id }, data: { status: 'UPLOADED', uploadedDocumentId: doc.id, uploadedAt: new Date() } })
+  if (rec.deliverableTaskId) {
+    try {
+      await prisma.deliverableFile.create({ data: { taskId: rec.deliverableTaskId, name, storageKey: key, mimeType: file.mimeType, size: body.length, uploadedById: null } })
+      await prisma.expenseDeliverableTask.updateMany({ where: { id: rec.deliverableTaskId, status: { in: ['PENDING', 'REJECTED'] } }, data: { status: 'UPLOADED' } })
+    } catch (err) {
+      console.error('submitDocumentUpload: deliverable-side write failed', err)
+    }
+  }
   return { ok: true }
 }
 
