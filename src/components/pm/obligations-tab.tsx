@@ -18,7 +18,7 @@ import {
 } from '@/lib/pm/actions'
 import {
   STAGE_ORDER, stageLabel, obligationStatusLabel, obligationKindLabel,
-  type StageStr, type ObligationStatusStr,
+  type StageStr, type ObligationStatusStr, type ObligationKindStr,
 } from '@/lib/pm/types'
 import { ApplicationDocuments } from './application-documents'
 
@@ -33,13 +33,21 @@ const STATUSES: ObligationStatusStr[] = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 
  * generateObligations, ή προστιθέμενες χειροκίνητα), ομαδοποιημένες ανά
  * STAGE_ORDER, με inline ανέβασμα/λήψη εγγράφων ανά υποχρέωση.
  * Self-fetching client component, mirror του idiom στο required-forms-tab.tsx.
+ *
+ * `filterKind` (Task 13) — προαιρετικό: όταν δοθεί, εμφανίζονται μόνο οι
+ * υποχρεώσεις αυτού του kind (π.χ. `filterKind="DELIVERABLE"` για το tab
+ * «Παραδοτέα» στο hub — ίδιο component, φιλτραρισμένη προβολή, αντί για
+ * ξεχωριστό read-only component).
  */
 export function ObligationsTab({
-  applicationId, canManage, programId,
+  applicationId, canManage, programId, filterKind, title = 'Υποχρεώσεις', emptyMessage = 'Δεν υπάρχουν υποχρεώσεις για αυτή την αίτηση.',
 }: {
   applicationId: string
   canManage: boolean
   programId: string
+  filterKind?: ObligationKindStr
+  title?: string
+  emptyMessage?: string
 }) {
   const router = useRouter()
   const [obligations, setObligations] = React.useState<ObligationItem[]>([])
@@ -143,16 +151,18 @@ export function ObligationsTab({
     }
   }
 
+  const visibleObligations = filterKind ? obligations.filter(o => o.kind === filterKind) : obligations
+
   const grouped = STAGE_ORDER.map(stage => ({
     stage,
-    items: obligations.filter(o => o.stage === stage),
+    items: visibleObligations.filter(o => o.stage === stage),
   })).filter(g => g.items.length > 0)
 
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
-          Υποχρεώσεις ({obligations.length})
+          {title} ({visibleObligations.length})
         </div>
         {canManage && (
           <div className="flex items-center gap-1.5">
@@ -171,10 +181,10 @@ export function ObligationsTab({
         </div>
       ) : error ? (
         <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
-      ) : obligations.length === 0 ? (
+      ) : visibleObligations.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <LuListChecks className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[12.5px] text-muted-foreground">Δεν υπάρχουν υποχρεώσεις για αυτή την αίτηση.</p>
+          <p className="text-[12.5px] text-muted-foreground">{emptyMessage}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">

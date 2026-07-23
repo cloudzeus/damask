@@ -11,6 +11,7 @@ import { PartnerInfoCard } from './partner-info-card'
 import { PartnerMapCard } from './partner-map-card'
 import { ContactsPanel, type ContactRow } from './contacts-panel'
 import { FinancialsTab } from '@/components/tax/financials-tab'
+import { TrdrApplicationsTab } from '@/components/pm/trdr-applications-tab'
 
 export default async function PartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requirePermission('customer.view')
@@ -127,6 +128,10 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
 
       <div className="mt-3">
         <FinancialsTab trdrId={trdr.id} trdrName={trdr.NAME} />
+      </div>
+
+      <div className="mt-3">
+        <TrdrApplicationsTab trdrId={trdr.id} />
       </div>
     </div>
   )

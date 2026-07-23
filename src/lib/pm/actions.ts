@@ -152,6 +152,39 @@ export async function listVisibleApplications(): Promise<VisibleApplicationItem[
   }))
 }
 
+export type TrdrApplicationItem = {
+  id: string
+  programId: string
+  programTitle: string
+  stage: StageStr
+  assessmentVerdict: VerdictStr
+  managerName: string | null
+}
+
+/** Οι αιτήσεις προγραμμάτων ενός συγκεκριμένου συναλλασσόμενου, ΟΡΑΤΕΣ στον
+ * τρέχοντα χρήστη — για το panel «Έργα» στην καρτέλα του /partners/[id]
+ * (Task 13). Ίδιο scoping idiom με listVisibleApplications, απλά φιλτραρισμένο
+ * επιπλέον σε trdrId. */
+export async function listTrdrApplications(trdrId: string): Promise<TrdrApplicationItem[]> {
+  const session = await requirePmAccess()
+  const rows = await prisma.programApplication.findMany({
+    where: { trdrId, ...visibleApplicationWhere({ id: session.user.id, permissions: session.user.permissions ?? [] }) },
+    include: {
+      program: { select: { title: true } },
+      manager: { select: { name: true } },
+    },
+    orderBy: { updatedAt: 'desc' },
+  })
+  return rows.map(r => ({
+    id: r.id,
+    programId: r.programId,
+    programTitle: r.program.title,
+    stage: r.stage as StageStr,
+    assessmentVerdict: r.assessmentVerdict as VerdictStr,
+    managerName: r.manager?.name ?? null,
+  }))
+}
+
 /**
  * Ανάθεση διαχειριστή/εισηγητή — gated ρητά στο `pm.manage` (όχι
  * requireVisibleApplication): μόνο ο pm.manage χρήστης αναθέτει, και το

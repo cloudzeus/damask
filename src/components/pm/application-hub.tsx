@@ -15,16 +15,19 @@ import { STAGE_ORDER, stageLabel, nextStage, verdictLabel, type StageStr, type V
 import { AssignApplicationDialog } from './assign-application-dialog'
 import { AssessmentTab } from './assessment-tab'
 import { ObligationsTab } from './obligations-tab'
+import { ExpensesTab } from './expenses-tab'
 import { OpskeTab } from './opske-tab'
 
 /**
  * Το «Έργο hub» (Task 10) — κεντρική οθόνη PM για μία αίτηση προγράμματος:
  * header (πελάτης/πρόγραμμα + verdict/βαθμολογία), assignment row, stage
  * stepper (STAGE_ORDER, με ελεύθερο jump + «Επόμενο στάδιο»), και tab bar
- * που φιλοξενεί τη ροή εργασίας (Αξιολόγηση/Υποχρεώσεις/Δαπάνες/Παραδοτέα/
- * ΟΠΣΚΕ — τα δύο τελευταία stub εδώ, πραγματικό σώμα στο Task 13, τα άλλα
- * δύο tabs Task 11-12). Mirror του TabBar idiom από program-editor.tsx
- * (useState<TabKey> + pill row, όχι Tabs primitive).
+ * που φιλοξενεί τη ροή εργασίας: Αξιολόγηση (Task 11), Υποχρεώσεις &
+ * Δικαιολογητικά (Task 12), Δαπάνες (Task 13 — wrapper πάνω στο C3
+ * <ExpenseList>), Παραδοτέα (Task 13 — <ObligationsTab filterKind=
+ * "DELIVERABLE">, ίδιο component με το tab Υποχρεώσεων αλλά φιλτραρισμένη
+ * προβολή) και ΟΠΣΚΕ (Task 13). Mirror του TabBar idiom από
+ * program-editor.tsx (useState<TabKey> + pill row, όχι Tabs primitive).
  *
  * ΣΗΜΑΝΤΙΚΟ: τα actions εδώ κάνουν revalidatePath('/pm/applications/...')
  * που ΔΕΝ ταιριάζει με το πραγματικό route (/programs/[id]/applications/
@@ -124,15 +127,24 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
 
       {activeTab === 'assessment' && <AssessmentTab applicationId={app.id} canManage={app.canManage} />}
       {activeTab === 'obligations' && <ObligationsTab applicationId={app.id} canManage={app.canManage} programId={app.programId} />}
-      {activeTab === 'expenses' && <PlaceholderSection />}
-      {activeTab === 'deliverables' && <PlaceholderSection />}
+      {activeTab === 'expenses' && <ExpensesTab applicationId={app.id} programId={app.programId} />}
+      {activeTab === 'deliverables' && (
+        <ObligationsTab
+          applicationId={app.id}
+          canManage={app.canManage}
+          programId={app.programId}
+          filterKind="DELIVERABLE"
+          title="Παραδοτέα"
+          emptyMessage="Δεν υπάρχουν παραδοτέα για αυτή την αίτηση."
+        />
+      )}
       {activeTab === 'opske' && (
         <OpskeTab
           applicationId={app.id}
           canManage={app.canManage}
-          initialStatus={app.opskeStatus}
-          initialRef={app.opskeRef}
-          initialSubmittedAt={app.opskeSubmittedAt}
+          opskeStatus={app.opskeStatus}
+          opskeRef={app.opskeRef}
+          opskeSubmittedAt={app.opskeSubmittedAt}
         />
       )}
     </div>
@@ -192,14 +204,6 @@ function StageStepper({ stage }: { stage: StageStr }) {
         )
       })}
     </ol>
-  )
-}
-
-function PlaceholderSection() {
-  return (
-    <section className="glass rounded-[22px] p-4">
-      <div className="p-6 text-center text-sm text-muted-foreground">(σε εξέλιξη)</div>
-    </section>
   )
 }
 
