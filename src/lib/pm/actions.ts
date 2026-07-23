@@ -12,6 +12,7 @@ import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { applicationDocKey } from '@/lib/pm/doc-prep'
 import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr, type TaskAssignToStr } from '@/lib/pm/types'
 import { checkBudgetCompliance, type ComplianceExpense } from '@/lib/pm/budget-compliance'
+import { certificationComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type CertFileKind } from '@/lib/pm/cert-prep'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -757,4 +758,131 @@ export async function reorderProgramTaskTemplates(programId: string, stage: Stag
     ),
   )
   revalidatePath(`/programs/${programId}`)
+}
+
+/**
+ * C2a.2 (Task 5) — φυσική πιστοποίηση παγίων ανά δαπάνη (ProgramExpenseCertification,
+ * 1:1 με ProgramExpense). requireVisibleExpense φορτώνει μόνο applicationId από τη
+ * δαπάνη και ΜΕΤΑ περνάει από requireVisibleApplication — ίδιο idiom με
+ * removeObligation/waiveObligation παραπάνω: καμία εγγραφή δεν διαβάζεται πριν
+ * επιβεβαιωθεί η ορατότητα της γονικής αίτησης.
+ */
+async function requireVisibleExpense(expenseId: string) {
+  const exp = await prisma.programExpense.findUniqueOrThrow({ where: { id: expenseId }, select: { id: true, applicationId: true } })
+  const { session } = await requireVisibleApplication(exp.applicationId)
+  return { session, expense: exp }
+}
+
+export type CertificationItem = {
+  expenseId: string
+  expenseDescription: string
+  amount: number
+  serialNumber: string | null
+  location: string | null
+  assetRegistryRef: string | null
+  assetRegistryDate: string | null
+  photoKey: string | null
+  bankStatementKey: string | null
+  newUnusedCertKey: string | null
+  paid: boolean
+  verified: boolean
+  complete: boolean
+}
+
+export async function listCertifications(applicationId: string): Promise<CertificationItem[]> {
+  await requireVisibleApplication(applicationId)
+  const expenses = await prisma.programExpense.findMany({
+    where: { applicationId, status: 'ACTIVE' },
+    select: { id: true, description: true, amount: true, certification: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  return expenses.map((e) => {
+    const c = e.certification
+    const state = {
+      serialNumber: c?.serialNumber ?? null,
+      location: c?.location ?? null,
+      assetRegistryRef: c?.assetRegistryRef ?? null,
+      photoKey: c?.photoKey ?? null,
+      bankStatementKey: c?.bankStatementKey ?? null,
+      newUnusedCertKey: c?.newUnusedCertKey ?? null,
+      paid: c?.paid ?? false,
+    }
+    return {
+      expenseId: e.id,
+      expenseDescription: e.description,
+      amount: Number(e.amount),
+      serialNumber: state.serialNumber,
+      location: state.location,
+      assetRegistryRef: state.assetRegistryRef,
+      assetRegistryDate: c?.assetRegistryDate ? c.assetRegistryDate.toISOString() : null,
+      photoKey: state.photoKey,
+      bankStatementKey: state.bankStatementKey,
+      newUnusedCertKey: state.newUnusedCertKey,
+      paid: state.paid,
+      verified: c?.verified ?? false,
+      complete: certificationComplete(state),
+    }
+  })
+}
+
+export async function upsertCertification(
+  expenseId: string,
+  patch: {
+    serialNumber?: string | null
+    location?: string | null
+    assetRegistryRef?: string | null
+    assetRegistryDate?: string | null
+    paid?: boolean
+    verified?: boolean
+    notes?: string | null
+  },
+): Promise<void> {
+  const { session, expense } = await requireVisibleExpense(expenseId)
+  const data: Record<string, unknown> = {}
+  if (patch.serialNumber !== undefined) data.serialNumber = patch.serialNumber?.trim() || null
+  if (patch.location !== undefined) data.location = patch.location?.trim() || null
+  if (patch.assetRegistryRef !== undefined) data.assetRegistryRef = patch.assetRegistryRef?.trim() || null
+  if (patch.assetRegistryDate !== undefined) data.assetRegistryDate = patch.assetRegistryDate ? new Date(patch.assetRegistryDate) : null
+  if (patch.paid !== undefined) data.paid = patch.paid
+  if (patch.notes !== undefined) data.notes = patch.notes?.trim() || null
+  if (patch.verified !== undefined) {
+    data.verified = patch.verified
+    data.verifiedById = patch.verified ? session.user.id : null
+  }
+  await prisma.programExpenseCertification.upsert({
+    where: { expenseId },
+    create: { expenseId, ...data },
+    update: data,
+  })
+  revalidatePath(`/pm/applications/${expense.applicationId}`)
+}
+
+export async function uploadCertificationFile(
+  expenseId: string,
+  kind: CertFileKind,
+  file: { base64: string; mimeType: string; ext: string },
+): Promise<void> {
+  const { expense } = await requireVisibleExpense(expenseId)
+  if (!CERT_FILE_KINDS.includes(kind)) throw new Error('Άγνωστος τύπος αρχείου.')
+  const key = certFileKey(expense.applicationId, expenseId, kind, file.ext.replace(/[^a-z0-9]/gi, '') || 'bin')
+  const body = Buffer.from(file.base64, 'base64')
+  await bunnyUploadPrivate({ key, body, contentType: file.mimeType })
+  const field = certKeyField(kind)
+  await prisma.programExpenseCertification.upsert({
+    where: { expenseId },
+    create: { expenseId, [field]: key },
+    update: { [field]: key },
+  })
+  revalidatePath(`/pm/applications/${expense.applicationId}`)
+}
+
+export async function certificationDownloadKey(expenseId: string, kind: CertFileKind): Promise<string | null> {
+  await requireVisibleExpense(expenseId)
+  const c = await prisma.programExpenseCertification.findUnique({
+    where: { expenseId },
+    select: { photoKey: true, bankStatementKey: true, newUnusedCertKey: true },
+  })
+  if (!c) return null
+  const map: Record<CertFileKind, string | null> = { photo: c.photoKey, bankStatement: c.bankStatementKey, newUnusedCert: c.newUnusedCertKey }
+  return map[kind]
 }
