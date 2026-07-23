@@ -1657,3 +1657,86 @@ model PortalToken {
 
   @@index([trdrId])
 }
+
+// Καλλικράτης δενδροειδής δομή — seed από public/periferies-*.json (όχι GEMI).
+model Region {
+  code        String   @id            // "111" (Περιφ.), "11102" (Π.Ε./Νομός), "1110202" (Δήμος)
+  nameEL      String
+  nameEN      String?
+  level       Int                      // 3=Περιφέρεια, 4=Περιφ. Ενότητα/Νομός, 5=Δήμος
+  parentCode  String?
+  parent      Region?  @relation("RegionHierarchy", fields: [parentCode], references: [code], onDelete: SetNull)
+  children    Region[] @relation("RegionHierarchy")
+  path        String?                  // "111>11102>1110202"
+  latitude    Float?
+  longitude   Float?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([parentCode])
+  @@index([level])
+  @@index([nameEL])
+}
+
+// Master catalog of all ΚΑΔ codes (Greek Activity Code register).
+// Auto-populated from ΑΕΔΕΕ lookups and used for mapping/search across companies.
+model KadCode {
+  code            String    @id                              // canonical with dots, π.χ. "43.21.00" ή "62.10.12.00"
+  codeWithoutDots String?   @unique @db.VarChar(10)          // "43210000" (padded to 8 για NACE-level)
+  description     String                                     // legacy alias of title (kept for backward compat)
+  title           String?                                    // επίσημος τίτλος (από kad2025.json)
+  level           Int?                                       // 1..7
+  sector          String?   @db.VarChar(3)                   // π.χ. "Α", "ΣΤ"
+  sectorLetter    String?   @db.VarChar(3)                   // same as sector — indexed for filtering
+  parentCode      String?                                    // πατρικός ΚΑΔ (string FK to KadCode.code)
+  parent          KadCode?  @relation("KadHierarchy", fields: [parentCode], references: [code], onDelete: SetNull)
+  children        KadCode[] @relation("KadHierarchy")
+  path            String?                                    // π.χ. "Α>01>01.1>01.11>01.11.1>01.11.11"
+  category        String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  licenseRequirements KadLicenseRequirement[]
+
+  @@index([title])
+  @@index([description])
+  @@index([parentCode])
+  @@index([level])
+  @@index([sectorLetter])
+  @@index([codeWithoutDots])
+}
+
+// Λίστα ΚΑΔ που απαιτούν Άδεια Λειτουργίας (και άλλους τύπους αδειών στο μέλλον).
+// Seeded από public/NF BUSNESS.xlsx. Τα παιδιά κληρονομούν τον κανόνα μέσω inherited=true.
+enum KadLicenseType {
+  OPERATING_LICENSE   // Άδεια λειτουργίας
+}
+
+model KadLicenseRequirement {
+  id               Int             @id @default(autoincrement())
+  code             String          @db.VarChar(20)
+  kadCode          KadCode         @relation(fields: [code], references: [code], onDelete: Cascade)
+  licenseType      KadLicenseType  @default(OPERATING_LICENSE)
+  inherited        Boolean         @default(false)   // true = το κληρονόμησε από parent ΚΑΔ
+  sourceParentCode String?         @db.VarChar(20)   // ο ρητά αναφερόμενος γονέας (αν inherited)
+  source           String          @default("NF BUSNESS")
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([code, licenseType])
+  @@index([licenseType])
+  @@index([inherited])
+  @@index([sourceParentCode])
+}
+
+model KadImportLog {
+  id            Int      @id @default(autoincrement())
+  totalCodes    Int
+  importedAt    DateTime @default(now())
+  sourceVersion String   @default("2026")
+  status        String   @default("completed")
+  notes         String?
+}
