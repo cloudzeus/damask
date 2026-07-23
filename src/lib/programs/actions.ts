@@ -179,6 +179,17 @@ export async function createApplication(input: { trdrId: string; programId: stri
     create: { trdrId: input.trdrId, programId: input.programId, createdById: session.user.id },
     update: {},
   })
+
+  // C2e: materialize per-stage task templates onto the new/linked application.
+  // Generation failure must NOT roll back enrollment — the manager can re-run
+  // via «Ανανέωση βημάτων».
+  try {
+    const { generateObligations } = await import('@/lib/pm/actions')
+    await generateObligations(app.id)
+  } catch (err) {
+    console.error('[createApplication] task generation failed', err)
+  }
+
   return { id: app.id }
 }
 
