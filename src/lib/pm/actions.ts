@@ -12,11 +12,11 @@ import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { applicationDocKey } from '@/lib/pm/doc-prep'
 import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr, type TaskAssignToStr } from '@/lib/pm/types'
 import { checkBudgetCompliance, type ComplianceExpense } from '@/lib/pm/budget-compliance'
-import { certificationComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type CertFileKind } from '@/lib/pm/cert-prep'
+import { certificationScalarsComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type CertFileKind } from '@/lib/pm/cert-prep'
 import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type PaymentStatusStr } from '@/lib/pm/payment'
 import { newToken } from '@/lib/pm/portal-token'
 import { sendMail, isMailerConfigured, escapeHtml } from '@/lib/mailer'
-import { buildAutoDependencyPairs, OPTIONAL_PHASES, taskBlocked, taskCanClose, hasCycle, type DagTask, type DependencyPair, type DeliverablePhaseStr, type DeliverableScopeStr, type DeliverableStatusStr } from '@/lib/pm/deliverable-phases'
+import { buildAutoDependencyPairs, OPTIONAL_PHASES, taskBlocked, taskCanClose, hasCycle, verifiedFromTasks, type DagTask, type DependencyPair, type DeliverablePhaseStr, type DeliverableScopeStr, type DeliverableStatusStr } from '@/lib/pm/deliverable-phases'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -820,31 +820,51 @@ export async function listCertifications(applicationId: string): Promise<Certifi
     select: { id: true, description: true, amount: true, certification: true },
     orderBy: { createdAt: 'asc' },
   })
+
+  // Batch-load cert-phase tasks for ALL expenses in one query (C2g: verifiedFromTasks input),
+  // grouped by expenseId — avoids an N+1 findMany per expense row.
+  const expenseIds = expenses.map((e) => e.id)
+  const taskRows = expenseIds.length > 0
+    ? await prisma.expenseDeliverableTask.findMany({
+        where: { deliverable: { expenseId: { in: expenseIds } }, phase: { in: ['PHASE_A_CERTIFICATION', 'FULL_CERTIFICATION'] } },
+        select: { phase: true, mandatory: true, status: true, deliverable: { select: { expenseId: true } } },
+      })
+    : []
+  const tasksByExpenseId = new Map<string, { phase: DeliverablePhaseStr; mandatory: boolean; status: DeliverableStatusStr }[]>()
+  for (const t of taskRows) {
+    const eid = t.deliverable.expenseId
+    if (!eid) continue
+    const list = tasksByExpenseId.get(eid) ?? []
+    list.push({ phase: t.phase as DeliverablePhaseStr, mandatory: t.mandatory, status: t.status as DeliverableStatusStr })
+    tasksByExpenseId.set(eid, list)
+  }
+
   return expenses.map((e) => {
     const c = e.certification
-    const state = {
+    const scalars = {
       serialNumber: c?.serialNumber ?? null,
       location: c?.location ?? null,
       assetRegistryRef: c?.assetRegistryRef ?? null,
-      photoKey: c?.photoKey ?? null,
-      bankStatementKey: c?.bankStatementKey ?? null,
-      newUnusedCertKey: c?.newUnusedCertKey ?? null,
       paid: c?.paid ?? false,
     }
+    const scalarsOk = certificationScalarsComplete(scalars)
+    const tasksOk = verifiedFromTasks(tasksByExpenseId.get(e.id) ?? [])
     return {
       expenseId: e.id,
       expenseDescription: e.description,
       amount: Number(e.amount),
-      serialNumber: state.serialNumber,
-      location: state.location,
-      assetRegistryRef: state.assetRegistryRef,
+      serialNumber: scalars.serialNumber,
+      location: scalars.location,
+      assetRegistryRef: scalars.assetRegistryRef,
       assetRegistryDate: c?.assetRegistryDate ? c.assetRegistryDate.toISOString() : null,
-      photoKey: state.photoKey,
-      bankStatementKey: state.bankStatementKey,
-      newUnusedCertKey: state.newUnusedCertKey,
-      paid: state.paid,
+      // Legacy file-key columns — no longer part of the completeness formula (superseded by
+      // deliverable tasks), kept as-is so pre-C2g data still displays.
+      photoKey: c?.photoKey ?? null,
+      bankStatementKey: c?.bankStatementKey ?? null,
+      newUnusedCertKey: c?.newUnusedCertKey ?? null,
+      paid: scalars.paid,
       verified: c?.verified ?? false,
-      complete: certificationComplete(state),
+      complete: scalarsOk && tasksOk,
       notes: c?.notes ?? null,
     }
   })
@@ -873,27 +893,38 @@ export async function upsertCertification(
   if (patch.notes !== undefined) data.notes = patch.notes?.trim() || null
 
   /**
-   * ΚΡΙΣΙΜΟ (spec §3ζ): verified=true ΜΟΝΟ αν το certificationComplete
-   * είναι true. Το UI κλειδώνει το toggle αλλά ΔΕΝ αρκεί — ένα direct
+   * ΚΡΙΣΙΜΟ (spec §3ζ, C2g update): verified=true ΜΟΝΟ αν το merged cert
+   * είναι complete. Το UI κλειδώνει το toggle αλλά ΔΕΝ αρκεί — ένα direct
    * server-action call (π.χ. από devtools) μπορεί να παρακάμψει το UI. Άρα
    * το invariant πρέπει να επιβάλλεται ΕΔΩ, σε ΚΑΘΕ write: χτίζουμε το
-   * merged state (existing row + αυτό το patch· τα file keys ΔΕΝ αλλάζουν
-   * από αυτό το action, άρα έρχονται πάντα από το existing), υπολογίζουμε
-   * complete, και γράφουμε verified = desiredVerified && complete —
-   * ΠΑΝΤΑ, ανεξάρτητα αν το patch αυτό αγγίζει καν το verified. Αυτό
-   * καλύπτει ΚΑΙ το «clear ενός mandatory field σε ήδη verified cert»: αν
-   * το merged γίνει incomplete, το verified ξαναγράφεται false αυτόματα.
+   * merged scalar state (existing row + αυτό το patch) και ελέγχουμε ΚΑΙ
+   * τα deliverable tasks (C2g migration: photo/bankStatement/newUnusedCert
+   * file keys μετακόμισαν σε ExpenseDeliverableTask/DeliverableFile — η
+   * πληρότητα πλέον παράγεται από verifiedFromTasks πάνω στα
+   * PHASE_A_CERTIFICATION+FULL_CERTIFICATION mandatory tasks, όχι από τα
+   * (πλέον νεκρά) key πεδία). complete = scalarsOk && tasksOk, και
+   * γράφουμε verified = desiredVerified && complete — ΠΑΝΤΑ, ανεξάρτητα αν
+   * το patch αυτό αγγίζει καν το verified. Αυτό καλύπτει ΚΑΙ το «clear
+   * ενός mandatory field σε ήδη verified cert»: αν το merged γίνει
+   * incomplete, το verified ξαναγράφεται false αυτόματα.
    */
-  const merged = {
+  const mergedScalars = {
     serialNumber: patch.serialNumber !== undefined ? (patch.serialNumber?.trim() || null) : (existing?.serialNumber ?? null),
     location: patch.location !== undefined ? (patch.location?.trim() || null) : (existing?.location ?? null),
     assetRegistryRef: patch.assetRegistryRef !== undefined ? (patch.assetRegistryRef?.trim() || null) : (existing?.assetRegistryRef ?? null),
-    photoKey: existing?.photoKey ?? null,
-    bankStatementKey: existing?.bankStatementKey ?? null,
-    newUnusedCertKey: existing?.newUnusedCertKey ?? null,
     paid: patch.paid !== undefined ? patch.paid : (existing?.paid ?? false),
   }
-  const complete = certificationComplete(merged)
+  const scalarsOk = certificationScalarsComplete(mergedScalars)
+  const taskRows = await prisma.expenseDeliverableTask.findMany({
+    where: { deliverable: { expenseId }, phase: { in: ['PHASE_A_CERTIFICATION', 'FULL_CERTIFICATION'] } },
+    select: { phase: true, mandatory: true, status: true },
+  })
+  const tasksOk = verifiedFromTasks(taskRows.map((t) => ({
+    phase: t.phase as DeliverablePhaseStr,
+    mandatory: t.mandatory,
+    status: t.status as DeliverableStatusStr,
+  })))
+  const complete = scalarsOk && tasksOk
   const desiredVerified = patch.verified !== undefined ? patch.verified : (existing?.verified ?? false)
   const finalVerified = desiredVerified && complete
   data.verified = finalVerified
