@@ -337,6 +337,7 @@ model Trdr {
   portalTokens     PortalToken[]
   kads             TrdrKad[]
   documents        TrdrDocument[]
+  programLeads     ProgramLead[]
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
@@ -1116,6 +1117,7 @@ model Program {
   requiredForms       ProgramRequiredForm[]
   taskTemplates       ProgramTaskTemplate[]
   deliverableTemplates ProgramDeliverableTemplate[]
+  leads               ProgramLead[]
 
   @@index([status])
   @@index([extractStatus])
@@ -1302,6 +1304,35 @@ enum ReminderStatus {
   SENT
   FAILED
   SKIPPED
+}
+
+enum ProgramLeadStatus {
+  PENDING
+  SENT
+  FAILED
+  CLICKED
+}
+
+// Δυνητικός πελάτης (bulk eligibility match) ανά Program×Trdr — βλ.
+// src/lib/prospects/eligibility.ts (pure engine) + actions.ts (bulk matching,
+// newsletter αποστολή). click = εκδήλωση ενδιαφέροντος (Ευκαιρία).
+model ProgramLead {
+  id          String            @id @default(cuid())
+  programId   String
+  program     Program           @relation(fields: [programId], references: [id], onDelete: Cascade)
+  trdrId      String
+  trdr        Trdr              @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  email       String
+  tokenHash   String            @unique
+  status      ProgramLeadStatus @default(PENDING)
+  sentAt      DateTime?
+  clickedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([programId, trdrId])
+  @@index([programId])
+  @@index([status])
 }
 
 model ProgramApplication {
