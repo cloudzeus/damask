@@ -17,6 +17,7 @@ import { extractPdfText } from '@/lib/programs/pdf-text'
 import { RequiredFormsTab } from './required-forms-tab'
 import { TaskTemplatesTab } from './task-templates-tab'
 import { DeliverableTemplatesTab } from './deliverable-templates-tab'
+import { ProspectsTab } from './prospects-tab'
 
 /**
  * Detail/editor του αποδελτιωμένου Προγράμματος (Task 14, tabbed layout).
@@ -161,7 +162,7 @@ function validateNonNegativeInteger(v: string, label: string): string | null {
 /* ── Tab bar — lightweight, χωρίς Tabs primitive (δεν υπάρχει στο
  * src/components/ui) — pill row, navy active state (Steel & Frost §4β). */
 
-type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates'
+type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'prospects'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'desc', label: 'Περιγραφή & Ημερομηνίες' },
@@ -172,6 +173,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'forms', label: 'Έντυπα' },
   { key: 'tasks', label: 'Βήματα Διαχείρισης' },
   { key: 'deliverableTemplates', label: 'Παραδοτέα ανά Φάση' },
+  { key: 'prospects', label: 'Δυνητικοί πελάτες' },
 ]
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
@@ -578,6 +580,8 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
 
       {/* «Παραδοτέα ανά Φάση» (C2g) — wizard-authored πρότυπα παραδοτέων + tasks ανά φάση */}
       {activeTab === 'deliverableTemplates' && <DeliverableTemplatesTab programId={program.id} />}
+
+      {activeTab === 'prospects' && <ProspectsTab programId={program.id} />}
     </div>
   )
 }
