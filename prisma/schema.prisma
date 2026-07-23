@@ -30,6 +30,10 @@ model User {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
+  managedApplications   ProgramApplication[]    @relation("AppManager")
+  processedApplications ProgramApplication[]    @relation("AppProcessor")
+  assignedObligations   ApplicationObligation[]
+
   @@index([roleId])
   @@index([trdrId])
 }
@@ -1189,6 +1193,38 @@ model ProgramRequiredForm {
   @@index([templateId])
 }
 
+enum ApplicationStage {
+  ASSESSMENT
+  DOCUMENTS
+  EXPENSES_DELIVERABLES
+  OPSKE_SUBMISSION
+  INSPECTION
+  MONITORING
+}
+
+enum ObligationKind {
+  DELIVERABLE
+  FORM
+  CRITERION
+  TASK
+  CUSTOM
+}
+
+enum ObligationStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+  WAIVED
+}
+
+enum AssessmentVerdict {
+  PENDING
+  ELIGIBLE
+  INELIGIBLE
+}
+
 model ProgramApplication {
   id          String           @id @default(cuid())
   trdrId      String
@@ -1201,6 +1237,21 @@ model ProgramApplication {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   expenses    ProgramExpense[]
+
+  stage              ApplicationStage @default(ASSESSMENT)
+  managerId          String?
+  manager            User? @relation("AppManager",   fields: [managerId],   references: [id], onDelete: SetNull)
+  processorId        String?
+  processor          User? @relation("AppProcessor", fields: [processorId], references: [id], onDelete: SetNull)
+  assessmentScore    Float?
+  assessmentMaxScore Float?
+  assessmentVerdict  AssessmentVerdict @default(PENDING)
+  opskeStatus        String?
+  opskeRef           String?
+  opskeSubmittedAt   DateTime?
+  obligations        ApplicationObligation[]
+  documents          ApplicationDocument[]
+  criterionScores    ApplicationCriterionScore[]
 
   @@unique([trdrId, programId])
   @@index([trdrId])
@@ -1231,4 +1282,61 @@ model ProgramExpense {
 
   @@index([applicationId])
   @@index([categoryId])
+}
+
+model ApplicationObligation {
+  id            String   @id @default(cuid())
+  applicationId String
+  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  stage         ApplicationStage
+  kind          ObligationKind @default(TASK)
+  sourceId      String?
+  name          String
+  mandatory     Boolean @default(true)
+  status        ObligationStatus @default(PENDING)
+  dueDate       DateTime?
+  assigneeId    String?
+  assignee      User? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  notes         String?
+  order         Int @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  documents     ApplicationDocument[]
+
+  @@index([applicationId])
+  @@index([applicationId, stage])
+  @@index([status])
+}
+
+model ApplicationDocument {
+  id            String   @id @default(cuid())
+  applicationId String
+  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  obligationId  String?
+  obligation    ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
+  name          String
+  storageKey    String
+  mimeType      String?
+  size          Int?
+  uploadedById  String?
+  uploadedAt    DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([obligationId])
+}
+
+model ApplicationCriterionScore {
+  id            String   @id @default(cuid())
+  applicationId String
+  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  criterionId   String?
+  name          String
+  weight        Float @default(1)
+  score         Float?
+  maxScore      Float @default(100)
+  note          String?
+  order         Int @default(0)
+
+  @@unique([applicationId, criterionId])
+  @@index([applicationId])
 }
