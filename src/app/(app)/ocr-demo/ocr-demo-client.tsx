@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { LuCheck } from 'react-icons/lu'
 import { OcrUploader } from '@/components/ocr/ocr-uploader'
+import { CompanyInvoicePanel } from '@/components/invoices/company-invoice-panel'
 import type { ExtractedDocument } from '@/lib/ocr/schema'
 
 export function OcrDemoClient() {
@@ -20,6 +21,8 @@ export function OcrDemoClient() {
           toast.success('Επιβεβαιώθηκε — δες το JSON παρακάτω (proof).')
         }}
       />
+
+      {confirmed && <CompanyInvoicePanel extracted={confirmed} />}
 
       {confirmed && (
         <div className="glass p-5">

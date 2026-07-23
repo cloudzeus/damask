@@ -6,6 +6,7 @@ import { LuLoaderCircle } from 'react-icons/lu'
 import { listApplicationExpenseCategories, type ExpenseCategoryOption } from '@/lib/pm/actions'
 import { listApplicationExpenses, type ProgramExpenseItem } from '@/lib/programs/actions'
 import { ExpenseList } from '@/components/programs/expense-list'
+import { ProgramInvoiceDialog } from '@/components/invoices/program-invoice-dialog'
 import { BudgetCompliancePanel } from './budget-compliance-panel'
 import { ReplaceExpenseDialog } from './replace-expense-dialog'
 
@@ -36,6 +37,10 @@ function formatEUR(v: number): string {
  * έχει ήδη ορατότητα στην αίτηση μέσω requireVisibleApplication. Το
  * programId prop μένει (το χρησιμοποιεί ο caller/άλλα σημεία) αλλά δεν
  * χρειάζεται πια εδώ.
+ *
+ * Header (W4 T2): <ProgramInvoiceDialog> — «Καταχώριση από OCR» (upload
+ * τιμολογίου → processProgramInvoice, src/lib/invoice-flows/program.ts) ίδιο
+ * refreshKey pattern με το replace flow παρακάτω.
  */
 export function ExpensesTab({ applicationId, programId }: { applicationId: string; programId: string }) {
   void programId
@@ -54,16 +59,23 @@ export function ExpensesTab({ applicationId, programId }: { applicationId: strin
       .finally(() => setLoading(false))
   }, [applicationId])
 
-  function handleReplaced() {
+  function refreshExpenses() {
     setRefreshKey(k => k + 1)
     router.refresh()
   }
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+          Δαπάνες & Πλάνο
+        </span>
+        <ProgramInvoiceDialog applicationId={applicationId} categories={categories} onCreated={refreshExpenses} />
+      </div>
+
       <BudgetCompliancePanel applicationId={applicationId} refreshKey={refreshKey} />
 
-      <ReplaceExpensesSection applicationId={applicationId} refreshKey={refreshKey} onReplaced={handleReplaced} />
+      <ReplaceExpensesSection applicationId={applicationId} refreshKey={refreshKey} onReplaced={refreshExpenses} />
 
       <section className="glass rounded-[22px] p-4">
         {loading ? (
