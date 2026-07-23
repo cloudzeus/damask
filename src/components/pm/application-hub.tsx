@@ -17,7 +17,7 @@ import { AssessmentTab } from './assessment-tab'
 import { ObligationsTab } from './obligations-tab'
 import { ExpensesTab } from './expenses-tab'
 import { OpskeTab } from './opske-tab'
-import { CertificationTab } from './certification-tab'
+import { DeliverablesMatrixTab } from './deliverables-matrix-tab'
 import { PaymentsTab } from './payments-tab'
 import { DocumentRequestsTab } from './document-requests-tab'
 import { PortalAccessDialog } from './portal-access-dialog'
@@ -30,7 +30,10 @@ import { PortalAccessDialog } from './portal-access-dialog'
  * Υποχρεώσεις (Task 12, ονομασία C2e), Δαπάνες (Task 13 — wrapper πάνω στο C3
  * <ExpenseList>), Παραδοτέα (Task 13 — <ObligationsTab filterKind=
  * "DELIVERABLE">, ίδιο component με το tab Υποχρεώσεων αλλά φιλτραρισμένη
- * προβολή) και ΟΠΣΚΕ (Task 13). Mirror του TabBar idiom από
+ * προβολή), ΟΠΣΚΕ (Task 13) και «Φάκελος & Πιστοποίηση» (Task 8, C2g amended
+ * two-level — <DeliverablesMatrixTab>: matrix ομάδων παραδοτέων × φάσεων,
+ * αντικατέστησε το παλιό <CertificationTab> στο TabKey 'certification', το
+ * οποίο παραμένει στο δίσκο αχρησιμοποίητο). Mirror του TabBar idiom από
  * program-editor.tsx (useState<TabKey> + pill row, όχι Tabs primitive).
  *
  * ΣΗΜΑΝΤΙΚΟ: τα actions εδώ κάνουν revalidatePath('/pm/applications/...')
@@ -153,7 +156,7 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
           opskeSubmittedAt={app.opskeSubmittedAt}
         />
       )}
-      {activeTab === 'certification' && <CertificationTab applicationId={app.id} programId={app.programId} />}
+      {activeTab === 'certification' && <DeliverablesMatrixTab applicationId={app.id} programId={app.programId} />}
       {activeTab === 'docrequests' && <DocumentRequestsTab applicationId={app.id} />}
       {activeTab === 'payments' && <PaymentsTab applicationId={app.id} />}
     </div>
@@ -225,7 +228,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'obligations', label: 'Εργασίες & Υποχρεώσεις' },
   { key: 'expenses', label: 'Δαπάνες & Πλάνο' },
   { key: 'deliverables', label: 'Παραδοτέα' },
-  { key: 'certification', label: 'Πιστοποίηση' },
+  { key: 'certification', label: 'Φάκελος & Πιστοποίηση' },
   { key: 'docrequests', label: 'Αιτήματα εγγράφων' },
   { key: 'payments', label: 'Αποπληρωμές' },
   { key: 'opske', label: 'ΟΠΣΚΕ' },

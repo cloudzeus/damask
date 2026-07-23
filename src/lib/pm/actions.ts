@@ -1713,6 +1713,7 @@ export type DeliverableMatrixItem = {
     blocked: boolean
     blockingNames: string[]
     canClose: boolean
+    dependencies: { id: string; prerequisiteId: string; prerequisiteName: string; auto: boolean }[]
   }[]
 }
 
@@ -1720,7 +1721,11 @@ export type DeliverableMatrixItem = {
  * Φορτώνει ΟΛΑ τα dependency edges (auto+manual) και statuses της αίτησης
  * μία φορά και τρέχει το pure taskBlocked/taskCanClose (deliverable-phases.ts)
  * server-side ανά task — το UI απλά εμφανίζει το ήδη υπολογισμένο αποτέλεσμα,
- * ΔΕΝ το ξαναϋπολογίζει (ώστε να μην υπάρχει κίνδυνος client/server drift). */
+ * ΔΕΝ το ξαναϋπολογίζει (ώστε να μην υπάρχει κίνδυνος client/server drift).
+ * `dependencies` (per task) εκθέτει επίσης το ΩΜΟ σύνολο edges (id+auto) —
+ * όχι μόνο τα «εκκρεμή» blockingIds — ώστε το UI να μπορεί να δείξει/διαχειριστεί
+ * ΚΑΘΕ χειροκίνητη εξάρτηση (ακόμα κι αν το prerequisite της είναι ήδη
+ * ACCEPTED/WAIVED, άρα δεν εμφανίζεται πια στο blockingNames). */
 export async function listApplicationDeliverables(applicationId: string): Promise<DeliverableMatrixItem[]> {
   await requireVisibleApplication(applicationId)
 
@@ -1751,7 +1756,7 @@ export async function listApplicationDeliverables(applicationId: string): Promis
 
   const edges = await prisma.deliverableDependency.findMany({
     where: { dependent: { deliverable: { applicationId } } },
-    select: { dependentId: true, prerequisiteId: true },
+    select: { id: true, dependentId: true, prerequisiteId: true, auto: true },
   })
 
   const statusById: Record<string, DeliverableStatusStr> = {}
@@ -1761,6 +1766,13 @@ export async function listApplicationDeliverables(applicationId: string): Promis
       statusById[t.id] = t.status as DeliverableStatusStr
       nameById[t.id] = t.name
     }
+  }
+
+  const depsByDependentId = new Map<string, typeof edges>()
+  for (const e of edges) {
+    const list = depsByDependentId.get(e.dependentId) ?? []
+    list.push(e)
+    depsByDependentId.set(e.dependentId, list)
   }
 
   return deliverables.map((d) => ({
@@ -1784,6 +1796,12 @@ export async function listApplicationDeliverables(applicationId: string): Promis
         blocked,
         blockingNames: blockingIds.map((id) => nameById[id] ?? id),
         canClose: taskCanClose({ status, filesCount: t.files.length, minFiles: t.minFiles }),
+        dependencies: (depsByDependentId.get(t.id) ?? []).map((e) => ({
+          id: e.id,
+          prerequisiteId: e.prerequisiteId,
+          prerequisiteName: nameById[e.prerequisiteId] ?? e.prerequisiteId,
+          auto: e.auto,
+        })),
       }
     }),
   }))
