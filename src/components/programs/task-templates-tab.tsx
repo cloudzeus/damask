@@ -272,8 +272,8 @@ function TaskTemplateDialog({
   const isEdit = item !== null
   const [title, setTitle] = React.useState(item?.title ?? '')
   const [description, setDescription] = React.useState(item?.description ?? '')
-  const [assignTo, setAssignTo] = React.useState<TaskAssignToStr>(item?.assignTo ?? 'MANAGER')
-  const [mandatory, setMandatory] = React.useState(item?.mandatory ?? false)
+  const [assignTo, setAssignTo] = React.useState<TaskAssignToStr>(item?.assignTo ?? 'PROCESSOR')
+  const [mandatory, setMandatory] = React.useState(item?.mandatory ?? true)
   const [dueOffsetDays, setDueOffsetDays] = React.useState(item?.dueOffsetDays != null ? String(item.dueOffsetDays) : '')
   const [saving, setSaving] = React.useState(false)
 
