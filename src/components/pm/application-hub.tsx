@@ -18,6 +18,7 @@ import { ObligationsTab } from './obligations-tab'
 import { ExpensesTab } from './expenses-tab'
 import { OpskeTab } from './opske-tab'
 import { DeliverablesMatrixTab } from './deliverables-matrix-tab'
+import { GanttView } from './gantt-view'
 import { PaymentsTab } from './payments-tab'
 import { DocumentRequestsTab } from './document-requests-tab'
 import { PortalAccessDialog } from './portal-access-dialog'
@@ -157,6 +158,7 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
         />
       )}
       {activeTab === 'certification' && <DeliverablesMatrixTab applicationId={app.id} programId={app.programId} />}
+      {activeTab === 'gantt' && <GanttView applicationId={app.id} programId={app.programId} />}
       {activeTab === 'docrequests' && <DocumentRequestsTab applicationId={app.id} />}
       {activeTab === 'payments' && <PaymentsTab applicationId={app.id} />}
     </div>
@@ -221,7 +223,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
 
 /* ── Tab bar — mirror του idiom στο program-editor.tsx (pill row, navy
  * active, χωρίς Tabs primitive). ── */
-type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'docrequests' | 'payments' | 'opske'
+type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'gantt' | 'docrequests' | 'payments' | 'opske'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'assessment', label: 'Αξιολόγηση' },
@@ -229,6 +231,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'expenses', label: 'Δαπάνες & Πλάνο' },
   { key: 'deliverables', label: 'Παραδοτέα' },
   { key: 'certification', label: 'Φάκελος & Πιστοποίηση' },
+  { key: 'gantt', label: 'Gantt' },
   { key: 'docrequests', label: 'Αιτήματα εγγράφων' },
   { key: 'payments', label: 'Αποπληρωμές' },
   { key: 'opske', label: 'ΟΠΣΚΕ' },
