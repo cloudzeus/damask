@@ -9,6 +9,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import {
   listDeliverableTemplates, saveDeliverableTemplate, deleteDeliverableTemplate,
   reorderDeliverableTemplates, listDeliverableTemplateLibrary, copyDeliverableTemplates,
+  suggestDeliverableMatches, applyDeliverableMatch,
 } from '@/lib/pm/actions'
 
 describe('deliverable-template actions require programs.manage', () => {
@@ -27,4 +28,8 @@ describe('deliverable-template actions require programs.manage', () => {
   it('reorderDeliverableTemplates', async () => { await expect(reorderDeliverableTemplates('p1', ['a'])).rejects.toThrow() })
   it('listDeliverableTemplateLibrary', async () => { await expect(listDeliverableTemplateLibrary()).rejects.toThrow() })
   it('copyDeliverableTemplates', async () => { await expect(copyDeliverableTemplates('p1', ['t1'])).rejects.toThrow() })
+  it('suggestDeliverableMatches', async () => { await expect(suggestDeliverableMatches('p1')).rejects.toThrow() })
+  it('applyDeliverableMatch', async () => {
+    await expect(applyDeliverableMatch('t1', { action: 'link', sourceTemplateId: 'personnel' })).rejects.toThrow()
+  })
 })

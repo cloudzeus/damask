@@ -4,7 +4,7 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import {
   LuPencil, LuTrash2, LuLoaderCircle, LuLibrary, LuChevronDown, LuChevronUp, LuCopy,
-  LuFileStack,
+  LuFileStack, LuWand, LuLink2, LuRefreshCw, LuX,
 } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -14,8 +14,11 @@ import {
 } from '@/components/ui/dialog'
 import {
   listDeliverableTemplates, saveDeliverableTemplate, deleteDeliverableTemplate,
-  listDeliverableTemplateLibrary, copyDeliverableTemplates, type DeliverableTemplateItem,
+  listDeliverableTemplateLibrary, copyDeliverableTemplates,
+  suggestDeliverableMatches, applyDeliverableMatch,
+  type DeliverableTemplateItem, type DeliverableMatchDecision,
 } from '@/lib/pm/actions'
+import type { MatchCandidate } from '@/lib/pm/deliverable-match'
 import { DELIVERABLE_PHASE_ORDER, deliverablePhaseLabel } from '@/lib/pm/deliverable-phases'
 import { DeliverableWizard } from './deliverable-wizard'
 
@@ -31,6 +34,7 @@ export function DeliverableTemplatesTab({ programId }: { programId: string }) {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [libraryOpen, setLibraryOpen] = React.useState(false)
+  const [matchOpen, setMatchOpen] = React.useState(false)
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -86,6 +90,11 @@ export function DeliverableTemplatesTab({ programId }: { programId: string }) {
           <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
             Παραδοτέα ({items.length})
           </div>
+          {items.length > 0 && (
+            <Button type="button" variant="outline" onClick={() => setMatchOpen(true)}>
+              <LuWand className="size-3.5" aria-hidden /> Αντιστοίχιση
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={() => setLibraryOpen(true)}>
             <LuLibrary className="size-3.5" aria-hidden /> Βιβλιοθήκη
           </Button>
@@ -120,6 +129,10 @@ export function DeliverableTemplatesTab({ programId }: { programId: string }) {
 
       {libraryOpen && (
         <LibraryDialog programId={programId} onClose={() => setLibraryOpen(false)} onCopied={load} />
+      )}
+
+      {matchOpen && (
+        <MatchDialog programId={programId} onClose={() => setMatchOpen(false)} onApplied={load} />
       )}
     </>
   )
@@ -334,6 +347,152 @@ function LibraryDialog({
           <Button type="button" onClick={handleCopy} disabled={copying || selected.size === 0}>
             {copying ? 'Αντιγραφή…' : (<><LuCopy className="size-3.5" aria-hidden /> Αντιγραφή ({selected.size})</>)}
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type MatchGroup = { extracted: { templateId: string; name: string }; suggestions: MatchCandidate[] }
+
+/**
+ * «Αντιστοίχιση» dialog (C2g Task 13) — for every deliverable-template group
+ * of this program, shows pure-matcher suggestions against DELIVERABLE_CATALOG
+ * (badge «Κατάλογος») and other programs' library templates (badge
+ * «Βιβλιοθήκη»), each with a score%. «Σύνδεση» just records provenance
+ * (sourceTemplateId) without touching tasks; «Αντικατάσταση tasks» overwrites
+ * this group's tasks from the chosen source (keeps the group's own name);
+ * «Παράβλεψη» just dismisses the card locally — no server call. Resolved/
+ * skipped groups drop out of the list; `onApplied` refreshes the parent tab
+ * after every successful apply (mirrors LibraryDialog's onCopied).
+ */
+function MatchDialog({
+  programId, onClose, onApplied,
+}: {
+  programId: string
+  onClose: () => void
+  onApplied: () => void
+}) {
+  const [groups, setGroups] = React.useState<MatchGroup[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+  const [dismissed, setDismissed] = React.useState<Set<string>>(new Set())
+  const [pendingId, setPendingId] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    suggestDeliverableMatches(programId)
+      .then(setGroups)
+      .catch(() => setError('Η φόρτωση των προτάσεων απέτυχε.'))
+      .finally(() => setLoading(false))
+  }, [programId])
+
+  function handleOpenChange(next: boolean) {
+    if (pendingId) return
+    if (!next) onClose()
+  }
+
+  async function handleApply(templateId: string, decision: DeliverableMatchDecision, successMsg: string) {
+    setPendingId(templateId)
+    try {
+      await applyDeliverableMatch(templateId, decision)
+      toast.success(successMsg)
+      setDismissed(prev => new Set(prev).add(templateId))
+      onApplied()
+    } catch {
+      toast.error('Η αντιστοίχιση απέτυχε.')
+    } finally {
+      setPendingId(null)
+    }
+  }
+
+  const visible = groups.filter(g => !dismissed.has(g.extracted.templateId))
+
+  return (
+    <Dialog open onOpenChange={handleOpenChange}>
+      <DialogContent className="glass sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Αντιστοίχιση παραδοτέων</DialogTitle>
+          <DialogDescription>
+            Σύνδεσε ή αντικατάστησε τα tasks κάθε παραδοτέου με βάση προτάσεις από τον πρότυπο κατάλογο ή τη βιβλιοθήκη άλλων προγραμμάτων.
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+            <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
+          </div>
+        ) : error ? (
+          <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        ) : visible.length === 0 ? (
+          <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+            {groups.length === 0 ? 'Δεν υπάρχουν παραδοτέα προς αντιστοίχιση.' : 'Όλα τα παραδοτέα έχουν εξεταστεί.'}
+          </p>
+        ) : (
+          <div className="flex max-h-[460px] flex-col gap-3 overflow-y-auto">
+            {visible.map(g => {
+              const busy = pendingId === g.extracted.templateId
+              return (
+                <div key={g.extracted.templateId} className="rounded-[14px] border border-border bg-card p-3">
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <b className="text-[12.5px]">{g.extracted.name}</b>
+                    <button
+                      type="button"
+                      onClick={() => setDismissed(prev => new Set(prev).add(g.extracted.templateId))}
+                      disabled={busy}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                    >
+                      <LuX className="size-3" aria-hidden /> Παράβλεψη
+                    </button>
+                  </div>
+
+                  {g.suggestions.length === 0 ? (
+                    <p className="text-[11.5px] text-muted-foreground">Καμία πρόταση αντιστοίχισης.</p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      {g.suggestions.map(s => (
+                        <div key={`${s.source}:${s.key}`} className="flex flex-wrap items-center gap-1.5 rounded-[10px] border border-dashed border-border p-2">
+                          <span className="badge-pill info">{s.source === 'catalog' ? 'Κατάλογος' : 'Βιβλιοθήκη'}</span>
+                          <span className="min-w-0 flex-1 text-[12px] font-semibold">{s.name}</span>
+                          <span className="badge-pill muted">{Math.round(s.score * 100)}%</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => handleApply(
+                              g.extracted.templateId,
+                              { action: 'link', sourceTemplateId: s.key },
+                              'Το παραδοτέο συνδέθηκε.',
+                            )}
+                          >
+                            <LuLink2 className="size-3.5" aria-hidden /> Σύνδεση
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => handleApply(
+                              g.extracted.templateId,
+                              s.source === 'catalog'
+                                ? { action: 'replaceWithCatalog', catalogKey: s.key }
+                                : { action: 'replaceWithLibrary', libraryTemplateId: s.key },
+                              'Τα tasks αντικαταστάθηκαν.',
+                            )}
+                          >
+                            {busy ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuRefreshCw className="size-3.5" aria-hidden />} Αντικατάσταση tasks
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] bg-transparent p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
+          <DialogClose render={<Button type="button" variant="outline" disabled={!!pendingId}>Κλείσιμο</Button>} />
         </DialogFooter>
       </DialogContent>
     </Dialog>

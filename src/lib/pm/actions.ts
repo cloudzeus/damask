@@ -17,6 +17,8 @@ import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type Pay
 import { newToken } from '@/lib/pm/portal-token'
 import { sendMail, isMailerConfigured, escapeHtml } from '@/lib/mailer'
 import { buildAutoDependencyPairs, OPTIONAL_PHASES, taskBlocked, taskCanClose, hasCycle, verifiedFromTasks, type DagTask, type DependencyPair, type DeliverablePhaseStr, type DeliverableScopeStr, type DeliverableStatusStr } from '@/lib/pm/deliverable-phases'
+import { DELIVERABLE_CATALOG } from '@/lib/pm/deliverable-catalog'
+import { suggestMatches, type MatchCandidate } from '@/lib/pm/deliverable-match'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -1495,6 +1497,105 @@ export async function copyDeliverableTemplates(targetProgramId: string, template
   })
   revalidatePath(`/programs/${targetProgramId}`)
   return { copied: sources.length }
+}
+
+/**
+ * C2g (Task 13) — αντιστοίχιση των παραδοτέων ενός προγράμματος (τυπικά
+ * μόλις προήλθαν από αποδελτίωση, T12) με τον built-in DELIVERABLE_CATALOG
+ * ή με έτοιμα πρότυπα ΑΛΛΩΝ προγραμμάτων (η ίδια «βιβλιοθήκη» του
+ * copyDeliverableTemplates/listDeliverableTemplateLibrary παραπάνω) — τα
+ * ΠΑΡΑΡΤΗΜΑ πινάκες παραδοτέων πιστοποίησης είναι σχεδόν ίδιοι μεταξύ
+ * προγραμμάτων, οπότε ο διαχειριστής μπορεί να συνδέσει/αντικαταστήσει αντί
+ * να τα ξαναφτιάξει με το χέρι. Ο πραγματικός matcher είναι pure
+ * (src/lib/pm/deliverable-match.ts) — εδώ μόνο φορτώνουμε τα υποψήφια και
+ * καλούμε suggestMatches ανά group. ΟΛΑ τα groups του προγράμματος
+ * θεωρούνται υποψήφια προς αντιστοίχιση (δεν διακρίνουμε extracted από
+ * χειροκίνητα — ο διαχειριστής βλέπει το πάνελ και αποφασίζει).
+ */
+export async function suggestDeliverableMatches(programId: string): Promise<{
+  extracted: { templateId: string; name: string }
+  suggestions: MatchCandidate[]
+}[]> {
+  await requirePermission('programs.manage')
+
+  const ownTemplates = await prisma.programDeliverableTemplate.findMany({
+    where: { programId },
+    select: { id: true, name: true, description: true },
+    orderBy: { order: 'asc' },
+  })
+  if (ownTemplates.length === 0) return []
+
+  const libraryTemplates = await prisma.programDeliverableTemplate.findMany({
+    where: { programId: { not: programId } },
+    select: { id: true, name: true },
+  })
+
+  const candidates: { key: string; source: 'catalog' | 'library'; name: string }[] = [
+    ...DELIVERABLE_CATALOG.map((c) => ({ key: c.key, source: 'catalog' as const, name: c.name })),
+    ...libraryTemplates.map((t) => ({ key: t.id, source: 'library' as const, name: t.name })),
+  ]
+
+  return ownTemplates.map((t) => ({
+    extracted: { templateId: t.id, name: t.name },
+    // Fold the extraction categoryHint (stored as a "[hint]" description
+    // prefix by persist-map.ts) into the matched text — it often carries the
+    // exact wording ("Δαπάνες προσωπικού") that the catalog/library entries
+    // use, sharpening the bigram overlap beyond the numbered group name alone.
+    suggestions: suggestMatches(t.description ? `${t.name} ${t.description}` : t.name, candidates),
+  }))
+}
+
+export type DeliverableMatchDecision =
+  | { action: 'link'; sourceTemplateId: string }
+  | { action: 'replaceWithCatalog'; catalogKey: string }
+  | { action: 'replaceWithLibrary'; libraryTemplateId: string }
+
+export async function applyDeliverableMatch(templateId: string, decision: DeliverableMatchDecision): Promise<void> {
+  await requirePermission('programs.manage')
+
+  const template = await prisma.programDeliverableTemplate.findUniqueOrThrow({
+    where: { id: templateId },
+    select: { id: true, programId: true },
+  })
+
+  if (decision.action === 'link') {
+    await prisma.programDeliverableTemplate.update({
+      where: { id: templateId },
+      data: { sourceTemplateId: decision.sourceTemplateId },
+    })
+    revalidatePath(`/programs/${template.programId}`)
+    return
+  }
+
+  type NewTask = { phase: DeliverablePhaseStr; name: string; mandatory: boolean; onSiteVerification: boolean; minFiles: number; order: number }
+  let newTasks: NewTask[]
+  let sourceTemplateId: string
+
+  if (decision.action === 'replaceWithCatalog') {
+    const entry = DELIVERABLE_CATALOG.find((c) => c.key === decision.catalogKey)
+    if (!entry) throw new Error(`Άγνωστο κλειδί καταλόγου: ${decision.catalogKey}`)
+    newTasks = entry.tasks.map((t, order) => ({
+      phase: t.phase, name: t.name, mandatory: t.mandatory, onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order,
+    }))
+    sourceTemplateId = decision.catalogKey
+  } else {
+    const source = await prisma.programDeliverableTemplate.findUniqueOrThrow({
+      where: { id: decision.libraryTemplateId },
+      include: { tasks: { orderBy: [{ phase: 'asc' }, { order: 'asc' }] } },
+    })
+    newTasks = source.tasks.map((t, order) => ({
+      phase: t.phase as DeliverablePhaseStr, name: t.name, mandatory: t.mandatory, onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order,
+    }))
+    sourceTemplateId = decision.libraryTemplateId
+  }
+
+  // «Αντικατάσταση tasks» — group name/description ΔΕΝ αγγίζονται, μόνο τα tasks.
+  await prisma.$transaction(async (tx) => {
+    await tx.programDeliverableTask.deleteMany({ where: { templateId } })
+    await tx.programDeliverableTemplate.update({ where: { id: templateId }, data: { sourceTemplateId } })
+    await tx.programDeliverableTask.createMany({ data: newTasks.map((t) => ({ ...t, templateId })) })
+  })
+  revalidatePath(`/programs/${template.programId}`)
 }
 
 /**
