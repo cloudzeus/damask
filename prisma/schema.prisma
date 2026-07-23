@@ -1027,6 +1027,31 @@ enum ExpenseSuggestSource {
   MANUAL
 }
 
+enum DeliverablePhase {
+  ASSESSMENT
+  SUBMISSION
+  APPROVAL
+  FIRST_PAYMENT
+  PHASE_A_CERTIFICATION
+  MODIFICATION
+  FINAL_PAYMENT
+  FULL_CERTIFICATION
+  AUTHORITY_AUDIT
+}
+
+enum DeliverableStatus {
+  PENDING
+  UPLOADED
+  ACCEPTED
+  REJECTED
+  WAIVED
+}
+
+enum DeliverableScope {
+  EXPENSE
+  APPLICATION
+}
+
 model Program {
   id                  String                     @id @default(cuid())
   title               String
@@ -1067,6 +1092,7 @@ model Program {
   applications        ProgramApplication[]
   requiredForms       ProgramRequiredForm[]
   taskTemplates       ProgramTaskTemplate[]
+  deliverableTemplates ProgramDeliverableTemplate[]
 
   @@index([status])
   @@index([extractStatus])
@@ -1284,6 +1310,7 @@ model ProgramApplication {
   criterionScores    ApplicationCriterionScore[]
   paymentRequests    PaymentRequest[]
   documentRequests   DocumentRequest[]
+  expenseDeliverables ExpenseDeliverable[]
 
   @@unique([trdrId, programId])
   @@index([trdrId])
@@ -1318,6 +1345,7 @@ model ProgramExpense {
   createdById          String?
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
+  deliverables         ExpenseDeliverable[]
 
   @@index([applicationId])
   @@index([categoryId])
@@ -1345,6 +1373,83 @@ model ProgramExpenseCertification {
   updatedAt         DateTime @updatedAt
 
   @@index([expenseId])
+}
+
+model ProgramDeliverableTemplate {
+  id                 String           @id @default(cuid())
+  programId          String
+  program            Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  phase              DeliverablePhase
+  name               String
+  description        String?
+  mandatory          Boolean          @default(true)
+  onSiteVerification Boolean          @default(false)
+  appliesTo          DeliverableScope @default(EXPENSE)
+  order              Int              @default(0)
+  active             Boolean          @default(true)
+  sourceTemplateId   String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  instances          ExpenseDeliverable[]
+
+  @@index([programId])
+  @@index([programId, phase])
+}
+
+model ExpenseDeliverable {
+  id                 String            @id @default(cuid())
+  applicationId      String
+  application        ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  expenseId          String?
+  expense            ProgramExpense?   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  templateId         String?
+  template           ProgramDeliverableTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  phase              DeliverablePhase
+  name               String
+  mandatory          Boolean           @default(true)
+  onSiteVerification Boolean           @default(false)
+  status             DeliverableStatus @default(PENDING)
+  acceptedById       String?
+  acceptedAt         DateTime?
+  notes              String?
+  order              Int               @default(0)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  files              DeliverableFile[]
+  dependencies       DeliverableDependency[] @relation("Dependent")
+  dependents         DeliverableDependency[] @relation("Prerequisite")
+  documentRequests   DocumentRequest[]
+
+  @@unique([applicationId, expenseId, templateId])
+  @@index([applicationId])
+  @@index([expenseId])
+  @@index([applicationId, phase])
+}
+
+model DeliverableFile {
+  id            String   @id @default(cuid())
+  deliverableId String
+  deliverable   ExpenseDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  name          String
+  storageKey    String
+  mimeType      String?
+  size          Int?
+  uploadedById  String?
+  uploadedAt    DateTime @default(now())
+
+  @@index([deliverableId])
+}
+
+model DeliverableDependency {
+  id             String  @id @default(cuid())
+  dependentId    String
+  dependent      ExpenseDeliverable @relation("Dependent", fields: [dependentId], references: [id], onDelete: Cascade)
+  prerequisiteId String
+  prerequisite   ExpenseDeliverable @relation("Prerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  auto           Boolean @default(true)
+
+  @@unique([dependentId, prerequisiteId])
+  @@index([prerequisiteId])
 }
 
 model PaymentRequest {
@@ -1481,6 +1586,8 @@ model DocumentRequest {
   application        ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   obligationId       String?
   obligation         ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
+  deliverableId      String?
+  deliverable        ExpenseDeliverable? @relation(fields: [deliverableId], references: [id], onDelete: SetNull)
   trdrId             String
   trdr               Trdr @relation(fields: [trdrId], references: [id], onDelete: Cascade)
   title              String
@@ -1499,6 +1606,7 @@ model DocumentRequest {
   @@index([applicationId])
   @@index([trdrId])
   @@index([status])
+  @@index([deliverableId])
 }
 
 model PortalToken {
