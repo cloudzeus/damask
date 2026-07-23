@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Package, FolderTree, Ruler, Handshake, ClipboardList,
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
-  Cookie, CreditCard, ScanText, Coins, FileText, Landmark,
+  Cookie, CreditCard, ScanText, Coins, FileText, Landmark, FolderKanban,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -75,6 +75,10 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
   { key: 'eu-programs', label: 'Ευρωπαϊκά Προγράμματα', items: [
     { key: 'programs', href: '/programs', label: 'Προγράμματα', icon: Landmark, menuPermission: 'programs.manage', permissions: [
       { key: 'programs.manage', description: 'Διαχείριση προγραμμάτων & δαπανών' },
+    ] },
+    { key: 'pm', href: '/pm', label: 'Έργα', icon: FolderKanban, menuPermission: 'pm.work', permissions: [
+      { key: 'pm.manage', description: 'Διαχείριση & αναθέσεις έργων' },
+      { key: 'pm.work', description: 'Εργασία σε ανατεθειμένα έργα' },
     ] },
   ] },
   { key: 'media', label: 'Media', items: [

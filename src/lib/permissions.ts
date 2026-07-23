@@ -25,8 +25,9 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
     'commission.manage', 'sync.run',
     'cms.view', 'cms.edit',
     'payment.view', 'payment.manage',
+    'pm.work',
   ],
-  EMPLOYEE: ['product.view', 'customer.view', 'order.view', 'order.create', 'cms.view'],
+  EMPLOYEE: ['product.view', 'customer.view', 'order.view', 'order.create', 'cms.view', 'pm.work'],
   CUSTOMER: ['portal.access', 'order.create', 'order.view'],
   SUPPLIER: ['portal.access', 'order.view'],
   ARCHITECT: ['portal.access', 'order.create', 'order.view', 'commission.view'],
@@ -68,6 +69,7 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   costs: 'Διαχείριση',
   taxform: 'Διαχείριση',
   programs: 'Ευρωπαϊκά Προγράμματα',
+  pm: 'Ευρωπαϊκά Προγράμματα',
 }
 
 export type PermissionGroup = { label: string; items: PermissionDef[] }

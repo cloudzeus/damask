@@ -122,6 +122,7 @@ export async function getApplication(applicationId: string): Promise<Application
 
 export type VisibleApplicationItem = {
   id: string
+  programId: string
   trdrName: string
   programTitle: string
   stage: StageStr
@@ -142,6 +143,7 @@ export async function listVisibleApplications(): Promise<VisibleApplicationItem[
   })
   return rows.map(r => ({
     id: r.id,
+    programId: r.programId,
     trdrName: r.trdr.NAME,
     programTitle: r.program.title,
     stage: r.stage as StageStr,
