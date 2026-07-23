@@ -51,3 +51,13 @@ export function prevStage(s: StageStr): StageStr | null {
   const i = STAGE_ORDER.indexOf(s)
   return i > 0 ? STAGE_ORDER[i - 1] : null
 }
+
+export type TaskAssignToStr = 'MANAGER' | 'PROCESSOR' | 'BOTH'
+
+const TASK_ASSIGN_LABELS: Record<TaskAssignToStr, string> = {
+  MANAGER: 'Υπεύθυνος έργου',
+  PROCESSOR: 'Διεκπεραιωτής',
+  BOTH: 'Και οι δύο',
+}
+
+export const taskAssignToLabel = (a: TaskAssignToStr) => TASK_ASSIGN_LABELS[a]
