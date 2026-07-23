@@ -14,13 +14,15 @@ import {
 } from '@/components/ui/dialog'
 import {
   listObligations, listInternalUsers, addObligation, updateObligation, removeObligation, waiveObligation,
-  generateObligations, type ObligationItem, type InternalUserOption,
+  generateObligations, listApplicationBoardObligations,
+  type ObligationItem, type InternalUserOption, type BoardObligation,
 } from '@/lib/pm/actions'
 import {
   STAGE_ORDER, stageLabel, obligationStatusLabel, obligationKindLabel,
   type StageStr, type ObligationStatusStr, type ObligationKindStr,
 } from '@/lib/pm/types'
 import { ApplicationDocuments } from './application-documents'
+import { ObligationsBoard } from './obligations-board'
 
 /** Sentinel τιμή για «— (κανένας) —» — το base-ui Select δεν επιτρέπει value="" σε Item. */
 const NONE_ASSIGNEE = '__none__'
@@ -38,9 +40,18 @@ const STATUSES: ObligationStatusStr[] = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 
  * υποχρεώσεις αυτού του kind (π.χ. `filterKind="DELIVERABLE"` για το tab
  * «Παραδοτέα» στο hub — ίδιο component, φιλτραρισμένη προβολή, αντί για
  * ξεχωριστό read-only component).
+ *
+ * `showBoardToggle` (C2b) — προαιρετικό, default true: εμφανίζει pill toggle
+ * «Λίστα / Πίνακας» ώστε οι υποχρεώσεις ΑΥΤΗΣ της αίτησης να φαίνονται και ως
+ * per-έργο Kanban (`<ObligationsBoard>`, το ίδιο global component του C2b,
+ * με `listApplicationBoardObligations` scoped στο applicationId). Το board
+ * ΔΕΝ φιλτράρεται από `filterKind` — γι' αυτό το tab «Παραδοτέα» στο hub
+ * περνάει `showBoardToggle={false}` (θα ήταν μπερδεμένο να δείχνει
+ * υποχρεώσεις εκτός παραδοτέων εκεί).
  */
 export function ObligationsTab({
   applicationId, canManage, programId, filterKind, title = 'Εργασίες & Υποχρεώσεις', emptyMessage = 'Δεν υπάρχουν υποχρεώσεις για αυτή την αίτηση.',
+  showBoardToggle = true,
 }: {
   applicationId: string
   canManage: boolean
@@ -48,6 +59,7 @@ export function ObligationsTab({
   filterKind?: ObligationKindStr
   title?: string
   emptyMessage?: string
+  showBoardToggle?: boolean
 }) {
   const router = useRouter()
   const [obligations, setObligations] = React.useState<ObligationItem[]>([])
@@ -55,6 +67,11 @@ export function ObligationsTab({
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [syncing, setSyncing] = React.useState(false)
+
+  const [viewMode, setViewMode] = React.useState<'list' | 'board'>('list')
+  const [boardObligations, setBoardObligations] = React.useState<BoardObligation[]>([])
+  const [boardLoading, setBoardLoading] = React.useState(false)
+  const [boardLoaded, setBoardLoaded] = React.useState(false)
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -66,6 +83,25 @@ export function ObligationsTab({
   }, [applicationId, canManage])
 
   React.useEffect(() => { load() }, [load])
+
+  const loadBoard = React.useCallback(() => {
+    setBoardLoading(true)
+    listApplicationBoardObligations(applicationId)
+      .then(data => { setBoardObligations(data); setBoardLoaded(true) })
+      .catch(() => toast.error('Η φόρτωση του πίνακα απέτυχε.'))
+      .finally(() => setBoardLoading(false))
+  }, [applicationId])
+
+  function handleViewChange(next: 'list' | 'board') {
+    setViewMode(next)
+    if (next === 'board' && !boardLoaded) loadBoard()
+  }
+
+  function handleBoardStatusChange() {
+    load()
+    loadBoard()
+    router.refresh()
+  }
 
   function patchLocal(id: string, patch: Partial<ObligationItem>) {
     setObligations(prev => prev.map(o => (o.id === id ? { ...o, ...patch } : o)))
@@ -169,18 +205,29 @@ export function ObligationsTab({
         <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           {title} ({visibleObligations.length})
         </div>
-        {canManage && (
-          <div className="flex items-center gap-1.5">
-            <Button type="button" variant="outline" onClick={handleSync} disabled={syncing}>
-              {syncing ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuRefreshCw className="size-3.5" aria-hidden />}
-              Συγχρονισμός από πρόγραμμα
-            </Button>
-            <AddObligationDialog applicationId={applicationId} onCreated={() => { load(); router.refresh() }} />
-          </div>
-        )}
+        <div className="flex items-center gap-1.5">
+          {showBoardToggle && <ListBoardToggle active={viewMode} onChange={handleViewChange} />}
+          {canManage && (
+            <>
+              <Button type="button" variant="outline" onClick={handleSync} disabled={syncing}>
+                {syncing ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuRefreshCw className="size-3.5" aria-hidden />}
+                Συγχρονισμός από πρόγραμμα
+              </Button>
+              <AddObligationDialog applicationId={applicationId} onCreated={() => { load(); router.refresh() }} />
+            </>
+          )}
+        </div>
       </div>
 
-      {loading ? (
+      {viewMode === 'board' ? (
+        boardLoading ? (
+          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+            <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
+          </div>
+        ) : (
+          <ObligationsBoard obligations={boardObligations} swimlaneBy="assignee" onStatusChange={handleBoardStatusChange} />
+        )
+      ) : loading ? (
         <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
@@ -221,6 +268,36 @@ export function ObligationsTab({
         </div>
       )}
     </section>
+  )
+}
+
+/** Μικρό pill toggle «Λίστα / Πίνακας» — ίδιο idiom με το ViewBar του
+ * pm-workspace.tsx, σε συμπαγές μέγεθος για να χωράει στη σειρά του header. */
+function ListBoardToggle({ active, onChange }: { active: 'list' | 'board'; onChange: (key: 'list' | 'board') => void }) {
+  const options: { key: 'list' | 'board'; label: string }[] = [
+    { key: 'list', label: 'Λίστα' },
+    { key: 'board', label: 'Πίνακας' },
+  ]
+  return (
+    <div role="tablist" aria-label="Προβολή υποχρεώσεων" className="flex gap-0.5 rounded-full border border-border bg-card/60 p-1">
+      {options.map(o => (
+        <button
+          key={o.key}
+          type="button"
+          role="tab"
+          aria-selected={active === o.key}
+          onClick={() => onChange(o.key)}
+          className={cn(
+            'rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors',
+            active === o.key
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   )
 }
 

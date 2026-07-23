@@ -138,6 +138,7 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
           filterKind="DELIVERABLE"
           title="Παραδοτέα"
           emptyMessage="Δεν υπάρχουν παραδοτέα για αυτή την αίτηση."
+          showBoardToggle={false}
         />
       )}
       {activeTab === 'opske' && (
