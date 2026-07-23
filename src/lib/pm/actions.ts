@@ -13,6 +13,7 @@ import { applicationDocKey } from '@/lib/pm/doc-prep'
 import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr, type TaskAssignToStr } from '@/lib/pm/types'
 import { checkBudgetCompliance, type ComplianceExpense } from '@/lib/pm/budget-compliance'
 import { certificationComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type CertFileKind } from '@/lib/pm/cert-prep'
+import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type PaymentStatusStr } from '@/lib/pm/payment'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -912,4 +913,131 @@ export async function certificationDownloadKey(expenseId: string, kind: CertFile
   if (!c) return null
   const map: Record<CertFileKind, string | null> = { photo: c.photoKey, bankStatement: c.bankStatementKey, newUnusedCert: c.newUnusedCertKey }
   return map[kind]
+}
+
+/**
+ * C2f — δόσεις πληρωμής (PaymentRequest). requireVisibleRequest είναι το
+ * αντίστοιχο του requireVisibleRequest/requireVisibleExpense για PaymentRequest:
+ * φορτώνει τη γραμμή, μετά περνάει το applicationId της από
+ * requireVisibleApplication (το ΜΟΝΑΔΙΚΟ σημείο ελέγχου ορατότητας) — ποτέ
+ * δεν εμπιστευόμαστε το applicationId που στέλνει ο client.
+ */
+async function requireVisibleRequest(requestId: string) {
+  const req = await prisma.paymentRequest.findUniqueOrThrow({ where: { id: requestId }, select: { id: true, applicationId: true, status: true } })
+  await requireVisibleApplication(req.applicationId)
+  return req
+}
+
+export type PaymentRequestItem = {
+  id: string; ordinal: number; title: string | null; status: PaymentStatusStr
+  targetAmount: number | null; total: number; expenseCount: number
+  submittedAt: string | null; approvedAt: string | null; paidAt: string | null; paidAmount: number | null
+}
+
+export async function listPaymentRequests(applicationId: string): Promise<PaymentRequestItem[]> {
+  await requireVisibleApplication(applicationId)
+  const rows = await prisma.paymentRequest.findMany({
+    where: { applicationId }, orderBy: { ordinal: 'asc' },
+    include: { expenses: { select: { amount: true } } },
+  })
+  return rows.map(r => ({
+    id: r.id, ordinal: r.ordinal, title: r.title, status: r.status as PaymentStatusStr,
+    targetAmount: r.targetAmount != null ? Number(r.targetAmount) : null,
+    total: paymentRequestTotal(r.expenses.map(e => Number(e.amount))),
+    expenseCount: r.expenses.length,
+    submittedAt: r.submittedAt?.toISOString() ?? null, approvedAt: r.approvedAt?.toISOString() ?? null,
+    paidAt: r.paidAt?.toISOString() ?? null, paidAmount: r.paidAmount != null ? Number(r.paidAmount) : null,
+  }))
+}
+
+export async function createPaymentRequest(applicationId: string, input: { title?: string | null; targetAmount?: number | null }): Promise<{ id: string }> {
+  const { session } = await requireVisibleApplication(applicationId)
+  const max = await prisma.paymentRequest.aggregate({ where: { applicationId }, _max: { ordinal: true } })
+  const r = await prisma.paymentRequest.create({
+    data: { applicationId, ordinal: (max._max.ordinal ?? 0) + 1, title: input.title?.trim() || null, targetAmount: input.targetAmount ?? null, createdById: session.user.id },
+  })
+  revalidatePath(`/pm/applications/${applicationId}`)
+  return { id: r.id }
+}
+
+export async function updatePaymentRequest(id: string, patch: { title?: string | null; targetAmount?: number | null; notes?: string | null }): Promise<void> {
+  const req = await requireVisibleRequest(id)
+  const data: Record<string, unknown> = {}
+  if (patch.title !== undefined) data.title = patch.title?.trim() || null
+  if (patch.targetAmount !== undefined) data.targetAmount = patch.targetAmount
+  if (patch.notes !== undefined) data.notes = patch.notes?.trim() || null
+  await prisma.paymentRequest.update({ where: { id }, data })
+  revalidatePath(`/pm/applications/${req.applicationId}`)
+}
+
+export async function deletePaymentRequest(id: string): Promise<void> {
+  const req = await requireVisibleRequest(id)
+  if (req.status !== 'DRAFT') throw new Error('Μόνο πρόχειρες δόσεις διαγράφονται.')
+  await prisma.paymentRequest.delete({ where: { id } })
+  revalidatePath(`/pm/applications/${req.applicationId}`)
+}
+
+export async function setPaymentRequestStatus(id: string, to: PaymentStatusStr, opts?: { paidAmount?: number | null }): Promise<void> {
+  const req = await prisma.paymentRequest.findUniqueOrThrow({ where: { id }, select: { applicationId: true, status: true, _count: { select: { expenses: true } } } })
+  await requireVisibleApplication(req.applicationId)
+  const from = req.status as PaymentStatusStr
+  if (!canTransition(from, to)) throw new Error('Μη έγκυρη μετάβαση κατάστασης.')
+  if (to === 'SUBMITTED' && req._count.expenses === 0) throw new Error('Η δόση δεν έχει δαπάνες.')
+  const data: Record<string, unknown> = { status: to }
+  if (to === 'SUBMITTED') data.submittedAt = new Date()
+  if (to === 'APPROVED') data.approvedAt = new Date()
+  if (to === 'PAID') {
+    data.paidAt = new Date()
+    if (opts?.paidAmount != null) data.paidAmount = opts.paidAmount
+    else { const sum = await prisma.programExpense.aggregate({ where: { paymentRequestId: id }, _sum: { amount: true } }); data.paidAmount = sum._sum.amount != null ? Number(sum._sum.amount) : 0 }
+  }
+  if (to === 'DRAFT') { data.submittedAt = null; data.approvedAt = null }
+  await prisma.paymentRequest.update({ where: { id }, data })
+  revalidatePath(`/pm/applications/${req.applicationId}`)
+}
+
+export type PaymentEligibleExpenseItem = { id: string; description: string; amount: number; eligible: boolean; reason: string | null; inThisRequest: boolean }
+
+export async function listPaymentEligibleExpenses(applicationId: string, requestId?: string | null): Promise<PaymentEligibleExpenseItem[]> {
+  await requireVisibleApplication(applicationId)
+  const rows = await prisma.programExpense.findMany({
+    where: { applicationId, status: 'ACTIVE' },
+    select: { id: true, description: true, amount: true, confirmed: true, status: true, paymentRequestId: true, certification: { select: { verified: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+  return rows.map(r => {
+    const { eligible, reason } = expenseEligibleForPayment(
+      { status: r.status as 'ACTIVE' | 'REPLACED', confirmed: r.confirmed, verified: r.certification?.verified ?? false, paymentRequestId: r.paymentRequestId },
+      requestId ?? null,
+    )
+    return { id: r.id, description: r.description, amount: Number(r.amount), eligible, reason, inThisRequest: !!requestId && r.paymentRequestId === requestId }
+  })
+}
+
+export async function addExpenseToRequest(requestId: string, expenseId: string): Promise<void> {
+  const req = await requireVisibleRequest(requestId)
+  if (req.status !== 'DRAFT') throw new Error('Η δόση δεν είναι πρόχειρη — δεν προστίθενται δαπάνες.')
+  const exp = await prisma.programExpense.findUniqueOrThrow({
+    where: { id: expenseId },
+    select: { id: true, applicationId: true, confirmed: true, status: true, paymentRequestId: true, certification: { select: { verified: true } } },
+  })
+  if (exp.applicationId !== req.applicationId) throw new Error('Η δαπάνη ανήκει σε άλλο έργο.')
+  const { eligible, reason } = expenseEligibleForPayment(
+    { status: exp.status as 'ACTIVE' | 'REPLACED', confirmed: exp.confirmed, verified: exp.certification?.verified ?? false, paymentRequestId: exp.paymentRequestId },
+    requestId,
+  )
+  if (!eligible) throw new Error(`Μη επιλέξιμη δαπάνη: ${reason}.`)
+  await prisma.programExpense.update({ where: { id: expenseId }, data: { paymentRequestId: requestId } })
+  revalidatePath(`/pm/applications/${req.applicationId}`)
+}
+
+export async function removeExpenseFromRequest(expenseId: string): Promise<void> {
+  const exp = await prisma.programExpense.findUniqueOrThrow({ where: { id: expenseId }, select: { id: true, applicationId: true, paymentRequestId: true } })
+  await requireVisibleApplication(exp.applicationId)
+  if (exp.paymentRequestId) {
+    const req = await prisma.paymentRequest.findUniqueOrThrow({ where: { id: exp.paymentRequestId }, select: { status: true } })
+    if (req.status !== 'DRAFT') throw new Error('Η δόση δεν είναι πρόχειρη — δεν αφαιρούνται δαπάνες.')
+  }
+  await prisma.programExpense.update({ where: { id: expenseId }, data: { paymentRequestId: null } })
+  revalidatePath(`/pm/applications/${exp.applicationId}`)
 }
