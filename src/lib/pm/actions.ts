@@ -16,6 +16,7 @@ import { certificationComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type
 import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type PaymentStatusStr } from '@/lib/pm/payment'
 import { newToken } from '@/lib/pm/portal-token'
 import { sendMail, isMailerConfigured, escapeHtml } from '@/lib/mailer'
+import type { DeliverablePhaseStr, DeliverableScopeStr } from '@/lib/pm/deliverable-phases'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -1212,4 +1213,246 @@ export async function createPortalAccess(applicationId: string, input: { email: 
   const url = `${APP_URL}/portal/access/${raw}`
   if (await isMailerConfigured()) { const html = `<p>Καλησπέρα,</p><p>Μπορείτε να δείτε την πρόοδο των έργων σας εδώ (χωρίς σύνδεση): <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p><p>— ${escapeHtml(trdr.NAME)}</p>`; await sendMail({ to: email, subject: 'Πρόσβαση στο Portal έργων σας', html, refType: 'pm-portal-access' }).catch(() => {}) }
   return { url }
+}
+
+/**
+ * C2g (Task 3, amended two-level) — admin-authored πρότυπα παραδοτέων
+ * (ProgramDeliverableTemplate = GROUP) + τα tasks τους (ProgramDeliverableTask).
+ * PROGRAM-GLOBAL config, όχι application-scoped — ίδιο idiom με τα
+ * ProgramTaskTemplate actions του C2e παραπάνω: κλειδωμένα πίσω από
+ * `programs.manage`, ΟΧΙ requirePmAccess/requireVisibleApplication.
+ * Ο wizard (T7) καλεί saveDeliverableTemplate σε ΚΑΘΕ submit (create ή update)
+ * με το πλήρες σύνολο tasks — βλ. διαφοροποίηση tasks στο update path.
+ */
+
+const VALID_DELIVERABLE_PHASES = new Set<DeliverablePhaseStr>([
+  'ASSESSMENT', 'SUBMISSION', 'APPROVAL', 'FIRST_PAYMENT', 'PHASE_A_CERTIFICATION',
+  'MODIFICATION', 'FINAL_PAYMENT', 'FULL_CERTIFICATION', 'AUTHORITY_AUDIT',
+])
+
+export type DeliverableTaskInput = {
+  id?: string
+  phase: DeliverablePhaseStr
+  name: string
+  description?: string | null
+  mandatory: boolean
+  onSiteVerification: boolean
+  minFiles: number
+  order: number
+}
+
+export type DeliverableTemplateItem = {
+  id: string
+  name: string
+  description: string | null
+  appliesTo: DeliverableScopeStr
+  order: number
+  active: boolean
+  sourceTemplateId: string | null
+  tasks: {
+    id: string
+    phase: DeliverablePhaseStr
+    name: string
+    description: string | null
+    mandatory: boolean
+    onSiteVerification: boolean
+    minFiles: number
+    order: number
+  }[]
+}
+
+function mapDeliverableTemplateRow(r: any): DeliverableTemplateItem {
+  return {
+    id: r.id, name: r.name, description: r.description, appliesTo: r.appliesTo as DeliverableScopeStr,
+    order: r.order, active: r.active, sourceTemplateId: r.sourceTemplateId,
+    tasks: r.tasks.map((t: any) => ({
+      id: t.id, phase: t.phase as DeliverablePhaseStr, name: t.name, description: t.description,
+      mandatory: t.mandatory, onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order: t.order,
+    })),
+  }
+}
+
+export async function listDeliverableTemplates(programId: string): Promise<DeliverableTemplateItem[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.programDeliverableTemplate.findMany({
+    where: { programId },
+    orderBy: { order: 'asc' },
+    include: { tasks: { orderBy: [{ phase: 'asc' }, { order: 'asc' }] } },
+  })
+  return rows.map(mapDeliverableTemplateRow)
+}
+
+export async function saveDeliverableTemplate(input: {
+  id?: string
+  programId: string
+  name: string
+  description?: string | null
+  appliesTo: DeliverableScopeStr
+  active?: boolean
+  tasks: DeliverableTaskInput[]
+}): Promise<{ id: string }> {
+  await requirePermission('programs.manage')
+
+  const name = input.name.trim()
+  if (!name) throw new Error('Το όνομα του παραδοτέου είναι υποχρεωτικό.')
+  if (!input.tasks || input.tasks.length === 0) throw new Error('Το παραδοτέο πρέπει να έχει τουλάχιστον ένα task.')
+
+  const tasks = input.tasks.map((t) => {
+    const taskName = t.name.trim()
+    if (!taskName) throw new Error('Το όνομα κάθε task είναι υποχρεωτικό.')
+    if (!VALID_DELIVERABLE_PHASES.has(t.phase)) throw new Error(`Άγνωστη φάση: ${t.phase}`)
+    return {
+      id: t.id,
+      phase: t.phase,
+      name: taskName,
+      description: t.description?.trim() || null,
+      mandatory: t.mandatory,
+      onSiteVerification: t.onSiteVerification,
+      minFiles: Math.max(1, Math.trunc(t.minFiles) || 1),
+      order: t.order,
+    }
+  })
+
+  const description = input.description?.trim() || null
+
+  if (input.id) {
+    const existing = await prisma.programDeliverableTemplate.findUniqueOrThrow({
+      where: { id: input.id },
+      select: { id: true, programId: true },
+    })
+    if (existing.programId !== input.programId) throw new Error('Το παραδοτέο ανήκει σε άλλο πρόγραμμα.')
+
+    const existingTasks = await prisma.programDeliverableTask.findMany({
+      where: { templateId: input.id },
+      select: { id: true },
+    })
+    const existingIds = new Set(existingTasks.map((t) => t.id))
+    const keptIds = new Set(tasks.filter((t) => t.id && existingIds.has(t.id)).map((t) => t.id as string))
+    const removedIds = [...existingIds].filter((id) => !keptIds.has(id))
+
+    await prisma.$transaction(async (tx) => {
+      await tx.programDeliverableTemplate.update({
+        where: { id: input.id },
+        data: {
+          name, description, appliesTo: input.appliesTo,
+          active: input.active ?? true,
+        },
+      })
+      if (removedIds.length > 0) {
+        await tx.programDeliverableTask.deleteMany({ where: { id: { in: removedIds }, templateId: input.id } })
+      }
+      for (const t of tasks) {
+        if (t.id && existingIds.has(t.id)) {
+          await tx.programDeliverableTask.update({
+            where: { id: t.id },
+            data: {
+              phase: t.phase, name: t.name, description: t.description, mandatory: t.mandatory,
+              onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order: t.order,
+            },
+          })
+        } else {
+          await tx.programDeliverableTask.create({
+            data: {
+              templateId: input.id as string, phase: t.phase, name: t.name, description: t.description,
+              mandatory: t.mandatory, onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order: t.order,
+            },
+          })
+        }
+      }
+    })
+    revalidatePath(`/programs/${input.programId}`)
+    return { id: input.id }
+  }
+
+  const max = await prisma.programDeliverableTemplate.aggregate({
+    where: { programId: input.programId }, _max: { order: true },
+  })
+  const created = await prisma.programDeliverableTemplate.create({
+    data: {
+      programId: input.programId, name, description, appliesTo: input.appliesTo,
+      active: input.active ?? true, order: (max._max.order ?? -1) + 1,
+      tasks: {
+        create: tasks.map((t) => ({
+          phase: t.phase, name: t.name, description: t.description, mandatory: t.mandatory,
+          onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order: t.order,
+        })),
+      },
+    },
+  })
+  revalidatePath(`/programs/${input.programId}`)
+  return { id: created.id }
+}
+
+export async function deleteDeliverableTemplate(id: string): Promise<void> {
+  await requirePermission('programs.manage')
+  const t = await prisma.programDeliverableTemplate.delete({ where: { id } })
+  revalidatePath(`/programs/${t.programId}`)
+}
+
+export async function reorderDeliverableTemplates(programId: string, orderedIds: string[]): Promise<void> {
+  await requirePermission('programs.manage')
+  await prisma.$transaction(
+    orderedIds.map((id, i) =>
+      prisma.programDeliverableTemplate.updateMany({ where: { id, programId }, data: { order: i } }),
+    ),
+  )
+  revalidatePath(`/programs/${programId}`)
+}
+
+export async function listDeliverableTemplateLibrary(): Promise<{
+  programId: string
+  programTitle: string
+  templates: DeliverableTemplateItem[]
+}[]> {
+  await requirePermission('programs.manage')
+  const programs = await prisma.program.findMany({
+    where: { deliverableTemplates: { some: {} } },
+    select: {
+      id: true, title: true,
+      deliverableTemplates: {
+        orderBy: { order: 'asc' },
+        include: { tasks: { orderBy: [{ phase: 'asc' }, { order: 'asc' }] } },
+      },
+    },
+  })
+  return programs.map((p) => ({
+    programId: p.id,
+    programTitle: p.title,
+    templates: p.deliverableTemplates.map(mapDeliverableTemplateRow),
+  }))
+}
+
+export async function copyDeliverableTemplates(targetProgramId: string, templateIds: string[]): Promise<{ copied: number }> {
+  await requirePermission('programs.manage')
+  if (!templateIds || templateIds.length === 0) return { copied: 0 }
+
+  const sources = await prisma.programDeliverableTemplate.findMany({
+    where: { id: { in: templateIds } },
+    include: { tasks: { orderBy: [{ phase: 'asc' }, { order: 'asc' }] } },
+  })
+  if (sources.length === 0) return { copied: 0 }
+
+  const max = await prisma.programDeliverableTemplate.aggregate({
+    where: { programId: targetProgramId }, _max: { order: true },
+  })
+  let nextOrder = (max._max.order ?? -1) + 1
+
+  await prisma.$transaction(async (tx) => {
+    for (const src of sources) {
+      await tx.programDeliverableTemplate.create({
+        data: {
+          programId: targetProgramId, name: src.name, description: src.description, appliesTo: src.appliesTo,
+          active: true, sourceTemplateId: src.id, order: nextOrder++,
+          tasks: {
+            create: src.tasks.map((t) => ({
+              phase: t.phase, name: t.name, description: t.description, mandatory: t.mandatory,
+              onSiteVerification: t.onSiteVerification, minFiles: t.minFiles, order: t.order,
+            })),
+          },
+        },
+      })
+    }
+  })
+  revalidatePath(`/programs/${targetProgramId}`)
+  return { copied: sources.length }
 }
