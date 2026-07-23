@@ -16,7 +16,7 @@ import { certificationComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type
 import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type PaymentStatusStr } from '@/lib/pm/payment'
 import { newToken } from '@/lib/pm/portal-token'
 import { sendMail, isMailerConfigured, escapeHtml } from '@/lib/mailer'
-import { buildAutoDependencyPairs, OPTIONAL_PHASES, type DagTask, type DeliverablePhaseStr, type DeliverableScopeStr } from '@/lib/pm/deliverable-phases'
+import { buildAutoDependencyPairs, OPTIONAL_PHASES, taskBlocked, taskCanClose, hasCycle, type DagTask, type DependencyPair, type DeliverablePhaseStr, type DeliverableScopeStr, type DeliverableStatusStr } from '@/lib/pm/deliverable-phases'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -1603,4 +1603,336 @@ export async function generateExpenseDeliverables(applicationId: string): Promis
 
   revalidatePath(`/pm/applications/${applicationId}`)
   return { addedDeliverables, addedTasks, rebuiltEdges: pairs.length }
+}
+
+/**
+ * C2g (Task 5, SECURITY-CRITICAL two-level gating) — instance-level actions
+ * on ExpenseDeliverableTask: file upload/removal, status transitions
+ * (PENDING/UPLOADED/ACCEPTED/REJECTED/WAIVED), and manual (auto=false)
+ * dependency edit. This is the C2a.2 lesson applied here: EVERY invariant
+ * (blocked-by-DAG, minFiles floor, cycle/cross-application on manual edges)
+ * is enforced SERVER-SIDE inside these actions — never trust a client that
+ * merely didn't render the "blocked" badge. The UI may also show these
+ * states for UX, but the actions below are the actual gate.
+ *
+ * 8MB cap mirrors src/lib/pm/portal-public.ts#MAX_UPLOAD_BYTES (same
+ * next.config.ts serverActions bodySizeLimit budget) — keep in sync.
+ */
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+
+/** requireVisibleTask: child (task) -> parent (deliverable.applicationId) ->
+ * requireVisibleApplication, ίδιο idiom με requireVisibleExpense/
+ * requireVisibleApplication παραπάνω — ΚΑΝΕΝΑ instance action δεν αγγίζει
+ * task χωρίς να περάσει από εδώ πρώτα. */
+async function requireVisibleTask(taskId: string) {
+  const task = await prisma.expenseDeliverableTask.findUniqueOrThrow({
+    where: { id: taskId },
+    select: {
+      id: true,
+      deliverableId: true,
+      status: true,
+      minFiles: true,
+      deliverable: { select: { applicationId: true, expenseId: true } },
+    },
+  })
+  const { session, app } = await requireVisibleApplication(task.deliverable.applicationId)
+  return { task, session, app }
+}
+
+/** Loads every dependency edge + status/name of every task in the
+ * application, then runs the pure `taskBlocked` (deliverable-phases.ts) for
+ * ONE task. Shared by uploadDeliverableTaskFile (blocked check FIRST, before
+ * any bunny call) and setDeliverableTaskStatus (ACCEPTED/UPLOADED gate). */
+async function computeBlockedForTask(applicationId: string, taskId: string): Promise<{ blocked: boolean; blockingNames: string[] }> {
+  const [edges, tasks] = await Promise.all([
+    prisma.deliverableDependency.findMany({
+      where: { dependent: { deliverable: { applicationId } } },
+      select: { dependentId: true, prerequisiteId: true },
+    }),
+    prisma.expenseDeliverableTask.findMany({
+      where: { deliverable: { applicationId } },
+      select: { id: true, status: true, name: true },
+    }),
+  ])
+  const statusById: Record<string, DeliverableStatusStr> = {}
+  const nameById: Record<string, string> = {}
+  for (const t of tasks) {
+    statusById[t.id] = t.status as DeliverableStatusStr
+    nameById[t.id] = t.name
+  }
+  const { blocked, blockingIds } = taskBlocked(taskId, edges as DependencyPair[], statusById)
+  return { blocked, blockingNames: blockingIds.map((id) => nameById[id] ?? id) }
+}
+
+export type DeliverableMatrixItem = {
+  id: string
+  name: string
+  expenseId: string | null
+  templateId: string | null
+  tasks: {
+    id: string
+    phase: DeliverablePhaseStr
+    name: string
+    mandatory: boolean
+    onSiteVerification: boolean
+    minFiles: number
+    status: DeliverableStatusStr
+    notes: string | null
+    files: { id: string; name: string; size: number | null }[]
+    blocked: boolean
+    blockingNames: string[]
+    canClose: boolean
+  }[]
+}
+
+/** Παραδοτέα matrix μιας αίτησης — pm-scoped μέσω requireVisibleApplication.
+ * Φορτώνει ΟΛΑ τα dependency edges (auto+manual) και statuses της αίτησης
+ * μία φορά και τρέχει το pure taskBlocked/taskCanClose (deliverable-phases.ts)
+ * server-side ανά task — το UI απλά εμφανίζει το ήδη υπολογισμένο αποτέλεσμα,
+ * ΔΕΝ το ξαναϋπολογίζει (ώστε να μην υπάρχει κίνδυνος client/server drift). */
+export async function listApplicationDeliverables(applicationId: string): Promise<DeliverableMatrixItem[]> {
+  await requireVisibleApplication(applicationId)
+
+  const deliverables = await prisma.expenseDeliverable.findMany({
+    where: { applicationId },
+    orderBy: { order: 'asc' },
+    select: {
+      id: true,
+      name: true,
+      expenseId: true,
+      templateId: true,
+      tasks: {
+        orderBy: [{ phase: 'asc' }, { order: 'asc' }],
+        select: {
+          id: true,
+          phase: true,
+          name: true,
+          mandatory: true,
+          onSiteVerification: true,
+          minFiles: true,
+          status: true,
+          notes: true,
+          files: { select: { id: true, name: true, size: true } },
+        },
+      },
+    },
+  })
+
+  const edges = await prisma.deliverableDependency.findMany({
+    where: { dependent: { deliverable: { applicationId } } },
+    select: { dependentId: true, prerequisiteId: true },
+  })
+
+  const statusById: Record<string, DeliverableStatusStr> = {}
+  const nameById: Record<string, string> = {}
+  for (const d of deliverables) {
+    for (const t of d.tasks) {
+      statusById[t.id] = t.status as DeliverableStatusStr
+      nameById[t.id] = t.name
+    }
+  }
+
+  return deliverables.map((d) => ({
+    id: d.id,
+    name: d.name,
+    expenseId: d.expenseId,
+    templateId: d.templateId,
+    tasks: d.tasks.map((t) => {
+      const { blocked, blockingIds } = taskBlocked(t.id, edges as DependencyPair[], statusById)
+      const status = t.status as DeliverableStatusStr
+      return {
+        id: t.id,
+        phase: t.phase as DeliverablePhaseStr,
+        name: t.name,
+        mandatory: t.mandatory,
+        onSiteVerification: t.onSiteVerification,
+        minFiles: t.minFiles,
+        status,
+        notes: t.notes,
+        files: t.files,
+        blocked,
+        blockingNames: blockingIds.map((id) => nameById[id] ?? id),
+        canClose: taskCanClose({ status, filesCount: t.files.length, minFiles: t.minFiles }),
+      }
+    }),
+  }))
+}
+
+/** Ανέβασμα αρχείου σε task. Ο έλεγχος blocked τρέχει ΠΡΩΤΑ — πριν από
+ * ΟΠΟΙΑΔΗΠΟΤΕ επαφή με το Bunny/DB write — ώστε ένα μπλοκαρισμένο task να
+ * μην μπορεί ποτέ να αποκτήσει αρχείο, ΑΣΧΕΤΑ με το τι εμφανίζει το UI. */
+export async function uploadDeliverableTaskFile(
+  taskId: string,
+  input: { filename: string; base64: string; mimeType: string },
+): Promise<{ id: string }> {
+  const { task, session } = await requireVisibleTask(taskId)
+  const applicationId = task.deliverable.applicationId
+
+  const { blocked, blockingNames } = await computeBlockedForTask(applicationId, taskId)
+  if (blocked) {
+    throw new Error(`Προηγούμενο παραδοτέο εκκρεμεί: ${blockingNames.join(', ')}`)
+  }
+
+  const body = Buffer.from(input.base64, 'base64')
+  if (body.length === 0) throw new Error('Το αρχείο είναι κενό.')
+  if (body.length > MAX_UPLOAD_BYTES) throw new Error('Το αρχείο υπερβαίνει το όριο των 8MB.')
+
+  const ext = (input.filename.split('.').pop() ?? 'bin').replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'bin'
+  const fileKeyId = crypto.randomUUID()
+  const key = `pm/${applicationId}/deliverables/${taskId}/${fileKeyId}.${ext}`
+  await bunnyUploadPrivate({ key, body, contentType: input.mimeType })
+
+  const file = await prisma.deliverableFile.create({
+    data: {
+      taskId,
+      name: input.filename.slice(0, 200),
+      storageKey: key,
+      mimeType: input.mimeType,
+      size: body.length,
+      uploadedById: session.user.id,
+    },
+  })
+
+  if (task.status === 'PENDING' || task.status === 'REJECTED') {
+    await prisma.expenseDeliverableTask.update({ where: { id: taskId }, data: { status: 'UPLOADED' } })
+  }
+
+  revalidatePath(`/pm/applications/${applicationId}`)
+  return { id: file.id }
+}
+
+/** Αφαιρεί μόνο τη γραμμή DB — το αντικείμενο στο BunnyCDN μένει ορφανό
+ * (ίδιο trade-off με removeApplicationDocument παραπάνω· v1 δεν κάνει hard
+ * delete storage). Αν το task ήταν UPLOADED και δεν έμειναν ΚΑΘΟΛΟΥ αρχεία,
+ * υποβιβάζεται σε PENDING — κρατάει το matrix ειλικρινές (ένα task δεν
+ * μπορεί να δείχνει "ανέβηκε" χωρίς κανένα αρχείο). ΔΕΝ υποβιβάζει ΑLLΟ
+ * status (π.χ. ACCEPTED/WAIVED/REJECTED) — αυτά είναι ρητές αποφάσεις. */
+export async function removeDeliverableTaskFile(fileId: string): Promise<void> {
+  const file = await prisma.deliverableFile.findUniqueOrThrow({
+    where: { id: fileId },
+    select: {
+      id: true,
+      taskId: true,
+      task: { select: { id: true, status: true, deliverable: { select: { applicationId: true } } } },
+    },
+  })
+  const applicationId = file.task.deliverable.applicationId
+  await requireVisibleApplication(applicationId)
+
+  await prisma.deliverableFile.delete({ where: { id: fileId } })
+
+  const remaining = await prisma.deliverableFile.count({ where: { taskId: file.taskId } })
+  if (remaining === 0 && file.task.status === 'UPLOADED') {
+    await prisma.expenseDeliverableTask.update({ where: { id: file.taskId }, data: { status: 'PENDING' } })
+  }
+
+  revalidatePath(`/pm/applications/${applicationId}`)
+}
+
+/**
+ * Status transition ενός task — ΟΛΟΙ οι κανόνες είναι server-side (SECURITY-
+ * CRITICAL, βλ. C2a.2 lesson):
+ *  - ACCEPTED: ΔΕΝ επιτρέπεται αν το task είναι blocked ΟΥΤΕ αν τα αρχεία
+ *    είναι λιγότερα από minFiles· σφραγίζει acceptedById/acceptedAt.
+ *  - UPLOADED: ΔΕΝ επιτρέπεται αν το task είναι blocked.
+ *  - REJECTED: απαιτεί μη κενή σημείωση (αποθηκεύεται σε notes).
+ *  - WAIVED: απαιτεί το δικαίωμα pm.manage (ξεχωριστό απο το ήδη περασμένο
+ *    pm.work-or-pm.manage visibility gate — τυλίγουμε σε try/catch για
+ *    καθαρό ελληνικό μήνυμα αντί για το ακατέργαστο requirePermission throw).
+ *  - PENDING: πάντα επιτρέπεται (reset).
+ */
+export async function setDeliverableTaskStatus(
+  taskId: string,
+  status: DeliverableStatusStr,
+  note?: string,
+): Promise<void> {
+  const { task, session } = await requireVisibleTask(taskId)
+  const applicationId = task.deliverable.applicationId
+
+  if (status === 'ACCEPTED' || status === 'UPLOADED') {
+    const { blocked, blockingNames } = await computeBlockedForTask(applicationId, taskId)
+    if (blocked) {
+      throw new Error(`Προηγούμενο παραδοτέο εκκρεμεί: ${blockingNames.join(', ')}`)
+    }
+  }
+
+  const data: Record<string, unknown> = { status }
+
+  if (status === 'ACCEPTED') {
+    const filesCount = await prisma.deliverableFile.count({ where: { taskId } })
+    if (filesCount < task.minFiles) {
+      throw new Error(`Απαιτούνται τουλάχιστον ${task.minFiles} αρχεία.`)
+    }
+    data.acceptedById = session.user.id
+    data.acceptedAt = new Date()
+  }
+
+  if (status === 'REJECTED') {
+    if (!note || !note.trim()) throw new Error('Απαιτείται σημείωση απόρριψης.')
+  }
+
+  if (status === 'WAIVED') {
+    try {
+      await requirePermission('pm.manage')
+    } catch {
+      throw new Error('Μόνο διαχειριστής PM μπορεί να δώσει απαλλαγή παραδοτέου.')
+    }
+  }
+
+  if (note !== undefined) data.notes = note.trim() || null
+
+  await prisma.expenseDeliverableTask.update({ where: { id: taskId }, data })
+  revalidatePath(`/pm/applications/${applicationId}`)
+}
+
+/** Χειροκίνητη εξάρτηση (auto=false) μεταξύ δύο tasks — ΚΑΙ τα δύο περνάνε
+ * από requireVisibleTask (ξεχωριστά, ώστε το ένα να μην μπορεί να «δανειστεί»
+ * ορατότητα από το άλλο). Cross-application link απορρίπτεται ρητά (δεν
+ * αρκεί να είναι και τα δύο ορατά στον χρήστη — πρέπει να είναι στην ΙΔΙΑ
+ * αίτηση, αλλιώς το DAG/gating δεν έχει νόημα). Πριν το create, ξαναχτίζει
+ * ΟΛΑ τα edges της αίτησης + το υποψήφιο νέο και τρέχει το pure hasCycle. */
+export async function addTaskDependency(dependentId: string, prerequisiteId: string): Promise<void> {
+  if (dependentId === prerequisiteId) {
+    throw new Error('Ένα παραδοτέο δεν μπορεί να εξαρτάται από τον εαυτό του.')
+  }
+
+  const { task: dependent } = await requireVisibleTask(dependentId)
+  const { task: prerequisite } = await requireVisibleTask(prerequisiteId)
+
+  const applicationId = dependent.deliverable.applicationId
+  if (prerequisite.deliverable.applicationId !== applicationId) {
+    throw new Error('Η εξάρτηση πρέπει να είναι μεταξύ παραδοτέων της ΙΔΙΑΣ αίτησης.')
+  }
+
+  const existingEdges = await prisma.deliverableDependency.findMany({
+    where: { dependent: { deliverable: { applicationId } } },
+    select: { dependentId: true, prerequisiteId: true },
+  })
+  const candidateEdges: DependencyPair[] = [...(existingEdges as DependencyPair[]), { dependentId, prerequisiteId }]
+  if (hasCycle(candidateEdges)) {
+    throw new Error('Η εξάρτηση δημιουργεί κύκλο.')
+  }
+
+  await prisma.deliverableDependency.create({ data: { dependentId, prerequisiteId, auto: false } })
+  revalidatePath(`/pm/applications/${applicationId}`)
+}
+
+/** Διαγράφει ΜΟΝΟ χειροκίνητα (auto=false) edges — τα auto edges ξαναχτίζονται
+ * κάθε φορά από το generateExpenseDeliverables (βλ. παραπάνω) και διαγραφή
+ * τους εδώ θα ήταν ένα no-op state που θα επανεμφανιζόταν αμέσως στο επόμενο
+ * materialize, μπερδεύοντας τον χρήστη — γι' αυτό απορρίπτεται ρητά. */
+export async function removeTaskDependency(id: string): Promise<void> {
+  const edge = await prisma.deliverableDependency.findUniqueOrThrow({
+    where: { id },
+    select: { id: true, auto: true, dependent: { select: { deliverable: { select: { applicationId: true } } } } },
+  })
+  const applicationId = edge.dependent.deliverable.applicationId
+  await requireVisibleApplication(applicationId)
+
+  if (edge.auto) {
+    throw new Error('Αυτόματες εξαρτήσεις δεν διαγράφονται χειροκίνητα — ξαναχτίζονται από το σύστημα.')
+  }
+
+  await prisma.deliverableDependency.delete({ where: { id } })
+  revalidatePath(`/pm/applications/${applicationId}`)
 }
