@@ -640,10 +640,18 @@ export async function replaceExpense(
 ): Promise<{ id: string }> {
   const old = await prisma.programExpense.findUniqueOrThrow({
     where: { id: oldExpenseId },
-    select: { applicationId: true, status: true },
+    select: {
+      applicationId: true,
+      status: true,
+      paymentRequestId: true,
+      paymentRequest: { select: { status: true } },
+    },
   })
   await requireVisibleApplication(old.applicationId)
   if (old.status === 'REPLACED') throw new Error('Η δαπάνη έχει ήδη αντικατασταθεί.')
+  if (old.paymentRequestId && old.paymentRequest?.status !== 'DRAFT') {
+    throw new Error('Η δαπάνη ανήκει σε υποβληθείσα δόση — δεν αντικαθίσταται.')
+  }
 
   const created = await prisma.$transaction(async tx => {
     const neo = await tx.programExpense.create({
@@ -659,7 +667,10 @@ export async function replaceExpense(
         replacesExpenseId: oldExpenseId,
       },
     })
-    await tx.programExpense.update({ where: { id: oldExpenseId }, data: { status: 'REPLACED' } })
+    await tx.programExpense.update({
+      where: { id: oldExpenseId },
+      data: { status: 'REPLACED', paymentRequestId: null },
+    })
     return neo
   })
 
@@ -938,7 +949,7 @@ export async function listPaymentRequests(applicationId: string): Promise<Paymen
   await requireVisibleApplication(applicationId)
   const rows = await prisma.paymentRequest.findMany({
     where: { applicationId }, orderBy: { ordinal: 'asc' },
-    include: { expenses: { select: { amount: true } } },
+    include: { expenses: { where: { status: 'ACTIVE' }, select: { amount: true } } },
   })
   return rows.map(r => ({
     id: r.id, ordinal: r.ordinal, title: r.title, status: r.status as PaymentStatusStr,

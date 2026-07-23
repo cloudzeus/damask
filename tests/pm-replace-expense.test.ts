@@ -47,7 +47,12 @@ describe('replaceExpense', () => {
   })
 
   it('creates a new ACTIVE expense linking replacesExpenseId, marks the old REPLACED', async () => {
-    h.db.programExpense.findUniqueOrThrow.mockResolvedValue({ applicationId: 'app-1', status: 'ACTIVE' })
+    h.db.programExpense.findUniqueOrThrow.mockResolvedValue({
+      applicationId: 'app-1',
+      status: 'ACTIVE',
+      paymentRequestId: null,
+      paymentRequest: null,
+    })
     const tx = makeTx()
     h.db.$transaction.mockImplementation(async (fn: any) => fn(tx))
 
@@ -70,7 +75,45 @@ describe('replaceExpense', () => {
   })
 
   it('throws when the old expense is already REPLACED', async () => {
-    h.db.programExpense.findUniqueOrThrow.mockResolvedValue({ applicationId: 'app-1', status: 'REPLACED' })
+    h.db.programExpense.findUniqueOrThrow.mockResolvedValue({
+      applicationId: 'app-1',
+      status: 'REPLACED',
+      paymentRequestId: null,
+      paymentRequest: null,
+    })
+
+    await expect(replaceExpense('old1', { description: 'x', amount: 1 })).rejects.toThrow()
+    expect(h.db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('frees the δόση claim when replacing an expense that is in a DRAFT payment request', async () => {
+    h.db.programExpense.findUniqueOrThrow.mockResolvedValue({
+      applicationId: 'app-1',
+      status: 'ACTIVE',
+      paymentRequestId: 'r1',
+      paymentRequest: { status: 'DRAFT' },
+    })
+    const tx = makeTx()
+    h.db.$transaction.mockImplementation(async (fn: any) => fn(tx))
+
+    const result = await replaceExpense('old1', { description: 'Νέο τιμολόγιο', amount: 50 })
+
+    expect(result).toEqual({ id: 'new1' })
+    expect(tx.programExpense.update).toHaveBeenCalledTimes(1)
+    const updateArgs = tx.programExpense.update.mock.calls[0][0]
+    expect(updateArgs).toMatchObject({
+      where: { id: 'old1' },
+      data: { status: 'REPLACED', paymentRequestId: null },
+    })
+  })
+
+  it('throws when the old expense is claimed in a non-DRAFT (submitted) payment request', async () => {
+    h.db.programExpense.findUniqueOrThrow.mockResolvedValue({
+      applicationId: 'app-1',
+      status: 'ACTIVE',
+      paymentRequestId: 'r1',
+      paymentRequest: { status: 'SUBMITTED' },
+    })
 
     await expect(replaceExpense('old1', { description: 'x', amount: 1 })).rejects.toThrow()
     expect(h.db.$transaction).not.toHaveBeenCalled()
