@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { notFound } from 'next/navigation'
 import { visibleApplicationWhere } from '@/lib/pm/scoping'
 import { computeAssessmentScore } from '@/lib/pm/assessment'
-import { buildObligationRows, buildCriterionScoreRows } from '@/lib/pm/obligations-gen'
+import { buildObligationRows, buildCriterionScoreRows, buildTaskObligationRows } from '@/lib/pm/obligations-gen'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { applicationDocKey } from '@/lib/pm/doc-prep'
 import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr, type TaskAssignToStr } from '@/lib/pm/types'
@@ -227,11 +227,17 @@ export async function listInternalUsers(): Promise<InternalUserOption[]> {
  * προστατεύεται επιπλέον από το @@unique([applicationId, criterionId]) στο
  * schema) και δημιουργεί ΜΟΝΟ τις γραμμές που λείπουν.
  */
-export async function generateObligations(applicationId: string): Promise<{ addedObligations: number; addedScores: number }> {
+function addDays(base: Date, days: number): Date {
+  const d = new Date(base)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d
+}
+
+export async function generateObligations(applicationId: string): Promise<{ addedObligations: number; addedScores: number; addedTasks: number }> {
   const { app } = await requireVisibleApplication(applicationId)
   const program = await prisma.program.findUniqueOrThrow({
     where: { id: app.programId },
-    include: { criteria: true, deliverables: true, requiredForms: true },
+    include: { criteria: true, deliverables: true, requiredForms: true, taskTemplates: { where: { active: true } } },
   })
 
   const obligationRows = buildObligationRows({
@@ -248,6 +254,19 @@ export async function generateObligations(applicationId: string): Promise<{ adde
   })
   const existingSourceIds = new Set(existingObligations.map(o => o.sourceId))
   const newObligations = obligationRows.filter(r => !existingSourceIds.has(r.sourceId))
+
+  const taskRows = buildTaskObligationRows(
+    program.taskTemplates.map(t => ({
+      id: t.id,
+      stage: t.stage as StageStr,
+      title: t.title,
+      assignTo: t.assignTo as TaskAssignToStr,
+      mandatory: t.mandatory,
+      dueOffsetDays: t.dueOffsetDays,
+      order: t.order,
+    })),
+  )
+  const newTasks = taskRows.filter(r => !existingSourceIds.has(r.sourceId))
 
   const existingScores = await prisma.applicationCriterionScore.findMany({
     where: { applicationId, criterionId: { not: null } },
@@ -281,9 +300,25 @@ export async function generateObligations(applicationId: string): Promise<{ adde
       })),
     })
   }
+  if (newTasks.length > 0) {
+    await prisma.applicationObligation.createMany({
+      data: newTasks.map(r => ({
+        applicationId,
+        stage: r.stage,
+        kind: 'TASK' as const,
+        sourceId: r.sourceId,
+        templateId: r.templateId,
+        name: r.name,
+        mandatory: r.mandatory,
+        order: r.order,
+        assigneeId: r.assigneeSlot === 'MANAGER' ? (app.managerId ?? null) : (app.processorId ?? null),
+        dueDate: r.dueOffsetDays != null ? addDays(app.createdAt, r.dueOffsetDays) : null,
+      })),
+    })
+  }
 
   revalidatePath(`/pm/applications/${applicationId}`)
-  return { addedObligations: newObligations.length, addedScores: newScores.length }
+  return { addedObligations: newObligations.length, addedScores: newScores.length, addedTasks: newTasks.length }
 }
 
 export type CriterionScoreItem = {
