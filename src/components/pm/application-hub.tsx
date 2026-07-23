@@ -18,6 +18,7 @@ import { ObligationsTab } from './obligations-tab'
 import { ExpensesTab } from './expenses-tab'
 import { OpskeTab } from './opske-tab'
 import { CertificationTab } from './certification-tab'
+import { PaymentsTab } from './payments-tab'
 
 /**
  * Το «Έργο hub» (Task 10) — κεντρική οθόνη PM για μία αίτηση προγράμματος:
@@ -149,6 +150,7 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
         />
       )}
       {activeTab === 'certification' && <CertificationTab applicationId={app.id} programId={app.programId} />}
+      {activeTab === 'payments' && <PaymentsTab applicationId={app.id} />}
     </div>
   )
 }
@@ -211,7 +213,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
 
 /* ── Tab bar — mirror του idiom στο program-editor.tsx (pill row, navy
  * active, χωρίς Tabs primitive). ── */
-type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'opske'
+type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'payments' | 'opske'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'assessment', label: 'Αξιολόγηση' },
@@ -219,6 +221,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'expenses', label: 'Δαπάνες & Πλάνο' },
   { key: 'deliverables', label: 'Παραδοτέα' },
   { key: 'certification', label: 'Πιστοποίηση' },
+  { key: 'payments', label: 'Αποπληρωμές' },
   { key: 'opske', label: 'ΟΠΣΚΕ' },
 ]
 
