@@ -313,6 +313,8 @@ model Trdr {
   formRecords     TrdrFormRecord[]
   financialValues TrdrFinancialValue[]
   programApplications ProgramApplication[]
+  documentRequests DocumentRequest[]
+  portalTokens     PortalToken[]
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
@@ -1281,6 +1283,7 @@ model ProgramApplication {
   documents          ApplicationDocument[]
   criterionScores    ApplicationCriterionScore[]
   paymentRequests    PaymentRequest[]
+  documentRequests   DocumentRequest[]
 
   @@unique([trdrId, programId])
   @@index([trdrId])
@@ -1385,6 +1388,7 @@ model ApplicationObligation {
   documents     ApplicationDocument[]
   templateId    String?
   template      ProgramTaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  documentRequests DocumentRequest[]
 
   @@index([applicationId])
   @@index([applicationId, stage])
@@ -1404,6 +1408,7 @@ model ApplicationDocument {
   size          Int?
   uploadedById  String?
   uploadedAt    DateTime @default(now())
+  requestUpload DocumentRequest? @relation("RequestUpload")
 
   @@index([applicationId])
   @@index([obligationId])
@@ -1460,4 +1465,52 @@ model ReminderLog {
 
   @@index([userId])
   @@index([sentAt])
+}
+
+enum DocumentRequestStatus {
+  PENDING
+  UPLOADED
+  FULFILLED
+  CANCELLED
+  EXPIRED
+}
+
+model DocumentRequest {
+  id                 String   @id @default(cuid())
+  applicationId      String
+  application        ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  obligationId       String?
+  obligation         ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
+  trdrId             String
+  trdr               Trdr @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  title              String
+  description        String?
+  email              String
+  tokenHash          String   @unique
+  status             DocumentRequestStatus @default(PENDING)
+  expiresAt          DateTime
+  uploadedDocumentId String?  @unique
+  uploadedDocument   ApplicationDocument? @relation("RequestUpload", fields: [uploadedDocumentId], references: [id], onDelete: SetNull)
+  uploadedAt         DateTime?
+  createdById        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([applicationId])
+  @@index([trdrId])
+  @@index([status])
+}
+
+model PortalToken {
+  id           String   @id @default(cuid())
+  tokenHash    String   @unique
+  trdrId       String
+  trdr         Trdr @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  email        String
+  expiresAt    DateTime
+  lastAccessAt DateTime?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  @@index([trdrId])
 }
