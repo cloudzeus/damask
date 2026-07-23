@@ -20,6 +20,12 @@ export const QUEUE_BACKUP = 'backup'
  * πέρασε το interval) και τρέχει το καθένα μέσω runSyncTarget. Μόνο το
  * 's1-references' έχει engine σήμερα· products/partners εκκρεμούν (pending). */
 export const QUEUE_S1_REF_SYNC = 's1-ref-sync'
+/** Ημερήσιο digest εκκρεμοτήτων (ΕΣΠΑ PM — C2c). Scheduled tick 08:00 Europe/Athens,
+ * τρέχει runPmReminders (src/lib/pm/reminders-run.ts): μαζεύει ανοιχτές
+ * ApplicationObligation ανά assignee, στέλνει ένα email digest (mailer-gated,
+ * no-op αν δεν έχει ρυθμιστεί Mailgun) και καταγράφει ReminderLog (idempotent —
+ * ένα SENT/ημέρα/χρήστη). */
+export const QUEUE_PM_REMINDERS = 'pm-reminders'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
 
@@ -93,6 +99,13 @@ export async function startQueue(): Promise<void> {
     }
   })
   await boss.schedule(QUEUE_S1_REF_SYNC, '*/5 * * * *', null, { tz: 'Europe/Athens' })
+
+  await boss.createQueue(QUEUE_PM_REMINDERS)
+  await boss.work(QUEUE_PM_REMINDERS, async () => {
+    try { const { runPmReminders } = await import('@/lib/pm/reminders-run'); await runPmReminders(Date.now()) }
+    catch (err) { console.error('[pg-boss] pm-reminders dispatcher απέτυχε', err) } // never rethrow — scheduled tick
+  })
+  await boss.schedule(QUEUE_PM_REMINDERS, '0 8 * * *', null, { tz: 'Europe/Athens' })
 
   console.log('[pg-boss] started')
 }
