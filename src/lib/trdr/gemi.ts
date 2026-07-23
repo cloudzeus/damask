@@ -52,6 +52,8 @@ async function gemiFetch<T>(path: string, init?: RequestInit & { apiKeyOverride?
     ...rest,
     headers: { api_key: apiKey, Accept: 'application/json', ...(rest.headers ?? {}) },
     cache: 'no-store',
+    // Χωρίς timeout ένα αργό ΓΕΜΗ call κρεμάει το server action επ' άπειρον (πάγωμα UI).
+    signal: AbortSignal.timeout(20_000),
   })
   if (!res.ok) {
     const text = await res.text().catch(() => '')
@@ -157,7 +159,9 @@ export async function getGemiCompanyDocuments(arGemi: string | number): Promise<
 /** Downloads a file from a GEMI URL (assemblyDecisionUrl or publication.url) as a Buffer. */
 export async function downloadGemiFile(url: string): Promise<{ buffer: Buffer; contentType: string }> {
   const apiKey = await resolveApiKey()
-  const res = await fetch(url, { headers: { api_key: apiKey }, cache: 'no-store' })
+  // 45s ανά αρχείο — μεγάλα PDF αποφάσεων· timeout ώστε ένα κολλημένο download
+  // να μετρηθεί ως documentsFailed (per-doc try/catch στο sync) αντί να παγώνει όλο το sync.
+  const res = await fetch(url, { headers: { api_key: apiKey }, cache: 'no-store', signal: AbortSignal.timeout(45_000) })
   if (!res.ok) throw new GemiError(res.status, `Download failed: ${url}`)
   const ab = await res.arrayBuffer()
   return {

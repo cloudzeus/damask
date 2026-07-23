@@ -70,6 +70,8 @@ export async function bunnyUploadPrivate({
     method: 'PUT',
     headers: { AccessKey: cfg.storagePassword, 'Content-Type': contentType },
     body: new Uint8Array(body),
+    // Timeout ώστε ένα κολλημένο upload να μη παγώνει server actions (π.χ. ΓΕΜΗ sync).
+    signal: AbortSignal.timeout(90_000),
   })
   if (res.status !== 201) {
     throw new Error(`Το BunnyCDN απέρριψε το upload (HTTP ${res.status})${await errorDetail(res)}`)
