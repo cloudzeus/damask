@@ -1677,6 +1677,7 @@ model Region {
   @@index([parentCode])
   @@index([level])
   @@index([nameEL])
+  @@index([path])
 }
 
 // Master catalog of all ΚΑΔ codes (Greek Activity Code register).
@@ -1706,6 +1707,7 @@ model KadCode {
   @@index([level])
   @@index([sectorLetter])
   @@index([codeWithoutDots])
+  @@index([path])
 }
 
 // Λίστα ΚΑΔ που απαιτούν Άδεια Λειτουργίας (και άλλους τύπους αδειών στο μέλλον).
