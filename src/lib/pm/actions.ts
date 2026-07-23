@@ -11,6 +11,7 @@ import { buildObligationRows, buildCriterionScoreRows, buildTaskObligationRows }
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { applicationDocKey } from '@/lib/pm/doc-prep'
 import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr, type TaskAssignToStr } from '@/lib/pm/types'
+import { checkBudgetCompliance, type ComplianceExpense } from '@/lib/pm/budget-compliance'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -577,6 +578,98 @@ export async function listApplicationExpenseCategories(applicationId: string): P
     select: { id: true, name: true },
   })
   return rows
+}
+
+/**
+ * C2a.2 (Task 3) — live ανάγνωση συμμόρφωσης προϋπολογισμού για μια αίτηση.
+ * Τραβάει μόνο τις ACTIVE δαπάνες (οι REPLACED αγνοούνται — έχουν ήδη
+ * αντικατασταθεί) + τις κατηγορίες δαπανών του προγράμματος, μετατρέπει
+ * Decimal→Number ΕΔΩ (πριν το pure engine) και περνάει στο
+ * checkBudgetCompliance (src/lib/pm/budget-compliance.ts).
+ */
+export async function getBudgetCompliance(applicationId: string) {
+  const { app } = await requireVisibleApplication(applicationId)
+  const [expenses, program] = await Promise.all([
+    prisma.programExpense.findMany({
+      where: { applicationId, status: 'ACTIVE' },
+      select: { amount: true, categoryId: true, confirmed: true },
+    }),
+    prisma.program.findUniqueOrThrow({
+      where: { id: app.programId },
+      select: { totalBudget: true, expenseCats: { orderBy: { order: 'asc' } } },
+    }),
+  ])
+  const active: ComplianceExpense[] = expenses.map(e => ({
+    amount: Number(e.amount),
+    categoryId: e.categoryId,
+    confirmed: e.confirmed,
+  }))
+  const categories = program.expenseCats.map(c => ({
+    id: c.id,
+    name: c.name,
+    minAmount: c.minAmount != null ? Number(c.minAmount) : null,
+    maxAmount: c.maxAmount != null ? Number(c.maxAmount) : null,
+    minPercentage: c.minPercentage != null ? Number(c.minPercentage) : null,
+    maxPercentage: c.maxPercentage != null ? Number(c.maxPercentage) : null,
+    mandatory: c.mandatory,
+  }))
+  return checkBudgetCompliance(active, categories, program.totalBudget != null ? Number(program.totalBudget) : null)
+}
+
+/**
+ * C2a.2 (Task 3) — αντικατάσταση δαπάνης: η παλιά μαρκάρεται REPLACED (ποτέ
+ * delete — διατηρεί ιστορικό/lineage για certification/audit), η νέα
+ * δημιουργείται ACTIVE με replacesExpenseId→παλιά. Και τα δύο βήματα μέσα
+ * σε $transaction ώστε να μη μείνει η αίτηση με δύο ACTIVE ή καμία.
+ * Φορτώνει πρώτα την παλιά δαπάνη (χρειάζεται το applicationId της για το
+ * visibility gate) και ΜΕΤΑ περνάει από requireVisibleApplication — καμία
+ * write χωρίς να έχει επιβεβαιωθεί ότι ο χρήστης βλέπει αυτή την αίτηση.
+ */
+export async function replaceExpense(
+  oldExpenseId: string,
+  input: {
+    description: string
+    amount: number
+    vatAmount?: number | null
+    date?: string | null
+    vendor?: string | null
+    docNumber?: string | null
+  },
+): Promise<{ id: string }> {
+  const old = await prisma.programExpense.findUniqueOrThrow({
+    where: { id: oldExpenseId },
+    select: { applicationId: true, status: true },
+  })
+  await requireVisibleApplication(old.applicationId)
+  if (old.status === 'REPLACED') throw new Error('Η δαπάνη έχει ήδη αντικατασταθεί.')
+
+  const created = await prisma.$transaction(async tx => {
+    const neo = await tx.programExpense.create({
+      data: {
+        applicationId: old.applicationId,
+        description: input.description.trim(),
+        amount: input.amount,
+        vatAmount: input.vatAmount ?? null,
+        date: input.date ? new Date(input.date) : null,
+        vendor: input.vendor ?? null,
+        docNumber: input.docNumber ?? null,
+        status: 'ACTIVE',
+        replacesExpenseId: oldExpenseId,
+      },
+    })
+    await tx.programExpense.update({ where: { id: oldExpenseId }, data: { status: 'REPLACED' } })
+    return neo
+  })
+
+  try {
+    const { suggestExpenseCategory } = await import('@/lib/programs/actions')
+    await suggestExpenseCategory(created.id)
+  } catch (err) {
+    console.error('[replaceExpense] suggest failed', err)
+  }
+
+  revalidatePath(`/pm/applications/${old.applicationId}`)
+  return { id: created.id }
 }
 
 /**

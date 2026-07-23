@@ -206,6 +206,8 @@ export type ProgramExpenseItem = {
   suggestionConfidence: number | null
   categoryId: string | null
   confirmed: boolean
+  status: 'ACTIVE' | 'REPLACED'
+  replacesExpenseId: string | null
 }
 
 export async function listApplicationExpenses(applicationId: string): Promise<ProgramExpenseItem[]> {
@@ -227,6 +229,8 @@ export async function listApplicationExpenses(applicationId: string): Promise<Pr
     suggestionConfidence: r.suggestionConfidence,
     categoryId: r.categoryId,
     confirmed: r.confirmed,
+    status: r.status,
+    replacesExpenseId: r.replacesExpenseId,
   }))
 }
 
