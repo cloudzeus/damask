@@ -1621,6 +1621,7 @@ export async function generateExpenseDeliverables(applicationId: string): Promis
   addedDeliverables: number
   addedTasks: number
   rebuiltEdges: number
+  skippedCyclePairs: number
 }> {
   const { app } = await requireVisibleApplication(applicationId)
 
@@ -1723,7 +1724,37 @@ export async function generateExpenseDeliverables(applicationId: string): Promis
     mandatory: t.mandatory,
   }))
   const usedOptional = [...new Set(dagTasks.map((t) => t.phase))].filter((p) => OPTIONAL_PHASES.has(p))
-  const pairs = buildAutoDependencyPairs(dagTasks, usedOptional)
+  const freshAutoPairs = buildAutoDependencyPairs(dagTasks, usedOptional)
+
+  /**
+   * DAG deadlock fix (C2g): surviving MANUAL (auto:false) edges must never be closed into a cycle
+   * by the freshly-rebuilt auto chain. Scenario this guards: a manual edge A->B is accepted
+   * earlier (addTaskDependency); a later re-materialization (e.g. new template tasks, or
+   * replaceExpense's re-run) introduces an auto chain B->...->A — cycle, mutual deadlock (neither
+   * task can ever become unblocked). Filter incrementally: seed `edges` with the surviving manual
+   * edges (untouched by this rebuild — only auto:true edges are deleted below), then admit each
+   * candidate auto pair ONLY if it doesn't close a cycle against everything admitted so far.
+   * Order is deterministic (buildAutoDependencyPairs iterates the `dagTasks` query order), so a
+   * re-run always skips the SAME pairs.
+   */
+  const manualEdges = await prisma.deliverableDependency.findMany({
+    where: { auto: false, dependent: { deliverable: { applicationId } } },
+    select: { dependentId: true, prerequisiteId: true },
+  })
+  const edges: DependencyPair[] = [...(manualEdges as DependencyPair[])]
+  const pairs: DependencyPair[] = []
+  let skippedCyclePairs = 0
+  for (const pair of freshAutoPairs) {
+    if (hasCycle([...edges, pair])) {
+      skippedCyclePairs += 1
+      continue
+    }
+    edges.push(pair)
+    pairs.push(pair)
+  }
+  if (skippedCyclePairs > 0) {
+    console.warn(`[pm-deliverables] skipped ${skippedCyclePairs} auto dependency pairs to avoid cycles`, applicationId)
+  }
 
   await prisma.deliverableDependency.deleteMany({
     where: { auto: true, dependent: { deliverable: { applicationId } } },
@@ -1736,7 +1767,7 @@ export async function generateExpenseDeliverables(applicationId: string): Promis
   }
 
   revalidatePath(`/pm/applications/${applicationId}`)
-  return { addedDeliverables, addedTasks, rebuiltEdges: pairs.length }
+  return { addedDeliverables, addedTasks, rebuiltEdges: pairs.length, skippedCyclePairs }
 }
 
 /**
@@ -1766,11 +1797,53 @@ async function requireVisibleTask(taskId: string) {
       deliverableId: true,
       status: true,
       minFiles: true,
+      phase: true,
       deliverable: { select: { applicationId: true, expenseId: true } },
     },
   })
   const { session, app } = await requireVisibleApplication(task.deliverable.applicationId)
   return { task, session, app }
+}
+
+/** Cert-phase set shared by setDeliverableTaskStatus/removeDeliverableTaskFile below (money-
+ * integrity demote) and upsertCertification/listCertifications above (verifiedFromTasks input) —
+ * these are the only two phases that feed ProgramExpenseCertification.verified. */
+const CERT_PHASES: ReadonlySet<DeliverablePhaseStr> = new Set(['PHASE_A_CERTIFICATION', 'FULL_CERTIFICATION'])
+
+/**
+ * C2g (money-integrity fix) — one-way DEMOTION of ProgramExpenseCertification.verified after a
+ * cert-phase task regresses (REJECTED, reset to PENDING/UPLOADED, or loses its last file).
+ * `verified` feeds C2f payment eligibility (expenseEligibleForPayment) but before this fix was
+ * recomputed ONLY inside upsertCertification — so a cert that was already verified=true stayed
+ * stale=true even after a mandatory PHASE_A_CERTIFICATION/FULL_CERTIFICATION task de-certified,
+ * letting a δόση proceed on a de-certified expense. This helper NEVER sets verified=true —
+ * promotion stays EXCLUSIVELY in upsertCertification; it only demotes when the merged
+ * scalars+tasks state is no longer complete. No-op if there's no certification row, or it's
+ * already verified=false (nothing to demote).
+ */
+async function recomputeExpenseVerified(expenseId: string): Promise<void> {
+  const cert = await prisma.programExpenseCertification.findUnique({
+    where: { expenseId },
+    select: { id: true, verified: true, serialNumber: true, location: true, assetRegistryRef: true, paid: true },
+  })
+  if (!cert || !cert.verified) return
+  const tasks = await prisma.expenseDeliverableTask.findMany({
+    where: { deliverable: { expenseId }, phase: { in: [...CERT_PHASES] } },
+    select: { phase: true, mandatory: true, status: true },
+  })
+  const complete = certificationScalarsComplete({
+    serialNumber: cert.serialNumber,
+    location: cert.location,
+    assetRegistryRef: cert.assetRegistryRef,
+    paid: cert.paid,
+  }) && verifiedFromTasks(tasks.map((t) => ({
+    phase: t.phase as DeliverablePhaseStr,
+    mandatory: t.mandatory,
+    status: t.status as DeliverableStatusStr,
+  })))
+  if (!complete) {
+    await prisma.programExpenseCertification.update({ where: { id: cert.id }, data: { verified: false, verifiedById: null } })
+  }
 }
 
 /** Loads every dependency edge + status/name of every task in the
@@ -1965,7 +2038,7 @@ export async function removeDeliverableTaskFile(fileId: string): Promise<void> {
     select: {
       id: true,
       taskId: true,
-      task: { select: { id: true, status: true, deliverable: { select: { applicationId: true } } } },
+      task: { select: { id: true, status: true, phase: true, deliverable: { select: { applicationId: true, expenseId: true } } } },
     },
   })
   const applicationId = file.task.deliverable.applicationId
@@ -1976,6 +2049,13 @@ export async function removeDeliverableTaskFile(fileId: string): Promise<void> {
   const remaining = await prisma.deliverableFile.count({ where: { taskId: file.taskId } })
   if (remaining === 0 && file.task.status === 'UPLOADED') {
     await prisma.expenseDeliverableTask.update({ where: { id: file.taskId }, data: { status: 'PENDING' } })
+  }
+
+  // Money-integrity (C2g fix): removing a task's file can leave a cert-phase task's completeness
+  // stale relative to an already-verified certification — demote inline, same-request integrity.
+  if (CERT_PHASES.has(file.task.phase as DeliverablePhaseStr)) {
+    const expenseId = file.task.deliverable.expenseId
+    if (expenseId) await recomputeExpenseVerified(expenseId)
   }
 
   revalidatePath(`/pm/applications/${applicationId}`)
@@ -2034,6 +2114,16 @@ export async function setDeliverableTaskStatus(
   if (note !== undefined) data.notes = note.trim() || null
 
   await prisma.expenseDeliverableTask.update({ where: { id: taskId }, data })
+
+  // Money-integrity (C2g fix): a cert-phase task moving AWAY from ACCEPTED/WAIVED (REJECTED, or
+  // reset to PENDING/UPLOADED) can make an already-verified certification incomplete — demote
+  // inline (same-request integrity; C2f payment eligibility reads `verified`). Never promotes —
+  // upsertCertification remains the sole promoter.
+  if (CERT_PHASES.has(task.phase as DeliverablePhaseStr) && status !== 'ACCEPTED' && status !== 'WAIVED') {
+    const expenseId = task.deliverable.expenseId
+    if (expenseId) await recomputeExpenseVerified(expenseId)
+  }
+
   revalidatePath(`/pm/applications/${applicationId}`)
 }
 

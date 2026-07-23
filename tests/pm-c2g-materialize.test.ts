@@ -75,6 +75,11 @@ function freshDb() {
     ]),
   }
   h.db.deliverableDependency = {
+    // C2g cycle-safety fix: generateExpenseDeliverables now loads surviving manual (auto:false)
+    // edges before rebuilding the auto chain (see tests/pm-c2g-dag-cycle.test.ts for the
+    // cycle-skipping behavior itself) — default to none here so these materialization-focused
+    // tests keep exercising the pre-existing all-auto-pairs-created path unchanged.
+    findMany: vi.fn().mockResolvedValue([]),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     createMany: vi.fn().mockResolvedValue({ count: 0 }),
   }
@@ -136,9 +141,9 @@ describe('generateExpenseDeliverables — first run (materialization)', () => {
     expect(arg.data).toHaveLength(4)
   })
 
-  it('returns addedDeliverables/addedTasks/rebuiltEdges counts', async () => {
+  it('returns addedDeliverables/addedTasks/rebuiltEdges/skippedCyclePairs counts', async () => {
     const res = await generateExpenseDeliverables('app1')
-    expect(res).toEqual({ addedDeliverables: 3, addedTasks: 5, rebuiltEdges: 4 })
+    expect(res).toEqual({ addedDeliverables: 3, addedTasks: 5, rebuiltEdges: 4, skippedCyclePairs: 0 })
   })
 })
 
