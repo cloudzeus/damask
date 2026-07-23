@@ -14,6 +14,8 @@ import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStat
 import { checkBudgetCompliance, type ComplianceExpense } from '@/lib/pm/budget-compliance'
 import { certificationComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type CertFileKind } from '@/lib/pm/cert-prep'
 import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type PaymentStatusStr } from '@/lib/pm/payment'
+import { newToken } from '@/lib/pm/portal-token'
+import { sendMail, isMailerConfigured, escapeHtml } from '@/lib/mailer'
 
 /**
  * Server orchestration για το Program PM module (C2a.1 — Task 6):
@@ -1125,4 +1127,89 @@ export async function listApplicationBoardObligations(applicationId: string): Pr
     orderBy: [{ stage: 'asc' }, { order: 'asc' }],
   })
   return rows.map(toBoardObligation)
+}
+
+const APP_URL = process.env.AUTH_URL ?? 'http://localhost:3000'
+
+async function requireVisibleRequestRow(id: string) {
+  const req = await prisma.documentRequest.findUniqueOrThrow({ where: { id }, select: { id: true, applicationId: true, trdrId: true, email: true, title: true, description: true, status: true, expiresAt: true } })
+  await requireVisibleApplication(req.applicationId)
+  return req
+}
+
+export type DocumentRequestItem = { id: string; title: string; description: string | null; email: string; status: string; expiresAt: string; uploadedAt: string | null; obligationId: string | null; uploadedDocumentId: string | null }
+
+export async function listTrdrContactEmails(applicationId: string): Promise<{ label: string; email: string }[]> {
+  const { app } = await requireVisibleApplication(applicationId)
+  const trdr = await prisma.trdr.findUniqueOrThrow({ where: { id: app.trdrId }, select: { EMAIL: true, NAME: true, contacts: { select: { name: true, email: true, position: true } } } })
+  const out: { label: string; email: string }[] = []
+  if (trdr.EMAIL) out.push({ label: `${trdr.NAME} (πελάτης)`, email: trdr.EMAIL })
+  for (const c of trdr.contacts) if (c.email) out.push({ label: `${c.name}${c.position ? ` — ${c.position}` : ''}`, email: c.email })
+  return out
+}
+
+async function emailRequestLink(to: string, title: string, url: string, customerName: string): Promise<void> {
+  if (!(await isMailerConfigured())) return
+  const html = `<p>Καλησπέρα,</p><p>Το γραφείο σας ζητά το εξής έγγραφο για το έργο σας:</p><p><b>${escapeHtml(title)}</b></p><p>Ανεβάστε το εδώ (χωρίς σύνδεση): <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p><p>— ${escapeHtml(customerName)}</p>`
+  await sendMail({ to, subject: `Αίτημα εγγράφου: ${title}`, html, refType: 'pm-doc-request' }).catch(() => {})
+}
+
+export async function createDocumentRequest(applicationId: string, input: { obligationId?: string | null; title: string; description?: string | null; email: string; expiresInDays?: number }): Promise<{ id: string; url: string }> {
+  const { session, app } = await requireVisibleApplication(applicationId)
+  const title = input.title.trim(); const email = input.email.trim()
+  if (!title) throw new Error('Ο τίτλος του αιτήματος είναι υποχρεωτικός.')
+  if (!email) throw new Error('Το email παραλήπτη είναι υποχρεωτικό.')
+  if (input.obligationId) { const ob = await prisma.applicationObligation.findUnique({ where: { id: input.obligationId }, select: { applicationId: true } }); if (ob?.applicationId !== applicationId) throw new Error('Η υποχρέωση ανήκει σε άλλο έργο.') }
+  const { raw, hash } = newToken()
+  const expiresAt = new Date(Date.now() + (input.expiresInDays ?? 14) * 86_400_000)
+  const trdr = await prisma.trdr.findUniqueOrThrow({ where: { id: app.trdrId }, select: { NAME: true } })
+  const r = await prisma.documentRequest.create({ data: { applicationId, obligationId: input.obligationId ?? null, trdrId: app.trdrId, title, description: input.description?.trim() || null, email, tokenHash: hash, expiresAt, createdById: session.user.id } })
+  const url = `${APP_URL}/portal/upload/${raw}`
+  await emailRequestLink(email, title, url, trdr.NAME)
+  revalidatePath(`/pm/applications/${applicationId}`)
+  return { id: r.id, url }
+}
+
+export async function listDocumentRequests(applicationId: string): Promise<DocumentRequestItem[]> {
+  await requireVisibleApplication(applicationId)
+  const rows = await prisma.documentRequest.findMany({ where: { applicationId }, orderBy: { createdAt: 'desc' } })
+  return rows.map(r => ({ id: r.id, title: r.title, description: r.description, email: r.email, status: r.status, expiresAt: r.expiresAt.toISOString(), uploadedAt: r.uploadedAt?.toISOString() ?? null, obligationId: r.obligationId, uploadedDocumentId: r.uploadedDocumentId }))
+}
+
+export async function resendDocumentRequest(id: string): Promise<{ url: string }> {
+  const req = await requireVisibleRequestRow(id)
+  if (req.status === 'CANCELLED' || req.status === 'FULFILLED') throw new Error('Το αίτημα έχει κλείσει.')
+  const { raw, hash } = newToken()
+  const expiresAt = new Date(Date.now() + 14 * 86_400_000)
+  await prisma.documentRequest.update({ where: { id }, data: { tokenHash: hash, expiresAt, status: 'PENDING' } })
+  const trdr = await prisma.trdr.findUniqueOrThrow({ where: { id: req.trdrId }, select: { NAME: true } })
+  const url = `${APP_URL}/portal/upload/${raw}`
+  await emailRequestLink(req.email, req.title, url, trdr.NAME)
+  revalidatePath(`/pm/applications/${req.applicationId}`)
+  return { url }
+}
+
+export async function cancelDocumentRequest(id: string): Promise<void> {
+  const req = await requireVisibleRequestRow(id)
+  await prisma.documentRequest.update({ where: { id }, data: { status: 'CANCELLED' } })
+  revalidatePath(`/pm/applications/${req.applicationId}`)
+}
+
+export async function fulfillDocumentRequest(id: string): Promise<void> {
+  const req = await requireVisibleRequestRow(id)
+  if (req.status !== 'UPLOADED') throw new Error('Δεν υπάρχει ανεβασμένο αρχείο προς επιβεβαίωση.')
+  await prisma.documentRequest.update({ where: { id }, data: { status: 'FULFILLED' } })
+  revalidatePath(`/pm/applications/${req.applicationId}`)
+}
+
+export async function createPortalAccess(applicationId: string, input: { email: string; expiresInDays?: number }): Promise<{ url: string }> {
+  const { session, app } = await requireVisibleApplication(applicationId)
+  const email = input.email.trim(); if (!email) throw new Error('Το email είναι υποχρεωτικό.')
+  const { raw, hash } = newToken()
+  const expiresAt = new Date(Date.now() + (input.expiresInDays ?? 30) * 86_400_000)
+  await prisma.portalToken.create({ data: { tokenHash: hash, trdrId: app.trdrId, email, expiresAt, createdById: session.user.id } })
+  const trdr = await prisma.trdr.findUniqueOrThrow({ where: { id: app.trdrId }, select: { NAME: true } })
+  const url = `${APP_URL}/portal/access/${raw}`
+  if (await isMailerConfigured()) { const html = `<p>Καλησπέρα,</p><p>Μπορείτε να δείτε την πρόοδο των έργων σας εδώ (χωρίς σύνδεση): <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p><p>— ${escapeHtml(trdr.NAME)}</p>`; await sendMail({ to: email, subject: 'Πρόσβαση στο Portal έργων σας', html, refType: 'pm-portal-access' }).catch(() => {}) }
+  return { url }
 }
