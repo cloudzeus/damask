@@ -1238,6 +1238,14 @@ enum ExpenseStatus {
   REPLACED
 }
 
+enum PaymentRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PAID
+  REJECTED
+}
+
 model ProgramApplication {
   id          String           @id @default(cuid())
   trdrId      String
@@ -1265,6 +1273,7 @@ model ProgramApplication {
   obligations        ApplicationObligation[]
   documents          ApplicationDocument[]
   criterionScores    ApplicationCriterionScore[]
+  paymentRequests    PaymentRequest[]
 
   @@unique([trdrId, programId])
   @@index([trdrId])
@@ -1294,6 +1303,8 @@ model ProgramExpense {
   replaces             ProgramExpense?         @relation("ExpenseReplacement", fields: [replacesExpenseId], references: [id], onDelete: SetNull)
   replacedBy           ProgramExpense?         @relation("ExpenseReplacement")
   certification        ProgramExpenseCertification?
+  paymentRequestId     String?
+  paymentRequest       PaymentRequest?         @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
   createdById          String?
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
@@ -1301,6 +1312,7 @@ model ProgramExpense {
   @@index([applicationId])
   @@index([categoryId])
   @@index([status])
+  @@index([paymentRequestId])
 }
 
 model ProgramExpenseCertification {
@@ -1323,6 +1335,27 @@ model ProgramExpenseCertification {
   updatedAt         DateTime @updatedAt
 
   @@index([expenseId])
+}
+
+model PaymentRequest {
+  id            String   @id @default(cuid())
+  applicationId String
+  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  ordinal       Int
+  title         String?
+  targetAmount  Decimal? @db.Decimal(18, 2)
+  status        PaymentRequestStatus @default(DRAFT)
+  notes         String?
+  submittedAt   DateTime?
+  approvedAt    DateTime?
+  paidAt        DateTime?
+  paidAmount    Decimal? @db.Decimal(18, 2)
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  expenses      ProgramExpense[]
+
+  @@index([applicationId])
 }
 
 model ApplicationObligation {
