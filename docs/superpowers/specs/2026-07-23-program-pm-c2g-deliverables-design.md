@@ -128,3 +128,15 @@ Pure: phase order/skip-optional εξαρτήσεις builder, cycle-guard, gatin
 - **C2g.1**: schema+migration (με απορρόφηση C2a.2 δεδομένων), template tab στο πρόγραμμα, materialization με auto-DAG, gating server-side, φάκελος δαπάνης UI (πίνακας δαπανών×φάσεων, multi-upload/accept/reject), verified→C2f αναλλοίωτο, tests πράσινα.
 - **C2g.2**: Gantt view με βέλη εξαρτήσεων + critical path.
 - **C2g.3**: extraction παραρτήματος + wizard αντιστοίχισης με παλαιότερα.
+
+---
+
+## ΤΡΟΠΟΠΟΙΗΣΗ Α΄ (2026-07-23, user feedback μετά το T1)
+
+**Δύο επίπεδα + wizard + υποχρέωση Ν αρχείων:**
+1. **Παραδοτέο (group)** — `ProgramDeliverableTemplate` γίνεται η ΟΜΑΔΑ: `{programId, name, description, appliesTo, active, sourceTemplateId}` (ΧΩΡΙΣ phase/onSiteVerification — αυτά κατεβαίνουν στα tasks). Ένα παραδοτέο **διατρέχει πολλές φάσεις** μέσω των tasks του.
+2. **Task (βήμα)** — ΝΕΟ `ProgramDeliverableTask`: `{templateId, phase, name, description?, mandatory, onSiteVerification, minFiles Int @default(1), order}`. Ένα task **κλείνει μόνο με ≥ minFiles αρχεία** (server-enforced).
+3. **Instances** — `ExpenseDeliverable` = instance της ομάδας ανά δαπάνη/έργο (name snapshot· status παράγωγο). ΝΕΟ `ExpenseDeliverableTask`: `{deliverableId, taskTemplateId?, phase, name, mandatory, onSiteVerification, minFiles, status, acceptedById/At, notes, order}`. **Τα `DeliverableFile` και οι `DeliverableDependency` δένονται πλέον σε TASKS** (όχι στην ομάδα).
+4. **Κανόνες**: task → ACCEPTED μόνο αν `files ≥ minFiles` ΚΑΙ όχι blocked (DAG). Παραδοτέο "πλήρες" = όλα τα mandatory tasks ACCEPTED/WAIVED. `verifiedFromDeliverables` → πάνω στα tasks των φάσεων πιστοποίησης. Gantt/DAG → επίπεδο task.
+5. **Wizard (αντικαθιστά τον flat editor του T7)**: Βήμα 1 στοιχεία παραδοτέου (όνομα, περιγραφή, scope) → Βήμα 2 tasks ανά φάση (add rows: φάση, όνομα, mandatory, επιτόπια, **πλήθος απαιτούμενων αρχείων**) → Βήμα 3 σύνοψη & αποθήκευση. Ο admin το φτιάχνει μία φορά ανά πρόγραμμα («και όλα όσα χρειάζεται») και μετά το χρησιμοποιεί (materialization + βιβλιοθήκη copy).
+6. **Migration**: το T1 schema έχει ήδη εφαρμοστεί → πρόσθετο restructuring migration `program_pm_c2g_tasks` (νέοι πίνακες tasks, repoint FKs των files/dependencies σε tasks, μεταφορά τυχόν absorbed γραμμών σε ομάδα «Πιστοποίηση (μεταφορά)» + tasks — ΟΧΙ επεξεργασία εφαρμοσμένων migrations, shared dev DB).
