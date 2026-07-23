@@ -67,6 +67,9 @@ vi.mock('@/lib/prisma', () => ({
       create: vi.fn(async () => ({ id: 'doc-1' })),
       delete: vi.fn(async () => ({ id: 'doc-1' })),
     },
+    programExpenseCategory: {
+      findMany: vi.fn(async () => []),
+    },
   },
 }))
 vi.mock('@/lib/bunny-storage', () => ({
@@ -104,6 +107,7 @@ describe('pm actions surface', () => {
       'removeApplicationDocument',
       'setApplicationStage',
       'updateOpske',
+      'listApplicationExpenseCategories',
     ]) {
       expect(typeof (actions as Record<string, unknown>)[k]).toBe('function')
     }

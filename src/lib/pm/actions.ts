@@ -522,3 +522,22 @@ export async function updateOpske(
   })
   revalidatePath(`/pm/applications/${applicationId}`)
 }
+
+export type ExpenseCategoryOption = { id: string; name: string }
+
+/** id+name λίστα των κατηγοριών δαπανών του ΠΡΟΓΡΑΜΜΑΤΟΣ μιας αίτησης — pm-scoped
+ * mirror του getProgramExpenseCategories (src/lib/programs/actions.ts), που είναι
+ * κλειδωμένο πίσω από programs.manage και άρα αχρησιμοποίητο από pm.work
+ * (assigned MANAGER/EMPLOYEE) χρήστες. Το ExpensesTab (src/components/pm/
+ * expenses-tab.tsx) περνάει applicationId αντί για programId ακριβώς για να
+ * περάσει από requireVisibleApplication — ο χρήστης φορτώνει τις κατηγορίες
+ * ΜΟΝΟ του δικού του ορατού προγράμματος, ποτέ ενός αυθαίρετου programId. */
+export async function listApplicationExpenseCategories(applicationId: string): Promise<ExpenseCategoryOption[]> {
+  const { app } = await requireVisibleApplication(applicationId)
+  const rows = await prisma.programExpenseCategory.findMany({
+    where: { programId: app.programId },
+    orderBy: { order: 'asc' },
+    select: { id: true, name: true },
+  })
+  return rows
+}
