@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
 import { newToken } from '@/lib/pm/portal-token'
-import { sendMail, isMailerConfigured, escapeHtml } from '@/lib/mailer'
+import { sendMail, isMailerConfigured } from '@/lib/mailer'
+import { newsletterHtml, newsletterSubject, type NewsletterProgram } from '@/lib/prospects/newsletter-template'
 import { createApplication } from '@/lib/programs/actions'
 import { deriveHierarchyFromMap, type RegionNodeLookup } from '@/lib/registries/regions-tree'
 import {
@@ -127,17 +128,29 @@ export async function findProspects(programId: string, selected: SelectedCriteri
 
 export type SendNewsletterResult = { sent: number; skipped: number; failed: number }
 
-/** Κοινό template του newsletter — ΙΔΙΟ για κανονική και δοκιμαστική αποστολή (test preview). */
-function newsletterHtml(
-  recipientName: string,
-  program: { title: string; summary: string | null; submissionEnd: Date | null },
-  url: string,
-): string {
-  const deadline = program.submissionEnd ? program.submissionEnd.toLocaleDateString('el-GR') : null
-  return `<p>Καλησπέρα ${escapeHtml(recipientName)},</p>
-<p>Θέλουμε να σας ενημερώσουμε για το πρόγραμμα χρηματοδότησης <b>${escapeHtml(program.title)}</b>${program.summary ? `: ${escapeHtml(program.summary)}` : ''}.</p>
-${deadline ? `<p>Προθεσμία υποβολής: <b>${escapeHtml(deadline)}</b></p>` : ''}
-<p>Αν ενδιαφέρεστε, πατήστε τον παρακάτω σύνδεσμο και θα επικοινωνήσουμε μαζί σας: <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`
+/**
+ * Πεδία προγράμματος που τροφοδοτούν το marketing template + μετατροπή των
+ * Prisma Decimal σε number. ΙΔΙΟ select/mapping για κανονική και δοκιμαστική
+ * αποστολή ώστε το preview να μην αποκλίνει ποτέ.
+ */
+const NEWSLETTER_PROGRAM_SELECT = {
+  title: true, summary: true, referenceCode: true, submissionEnd: true,
+  fundingRate: true, totalBudget: true, durationMonths: true,
+} as const
+
+function toNewsletterProgram(p: {
+  title: string; summary: string | null; referenceCode: string | null; submissionEnd: Date | null
+  fundingRate: unknown; totalBudget: unknown; durationMonths: number | null
+}): NewsletterProgram {
+  return {
+    title: p.title,
+    summary: p.summary,
+    referenceCode: p.referenceCode,
+    submissionEnd: p.submissionEnd,
+    fundingRate: p.fundingRate == null ? null : Number(p.fundingRate),
+    totalBudget: p.totalBudget == null ? null : Number(p.totalBudget),
+    durationMonths: p.durationMonths,
+  }
 }
 
 export type SendNewsletterTestResult = { ok: boolean; message: string }
@@ -159,17 +172,18 @@ export async function sendProgramNewsletterTest(programId: string, email: string
     return { ok: false, message: 'Ο mailer (Mailgun) δεν έχει ρυθμιστεί — Ρυθμίσεις → Διασυνδέσεις.' }
   }
 
-  const program = await prisma.program.findUniqueOrThrow({
+  const dbProgram = await prisma.program.findUniqueOrThrow({
     where: { id: programId },
-    select: { title: true, summary: true, submissionEnd: true },
+    select: NEWSLETTER_PROGRAM_SELECT,
   })
+  const program = toNewsletterProgram(dbProgram)
 
   const { raw } = newToken() // δεν αποθηκεύεται πουθενά — ο σύνδεσμος του test δεν κάνει match σε lead
   const html = newsletterHtml('Δείγμα Επωνυμίας Α.Ε.', program, `${APP_URL}/go/${raw}`)
 
   const result = await sendMail({
     to: clean,
-    subject: `[ΔΟΚΙΜΗ] Ενημέρωση προγράμματος: ${program.title}`,
+    subject: `[ΔΟΚΙΜΗ] ${newsletterSubject(program)}`,
     html,
     refType: 'program-newsletter-test',
     refId: programId,
@@ -194,10 +208,11 @@ export async function sendProgramNewsletter(programId: string, trdrIds: string[]
     return { sent: 0, skipped: trdrIds.length, failed: 0 }
   }
 
-  const program = await prisma.program.findUniqueOrThrow({
+  const dbProgram = await prisma.program.findUniqueOrThrow({
     where: { id: programId },
-    select: { title: true, summary: true, submissionEnd: true },
+    select: NEWSLETTER_PROGRAM_SELECT,
   })
+  const program = toNewsletterProgram(dbProgram)
   const trdrs = await prisma.trdr.findMany({
     where: { id: { in: trdrIds } },
     select: { id: true, NAME: true, EMAIL: true },
@@ -224,7 +239,7 @@ export async function sendProgramNewsletter(programId: string, trdrIds: string[]
 
       const result = await sendMail({
         to: trdr.EMAIL,
-        subject: `Ενημέρωση προγράμματος: ${program.title}`,
+        subject: newsletterSubject(program),
         html,
         refType: 'program-newsletter',
         refId: programId,
