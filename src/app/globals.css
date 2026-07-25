@@ -1662,3 +1662,23 @@ input[type='checkbox'] {
   color: #fff;
   box-shadow: 0 8px 22px rgb(192 57 43 / 32%);
 }
+
+/* ---------------------------------------------------------------------------
+   Αναφορά Email (/mail-report) — παλέτα σειρών γραφήματος, επικυρωμένη με τον
+   dataviz validator και στα δύο modes (CVD ΔΕ + normal-vision floors PASS).
+   Τα light steps δεν αντιστρέφονται αυτόματα — το dark set είναι δικά του
+   βήματα των ίδιων αποχρώσεων για τη σκούρα επιφάνεια. */
+.mail-report {
+  --mr-delivered: #2a78d6;
+  --mr-opened: #1baf7a;
+  --mr-clicked: #4a3aa7;
+  --mr-failed: #e34948;
+  --mr-failed-soft: rgb(227 73 72 / 12%);
+}
+.dark .mail-report {
+  --mr-delivered: #3987e5;
+  --mr-opened: #199e70;
+  --mr-clicked: #9085e9;
+  --mr-failed: #e66767;
+  --mr-failed-soft: rgb(230 103 103 / 18%);
+}

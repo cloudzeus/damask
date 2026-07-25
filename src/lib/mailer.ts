@@ -18,6 +18,12 @@ export type SendMailInput = {
   userId?: string
   refType?: string
   refId?: string
+  /**
+   * Mailgun open/click tracking (τροφοδοτεί τα opened/clicked της σελίδας
+   * /mail-report). Default true· βάλε false για transactional emails που δεν
+   * θέλουμε να μετράνε (π.χ. reset password).
+   */
+  tracking?: boolean
 }
 export type SendMailResult = { ok: true; id?: string } | { ok: false; error: string }
 
@@ -66,6 +72,11 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   form.set('subject', input.subject)
   form.set('html', input.html)
   form.set('text', input.text ?? stripHtml(input.html))
+  if (input.tracking !== false) {
+    form.set('o:tracking', 'yes')
+    form.set('o:tracking-opens', 'yes')
+    form.set('o:tracking-clicks', 'htmlonly')
+  }
 
   try {
     const res = await fetch(`${base}/v3/${cfg.domain}/messages`, {
