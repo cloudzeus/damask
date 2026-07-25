@@ -47,7 +47,6 @@ describe('groupedPermissions()', () => {
       'Πελάτες & Παραγγελίες',
       'Διαχείριση',
       'Ευρωπαϊκά Προγράμματα',
-      'Μητρώα',
     ])
 
     const labelOf = (key: string) =>
@@ -74,8 +73,10 @@ describe('groupedPermissions()', () => {
 
     expect(labelOf('programs.manage')).toBe('Ευρωπαϊκά Προγράμματα')
 
-    expect(labelOf('regions.view')).toBe('Μητρώα')
-    expect(labelOf('kad.view')).toBe('Μητρώα')
+    expect(labelOf('regions.view')).toBe('Ευρωπαϊκά Προγράμματα')
+    expect(labelOf('regions.manage')).toBe('Ευρωπαϊκά Προγράμματα')
+    expect(labelOf('kad.view')).toBe('Ευρωπαϊκά Προγράμματα')
+    expect(labelOf('kad.manage')).toBe('Ευρωπαϊκά Προγράμματα')
   })
 
   it('διατηρεί τη δηλωμένη σειρά του PERMISSIONS μέσα σε κάθε ομάδα', () => {

@@ -133,6 +133,7 @@ export type KadChildNode = {
   hasChildren: boolean
   /** true αν ο κωδικός (ή κάποιος πρόγονος — inherited) απαιτεί άδεια λειτουργίας. */
   requiresLicense: boolean
+  isActive: boolean
 }
 
 /**
@@ -153,6 +154,7 @@ export async function kadChildren(parentCode?: string | null): Promise<KadChildN
       sector: true,
       parentCode: true,
       path: true,
+      isActive: true,
       _count: { select: { children: true, licenseRequirements: true } },
     },
   })
@@ -172,6 +174,7 @@ export async function kadChildren(parentCode?: string | null): Promise<KadChildN
     descendants: descendants[i],
     hasChildren: r._count.children > 0,
     requiresLicense: r._count.licenseRequirements > 0,
+    isActive: r.isActive,
   }))
 }
 

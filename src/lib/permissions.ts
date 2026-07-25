@@ -71,8 +71,8 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   taxform: 'Διαχείριση',
   programs: 'Ευρωπαϊκά Προγράμματα',
   pm: 'Ευρωπαϊκά Προγράμματα',
-  regions: 'Μητρώα',
-  kad: 'Μητρώα',
+  regions: 'Ευρωπαϊκά Προγράμματα',
+  kad: 'Ευρωπαϊκά Προγράμματα',
 }
 
 export type PermissionGroup = { label: string; items: PermissionDef[] }

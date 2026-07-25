@@ -18,7 +18,7 @@ import {
 } from '@/lib/registries/regions-tree'
 import { nameMatchCandidate, nearestNode } from '@/lib/registries/regions-match-pure'
 import { getIntegration } from '@/lib/settings'
-import { geocodeSearch, GeocodeError } from '@/lib/geocode'
+import { geocodeSearchParts, GeocodeError } from '@/lib/geocode'
 
 export type DecodedRegion = {
   code: string
@@ -96,6 +96,7 @@ export async function decodeRegion(input: string): Promise<DecodedRegion | null>
 export type RegionChildNode = {
   code: string
   nameEL: string
+  nameEN: string | null
   level: number
   parentCode: string | null
   directChildren: number
@@ -103,6 +104,7 @@ export type RegionChildNode = {
   hasChildren: boolean
   latitude: number | null
   longitude: number | null
+  isActive: boolean
 }
 
 /**
@@ -120,11 +122,13 @@ export async function regionChildren(parentCode?: string | null): Promise<Region
     select: {
       code: true,
       nameEL: true,
+      nameEN: true,
       level: true,
       parentCode: true,
       path: true,
       latitude: true,
       longitude: true,
+      isActive: true,
       _count: { select: { children: true } },
     },
   })
@@ -136,6 +140,7 @@ export async function regionChildren(parentCode?: string | null): Promise<Region
   return rows.map((r, i) => ({
     code: r.code,
     nameEL: r.nameEL,
+    nameEN: r.nameEN,
     level: r.level,
     parentCode: r.parentCode,
     directChildren: r._count.children,
@@ -143,6 +148,7 @@ export async function regionChildren(parentCode?: string | null): Promise<Region
     hasChildren: r._count.children > 0,
     latitude: r.latitude,
     longitude: r.longitude,
+    isActive: r.isActive,
   }))
 }
 
@@ -200,22 +206,31 @@ export async function matchRegion(input: MatchInput): Promise<RegionMatch | null
     if (code) return { regionCode: code, breadcrumb: await deriveHierarchy(code), confidence: 'name' }
   }
 
-  // 2) geo fallback — use given coords, else geocode the address via the existing
-  //    geocode.maps.co helper (src/lib/geocode.ts), keyed from the 'maps' integration.
+  // 2) geo fallback — use given coords, else ZIP-aware geocoding (geocodeSearchParts:
+  //    η ΑΑΔΕ «πόλη» είναι συχνά παραπλανητική — π.χ. «ΑΘΗΝΑ» με ΤΚ Μελισσίων).
   let point: { lat: number; lng: number } | null =
     input.latitude != null && input.longitude != null ? { lat: input.latitude, lng: input.longitude } : null
   if (!point) {
-    const query = [input.address, input.district, input.city, input.zip].filter(Boolean).join(', ')
-    if (query) {
-      const maps = await getIntegration<{ geocodeApiKey?: string }>('maps')
-      if (maps.geocodeApiKey) {
-        try {
-          const [first] = await geocodeSearch(query, maps.geocodeApiKey)
-          if (first) point = { lat: first.lat, lng: first.lng }
-        } catch (err) {
-          // Fail soft — geocoding is a best-effort fallback, never let it throw matchRegion.
-          if (!(err instanceof GeocodeError)) throw err
+    const maps = await getIntegration<{ geocodeApiKey?: string }>('maps')
+    if (maps.geocodeApiKey && (input.address || input.district || input.city || input.zip)) {
+      try {
+        const hit = await geocodeSearchParts(
+          { address: input.address, city: input.district ?? input.city, zip: input.zip },
+          maps.geocodeApiKey,
+        )
+        if (hit) {
+          // Το Nominatim display_name περιέχει τον επίσημο Δήμο («…, Δήμος Πεντέλης, …») —
+          // πιο ακριβές από το κοντινότερο centroid (π.χ. Μελίσσια: κοντινότερο = Βριλήσσια).
+          const m = hit.displayName.match(/Δήμος\s+([^,]+)/)
+          if (m) {
+            const code = nameMatchCandidate(m[1], nodes)
+            if (code) return { regionCode: code, breadcrumb: await deriveHierarchy(code), confidence: 'geo' }
+          }
+          point = { lat: hit.lat, lng: hit.lng }
         }
+      } catch (err) {
+        // Fail soft — geocoding is a best-effort fallback, never let it throw matchRegion.
+        if (!(err instanceof GeocodeError)) throw err
       }
     }
   }

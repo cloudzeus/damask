@@ -81,13 +81,13 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
       { key: 'pm.manage', description: 'Διαχείριση & αναθέσεις έργων' },
       { key: 'pm.work', description: 'Εργασία σε ανατεθειμένα έργα' },
     ] },
-  ] },
-  { key: 'registries', label: 'Μητρώα', items: [
     { key: 'regions', href: '/regions', label: 'Περιφέρειες', icon: MapPin, menuPermission: 'regions.view', permissions: [
       { key: 'regions.view', description: 'Προβολή μητρώου περιφερειών (Καλλικράτης)' },
+      { key: 'regions.manage', description: 'Διαχείριση μητρώου περιφερειών — προσθήκη/επεξεργασία/διαγραφή' },
     ] },
     { key: 'kad', href: '/kad', label: 'ΚΑΔ', icon: Tags, menuPermission: 'kad.view', permissions: [
       { key: 'kad.view', description: 'Προβολή μητρώου ΚΑΔ' },
+      { key: 'kad.manage', description: 'Διαχείριση μητρώου ΚΑΔ — προσθήκη/επεξεργασία/διαγραφή' },
     ] },
   ] },
   { key: 'media', label: 'Media', items: [
