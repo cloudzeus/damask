@@ -112,7 +112,7 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     { key: 'costs', href: '/costs', label: 'Κόστη', icon: Coins, menuPermission: 'costs.view', core: true, permissions: [
       { key: 'costs.view', description: 'Προβολή κόστους AI/API (SUPER_ADMIN βλέπει markup, ADMIN μόνο το τελικό κόστος)' },
     ] },
-    { key: 'mail-report', href: '/mail-report', label: 'Αναφορά Email', icon: MailCheck, menuPermission: 'mail.report', permissions: [
+    { key: 'mail-report', href: '/mail-report', label: 'Mail Stats', icon: MailCheck, menuPermission: 'mail.report', core: true, permissions: [
       { key: 'mail.report', description: 'Προβολή αναφοράς email (Mailgun analytics, funnel newsletters)' },
     ] },
     { key: 'settings', href: '/settings', label: 'Ρυθμίσεις', icon: Settings, menuPermission: 'settings.manage', core: true, permissions: [
