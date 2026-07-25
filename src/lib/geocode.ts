@@ -119,6 +119,61 @@ export async function geocodeSearch(address: string, apiKey: string): Promise<Ge
   return results
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+const normZip = (z: string | null | undefined) => (z ?? '').replace(/\s+/g, '')
+
+export type GeocodePartsInput = { address?: string | null; city?: string | null; zip?: string | null }
+
+/**
+ * ZIP-aware geocoding με αλυσίδα fallbacks — για διευθύνσεις ΑΑΔΕ/Excel όπου η
+ * «πόλη» είναι συχνά παραπλανητική (η ΑΑΔΕ γράφει π.χ. «ΑΘΗΝΑ» ενώ ο ΤΚ είναι
+ * προαστίου — «ΑΝΔΡΕΑ ΠΑΠΑΝΔΡΕΟΥ 2Α, ΑΘΗΝΑ, 15127» = Μελίσσια) και το Nominatim
+ * επιστρέφει 0 αποτελέσματα για τον πλήρη συνδυασμό. Δοκιμάζει διαδοχικά:
+ *   1. διεύθυνση + πόλη + ΤΚ (όπως πριν)
+ *   2. διεύθυνση χωρίς γράμμα αριθμού («2Α»→«2») + πόλη + ΤΚ
+ *   3. διεύθυνση + ΤΚ (ΧΩΡΙΣ την πόλη)
+ *   4. ΤΚ μόνο («15127 Ελλάδα» → postcode centroid — αξιόπιστο δίχτυ ασφαλείας)
+ *   5. διεύθυνση + πόλη, 6. πόλη μόνο
+ * Όταν υπάρχει ΤΚ, δεκτά ΜΟΝΟ αποτελέσματα με ίδιο ΤΚ (αλλιώς το Nominatim
+ * επιστρέφει ομώνυμες οδούς σε άλλους δήμους). Μικρή παύση μεταξύ προσπαθειών
+ * (free tier: 1 αίτημα/δευτερόλεπτο).
+ */
+export async function geocodeSearchParts(parts: GeocodePartsInput, apiKey: string): Promise<GeocodeResult | null> {
+  requireApiKey(apiKey)
+  const address = parts.address?.trim() || null
+  const city = parts.city?.trim() || null
+  const zip = parts.zip?.trim() || null
+  // «2Α» → «2» — το Nominatim σπάνια γνωρίζει αριθμούς με γράμμα
+  const addressPlain = address ? address.replace(/(\d+)\s*[Α-ΩA-Z]\b/gu, '$1') : null
+
+  const queries: string[] = []
+  const push = (partsList: (string | null)[]) => {
+    const q = partsList.filter(Boolean).join(', ')
+    if (q && !queries.includes(q)) queries.push(q)
+  }
+  push([address, city, zip])
+  push([addressPlain, city, zip])
+  push([addressPlain, zip])
+  if (zip) push([`${zip} Ελλάδα`])
+  push([addressPlain, city])
+  push([city])
+
+  for (const [i, q] of queries.entries()) {
+    if (i > 0) await sleep(1_100)
+    let results: GeocodeResult[]
+    try {
+      results = await geocodeSearch(q, apiKey)
+    } catch (err) {
+      if (err instanceof GeocodeError) continue // δοκίμασε το επόμενο query — π.χ. παροδικό 429
+      throw err
+    }
+    const hit = zip ? results.find(r => normZip(r.zip) === normZip(zip)) : results[0]
+    if (hit) return hit
+  }
+  return null
+}
+
 /** Προτάσεις autocomplete (fallback όταν το Google Places (New) δεν είναι διαθέσιμο — βλ.
  * partners/google-places-input.tsx) — ίδιο endpoint με το geocodeSearch αλλά με explicit
  * `limit` ώστε το dropdown να μη γεμίζει με δεκάδες αποτελέσματα. */

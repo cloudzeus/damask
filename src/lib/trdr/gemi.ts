@@ -45,21 +45,42 @@ async function resolveApiKey(apiKeyOverride?: string): Promise<string> {
   return key
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+/** 429 retries: το ΓΕΜΗ API έχει αυστηρό rate limit — 3 προσπάθειες με backoff (Retry-After αν δοθεί). */
+const RATE_LIMIT_RETRIES = 3
+const RATE_LIMIT_BASE_DELAY_MS = 2_000
+
 async function gemiFetch<T>(path: string, init?: RequestInit & { apiKeyOverride?: string }): Promise<T> {
   const { apiKeyOverride, ...rest } = init ?? {}
   const apiKey = await resolveApiKey(apiKeyOverride)
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...rest,
-    headers: { api_key: apiKey, Accept: 'application/json', ...(rest.headers ?? {}) },
-    cache: 'no-store',
-    // Χωρίς timeout ένα αργό ΓΕΜΗ call κρεμάει το server action επ' άπειρον (πάγωμα UI).
-    signal: AbortSignal.timeout(20_000),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new GemiError(res.status, text || res.statusText)
+
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      ...rest,
+      headers: { api_key: apiKey, Accept: 'application/json', ...(rest.headers ?? {}) },
+      cache: 'no-store',
+      // Χωρίς timeout ένα αργό ΓΕΜΗ call κρεμάει το server action επ' άπειρον (πάγωμα UI).
+      signal: AbortSignal.timeout(20_000),
+    })
+    if (res.status === 429 && attempt < RATE_LIMIT_RETRIES) {
+      const retryAfter = Number(res.headers.get('retry-after'))
+      const delay = Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter * 1_000, 30_000)
+        : RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt // 2s → 4s → 8s
+      await res.text().catch(() => '') // drain το body πριν το retry
+      await sleep(delay)
+      continue
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      if (res.status === 429) {
+        throw new GemiError(429, 'Υπέρβαση ορίου κλήσεων ΓΕΜΗ (rate limit) — δοκίμασε ξανά σε λίγα λεπτά.')
+      }
+      throw new GemiError(res.status, text || res.statusText)
+    }
+    return res.json() as Promise<T>
   }
-  return res.json() as Promise<T>
 }
 
 // ---------- Types (subset, see swagger spec for full schema) ----------
