@@ -11,7 +11,7 @@ export async function Topbar() {
   const name = session?.user?.name ?? ''
   const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
   return (
-    <header className="glass mt-3.5 mb-4 flex h-[54px] items-center gap-2.5 rounded-full py-0 pr-2 pl-4.5">
+    <header className="glass mx-3.5 mt-3.5 mb-4 flex h-[54px] items-center gap-2.5 rounded-full py-0 pr-2 pl-4.5">
       <div className="flex h-[34px] min-w-[220px] items-center gap-2 rounded-full border border-border bg-card px-3.5 text-[12.5px] text-muted-foreground shadow-[inset_0_1px_3px_rgb(23_43_58_/_5%)]">
         <Search className="size-3.5 shrink-0" strokeWidth={1.8} />
         Γρήγορη αναζήτηση…

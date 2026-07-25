@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-16T08:42:54.011Z",
+  "timestamp": "2026-07-25T10:44:38.922Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -18,15 +18,35 @@
   "uncommitted_files": [
     {
       "status": "M",
+      "path": ".gitignore"
+    },
+    {
+      "status": "M",
       "path": ".planning/HANDOFF.json"
     },
     {
       "status": "M",
-      "path": "src/app/(app)/partners/actions.ts"
+      "path": "src/components/ingestion/step-ingest-commit.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/(app)/partners/google-places-input.tsx"
+      "path": "src/components/ingestion/step-ingest-map.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/ingestion/step-ingest-validate.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/ingestion/types.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/components/programs/prospects-tab.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/shell/topbar.tsx"
     },
     {
       "status": "M",
@@ -34,13 +54,49 @@
     },
     {
       "status": "M",
-      "path": "tests/geocode.test.ts"
+      "path": "src/lib/ingestion/actions.ts"
     },
     {
-      "status": "??",
-      "path": ".claude/"
+      "status": "M",
+      "path": "src/lib/ingestion/commit/index.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/ingestion/commit/partner-upsert.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/ingestion/fields.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/ingestion/map.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/ingestion/registry.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/ingestion/target.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/prospects/eligibility.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/trdr/gemi.ts"
+    },
+    {
+      "status": "M",
+      "path": "tests/ingestion-partner-prep.test.ts"
+    },
+    {
+      "status": "M",
+      "path": "tests/prospects-eligibility.test.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n3539924 fix: auto-refresh role/permissions in JWT every 60s — no re-login needed after RBAC changes\n7c97fb5 refactor: exact SoftOne TRDR mapping with SODTYPE/ISPROSP, S1 reference mirror tables and combo components\n95cbee4 feat: trading partners by SODTYPE — leads pipeline, geocoding+maps, logos, multi-contacts with user access requests\ned7b740 feat: metered API cost tracking — per-service usage, free quotas, markup, unified /costs dashboard\ne6e9e89 feat: media gallery v2 — lightbox full-res viewer, adjustable thumbnails, bulk and recursive deletion"
+  "context_notes": "Recent commits:\ne7aa3c6 feat(registries): διαχείριση Περιφερειών/ΚΑΔ στην ενότητα «Ευρωπαϊκά Προγράμματα»\naac14ee feat(trdr): ΔΟΥ από ΑΑΔΕ παντού + νέα πεδία καρτέλας (PHONE02/EMAILACC/εργαζόμενοι/έσοδα)\ne204b00 fix(trdr): timeouts σε ΓΕΜΗ fetches (20s/45s) + Bunny upload (90s) — τέλος στο πάγωμα του gemi-sync\ne1817ca fix(pm): C2g wizard — ευρύτερο modal (1180px) ώστε tasks + panel προτύπων να χωρούν\n62ec67f feat(invoices): W4 UI — workflow Εταιρίας στο OCR + Καταχώριση δαπάνης από OCR στο έργο"
 }
