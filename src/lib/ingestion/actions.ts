@@ -8,7 +8,11 @@ import { projectOcr } from '@/lib/ingestion/ocr-project'
 import { normalizeApiJson, assertSafeIngestUrl } from '@/lib/ingestion/api-normalize'
 import { buildOcrCostViewForSession, type OcrCostView } from '@/lib/ingestion/ocr-cost'
 import { validateRows } from '@/lib/ingestion/validate'
+// ΣΗΜΕΙΩΣΗ: ΚΑΝΕΝΑ `export type` εδώ — σε 'use server' αρχείο ο Next actions
+// compiler μετατρέπει ΚΑΘΕ export σε action reference και σκάει στο runtime
+// (ReferenceError). Οι τύποι ζουν στο client-safe @/lib/ingestion/target.
 import { commitFor } from '@/lib/ingestion/commit'
+import type { CommitEnrichOptions } from '@/lib/ingestion/target'
 import { mapToRows, type IngestionMapping } from '@/lib/ingestion/map'
 import type { NormalizedBatch } from '@/lib/ingestion/normalized'
 import type { ImportTotals } from '@/lib/import/product-upsert'
@@ -113,9 +117,10 @@ export async function validateBatch(
   targetKey: string,
   batch: NormalizedBatch,
   mappings: IngestionMapping[],
+  fixedValues?: Record<string, string>,
 ): Promise<ValidateBatchResult> {
   const { target } = await requireTarget(targetKey)
-  const rows = mapToRows(batch, mappings, target)
+  const rows = mapToRows(batch, mappings, target, fixedValues)
   const { parsed, errors } = validateRows(rows, target)
   const validRows = parsed.filter(p => p.ok).length
   return { errors, validRows }
@@ -125,12 +130,14 @@ export async function commitBatch(
   targetKey: string,
   batch: NormalizedBatch,
   mappings: IngestionMapping[],
+  fixedValues?: Record<string, string>,
+  enrich?: CommitEnrichOptions,
 ): Promise<ImportTotals> {
   const { target } = await requireTarget(targetKey)
   const commit = commitFor(targetKey)
   if (!commit) throw new Error('Δεν υπάρχει διαθέσιμη αποθήκευση για αυτό το αντικείμενο.')
-  const rows = mapToRows(batch, mappings, target)
-  return commit(rows)
+  const rows = mapToRows(batch, mappings, target, fixedValues)
+  return commit(rows, target.enrich ? enrich : undefined)
 }
 
 export async function listApiPresets(targetKey: string): Promise<ApiPreset[]> {

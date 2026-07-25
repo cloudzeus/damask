@@ -11,12 +11,14 @@ export type IngestState = {
   batch: NormalizedBatch | null
   ocrCost: OcrCostView | null
   mappings: IngestionMapping[]
+  /** fieldKey → σταθερή τιμή για όλες τις γραμμές (βλ. fixedChoices στο IngestionFieldDef). '' = ανενεργό. */
+  fixedValues: Record<string, string>
   validation: { errors: FieldError[]; validRows: number } | null
   totals: ImportTotals | null
 }
 
 export const EMPTY_INGEST_STATE: IngestState = {
-  source: null, batch: null, ocrCost: null, mappings: [], validation: null, totals: null,
+  source: null, batch: null, ocrCost: null, mappings: [], fixedValues: {}, validation: null, totals: null,
 }
 
 // Shared prop shape for the four step components

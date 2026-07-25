@@ -109,6 +109,43 @@ export function StepIngestMap({ target, state, patch }: StepProps) {
         })}
       </div>
 
+      {target.fields.some(f => f.fixedChoices?.length) && (
+        <div className="overflow-hidden rounded-xl border border-border">
+          <div
+            className="px-4 py-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase"
+            style={{ background: 'var(--muted)' }}
+          >
+            Σταθερές τιμές για όλες τις γραμμές
+          </div>
+          {target.fields.filter(f => f.fixedChoices?.length).map(f => (
+            <div
+              key={f.key}
+              className="dotted-row-bottom grid items-center gap-3 px-4 py-3"
+              style={{ gridTemplateColumns: '1fr 1fr', background: 'var(--card)' }}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-[12.5px] font-semibold">{f.label}</p>
+                <p className="mt-0.5 text-[10.5px] text-muted-foreground">Υπερισχύει τυχόν αντιστοιχισμένης στήλης.</p>
+              </div>
+              <Select
+                value={state.fixedValues[f.key] || '__none__'}
+                onValueChange={v => patch({ fixedValues: { ...state.fixedValues, [f.key]: !v || v === '__none__' ? '' : v } })}
+              >
+                <SelectTrigger size="sm" className="w-full" aria-label={`Σταθερή τιμή για ${f.label}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— από στήλη / προεπιλογή —</SelectItem>
+                  {f.fixedChoices!.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+      )}
+
       <p className="text-[11px] text-muted-foreground">
         Τα πεδία με <strong>*</strong> είναι υποχρεωτικά. Πεδία πηγής χωρίς αντιστοίχιση αγνοούνται στην καταχώριση.
       </p>

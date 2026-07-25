@@ -23,15 +23,26 @@ export function autoMatchMappings(sourceKeys: string[], target: IngestionTarget)
   return sourceKeys.map(sourceKey => ({ sourceKey, fieldKey: autoMatchField(sourceKey, target) }))
 }
 
-/** Κάθε record → { rowNum, values: fieldKey→raw } βάσει των mappings. rowNum 1-based. */
-export function mapToRows(batch: NormalizedBatch, mappings: IngestionMapping[], _target: IngestionTarget): RawIngestionRow[] {
+/**
+ * Κάθε record → { rowNum, values: fieldKey→raw } βάσει των mappings. rowNum 1-based.
+ * `fixedValues` (fieldKey→raw): σταθερή τιμή για ΟΛΕΣ τις γραμμές — υπερισχύει
+ * τυχόν αντιστοιχισμένης στήλης (βλ. fixedChoices στο IngestionFieldDef).
+ */
+export function mapToRows(
+  batch: NormalizedBatch,
+  mappings: IngestionMapping[],
+  _target: IngestionTarget,
+  fixedValues?: Record<string, string>,
+): RawIngestionRow[] {
   const active = mappings.filter(m => m.fieldKey)
+  const fixed = Object.entries(fixedValues ?? {}).filter(([, v]) => v !== '')
   return batch.records.map((rec, i) => {
     const values: Record<string, string> = {}
     for (const m of active) {
       const v = rec[m.sourceKey]
       if (v != null) values[m.fieldKey] = v
     }
+    for (const [fieldKey, v] of fixed) values[fieldKey] = v
     return { rowNum: i + 1, values }
   })
 }

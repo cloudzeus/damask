@@ -2,20 +2,32 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { LuRocket, LuLoaderCircle, LuCircleCheck, LuPlus, LuPencil, LuTriangleAlert } from 'react-icons/lu'
+import { LuRocket, LuLoaderCircle, LuCircleCheck, LuPlus, LuPencil, LuTriangleAlert, LuBadgeCheck, LuLandmark, LuMapPin, LuCompass } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
 import { commitBatch } from '@/lib/ingestion/actions'
+import type { CommitEnrichOptions } from '@/lib/ingestion/target'
 import type { StepProps } from './types'
+
+const ENRICH_DEFS: { key: keyof CommitEnrichOptions; label: string; hint: string; icon: React.ComponentType<{ className?: string }>; defaultOn: boolean }[] = [
+  { key: 'aade', label: 'Έλεγχος ΑΑΔΕ', hint: 'Επωνυμία, διεύθυνση, ΔΟΥ, νομική μορφή, κατάσταση + ΚΑΔ', icon: LuBadgeCheck, defaultOn: true },
+  { key: 'gemi', label: 'Συγχρονισμός ΓΕΜΗ', hint: 'Αρ. ΓΕΜΗ, στοιχεία, ΚΑΔ — χωρίς λήψη εγγράφων (κατεβαίνουν κατ’ απαίτηση από την καρτέλα)', icon: LuLandmark, defaultOn: true },
+  { key: 'geocode', label: 'Geodata (συντεταγμένες)', hint: 'Γεωκωδικοποίηση διεύθυνσης — χρειάζεται κλειδί στη Ρύθμιση Maps', icon: LuCompass, defaultOn: true },
+  { key: 'region', label: 'Περιφέρεια (Καλλικράτης)', hint: 'Αντιστοίχιση σε Περιφέρεια/Νομό/Δήμο από διεύθυνση ή συντεταγμένες', icon: LuMapPin, defaultOn: true },
+]
 
 export function StepIngestCommit({ target, state, patch, onDone }: StepProps & { onDone?: () => void }) {
   const [running, setRunning] = useState(false)
+  const [enrich, setEnrich] = useState<CommitEnrichOptions>(
+    () => Object.fromEntries(ENRICH_DEFS.map(d => [d.key, d.defaultOn])) as CommitEnrichOptions,
+  )
 
   async function handleCommit() {
     if (!state.batch || running || state.totals) return
     setRunning(true)
     try {
-      const totals = await commitBatch(target.key, state.batch, state.mappings)
+      const totals = await commitBatch(target.key, state.batch, state.mappings, state.fixedValues, target.enrich ? enrich : undefined)
       patch({ totals })
       onDone?.()
     } catch (err) {
@@ -26,6 +38,7 @@ export function StepIngestCommit({ target, state, patch, onDone }: StepProps & {
   }
 
   const totals = state.totals
+  const anyEnrich = target.enrich && Object.values(enrich).some(Boolean)
 
   return (
     <div className="space-y-4 py-4">
@@ -38,17 +51,45 @@ export function StepIngestCommit({ target, state, patch, onDone }: StepProps & {
         </p>
       </div>
 
+      {!totals && target.enrich && (
+        <div className="overflow-hidden rounded-xl border border-border">
+          <div className="px-4 py-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase" style={{ background: 'var(--muted)' }}>
+            Εμπλουτισμός κατά την καταχώριση
+          </div>
+          {ENRICH_DEFS.map(d => (
+            <div key={d.key} className="dotted-row-bottom flex items-center gap-3 px-4 py-2.5" style={{ background: 'var(--card)' }}>
+              <d.icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12.5px] font-semibold">{d.label}</p>
+                <p className="mt-0.5 text-[10.5px] text-muted-foreground">{d.hint}</p>
+              </div>
+              <Switch
+                checked={!!enrich[d.key]}
+                onCheckedChange={v => setEnrich(e => ({ ...e, [d.key]: !!v }))}
+                aria-label={d.label}
+                disabled={running}
+              />
+            </div>
+          ))}
+          <p className="px-4 py-2 text-[10.5px] text-muted-foreground" style={{ background: 'var(--muted)' }}>
+            Ο εμπλουτισμός κάνει κλήσεις ανά γραμμή (ΑΑΔΕ/ΓΕΜΗ/geocoding) — σε μεγάλα αρχεία η καταχώριση θα διαρκέσει αρκετά. Αποτυχίες ανά γραμμή εμφανίζονται στα σφάλματα χωρίς να ακυρώνουν την εγγραφή.
+          </p>
+        </div>
+      )}
+
       {!totals && (
         <Button type="button" size="lg" className="w-full" disabled={running || !state.batch} onClick={handleCommit}>
           {running ? <LuLoaderCircle className="size-4 animate-spin" /> : <LuRocket className="size-4" />}
-          {running ? 'Καταχώριση…' : 'Καταχώριση'}
+          {running ? 'Καταχώριση…' : anyEnrich ? 'Καταχώριση + εμπλουτισμός' : 'Καταχώριση'}
         </Button>
       )}
 
       {running && (
         <div className="space-y-1.5">
           <Progress value={null} />
-          <p className="text-center text-[11px] text-muted-foreground">Καταχώριση…</p>
+          <p className="text-center text-[11px] text-muted-foreground">
+            {anyEnrich ? 'Καταχώριση & εμπλουτισμός — μπορεί να διαρκέσει αρκετά…' : 'Καταχώριση…'}
+          </p>
         </div>
       )}
 
