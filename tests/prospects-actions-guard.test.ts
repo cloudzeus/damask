@@ -16,7 +16,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/programs/actions', () => ({ createApplication: vi.fn() }))
 
 import { requirePermission } from '@/lib/rbac-server'
-import { findProspects, sendProgramNewsletter, listProgramLeads, createOpportunityApplication } from '@/lib/prospects/actions'
+import { findProspects, sendProgramNewsletter, sendProgramNewsletterTest, listProgramLeads, createOpportunityApplication } from '@/lib/prospects/actions'
 
 beforeEach(() => {
   vi.mocked(requirePermission).mockReset()
@@ -30,6 +30,10 @@ describe('prospects actions enforce programs.manage', () => {
 
   it('sendProgramNewsletter rejects', async () => {
     await expect(sendProgramNewsletter('prog-1', ['trdr-1'])).rejects.toThrow()
+  })
+
+  it('sendProgramNewsletterTest rejects', async () => {
+    await expect(sendProgramNewsletterTest('prog-1', 'test@example.gr')).rejects.toThrow()
   })
 
   it('listProgramLeads rejects', async () => {

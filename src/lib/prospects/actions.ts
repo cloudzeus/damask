@@ -127,6 +127,59 @@ export async function findProspects(programId: string, selected: SelectedCriteri
 
 export type SendNewsletterResult = { sent: number; skipped: number; failed: number }
 
+/** Κοινό template του newsletter — ΙΔΙΟ για κανονική και δοκιμαστική αποστολή (test preview). */
+function newsletterHtml(
+  recipientName: string,
+  program: { title: string; summary: string | null; submissionEnd: Date | null },
+  url: string,
+): string {
+  const deadline = program.submissionEnd ? program.submissionEnd.toLocaleDateString('el-GR') : null
+  return `<p>Καλησπέρα ${escapeHtml(recipientName)},</p>
+<p>Θέλουμε να σας ενημερώσουμε για το πρόγραμμα χρηματοδότησης <b>${escapeHtml(program.title)}</b>${program.summary ? `: ${escapeHtml(program.summary)}` : ''}.</p>
+${deadline ? `<p>Προθεσμία υποβολής: <b>${escapeHtml(deadline)}</b></p>` : ''}
+<p>Αν ενδιαφέρεστε, πατήστε τον παρακάτω σύνδεσμο και θα επικοινωνήσουμε μαζί σας: <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`
+}
+
+export type SendNewsletterTestResult = { ok: boolean; message: string }
+
+/**
+ * Δοκιμαστική αποστολή (preview) του newsletter σε διεύθυνση που δίνει ο
+ * χειριστής — ΙΔΙΟ template με την κανονική αποστολή, με [ΔΟΚΙΜΗ] στο θέμα
+ * και δείγμα επωνυμίας παραλήπτη. ΔΕΝ δημιουργεί ProgramLead — ο σύνδεσμος
+ * εκδήλωσης ενδιαφέροντος έχει τη μορφή του κανονικού αλλά δεν είναι ενεργός.
+ */
+export async function sendProgramNewsletterTest(programId: string, email: string): Promise<SendNewsletterTestResult> {
+  await requirePermission('programs.manage')
+
+  const clean = email.trim()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+    return { ok: false, message: 'Μη έγκυρη διεύθυνση email.' }
+  }
+  if (!(await isMailerConfigured())) {
+    return { ok: false, message: 'Ο mailer (Mailgun) δεν έχει ρυθμιστεί — Ρυθμίσεις → Διασυνδέσεις.' }
+  }
+
+  const program = await prisma.program.findUniqueOrThrow({
+    where: { id: programId },
+    select: { title: true, summary: true, submissionEnd: true },
+  })
+
+  const { raw } = newToken() // δεν αποθηκεύεται πουθενά — ο σύνδεσμος του test δεν κάνει match σε lead
+  const html = newsletterHtml('Δείγμα Επωνυμίας Α.Ε.', program, `${APP_URL}/go/${raw}`)
+
+  const result = await sendMail({
+    to: clean,
+    subject: `[ΔΟΚΙΜΗ] Ενημέρωση προγράμματος: ${program.title}`,
+    html,
+    refType: 'program-newsletter-test',
+    refId: programId,
+  })
+
+  return result.ok
+    ? { ok: true, message: `Το δοκιμαστικό στάλθηκε στο ${clean}.` }
+    : { ok: false, message: 'Η αποστολή του δοκιμαστικού απέτυχε — έλεγξε τις ρυθμίσεις Mailgun.' }
+}
+
 /**
  * Send a personalized «Ενημέρωση προγράμματος» email to each selected Trdr,
  * tracked via a per-recipient ProgramLead + magic click link (/go/[token]).
@@ -150,8 +203,6 @@ export async function sendProgramNewsletter(programId: string, trdrIds: string[]
     select: { id: true, NAME: true, EMAIL: true },
   })
 
-  const deadline = program.submissionEnd ? program.submissionEnd.toLocaleDateString('el-GR') : null
-
   let sent = 0
   let skipped = 0
   let failed = 0
@@ -169,11 +220,7 @@ export async function sendProgramNewsletter(programId: string, trdrIds: string[]
         update: { email: trdr.EMAIL, tokenHash: hash, status: 'SENT', sentAt: new Date() },
       })
 
-      const url = `${APP_URL}/go/${raw}`
-      const html = `<p>Καλησπέρα ${escapeHtml(trdr.NAME)},</p>
-<p>Θέλουμε να σας ενημερώσουμε για το πρόγραμμα χρηματοδότησης <b>${escapeHtml(program.title)}</b>${program.summary ? `: ${escapeHtml(program.summary)}` : ''}.</p>
-${deadline ? `<p>Προθεσμία υποβολής: <b>${escapeHtml(deadline)}</b></p>` : ''}
-<p>Αν ενδιαφέρεστε, πατήστε τον παρακάτω σύνδεσμο και θα επικοινωνήσουμε μαζί σας: <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`
+      const html = newsletterHtml(trdr.NAME, program, `${APP_URL}/go/${raw}`)
 
       const result = await sendMail({
         to: trdr.EMAIL,

@@ -4,16 +4,17 @@ import * as React from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
-  LuSearch, LuSend, LuLoaderCircle, LuExternalLink, LuFolderKanban,
+  LuSearch, LuSend, LuLoaderCircle, LuExternalLink, LuFolderKanban, LuFlaskConical,
 } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import {
-  findProspects, sendProgramNewsletter, listProgramLeads, createOpportunityApplication,
+  findProspects, sendProgramNewsletter, sendProgramNewsletterTest, listProgramLeads, createOpportunityApplication,
   type ProspectRow, type ProgramLeadRow,
 } from '@/lib/prospects/actions'
 import type { SelectedCriteria, EligibilityCriterionKey } from '@/lib/prospects/eligibility'
@@ -120,6 +121,28 @@ export function ProspectsTab({ programId }: { programId: string }) {
       else selectableIds.forEach(id => next.add(id))
       return next
     })
+  }
+
+  // ── Δοκιμαστική αποστολή (preview) ──────────────────────────────────
+  const [testEmail, setTestEmail] = React.useState('')
+  const [sendingTest, setSendingTest] = React.useState(false)
+
+  async function handleTestSend() {
+    const email = testEmail.trim()
+    if (!email) {
+      toast.error('Συμπλήρωσε διεύθυνση για το δοκιμαστικό email.')
+      return
+    }
+    setSendingTest(true)
+    try {
+      const res = await sendProgramNewsletterTest(programId, email)
+      if (res.ok) toast.success(res.message)
+      else toast.error(res.message)
+    } catch {
+      toast.error('Η αποστολή του δοκιμαστικού απέτυχε.')
+    } finally {
+      setSendingTest(false)
+    }
   }
 
   // ── Αποστολή ενημέρωσης ──────────────────────────────────────────────
@@ -281,6 +304,28 @@ export function ProspectsTab({ programId }: { programId: string }) {
             </div>
           </div>
         )}
+
+        {/* Δοκιμαστική αποστολή (preview) — ίδιο template με την κανονική, [ΔΟΚΙΜΗ] στο θέμα */}
+        <div className="mt-4 flex flex-wrap items-center gap-2 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
+          <span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+            <LuFlaskConical className="size-3.5" aria-hidden /> Δοκιμαστικό preview email:
+          </span>
+          <Input
+            type="email"
+            value={testEmail}
+            onChange={e => setTestEmail(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !sendingTest) handleTestSend() }}
+            placeholder="π.χ. gkozyris@i4ria.com"
+            className="h-8 w-64 text-[12.5px]"
+            disabled={sendingTest}
+          />
+          <Button type="button" size="sm" variant="outline" onClick={handleTestSend} disabled={sendingTest || !testEmail.trim()}>
+            {sendingTest ? (<><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Αποστολή…</>) : (<><LuSend className="size-3.5" aria-hidden /> Αποστολή δοκιμής</>)}
+          </Button>
+          <span className="text-[10.5px] text-muted-foreground">
+            Στέλνει το ακριβές email του προγράμματος με δείγμα επωνυμίας — χωρίς καταγραφή lead, ο σύνδεσμος δεν είναι ενεργός.
+          </span>
+        </div>
       </section>
 
       {/* «Ευκαιρίες & Αποστολές» */}
