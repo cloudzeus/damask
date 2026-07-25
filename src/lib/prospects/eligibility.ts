@@ -89,17 +89,46 @@ export function normRegion(s: string): string {
   return stripAccents(s).toUpperCase().replace(/ΠΕΡΙΦΕΡΕΙΑ/g, '').replace(/[^Α-ΩA-Z]/g, '')
 }
 
+/** Λέξεις της ονομασίας περιφέρειας — χωρίς τόνους/«ΠΕΡΙΦΕΡΕΙΑ»/στοπ-λέξεις («ΚΑΙ»). */
+function regionTokens(s: string): string[] {
+  return stripAccents(s)
+    .toUpperCase()
+    .split(/[^Α-ΩA-Z]+/)
+    .filter(w => w && w !== 'ΠΕΡΙΦΕΡΕΙΑ' && w !== 'ΚΑΙ')
+}
+
 /**
- * Bidirectional substring match between the Program's eligible region names and a
- * single Trdr's level-3 (Περιφέρεια) region name.
- * (ref: lib/programs/eligibility.ts evaluateEligibility region branch.)
+ * Δύο λέξεις «ταιριάζουν» όταν μοιράζονται αρκετά μεγάλο κοινό πρόθεμα — καλύπτει
+ * ονομαστική↔γενική: ΑΤΤΙΚΗ↔ΑΤΤΙΚΗΣ, ΣΤΕΡΕΑ↔ΣΤΕΡΕΑΣ, ΗΠΕΙΡΟΣ↔ΗΠΕΙΡΟΥ,
+ * ΝΗΣΙΑ↔ΝΗΣΩΝ (κοινό «ΝΗΣ»), ΙΟΝΙΑ↔ΙΟΝΙΩΝ. Κατώφλι: max(3, minLen-2) ώστε
+ * σύντομες άσχετες λέξεις να μην κολλάνε μεταξύ τους.
+ */
+function wordStemMatches(a: string, b: string): boolean {
+  const minLen = Math.min(a.length, b.length)
+  if (minLen === 0) return false
+  let common = 0
+  while (common < minLen && a[common] === b[common]) common++
+  return common >= Math.max(3, minLen - 2)
+}
+
+/**
+ * Match μεταξύ των επιλέξιμων περιφερειών του Προγράμματος και της level-3
+ * (Περιφέρεια) ονομασίας του Trdr. Token-wise με stem tolerance αντί για το
+ * substring του ref: τα ονόματα προγραμμάτων είναι σε ονομαστική («Στερεά
+ * Ελλάδα») ενώ ο Καλλικράτης σε γενική («ΠΕΡΙΦΕΡΕΙΑ ΣΤΕΡΕΑΣ ΕΛΛΑΔΑΣ») — το
+ * απλό containment αποτύγχανε σε ΚΑΘΕ πολυλεκτική περιφέρεια. Όλες οι λέξεις
+ * της μίας πλευράς πρέπει να βρίσκουν αντίστοιχη στην άλλη (bidirectional
+ * subset, mirror του παλιού a⊂c||c⊂a semantics).
  */
 export function regionNameMatches(programRegionNames: string[], trdrRegionLevel3Name: string | null): boolean {
-  const c = trdrRegionLevel3Name ? normRegion(trdrRegionLevel3Name) : ''
-  if (!c) return false
+  const c = trdrRegionLevel3Name ? regionTokens(trdrRegionLevel3Name) : []
+  if (c.length === 0) return false
   return programRegionNames.some((r) => {
-    const a = normRegion(r)
-    return !!a && (a.includes(c) || c.includes(a))
+    const a = regionTokens(r)
+    if (a.length === 0) return false
+    const aInC = a.every(w => c.some(w2 => wordStemMatches(w, w2)))
+    const cInA = c.every(w => a.some(w2 => wordStemMatches(w, w2)))
+    return aInC || cInA
   })
 }
 

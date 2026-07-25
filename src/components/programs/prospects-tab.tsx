@@ -89,6 +89,15 @@ export function ProspectsTab({ programId }: { programId: string }) {
     return onlyEligible ? results.filter(r => r.eligible) : results
   }, [results, onlyEligible])
 
+  // Γιατί 0 επιλέξιμοι; — αποτυχίες ανά κριτήριο ώστε το κενό αποτέλεσμα να εξηγείται
+  const failSummary = React.useMemo(() => {
+    if (!results || results.length === 0) return null
+    if (results.some(r => r.eligible)) return null
+    const counts = new Map<EligibilityCriterionKey, number>()
+    for (const r of results) for (const k of r.failed) counts.set(k, (counts.get(k) ?? 0) + 1)
+    return [...counts.entries()].map(([k, n]) => `${CRITERIA_LABELS[k]}: ${n}`).join(' · ')
+  }, [results])
+
   const selectableIds = React.useMemo(
     () => displayedRows.filter(r => r.eligible && r.email).map(r => r.trdrId),
     [displayedRows],
@@ -202,6 +211,13 @@ export function ProspectsTab({ programId }: { programId: string }) {
                 <Switch checked={onlyEligible} onCheckedChange={setOnlyEligible} size="sm" />
               </label>
             </div>
+
+            {failSummary && (
+              <p className="mb-2.5 rounded-xl px-3 py-2 text-[12px]" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>
+                Καμία εταιρεία δεν πληροί ΟΛΑ τα επιλεγμένα κριτήρια. Αποτυχίες ανά κριτήριο (στις {results.length}): {failSummary}.
+                Δοκίμασε λιγότερα κριτήρια, ή απενεργοποίησε το «Μόνο επιλέξιμοι» για να δεις αναλυτικά ποιο κριτήριο αποτυγχάνει ανά εταιρεία.
+              </p>
+            )}
 
             {displayedRows.length === 0 ? (
               <p className="py-6 text-center text-[12.5px] text-muted-foreground">Κανένα αποτέλεσμα.</p>

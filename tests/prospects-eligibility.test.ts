@@ -140,6 +140,29 @@ describe('normRegion / regionNameMatches', () => {
   it('does not match when trdr region name is null', () => {
     expect(regionNameMatches(['Αττική'], null)).toBe(false)
   })
+
+  // FIX (2026-07-25): οι πολυλεκτικές περιφέρειες σε γενική πτώση αποτύγχαναν με το
+  // απλό substring — «Στερεά Ελλάδα» ≠ «ΣΤΕΡΕΑΣ ΕΛΛΑΔΑΣ» (0 δυνητικοί για ΚΑΘΕ
+  // πρόγραμμα Στερεάς). Token-wise stem matching πλέον.
+  it('matches multi-word genitive registry names: «Στερεά Ελλάδα» ↔ «ΠΕΡΙΦΕΡΕΙΑ ΣΤΕΡΕΑΣ ΕΛΛΑΔΑΣ»', () => {
+    expect(regionNameMatches(['Στερεά Ελλάδα'], 'ΠΕΡΙΦΕΡΕΙΑ ΣΤΕΡΕΑΣ ΕΛΛΑΔΑΣ')).toBe(true)
+    expect(regionNameMatches(['Δυτική Ελλάδα'], 'ΠΕΡΙΦΕΡΕΙΑ ΔΥΤΙΚΗΣ ΕΛΛΑΔΑΣ')).toBe(true)
+    expect(regionNameMatches(['Κεντρική Μακεδονία'], 'ΠΕΡΙΦΕΡΕΙΑ ΚΕΝΤΡΙΚΗΣ ΜΑΚΕΔΟΝΙΑΣ')).toBe(true)
+    expect(regionNameMatches(['Ανατολική Μακεδονία και Θράκη'], 'ΠΕΡΙΦΕΡΕΙΑ ΑΝΑΤΟΛΙΚΗΣ ΜΑΚΕΔΟΝΙΑΣ ΚΑΙ ΘΡΑΚΗΣ')).toBe(true)
+  })
+
+  it('matches genitive plural / -ΟΥ endings: «Ιόνια Νησιά» ↔ «ΙΟΝΙΩΝ ΝΗΣΩΝ», «Ήπειρος» ↔ «ΗΠΕΙΡΟΥ»', () => {
+    expect(regionNameMatches(['Ιόνια Νησιά'], 'ΠΕΡΙΦΕΡΕΙΑ ΙΟΝΙΩΝ ΝΗΣΩΝ')).toBe(true)
+    expect(regionNameMatches(['Ήπειρος'], 'ΠΕΡΙΦΕΡΕΙΑ ΗΠΕΙΡΟΥ')).toBe(true)
+    expect(regionNameMatches(['Νότιο Αιγαίο'], 'ΠΕΡΙΦΕΡΕΙΑ ΝΟΤΙΟΥ ΑΙΓΑΙΟΥ')).toBe(true)
+    expect(regionNameMatches(['Πελοπόννησος'], 'ΠΕΡΙΦΕΡΕΙΑ ΠΕΛΟΠΟΝΝΗΣΟΥ')).toBe(true)
+  })
+
+  it('does not cross-match sibling Μακεδονίες or Ελλάδες', () => {
+    expect(regionNameMatches(['Κεντρική Μακεδονία'], 'ΠΕΡΙΦΕΡΕΙΑ ΑΝΑΤΟΛΙΚΗΣ ΜΑΚΕΔΟΝΙΑΣ ΚΑΙ ΘΡΑΚΗΣ')).toBe(false)
+    expect(regionNameMatches(['Δυτική Μακεδονία'], 'ΠΕΡΙΦΕΡΕΙΑ ΚΕΝΤΡΙΚΗΣ ΜΑΚΕΔΟΝΙΑΣ')).toBe(false)
+    expect(regionNameMatches(['Στερεά Ελλάδα'], 'ΠΕΡΙΦΕΡΕΙΑ ΔΥΤΙΚΗΣ ΕΛΛΑΔΑΣ')).toBe(false)
+  })
 })
 
 describe('evaluateTrdrEligibility', () => {
