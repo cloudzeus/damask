@@ -18,6 +18,7 @@ import {
   type GemiDocumentPublication,
 } from '@/lib/trdr/gemi'
 import { aadeLookup } from '@/lib/trdr/aade'
+import { resolveIrsdataCode } from '@/lib/trdr/irsdata'
 import { resolveKadForActivity } from '@/lib/registries/kad'
 import { matchRegion, type RegionMatch } from '@/lib/registries/regions'
 
@@ -121,12 +122,16 @@ export async function applyAadeToTrdr(trdrId: string) {
     .map((a) => ({ code: a.code, description: a.description ?? '', kind: a.kind, order: a.order }))
   const kadRows = rawActivities.length > 0 ? await buildTrdrKadRows(trdrId, rawActivities) : []
 
+  // ΔΟΥ → Trdr.IRSDATA (soft ref στο Irsdata.CODE) — βλ. resolveIrsdataCode.
+  const irsdataCode = await resolveIrsdataCode(mapped.doyCode, mapped.doyDescr)
+
   await prisma.$transaction(async (tx) => {
     await tx.trdr.update({
       where: { id: trdrId },
       data: {
         NAME: mapped.NAME || undefined,
         ...omitNulls(mapped, ['ADDRESS', 'ZIP', 'CITY', 'foundingDate', 'aadeStatus', 'aadeFirmKind', 'appLegalForm']),
+        ...(irsdataCode ? { IRSDATA: irsdataCode } : {}),
         aadeSyncedAt: new Date(),
       },
     })

@@ -3,7 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import {
-  Building2, Hash, Briefcase, Mail, Phone, Globe, Building, MapPinned, Compass, StickyNote, Search, LoaderCircle,
+  Building2, Hash, Briefcase, Mail, Phone, Globe, Building, MapPinned, Compass, StickyNote, Search, LoaderCircle, Users, Coins,
 } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
@@ -40,7 +40,9 @@ export type EditablePartner = {
   jobtypetrd: string | null
   legalForm: string | null
   email: string | null
+  emailAcc: string | null
   phone: string | null
+  phone2: string | null
   website: string | null
   address: string | null
   city: string | null
@@ -51,6 +53,8 @@ export type EditablePartner = {
   shipment: number | null
   lat: number | null
   lng: number | null
+  employees: number | null
+  annualRevenue: number | null
   notes: string | null
 }
 
@@ -64,7 +68,9 @@ function emptyForm(): PartnerFormValues {
     JOBTYPETRD: '',
     appLegalForm: '',
     EMAIL: '',
+    EMAILACC: '',
     PHONE01: '',
+    PHONE02: '',
     WEBPAGE: '',
     ADDRESS: '',
     CITY: '',
@@ -75,6 +81,8 @@ function emptyForm(): PartnerFormValues {
     SHIPMENT: '',
     appLat: null,
     appLng: null,
+    appEmployees: '',
+    appAnnualRevenue: '',
     appNotes: '',
   }
 }
@@ -89,7 +97,9 @@ function toFormValues(p: EditablePartner): PartnerFormValues {
     JOBTYPETRD: p.jobtypetrd ?? '',
     appLegalForm: p.legalForm ?? '',
     EMAIL: p.email ?? '',
+    EMAILACC: p.emailAcc ?? '',
     PHONE01: p.phone ?? '',
+    PHONE02: p.phone2 ?? '',
     WEBPAGE: p.website ?? '',
     ADDRESS: p.address ?? '',
     CITY: p.city ?? '',
@@ -100,6 +110,8 @@ function toFormValues(p: EditablePartner): PartnerFormValues {
     SHIPMENT: p.shipment != null ? String(p.shipment) : '',
     appLat: p.lat,
     appLng: p.lng,
+    appEmployees: p.employees != null ? String(p.employees) : '',
+    appAnnualRevenue: p.annualRevenue != null ? String(p.annualRevenue) : '',
     appNotes: p.notes ?? '',
   }
 }
@@ -171,8 +183,9 @@ export function PartnerFormDialog({
         ADDRESS: c.address ?? v.ADDRESS,
         CITY: c.city ?? v.CITY,
         ZIP: c.zip ?? v.ZIP,
+        // Η ΔΟΥ έρχεται resolved σε Irsdata.CODE από το server (match κατά κωδ./όνομα στο mirror).
+        IRSDATA: res.irsdataCode ?? v.IRSDATA,
       }))
-      // Το ΔΟΥ όνομα από ΑΑΔΕ (c.doy) δεν αντιστοιχεί αυτόματα σε Irsdata.CODE — ο χρήστης το επιλέγει από το combo.
       toast.success('Συμπληρώθηκαν τα στοιχεία από την ΑΑΔΕ.')
     })
   }
@@ -385,12 +398,47 @@ export function PartnerFormDialog({
             </div>
 
             <div className="field">
+              <label htmlFor="partner-form-phone2">Τηλέφωνο 2</label>
+              <div className="inwrap">
+                <Phone aria-hidden />
+                <input id="partner-form-phone2" type="tel" value={values.PHONE02} onChange={e => set('PHONE02', e.target.value)} />
+              </div>
+            </div>
+
+            <div className="field">
               <label htmlFor="partner-form-email">Email</label>
               <div className="inwrap">
                 <Mail aria-hidden />
                 <input id="partner-form-email" type="email" value={values.EMAIL} onChange={e => set('EMAIL', e.target.value)} />
               </div>
               {fieldErrors.EMAIL && <div className="error">{fieldErrors.EMAIL}</div>}
+            </div>
+
+            <div className="field">
+              <label htmlFor="partner-form-emailacc">Email λογιστηρίου</label>
+              <div className="inwrap">
+                <Mail aria-hidden />
+                <input id="partner-form-emailacc" type="email" value={values.EMAILACC} onChange={e => set('EMAILACC', e.target.value)} />
+              </div>
+              {fieldErrors.EMAILACC && <div className="error">{fieldErrors.EMAILACC}</div>}
+            </div>
+
+            <div className="field">
+              <label htmlFor="partner-form-employees">Αριθμός εργαζομένων</label>
+              <div className="inwrap">
+                <Users aria-hidden />
+                <input id="partner-form-employees" type="number" min={0} value={values.appEmployees} onChange={e => set('appEmployees', e.target.value)} />
+              </div>
+              {fieldErrors.appEmployees && <div className="error">{fieldErrors.appEmployees}</div>}
+            </div>
+
+            <div className="field">
+              <label htmlFor="partner-form-revenue">Ετήσια έσοδα (τελευταία, €)</label>
+              <div className="inwrap">
+                <Coins aria-hidden />
+                <input id="partner-form-revenue" inputMode="decimal" value={values.appAnnualRevenue} onChange={e => set('appAnnualRevenue', e.target.value)} />
+              </div>
+              {fieldErrors.appAnnualRevenue && <div className="error">{fieldErrors.appAnnualRevenue}</div>}
             </div>
 
             <div className="sm:col-span-2">

@@ -57,6 +57,7 @@ const FULL_RAW: AadeRawResponse = {
     postal_zip_code: '10563',
     postal_area_description: 'ΑΘΗΝΑ',
     regist_date: '2010-05-01',
+    doy: '1131',
     doy_descr: "Α' ΑΘΗΝΩΝ",
     legal_status_descr: 'Α.Ε.',
     deactivation_flag: '1',
@@ -81,6 +82,8 @@ describe('mapAadeResponse', () => {
       ADDRESS: 'Ερμού 10',
       ZIP: '10563',
       CITY: 'ΑΘΗΝΑ',
+      doyCode: '1131',
+      doyDescr: "Α' ΑΘΗΝΩΝ",
       foundingDate: new Date('2010-05-01'),
       aadeStatus: 'ΕΝΕΡΓΗ',
       aadeFirmKind: 'ΚΑΝΟΝΙΚΗ',
@@ -132,6 +135,8 @@ describe('mapAadeResponse', () => {
     expect(result.mapped.ADDRESS).toBeNull()
     expect(result.mapped.ZIP).toBeNull()
     expect(result.mapped.CITY).toBeNull()
+    expect(result.mapped.doyCode).toBeNull()
+    expect(result.mapped.doyDescr).toBeNull()
     expect(result.mapped.foundingDate).toBeNull()
     expect(result.mapped.aadeStatus).toBeNull()
     expect(result.mapped.aadeFirmKind).toBeNull()

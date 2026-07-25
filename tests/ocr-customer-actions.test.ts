@@ -201,7 +201,7 @@ describe('verifyIssuerAfm', () => {
 
   it('reports found=true with the company when aadeLookup resolves', async () => {
     vi.mocked(aadeLookup).mockResolvedValueOnce({
-      afm: '094014201', name: 'ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ', shortName: null, doy: 'Δ.Ο.Υ.', legalForm: 'ΑΕ',
+      afm: '094014201', name: 'ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ', shortName: null, doy: 'Δ.Ο.Υ.', doyCode: '1159', legalForm: 'ΑΕ',
       address: 'Αιόλου 86', zip: '10559', city: 'Αθήνα', country: 'GR', foundingDate: null,
       profession: 'Τράπεζα', activities: [], aadeStatus: 'ΕΝΕΡΓΟΣ ΑΦΜ', isActive: true,
     })

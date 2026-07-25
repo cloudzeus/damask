@@ -66,6 +66,10 @@ export type AadeTrdrPatch = {
   ADDRESS: string | null
   ZIP: string | null
   CITY: string | null
+  /** Κωδ. ΔΟΥ ΑΑΔΕ (b.doy) — resolve σε Trdr.IRSDATA στο enrich-actions, ΟΧΙ direct Trdr field. */
+  doyCode: string | null
+  /** Ονομασία ΔΟΥ (b.doy_descr) — για preview + fallback match κατά NAME στο Irsdata mirror. */
+  doyDescr: string | null
   foundingDate: Date | null
   aadeStatus: string | null
   aadeFirmKind: string | null
@@ -106,6 +110,8 @@ export function mapAadeResponse(raw: AadeRawResponse): { mapped: AadeTrdrPatch; 
     ADDRESS: addressParts.join(' ') || null,
     ZIP: s(b.postal_zip_code),
     CITY: s(b.postal_area_description),
+    doyCode: s(b.doy),
+    doyDescr: s(b.doy_descr),
     foundingDate: toDate(s(b.regist_date)),
     aadeStatus: s(b.deactivation_flag_descr),
     aadeFirmKind: s(b.firm_flag_descr),

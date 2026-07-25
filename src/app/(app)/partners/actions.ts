@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { getIntegration } from '@/lib/settings'
 import { aadeLookup, type AadeCompany } from '@/lib/aade'
+import { resolveIrsdataCode } from '@/lib/trdr/irsdata'
 import { geocodeSearch, geocodeSuggest, geocodeReverse, GeocodeError, type GeocodeResult } from '@/lib/geocode'
 
 /**
@@ -62,7 +63,9 @@ const partnerFormShape = {
   JOBTYPETRD: z.string().trim().max(300).optional(),
   appLegalForm: z.string().trim().max(120).optional(),
   EMAIL: z.union([z.literal(''), z.email('Μη έγκυρο email.')]),
+  EMAILACC: z.union([z.literal(''), z.email('Μη έγκυρο email λογιστηρίου.')]).optional(),
   PHONE01: z.string().trim().max(40).optional(),
+  PHONE02: z.string().trim().max(40).optional(),
   WEBPAGE: z.string().trim().max(300).optional(),
   ADDRESS: z.string().trim().max(200).optional(),
   CITY: z.string().trim().max(120).optional(),
@@ -73,7 +76,17 @@ const partnerFormShape = {
   SHIPMENT: z.string().trim().max(10).optional(),
   appLat: z.number().min(-90).max(90).nullable().optional(),
   appLng: z.number().min(-180).max(180).nullable().optional(),
+  appEmployees: z.union([z.literal(''), z.string().trim().regex(/^\d+$/, 'Ο αριθμός εργαζομένων πρέπει να είναι ακέραιος.')]).optional(),
+  appAnnualRevenue: z.union([z.literal(''), z.string().trim().regex(/^\d+([.,]\d+)?$/, 'Μη έγκυρο ποσό εσόδων.')]).optional(),
   appNotes: z.string().trim().max(2000).optional(),
+}
+
+/** '1.234,56' δεν υποστηρίζεται εδώ — το form δίνει απλό αριθμό με , ή . δεκαδικά. */
+function nDec(value: string | undefined): number | null {
+  const trimmed = (value ?? '').trim()
+  if (trimmed === '') return null
+  const parsed = Number(trimmed.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 const createPartnerSchema = z.object(partnerFormShape)
@@ -112,7 +125,9 @@ export async function createPartner(input: PartnerFormValues): Promise<ActionRes
         JOBTYPETRD: n(data.JOBTYPETRD),
         appLegalForm: n(data.appLegalForm),
         EMAIL: n(data.EMAIL),
+        EMAILACC: n(data.EMAILACC),
         PHONE01: n(data.PHONE01),
+        PHONE02: n(data.PHONE02),
         WEBPAGE: n(data.WEBPAGE),
         ADDRESS: n(data.ADDRESS),
         CITY: n(data.CITY),
@@ -123,6 +138,8 @@ export async function createPartner(input: PartnerFormValues): Promise<ActionRes
         SHIPMENT: ni(data.SHIPMENT),
         appLat: data.appLat ?? null,
         appLng: data.appLng ?? null,
+        appEmployees: ni(data.appEmployees),
+        appAnnualRevenue: nDec(data.appAnnualRevenue),
         appNotes: n(data.appNotes),
       },
     })
@@ -166,7 +183,9 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
         JOBTYPETRD: n(data.JOBTYPETRD),
         appLegalForm: n(data.appLegalForm),
         EMAIL: n(data.EMAIL),
+        EMAILACC: n(data.EMAILACC),
         PHONE01: n(data.PHONE01),
+        PHONE02: n(data.PHONE02),
         WEBPAGE: n(data.WEBPAGE),
         ADDRESS: n(data.ADDRESS),
         CITY: n(data.CITY),
@@ -177,6 +196,8 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
         SHIPMENT: ni(data.SHIPMENT),
         appLat: data.appLat ?? null,
         appLng: data.appLng ?? null,
+        appEmployees: ni(data.appEmployees),
+        appAnnualRevenue: nDec(data.appAnnualRevenue),
         appNotes: n(data.appNotes),
       },
     })
@@ -224,16 +245,28 @@ export async function convertLeadToCustomer(id: string): Promise<ActionResult> {
 // ── ΑΑΔΕ lookup ──────────────────────────────────────────────────────────
 
 export type LookupPartnerAfmResult =
-  | { ok: true; found: true; company: AadeCompany }
+  | { ok: true; found: true; company: AadeCompany; irsdataCode: string | null }
   | { ok: true; found: false }
   | { ok: false; message: string }
 
-export async function lookupPartnerAfm(afm: string): Promise<LookupPartnerAfmResult> {
+/**
+ * ΑΑΔΕ lookup από ΑΦΜ + resolve ΔΟΥ σε Irsdata.CODE (irsdataCode στο result —
+ * το form το βάζει στο combo ΔΟΥ). Με `applyDoyToTrdrId` (κουμπί «ΑΑΔΕ
+ * re-verify» στην καρτέλα) η ΔΟΥ γράφεται και στο Trdr.IRSDATA — ποτέ δεν
+ * καθαρίζεται υπάρχουσα τιμή όταν η ΑΑΔΕ δεν επιστρέφει ΔΟΥ.
+ */
+export async function lookupPartnerAfm(afm: string, applyDoyToTrdrId?: string): Promise<LookupPartnerAfmResult> {
   await requirePermission('customer.edit')
   try {
     const company = await aadeLookup(afm)
     if (!company) return { ok: true, found: false }
-    return { ok: true, found: true, company }
+
+    const irsdataCode = await resolveIrsdataCode(company.doyCode, company.doy)
+    if (applyDoyToTrdrId && irsdataCode) {
+      await prisma.trdr.update({ where: { id: applyDoyToTrdrId }, data: { IRSDATA: irsdataCode } })
+      revalidatePath(`/partners/${applyDoyToTrdrId}`)
+    }
+    return { ok: true, found: true, company, irsdataCode }
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Σφάλμα επικοινωνίας με την υπηρεσία ΑΑΔΕ.' }
   }

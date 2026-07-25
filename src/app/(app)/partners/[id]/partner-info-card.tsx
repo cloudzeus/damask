@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Hash, Landmark, Briefcase, MapPin, Phone, Mail, Globe, BadgeCheck, LoaderCircle, TriangleAlert, RefreshCw,
 } from 'lucide-react'
@@ -17,8 +18,9 @@ type VerifyState =
   | { status: 'error'; message: string }
 
 export function PartnerInfoCard({
-  afm, irsdataName, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, email, website,
+  trdrId, afm, irsdataName, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, phone2, email, emailAcc, website, employees, annualRevenue,
 }: {
+  trdrId: string
   afm: string | null
   irsdataName: string | null
   legalForm: string | null
@@ -31,9 +33,14 @@ export function PartnerInfoCard({
   paymentName: string | null
   shipmentName: string | null
   phone: string | null
+  phone2: string | null
   email: string | null
+  emailAcc: string | null
   website: string | null
+  employees: number | null
+  annualRevenue: number | null
 }) {
+  const router = useRouter()
   const [verify, setVerify] = useState<VerifyState>({ status: 'idle' })
   const [pending, startTransition] = useTransition()
 
@@ -46,20 +53,26 @@ export function PartnerInfoCard({
     { icon: Globe, label: 'Χώρα', value: countryName },
     { icon: Briefcase, label: 'Κατηγορία', value: trdCategoryName },
     { icon: Phone, label: 'Τηλέφωνο', value: phone },
+    { icon: Phone, label: 'Τηλέφωνο 2', value: phone2 },
     { icon: Mail, label: 'Email', value: email },
+    { icon: Mail, label: 'Email λογιστηρίου', value: emailAcc },
     { icon: Globe, label: 'Website', value: website },
     { icon: Briefcase, label: 'Τρόπος πληρωμής', value: paymentName },
     { icon: Briefcase, label: 'Τρόπος αποστολής', value: shipmentName },
+    { icon: Briefcase, label: 'Εργαζόμενοι', value: employees != null ? employees.toLocaleString('el-GR') : null },
+    { icon: Briefcase, label: 'Ετήσια έσοδα', value: annualRevenue != null ? `${annualRevenue.toLocaleString('el-GR')} €` : null },
   ]
 
   function handleVerify() {
     if (!afm) return
     setVerify({ status: 'loading' })
     startTransition(async () => {
-      const res = await lookupPartnerAfm(afm)
+      // applyDoyToTrdrId: το re-verify γράφει και τη ΔΟΥ στην καρτέλα (Trdr.IRSDATA).
+      const res = await lookupPartnerAfm(afm, trdrId)
       if (!res.ok) { setVerify({ status: 'error', message: res.message }); return }
       if (!res.found) { setVerify({ status: 'not_found' }); return }
       setVerify({ status: 'found', company: res.company })
+      if (res.irsdataCode) router.refresh() // η ΔΟΥ γράφτηκε — ανανέωση για να φανεί στα Στοιχεία
     })
   }
 
@@ -98,6 +111,7 @@ export function PartnerInfoCard({
               {verify.company.isActive ? 'Ενεργή' : 'Ανενεργή'}
             </span>
             {verify.company.aadeStatus ? ` (${verify.company.aadeStatus})` : ''}
+            {verify.company.doy ? ` · ΔΟΥ ${verify.company.doy}` : ''}
           </span>
         </div>
       )}

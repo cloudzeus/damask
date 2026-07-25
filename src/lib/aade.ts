@@ -28,6 +28,8 @@ export type AadeCompany = {
   name: string
   shortName: string | null
   doy: string | null
+  /** Κωδ. ΔΟΥ ΑΑΔΕ (b.doy) — για αντιστοίχιση στο Irsdata mirror (Trdr.IRSDATA). */
+  doyCode: string | null
   legalForm: string | null
   address: string | null
   zip: string | null
@@ -128,6 +130,7 @@ export async function aadeLookup(afm: string): Promise<AadeCompany | null> {
     name: s(b.onomasia) ?? '',
     shortName: s(b.commer_title),
     doy: s(b.doy_descr),
+    doyCode: s(b.doy),
     legalForm: s(b.legal_status_descr),
     address: addressParts.join(' ') || null,
     zip: s(b.postal_zip_code),

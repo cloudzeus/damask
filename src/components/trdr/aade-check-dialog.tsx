@@ -100,6 +100,7 @@ export function AadeCheckDialog({
               {([
                 ['Επωνυμία', state.mapped.NAME || null],
                 ['Διεύθυνση', [state.mapped.ADDRESS, state.mapped.CITY, state.mapped.ZIP].filter(Boolean).join(', ') || null],
+                ['ΔΟΥ', state.mapped.doyDescr ?? state.mapped.doyCode],
                 ['Ημ/νία ίδρυσης', formatDateEl(state.mapped.foundingDate)],
                 ['Κατάσταση ΑΑΔΕ', state.mapped.aadeStatus],
                 ['Είδος επιχείρησης', state.mapped.aadeFirmKind],

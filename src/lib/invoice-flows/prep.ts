@@ -106,7 +106,10 @@ function applyNonNullPatch(base: TrdrCreateData, patch: AadeTrdrPatch): TrdrCrea
   const out = { ...base }
   const entries = Object.entries(patch) as [keyof AadeTrdrPatch, AadeTrdrPatch[keyof AadeTrdrPatch]][]
   for (const [k, v] of entries) {
-    if (v !== null && v !== undefined) (out[k] as unknown) = v
+    // Μόνο keys που υπάρχουν στο TrdrCreateData — το patch κουβαλά και app-only
+    // πεδία (doyCode/doyDescr) που ΔΕΝ είναι Trdr στήλες (θα έσπαγαν το create).
+    if (!(k in base)) continue
+    if (v !== null && v !== undefined) (out[k as keyof TrdrCreateData] as unknown) = v
   }
   return out
 }

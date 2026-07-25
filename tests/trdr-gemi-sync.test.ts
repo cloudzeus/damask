@@ -88,6 +88,7 @@ function freshDb() {
     upsert: vi.fn(async ({ where, create }: any) => ({ id: 'doc-1', ...where, ...create })),
     findMany: vi.fn(async () => []),
   }
+  h.db.irsdata = { findFirst: vi.fn(async () => null) }
   h.db.legalType = { upsert: vi.fn(async ({ where }: any) => ({ ...where })) }
   h.db.gemiOfficeRef = { upsert: vi.fn(async ({ where }: any) => ({ ...where })) }
   h.db.companyStatusRef = { upsert: vi.fn(async ({ where }: any) => ({ ...where })) }
@@ -240,7 +241,7 @@ describe('applyAadeToTrdr', () => {
   it('FIX1: omits ADDRESS/ZIP/CITY (and other nullable AADE fields) from the update payload when AADE has no such data', async () => {
     vi.mocked(aadeLookup).mockResolvedValue({
       mapped: {
-        NAME: 'ΔΟΚΙΜΗ ΑΕ', ADDRESS: null, ZIP: null, CITY: null,
+        NAME: 'ΔΟΚΙΜΗ ΑΕ', ADDRESS: null, ZIP: null, CITY: null, doyCode: null, doyDescr: null,
         foundingDate: null, aadeStatus: null, aadeFirmKind: null, appLegalForm: null,
       },
       activities: [],
@@ -258,7 +259,7 @@ describe('applyAadeToTrdr', () => {
   it('FIX1: includes ADDRESS/ZIP/CITY in the update payload when AADE returns them', async () => {
     vi.mocked(aadeLookup).mockResolvedValue({
       mapped: {
-        NAME: 'ΔΟΚΙΜΗ ΑΕ', ADDRESS: 'Ερμού 10', ZIP: '10563', CITY: 'ΑΘΗΝΑ',
+        NAME: 'ΔΟΚΙΜΗ ΑΕ', ADDRESS: 'Ερμού 10', ZIP: '10563', CITY: 'ΑΘΗΝΑ', doyCode: null, doyDescr: null,
         foundingDate: null, aadeStatus: 'Ενεργός', aadeFirmKind: 'Φυσικό πρόσωπο', appLegalForm: 'ΑΕ',
       },
       activities: [],
@@ -273,6 +274,50 @@ describe('applyAadeToTrdr', () => {
     expect(updateData.aadeStatus).toBe('Ενεργός')
     expect(updateData.aadeFirmKind).toBe('Φυσικό πρόσωπο')
     expect(updateData.appLegalForm).toBe('ΑΕ')
+  })
+
+  it('ΔΟΥ: writes IRSDATA with the mirror CODE when the AADE doy code matches the Irsdata mirror', async () => {
+    vi.mocked(aadeLookup).mockResolvedValue({
+      mapped: {
+        NAME: 'ΔΟΚΙΜΗ ΑΕ', ADDRESS: null, ZIP: null, CITY: null, doyCode: '1131', doyDescr: "Α' ΑΘΗΝΩΝ",
+        foundingDate: null, aadeStatus: null, aadeFirmKind: null, appLegalForm: null,
+      },
+      activities: [],
+    })
+    h.db.irsdata.findFirst = vi.fn(async ({ where }: any) => (where.CODE === '1131' ? { IRSDATA: 5, CODE: '1131', NAME: "Α' ΑΘΗΝΩΝ" } : null))
+
+    await applyAadeToTrdr('t1')
+
+    expect(h.db.trdr.update.mock.calls[0][0].data.IRSDATA).toBe('1131')
+  })
+
+  it('ΔΟΥ: falls back to the raw AADE doy code when the mirror has no match', async () => {
+    vi.mocked(aadeLookup).mockResolvedValue({
+      mapped: {
+        NAME: 'ΔΟΚΙΜΗ ΑΕ', ADDRESS: null, ZIP: null, CITY: null, doyCode: '1131', doyDescr: "Α' ΑΘΗΝΩΝ",
+        foundingDate: null, aadeStatus: null, aadeFirmKind: null, appLegalForm: null,
+      },
+      activities: [],
+    })
+
+    await applyAadeToTrdr('t1')
+
+    expect(h.db.trdr.update.mock.calls[0][0].data.IRSDATA).toBe('1131')
+  })
+
+  it('ΔΟΥ: no doy in the AADE payload → IRSDATA absent from the update (δεν σβήνει υπάρχουσα τιμή)', async () => {
+    vi.mocked(aadeLookup).mockResolvedValue({
+      mapped: {
+        NAME: 'ΔΟΚΙΜΗ ΑΕ', ADDRESS: null, ZIP: null, CITY: null, doyCode: null, doyDescr: null,
+        foundingDate: null, aadeStatus: null, aadeFirmKind: null, appLegalForm: null,
+      },
+      activities: [],
+    })
+
+    await applyAadeToTrdr('t1')
+
+    expect(h.db.trdr.update.mock.calls[0][0].data).not.toHaveProperty('IRSDATA')
+    expect(h.db.irsdata.findFirst).not.toHaveBeenCalled()
   })
 })
 

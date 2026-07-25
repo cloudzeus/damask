@@ -79,6 +79,8 @@ describe('buildTrdrCreateFromInvoice', () => {
       ADDRESS: 'Επίσημη Οδός 5',
       ZIP: '11111',
       CITY: null,
+      doyCode: '1131',
+      doyDescr: "Α' ΑΘΗΝΩΝ",
       foundingDate: new Date('2000-01-01'),
       aadeStatus: 'ΕΝΕΡΓΟΣ ΑΦΜ',
       aadeFirmKind: 'Κανονικό Καθεστώς',
@@ -93,6 +95,9 @@ describe('buildTrdrCreateFromInvoice', () => {
     expect(data.aadeStatus).toBe('ΕΝΕΡΓΟΣ ΑΦΜ')
     expect(data.aadeFirmKind).toBe('Κανονικό Καθεστώς')
     expect(data.appLegalForm).toBe('ΑΕ')
+    // app-only πεδία του patch (ΔΟΥ) ΔΕΝ διαρρέουν στο Prisma create payload
+    expect(data).not.toHaveProperty('doyCode')
+    expect(data).not.toHaveProperty('doyDescr')
   })
 
   it('omits phones/emails/website when the party has none', () => {

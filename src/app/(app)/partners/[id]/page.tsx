@@ -111,7 +111,9 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
           jobtypetrd: trdr.JOBTYPETRD,
           legalForm: trdr.appLegalForm,
           email: trdr.EMAIL,
+          emailAcc: trdr.EMAILACC,
           phone: trdr.PHONE01,
+          phone2: trdr.PHONE02,
           website: trdr.WEBPAGE,
           address: trdr.ADDRESS,
           city: trdr.CITY,
@@ -122,6 +124,8 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
           shipment: trdr.SHIPMENT,
           lat: trdr.appLat,
           lng: trdr.appLng,
+          employees: trdr.appEmployees,
+          annualRevenue: trdr.appAnnualRevenue != null ? Number(trdr.appAnnualRevenue) : null,
           notes: trdr.appNotes,
         }}
         logoUrl={trdr.appLogoUrl}
@@ -131,6 +135,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <PartnerInfoCard
+          trdrId={trdr.id}
           afm={trdr.AFM}
           irsdataName={irsdata?.NAME ?? trdr.IRSDATA}
           legalForm={trdr.appLegalForm}
@@ -143,6 +148,10 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
           paymentName={payment?.NAME ?? null}
           shipmentName={shipment?.NAME ?? null}
           phone={trdr.PHONE01}
+          phone2={trdr.PHONE02}
+          emailAcc={trdr.EMAILACC}
+          employees={trdr.appEmployees}
+          annualRevenue={trdr.appAnnualRevenue != null ? Number(trdr.appAnnualRevenue) : null}
           email={trdr.EMAIL}
           website={trdr.WEBPAGE}
         />
