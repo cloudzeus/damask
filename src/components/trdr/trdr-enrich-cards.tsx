@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { removeTrdrDocument } from '@/lib/trdr/enrich-actions'
 import { GemiSyncConfirmDialog } from './gemi-sync-dialog'
 import { AadeCheckDialog } from './aade-check-dialog'
+import { AadeKadCheckDialog } from './aade-kad-check-dialog'
 import { GemiDocsDialog } from './gemi-docs-dialog'
 
 /**
@@ -88,11 +89,24 @@ export type TrdrKadRow = {
   licensed: boolean
 }
 
-export function TrdrKadCard({ kads }: { kads: TrdrKadRow[] }) {
+export function TrdrKadCard({
+  kads, trdrId, afm, canEdit,
+}: {
+  kads: TrdrKadRow[]
+  trdrId: string
+  afm: string | null
+  canEdit: boolean
+}) {
+  const [checkOpen, setCheckOpen] = React.useState(false)
   return (
     <div className="glass stagger p-4">
-      <div className="dotted-leader mb-2.5 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
-        ΚΑΔ ({kads.length})
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+          ΚΑΔ ({kads.length})
+        </div>
+        <Button type="button" variant="outline" size="sm" disabled={!afm} onClick={() => setCheckOpen(true)}>
+          <BadgeCheck className="size-3.5" aria-hidden /> Έλεγχος για νέους ΚΑΔ
+        </Button>
       </div>
       {kads.length === 0 ? (
         <p className="py-4 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν καταχωρημένοι ΚΑΔ.</p>
@@ -123,6 +137,8 @@ export function TrdrKadCard({ kads }: { kads: TrdrKadRow[] }) {
           </table>
         </div>
       )}
+
+      <AadeKadCheckDialog trdrId={trdrId} afm={afm} canEdit={canEdit} open={checkOpen} onOpenChange={setCheckOpen} />
     </div>
   )
 }

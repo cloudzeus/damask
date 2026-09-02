@@ -142,6 +142,50 @@ export async function applyAadeToTrdr(trdrId: string) {
   return { ok: true as const, name: mapped.NAME, kads: kadRows.length }
 }
 
+export type AadeKadCheck = {
+  ok: true
+  aadeName: string | null
+  added: { code: string; description: string; kind: 'PRIMARY' | 'SECONDARY' }[]
+  removed: { code: string; description: string }[]
+  unchanged: number
+}
+
+/**
+ * Read-only «Έλεγχος για νέους ΚΑΔ» — φέρνει τους ΚΑΔ της ΑΑΔΕ, τους
+ * κανονικοποιεί με ΤΟ ΙΔΙΟ pipeline του applyAadeToTrdr (buildTrdrKadRows) και
+ * τους συγκρίνει με τους ήδη αποθηκευμένους TrdrKad. ΔΕΝ γράφει τίποτα — η
+ * εφαρμογή γίνεται μέσω applyAadeToTrdr. Η σύγκριση είναι στον κανονικό κωδικό
+ * (r.code), όχι στον raw ΑΑΔΕ, ώστε να ταιριάζει με το TrdrKad.code που αποθηκεύεται.
+ */
+export async function aadeKadCheckTrdr(trdrId: string): Promise<AadeKadCheck> {
+  await requirePermission('customer.view')
+
+  const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { AFM: true } })
+  if (!trdr) notFound()
+  if (!trdr.AFM) throw new Error('Ο συναλλασσόμενος δεν έχει ΑΦΜ — δεν μπορεί να γίνει έλεγχος ΑΑΔΕ.')
+
+  const result = await aadeLookup(trdr.AFM)
+  if (!result) throw new Error(`Δεν βρέθηκαν στοιχεία ΑΑΔΕ για το ΑΦΜ ${trdr.AFM}.`)
+
+  const rawActivities: RawActivity[] = result.activities
+    .filter((a): a is { code: string; description: string | null; kind: 'PRIMARY' | 'SECONDARY'; order: number } => a.code != null)
+    .map((a) => ({ code: a.code, description: a.description ?? '', kind: a.kind, order: a.order }))
+  const kadRows = rawActivities.length > 0 ? await buildTrdrKadRows(trdrId, rawActivities) : []
+
+  const existing = await prisma.trdrKad.findMany({ where: { trdrId }, select: { code: true, description: true } })
+  const existingCodes = new Set(existing.map((e) => e.code))
+  const incomingCodes = new Set(kadRows.map((r) => r.code))
+
+  const added = kadRows
+    .filter((r) => !existingCodes.has(r.code))
+    .map((r) => ({ code: r.code, description: r.description, kind: r.kind }))
+  const removed = existing
+    .filter((e) => !incomingCodes.has(e.code))
+    .map((e) => ({ code: e.code, description: e.description }))
+
+  return { ok: true, aadeName: result.mapped.NAME, added, removed, unchanged: kadRows.length - added.length }
+}
+
 // ── ΓΕΜΗ preview + sync ─────────────────────────────────────────────────────
 
 /** Preview (καμία εγγραφή) — αναζήτηση (αν δεν δοθεί arGemi) → getCompany + document counts. */
