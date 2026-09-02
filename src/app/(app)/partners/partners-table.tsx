@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { PartnerRowActions } from './partner-row-actions'
 import { BulkRegionMatchButton } from '@/components/trdr/bulk-region-match-button'
+import { BulkKadMatchButton } from '@/components/trdr/bulk-kad-match-button'
 
 export type PartnerRow = {
   id: string
@@ -85,6 +86,7 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
           Leads <span className="cnt">{counts.leads}</span>
         </button>
         <div className="flex-1" />
+        <BulkKadMatchButton />
         <BulkRegionMatchButton />
       </div>
 

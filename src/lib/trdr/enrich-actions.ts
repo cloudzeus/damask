@@ -475,6 +475,49 @@ export async function bulkMatchTrdrRegions(): Promise<BulkMatchTallies> {
   return tallies
 }
 
+export type BulkKadTallies = { updated: number; noKad: number; failed: number }
+
+/**
+ * Μαζικός εντοπισμός ΚΑΔ από ΑΑΔΕ για Trdr με ΑΦΜ αλλά ΧΩΡΙΣ κανέναν ΚΑΔ
+ * (fill-missing, ίδιο idiom με bulkMatchTrdrRegions — cap 200 γιατί εδώ κάθε
+ * γραμμή κάνει ΕΝΑ εξωτερικό ΑΑΔΕ lookup, σε αντίθεση με τον region matcher που
+ * δουλεύει μόνο σε αποθηκευμένα δεδομένα). Ανά-γραμμή try/catch — μια αποτυχία
+ * ΑΑΔΕ δεν σταματά τους υπόλοιπους. Γράφει μόνο τους ΚΑΔ + aadeSyncedAt (δεν
+ * αγγίζει NAME/διεύθυνση σε μαζική λειτουργία).
+ */
+export async function bulkAadeKadTrdr(): Promise<BulkKadTallies> {
+  await requirePermission('customer.edit')
+
+  const rows = await prisma.trdr.findMany({
+    where: { AFM: { not: null }, kads: { none: {} } },
+    select: { id: true, AFM: true },
+    take: 200,
+  })
+
+  const tallies: BulkKadTallies = { updated: 0, noKad: 0, failed: 0 }
+  for (const row of rows) {
+    if (!row.AFM) { tallies.failed++; continue }
+    try {
+      const result = await aadeLookup(row.AFM)
+      const rawActivities: RawActivity[] = (result?.activities ?? [])
+        .filter((a): a is { code: string; description: string | null; kind: 'PRIMARY' | 'SECONDARY'; order: number } => a.code != null)
+        .map((a) => ({ code: a.code, description: a.description ?? '', kind: a.kind, order: a.order }))
+      const kadRows = rawActivities.length > 0 ? await buildTrdrKadRows(row.id, rawActivities) : []
+      if (kadRows.length === 0) { tallies.noKad++; continue }
+      await prisma.$transaction(async (tx) => {
+        await replaceTrdrKad(tx, row.id, kadRows)
+        await tx.trdr.update({ where: { id: row.id }, data: { aadeSyncedAt: new Date() } })
+      })
+      tallies.updated++
+    } catch {
+      tallies.failed++
+    }
+  }
+
+  revalidatePath('/partners')
+  return tallies
+}
+
 // ── ΓΕΜΗ documents: on-demand preview + save + saved list + remove ─────────
 
 export type GemiDocumentPreview = {
