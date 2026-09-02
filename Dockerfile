@@ -1,7 +1,12 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# --include=dev: ο builder (Coolify) τρέχει το build με NODE_ENV=production, οπότε
+# ένα σκέτο `npm ci` ΠΑΡΑΛΕΙΠΕΙ τα devDependencies — και το `next build` τα χρειάζεται
+# στο build stage (@tailwindcss/postcss για το globals.css, tailwindcss, typescript).
+# Το --include=dev υπερισχύει του NODE_ENV/omit. Το runtime image (standalone) δεν
+# τα κουβαλάει ούτως ή άλλως, άρα δεν φουσκώνει το τελικό image.
+RUN npm ci --include=dev
 
 FROM node:22-alpine AS build
 WORKDIR /app
