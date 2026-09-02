@@ -1,6 +1,7 @@
 import { deepseekChat } from '@/lib/deepseek'
 import { parseJsonLoose } from '@/lib/ocr/extract'
 import { PROGRAM_SYSTEM_PROMPT, PROGRAM_JSON_SHAPE } from '@/lib/programs/extract-prompt'
+import { extractProgramKads } from '@/lib/programs/kad-extract'
 import { emptyExtractedProgram, coerceMoney, coercePercent, type ExtractedProgram } from '@/lib/programs/types'
 
 /**
@@ -189,5 +190,18 @@ export async function extractProgramFromText(
     }
   }
 
-  return { data: normalize(raw), model, tokensUsed: null, retried }
+  const data = normalize(raw)
+
+  // ΚΑΔ auto-fill (βλ. extract-prompt.ts §ΚΑΔ): το DeepSeek επιστρέφει ~20
+  // δείγματα· η πλήρης λίστα προκύπτει εδώ με regex + μητρώο KadCode πάνω στο
+  // ΟΛΟΚΛΗΡΟ κείμενο. Union: κρατάμε τους registry-backed (με περιγραφή) και
+  // προσθέτουμε όσα δείγματα του AI δεν βρέθηκαν στο μητρώο — ποτέ regression.
+  const registryKads = await extractProgramKads(text)
+  if (registryKads.length > 0) {
+    const byCode = new Map(registryKads.map(k => [k.code, k]))
+    for (const k of data.kads) if (k.code && !byCode.has(k.code)) byCode.set(k.code, { code: k.code, description: k.description ?? null })
+    data.kads = [...byCode.values()]
+  }
+
+  return { data, model, tokensUsed: null, retried }
 }
