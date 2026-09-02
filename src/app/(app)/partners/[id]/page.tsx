@@ -193,7 +193,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <TrdrKadCard kads={kadRows} />
+        <TrdrKadCard kads={kadRows} trdrId={trdr.id} afm={trdr.AFM} canEdit={canEdit} />
         <TrdrDocumentsCard trdrId={trdr.id} arGemi={trdr.arGemi} documents={documentRows} />
       </div>
     </div>
