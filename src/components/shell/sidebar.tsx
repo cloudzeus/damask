@@ -93,8 +93,8 @@ export function Sidebar({
             aria-label="World Wide Associates"
             className={cn('flex items-center gap-2 px-2', rail && 'lg:justify-center lg:px-0')}
           >
-            <Logo variant="mark" className="h-8 w-8 shrink-0" />
-            <Logo variant="full" className={cn('h-6 w-auto', railHide)} />
+            <Logo variant="mark" className="h-10 w-10 shrink-0" />
+            <Logo variant="full" className={cn('h-9 w-auto', railHide)} />
           </Link>
           <button
             type="button"
