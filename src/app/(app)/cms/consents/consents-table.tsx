@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Download, Monitor, Globe2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 
 export type ConsentRow = {
   id: string
@@ -55,121 +56,146 @@ export function ConsentsTable({ rows, range }: { rows: ConsentRow[]; range: '7' 
     }
   }, [rows, choiceFilter])
 
-  return (
-    <div className="glass table-card stagger">
-      <div className="table-toolbar">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {RANGE_OPTIONS.map(opt => (
-            <Link
-              key={opt.value}
-              href={opt.value === '30' ? '/cms/consents' : `/cms/consents?range=${opt.value}`}
-              className={cn('pill', range === opt.value && 'on')}
-            >
-              {opt.label}
-            </Link>
-          ))}
-        </div>
-        <div className="mx-1 h-5 w-px shrink-0" style={{ background: 'var(--border)' }} aria-hidden />
-        <div className="flex flex-wrap items-center gap-1.5">
-          {CHOICE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              className={cn('pill', choiceFilter === opt.value && 'on')}
-              onClick={() => setChoiceFilter(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1" />
+  const columns: DataTableColumn<ConsentRow>[] = [
+    {
+      id: 'date',
+      header: 'Ημ/νία · ώρα',
+      width: 150,
+      sortValue: row => row.createdAtIso,
+      cell: row => (
         <Tooltip>
           <TooltipTrigger
             render={
-              <button type="button" className="pill" aria-disabled="true" style={{ opacity: 0.55, cursor: 'default' }}>
-                <Download className="size-3.5" strokeWidth={1.8} aria-hidden /> Λήψη Excel
-              </button>
+              <time dateTime={row.createdAtIso} className="cursor-default">
+                {row.createdAtRelative}
+              </time>
             }
           />
-          <TooltipContent>Έρχεται με το Excel engine (Φάση 2)</TooltipContent>
+          <TooltipContent>{row.createdAtExact}</TooltipContent>
         </Tooltip>
-      </div>
+      ),
+    },
+    {
+      id: 'visitor',
+      header: 'Visitor',
+      width: 150,
+      sortValue: row => row.visitorId,
+      cell: row => (
+        <span className="font-mono text-[11.5px] text-muted-foreground" title={row.visitorId}>
+          {truncateId(row.visitorId)}
+        </span>
+      ),
+    },
+    {
+      id: 'user',
+      header: 'Χρήστης',
+      width: 150,
+      sortValue: row => row.userName ?? '',
+      cell: row => row.userName ?? <span className="text-muted-foreground">—</span>,
+    },
+    {
+      id: 'ip',
+      header: 'IP',
+      width: 130,
+      sortValue: row => row.ip,
+      cell: row => <span className="font-mono text-[12px]">{row.ip}</span>,
+    },
+    {
+      id: 'osBrowser',
+      header: 'OS · Browser',
+      width: 180,
+      sortValue: row => row.os,
+      cell: row => (
+        <span className="inline-flex items-center gap-1.5">
+          <Monitor className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} aria-hidden />
+          {row.os}{row.browser ? ` · ${row.browser}` : ''}
+        </span>
+      ),
+    },
+    {
+      id: 'locale',
+      header: 'Locale',
+      width: 120,
+      sortValue: row => row.locale ?? '',
+      cell: row => (
+        row.locale ? (
+          <span className="inline-flex items-center gap-1.5">
+            <Globe2 className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} aria-hidden /> {row.locale}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )
+      ),
+    },
+    {
+      id: 'analytics',
+      header: 'Analytics',
+      width: 110,
+      sortValue: row => row.analytics,
+      cell: row => <span className={cn('badge-pill', row.analytics ? 'ok' : 'muted')}>{row.analytics ? '✓' : '✗'}</span>,
+    },
+    {
+      id: 'marketing',
+      header: 'Marketing',
+      width: 110,
+      sortValue: row => row.marketing,
+      cell: row => <span className={cn('badge-pill', row.marketing ? 'ok' : 'muted')}>{row.marketing ? '✓' : '✗'}</span>,
+    },
+    {
+      id: 'policyVersion',
+      header: 'Έκδοση πολιτικής',
+      width: 150,
+      sortValue: row => row.policyVersion ?? '',
+      cell: row => <span className="text-muted-foreground">{row.policyVersion ?? '—'}</span>,
+    },
+  ]
 
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Ημ/νία · ώρα</th>
-              <th>Visitor</th>
-              <th>Χρήστης</th>
-              <th>IP</th>
-              <th>OS · Browser</th>
-              <th>Locale</th>
-              <th>Analytics</th>
-              <th>Marketing</th>
-              <th>Έκδοση πολιτικής</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(row => (
-              <tr key={row.id} className="dotted-row-bottom">
-                <td>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <time dateTime={row.createdAtIso} className="cursor-default">
-                          {row.createdAtRelative}
-                        </time>
-                      }
-                    />
-                    <TooltipContent>{row.createdAtExact}</TooltipContent>
-                  </Tooltip>
-                </td>
-                <td>
-                  <span className="font-mono text-[11.5px] text-muted-foreground" title={row.visitorId}>
-                    {truncateId(row.visitorId)}
-                  </span>
-                </td>
-                <td>{row.userName ?? <span className="text-muted-foreground">—</span>}</td>
-                <td className="font-mono text-[12px]">{row.ip}</td>
-                <td>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Monitor className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} aria-hidden />
-                    {row.os}{row.browser ? ` · ${row.browser}` : ''}
-                  </span>
-                </td>
-                <td>
-                  {row.locale ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Globe2 className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} aria-hidden /> {row.locale}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </td>
-                <td>
-                  <span className={cn('badge-pill', row.analytics ? 'ok' : 'muted')}>{row.analytics ? '✓' : '✗'}</span>
-                </td>
-                <td>
-                  <span className={cn('badge-pill', row.marketing ? 'ok' : 'muted')}>{row.marketing ? '✓' : '✗'}</span>
-                </td>
-                <td className="text-muted-foreground">{row.policyVersion ?? '—'}</td>
-              </tr>
+  return (
+    <DataTable
+      tableId="cms-consents"
+      columns={columns}
+      rows={filtered}
+      rowKey={row => row.id}
+      emptyMessage={rows.length === 0 ? 'Δεν υπάρχουν καταγεγραμμένες συγκαταθέσεις σε αυτό το εύρος.' : 'Καμία εγγραφή δεν ταιριάζει στο φίλτρο.'}
+      footer={<span>{filtered.length} {filtered.length === 1 ? 'εγγραφή' : 'εγγραφές'}{filtered.length !== rows.length ? ` (από ${rows.length})` : ''}</span>}
+      toolbarExtras={
+        <>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {RANGE_OPTIONS.map(opt => (
+              <Link
+                key={opt.value}
+                href={opt.value === '30' ? '/cms/consents' : `/cms/consents?range=${opt.value}`}
+                className={cn('pill', range === opt.value && 'on')}
+              >
+                {opt.label}
+              </Link>
             ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={9} className="py-8 text-center text-muted-foreground">
-                  {rows.length === 0 ? 'Δεν υπάρχουν καταγεγραμμένες συγκαταθέσεις σε αυτό το εύρος.' : 'Καμία εγγραφή δεν ταιριάζει στο φίλτρο.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-foot dotted-row-top">
-        <span>{filtered.length} {filtered.length === 1 ? 'εγγραφή' : 'εγγραφές'}{filtered.length !== rows.length ? ` (από ${rows.length})` : ''}</span>
-      </div>
-    </div>
+          </div>
+          <div className="mx-1 h-5 w-px shrink-0" style={{ background: 'var(--border)' }} aria-hidden />
+          <div className="flex flex-wrap items-center gap-1.5">
+            {CHOICE_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                className={cn('pill', choiceFilter === opt.value && 'on')}
+                onClick={() => setChoiceFilter(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button type="button" className="pill" aria-disabled="true" style={{ opacity: 0.55, cursor: 'default' }}>
+                  <Download className="size-3.5" strokeWidth={1.8} aria-hidden /> Λήψη Excel
+                </button>
+              }
+            />
+            <TooltipContent>Έρχεται με το Excel engine (Φάση 2)</TooltipContent>
+          </Tooltip>
+        </>
+      }
+    />
   )
 }

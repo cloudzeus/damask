@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Search, Sparkles, CircleDashed, Clock3, CheckCircle2, Archive } from 'lucide-react'
 import type { PostStatus } from '@prisma/client'
 import { cn } from '@/lib/utils'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { PostRowActions } from './post-row-actions'
 
 export type PostRow = {
@@ -38,11 +39,89 @@ export function PostsTable({ posts, canEdit }: { posts: PostRow[]; canEdit: bool
     )
   }, [posts, query])
 
-  const colCount = canEdit ? 6 : 5
+  const columns: DataTableColumn<PostRow>[] = [
+    {
+      id: 'title',
+      header: 'Τίτλος',
+      width: 300,
+      enableHide: false,
+      sortValue: p => p.titleEl,
+      cell: p => (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="font-semibold">{p.titleEl}</span>
+          {p.aiGenerated && (
+            <span className="badge-pill info" title="Δημιουργήθηκε με AI">
+              <Sparkles className="size-3" strokeWidth={2.2} aria-hidden />
+              AI
+            </span>
+          )}
+          <span className={cn('badge-pill', p.hasEn ? 'ok' : 'muted')} title={p.hasEn ? 'Υπάρχει αγγλική μετάφραση' : 'Δεν υπάρχει αγγλική μετάφραση'}>
+            EN {p.hasEn ? '✓' : '—'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'category',
+      header: 'Κατηγορία',
+      width: 160,
+      sortValue: p => p.categoryName ?? '',
+      cell: p => p.categoryName ?? '—',
+    },
+    {
+      id: 'author',
+      header: 'Συγγραφέας',
+      width: 160,
+      sortValue: p => p.authorName ?? '',
+      cell: p => p.authorName ?? '—',
+    },
+    {
+      id: 'status',
+      header: 'Κατάσταση',
+      width: 160,
+      sortValue: p => STATUS_META[p.status].label,
+      cell: p => {
+        const meta = STATUS_META[p.status]
+        return (
+          <span className={cn('badge-pill', meta.cls)}>
+            <meta.icon className="size-3" strokeWidth={2.2} aria-hidden />
+            {meta.label}
+          </span>
+        )
+      },
+    },
+    {
+      id: 'updated',
+      header: 'Ενημερώθηκε',
+      width: 150,
+      sortValue: p => p.updatedLabel,
+      cell: p => p.updatedLabel,
+    },
+    ...(canEdit
+      ? ([
+          {
+            id: 'actions',
+            header: '⋯',
+            headerLabel: 'Ενέργειες',
+            align: 'center',
+            width: 48,
+            enableHide: false,
+            enableResize: false,
+            cell: p => <PostRowActions post={p} />,
+          },
+        ] as DataTableColumn<PostRow>[])
+      : []),
+  ]
 
   return (
-    <div className="glass table-card stagger">
-      <div className="table-toolbar">
+    <DataTable
+      tableId="cms-posts"
+      columns={columns}
+      rows={filtered}
+      rowKey={p => p.id}
+      emptyMessage="Δεν βρέθηκαν άρθρα."
+      footer={<span>{filtered.length} {filtered.length === 1 ? 'άρθρο' : 'άρθρα'}</span>}
+      toolbarExtras={
         <label className="search">
           <Search className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
           <input
@@ -52,70 +131,7 @@ export function PostsTable({ posts, canEdit }: { posts: PostRow[]; canEdit: bool
             aria-label="Αναζήτηση άρθρων"
           />
         </label>
-      </div>
-
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Τίτλος</th>
-              <th>Κατηγορία</th>
-              <th>Συγγραφέας</th>
-              <th>Κατάσταση</th>
-              <th>Ενημερώθηκε</th>
-              {canEdit && <th className="ctr" style={{ width: 40 }}>⋯</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(post => {
-              const meta = STATUS_META[post.status]
-              return (
-                <tr key={post.id} className="dotted-row-bottom">
-                  <td>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-semibold">{post.titleEl}</span>
-                      {post.aiGenerated && (
-                        <span className="badge-pill info" title="Δημιουργήθηκε με AI">
-                          <Sparkles className="size-3" strokeWidth={2.2} aria-hidden />
-                          AI
-                        </span>
-                      )}
-                      <span className={cn('badge-pill', post.hasEn ? 'ok' : 'muted')} title={post.hasEn ? 'Υπάρχει αγγλική μετάφραση' : 'Δεν υπάρχει αγγλική μετάφραση'}>
-                        EN {post.hasEn ? '✓' : '—'}
-                      </span>
-                    </div>
-                  </td>
-                  <td>{post.categoryName ?? '—'}</td>
-                  <td>{post.authorName ?? '—'}</td>
-                  <td>
-                    <span className={cn('badge-pill', meta.cls)}>
-                      <meta.icon className="size-3" strokeWidth={2.2} aria-hidden />
-                      {meta.label}
-                    </span>
-                  </td>
-                  <td>{post.updatedLabel}</td>
-                  {canEdit && (
-                    <td className="ctr">
-                      <PostRowActions post={post} />
-                    </td>
-                  )}
-                </tr>
-              )
-            })}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={colCount} className="py-8 text-center text-muted-foreground">
-                  Δεν βρέθηκαν άρθρα.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-foot dotted-row-top">
-        <span>{filtered.length} {filtered.length === 1 ? 'άρθρο' : 'άρθρα'}</span>
-      </div>
-    </div>
+      }
+    />
   )
 }

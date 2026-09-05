@@ -6,6 +6,7 @@ import { LuSearch, LuCopy, LuCircleCheck, LuCircleX, LuClock3, LuBan } from 'rea
 import type { IconType } from 'react-icons'
 import type { PaymentStatus } from '@prisma/client'
 import { cn, formatEuro } from '@/lib/utils'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { PaymentRowActions } from './payment-row-actions'
 
 export type PaymentRow = {
@@ -56,9 +57,109 @@ export function PaymentsTable({ payments, canManage }: { payments: PaymentRow[];
     )
   }, [payments, query])
 
+  const columns: DataTableColumn<PaymentRow>[] = [
+    {
+      id: 'orderCode',
+      header: 'Κωδικός πληρωμής',
+      width: 180,
+      sortValue: p => p.orderCode,
+      cell: p => (
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono text-[12px]">{p.orderCode}</span>
+          <button
+            type="button"
+            className="rowmenu-btn"
+            aria-label={`Αντιγραφή κωδικού πληρωμής ${p.orderCode}`}
+            onClick={() => copyText(p.orderCode, 'Ο κωδικός πληρωμής αντιγράφηκε.')}
+          >
+            <LuCopy className="size-3.5" aria-hidden />
+          </button>
+        </div>
+      ),
+    },
+    {
+      id: 'description',
+      header: 'Περιγραφή',
+      width: 240,
+      sortValue: p => p.description,
+      cell: p => <span className="block max-w-[240px] truncate" title={p.description}>{p.description}</span>,
+    },
+    {
+      id: 'customer',
+      header: 'Πελάτης',
+      width: 180,
+      sortValue: p => p.customerName || p.customerEmail || '',
+      cell: p => p.customerName || p.customerEmail || '—',
+    },
+    {
+      id: 'amount',
+      header: 'Ποσό',
+      align: 'right',
+      width: 110,
+      sortValue: p => p.amountCents,
+      cell: p => formatEuro(p.amountCents),
+    },
+    {
+      id: 'environment',
+      header: 'Περιβάλλον',
+      width: 120,
+      sortValue: p => p.environment,
+      cell: p => (
+        <span className={cn('badge-pill', p.environment === 'production' ? 'ok' : 'info')}>
+          {p.environment === 'production' ? 'Παραγωγή' : 'Demo'}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Κατάσταση',
+      width: 140,
+      sortValue: p => STATUS_META[p.status].label,
+      cell: p => {
+        const meta = STATUS_META[p.status]
+        return (
+          <span
+            className={meta.badgeClass}
+            style={meta.style}
+            title={p.stale ? 'Πάνω από 30 λεπτά σε αναμονή — πιθανώς έληξε στο Viva.' : undefined}
+          >
+            {meta.pulse
+              ? <span className="status-dot pulse" style={{ background: 'var(--warning)', color: 'var(--warning)' }} aria-hidden />
+              : (meta.icon ? <meta.icon className="size-3" aria-hidden /> : null)}
+            {meta.label}
+            {p.stale ? ' ⚠' : ''}
+          </span>
+        )
+      },
+    },
+    {
+      id: 'date',
+      header: 'Ημερομηνία',
+      width: 150,
+      sortValue: p => p.createdAtLabel,
+      cell: p => p.createdAtLabel,
+    },
+    {
+      id: 'actions',
+      header: '⋯',
+      headerLabel: 'Ενέργειες',
+      align: 'center',
+      width: 48,
+      enableHide: false,
+      enableResize: false,
+      cell: p => <PaymentRowActions payment={p} canManage={canManage} />,
+    },
+  ]
+
   return (
-    <div className="glass table-card stagger">
-      <div className="table-toolbar">
+    <DataTable
+      tableId="payments"
+      columns={columns}
+      rows={filtered}
+      rowKey={p => p.id}
+      emptyMessage="Δεν βρέθηκαν πληρωμές."
+      footer={<span>{filtered.length} {filtered.length === 1 ? 'πληρωμή' : 'πληρωμές'}</span>}
+      toolbarExtras={
         <label className="search">
           <LuSearch className="size-3.5 shrink-0" aria-hidden />
           <input
@@ -68,82 +169,7 @@ export function PaymentsTable({ payments, canManage }: { payments: PaymentRow[];
             aria-label="Αναζήτηση πληρωμών"
           />
         </label>
-      </div>
-
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Κωδικός πληρωμής</th>
-              <th>Περιγραφή</th>
-              <th>Πελάτης</th>
-              <th className="num">Ποσό</th>
-              <th>Περιβάλλον</th>
-              <th>Κατάσταση</th>
-              <th>Ημερομηνία</th>
-              <th className="ctr" style={{ width: 40 }}>⋯</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(payment => {
-              const meta = STATUS_META[payment.status]
-              return (
-                <tr key={payment.id} className="dotted-row-bottom">
-                  <td>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-[12px]">{payment.orderCode}</span>
-                      <button
-                        type="button"
-                        className="rowmenu-btn"
-                        aria-label={`Αντιγραφή κωδικού πληρωμής ${payment.orderCode}`}
-                        onClick={() => copyText(payment.orderCode, 'Ο κωδικός πληρωμής αντιγράφηκε.')}
-                      >
-                        <LuCopy className="size-3.5" aria-hidden />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="max-w-[240px] truncate" title={payment.description}>{payment.description}</td>
-                  <td>{payment.customerName || payment.customerEmail || '—'}</td>
-                  <td className="num">{formatEuro(payment.amountCents)}</td>
-                  <td>
-                    <span className={cn('badge-pill', payment.environment === 'production' ? 'ok' : 'info')}>
-                      {payment.environment === 'production' ? 'Παραγωγή' : 'Demo'}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={meta.badgeClass}
-                      style={meta.style}
-                      title={payment.stale ? 'Πάνω από 30 λεπτά σε αναμονή — πιθανώς έληξε στο Viva.' : undefined}
-                    >
-                      {meta.pulse
-                        ? <span className="status-dot pulse" style={{ background: 'var(--warning)', color: 'var(--warning)' }} aria-hidden />
-                        : (meta.icon ? <meta.icon className="size-3" aria-hidden /> : null)}
-                      {meta.label}
-                      {payment.stale ? ' ⚠' : ''}
-                    </span>
-                  </td>
-                  <td>{payment.createdAtLabel}</td>
-                  <td className="ctr">
-                    <PaymentRowActions payment={payment} canManage={canManage} />
-                  </td>
-                </tr>
-              )
-            })}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                  Δεν βρέθηκαν πληρωμές.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-foot dotted-row-top">
-        <span>{filtered.length} {filtered.length === 1 ? 'πληρωμή' : 'πληρωμές'}</span>
-      </div>
-    </div>
+      }
+    />
   )
 }

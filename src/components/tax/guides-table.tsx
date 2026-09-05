@@ -13,52 +13,112 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
   AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { deleteTemplate, type TemplateListItem } from '@/lib/tax/actions'
 import { NewGuideDialog } from './new-guide-dialog'
 
 export function GuidesTable({ rows }: { rows: TemplateListItem[] }) {
   const router = useRouter()
 
-  return (
-    <div className="glass table-card stagger">
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Όνομα</th>
-              <th>Κωδικός / Έτος</th>
-              <th>Περιγραφή</th>
-              <th className="num">Πεδία</th>
-              <th>Κατάσταση</th>
-              <th className="ctr" style={{ width: 40 }}>⋯</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <GuideRow key={r.id} row={r} onDeleted={() => router.refresh()} />
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="py-10 text-center">
-                  <div className="mb-3 text-[13px] text-muted-foreground">
-                    Δεν υπάρχουν ακόμη οδηγοί εντύπων — δημιούργησε τον πρώτο για να ξεκινήσεις τη χαρτογράφηση πεδίων.
-                  </div>
-                  <NewGuideDialog />
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+  const columns: DataTableColumn<TemplateListItem>[] = [
+    {
+      id: 'name',
+      header: 'Όνομα',
+      width: 260,
+      enableHide: false,
+      sortValue: r => r.name,
+      cell: r => (
+        <span className="user-cell">
+          <span className="avatar-ring size-8 shrink-0 text-[11px]">
+            <LuFileText className="size-3.5" aria-hidden />
+          </span>
+          <span>
+            <b>{r.name}</b>
+          </span>
+        </span>
+      ),
+    },
+    {
+      id: 'code',
+      header: 'Κωδικός / Έτος',
+      width: 160,
+      sortValue: r => r.code,
+      cell: r => (
+        <>
+          <span className="font-mono text-[12.5px]">{r.code}</span>
+          {r.year != null && <small className="ml-1.5 text-muted-foreground">{r.year}</small>}
+        </>
+      ),
+    },
+    {
+      id: 'description',
+      header: 'Περιγραφή',
+      width: 280,
+      sortValue: r => r.description ?? '',
+      cell: r => (
+        <span className="block max-w-[280px] truncate text-muted-foreground" title={r.description ?? undefined}>
+          {r.description ?? '—'}
+        </span>
+      ),
+    },
+    {
+      id: 'fieldCount',
+      header: 'Πεδία',
+      align: 'right',
+      width: 90,
+      sortValue: r => r.fieldCount,
+      cell: r => r.fieldCount,
+    },
+    {
+      id: 'status',
+      header: 'Κατάσταση',
+      width: 130,
+      sortValue: r => r.status,
+      cell: r => (
+        r.status === 'READY' ? (
+          <span className="badge-pill ok">
+            <LuCircleCheck className="size-3" aria-hidden /> Έτοιμο
+          </span>
+        ) : (
+          <span className="badge-pill warn">
+            <LuPencilLine className="size-3" aria-hidden /> Πρόχειρο
+          </span>
+        )
+      ),
+    },
+    {
+      id: 'actions',
+      header: '⋯',
+      headerLabel: 'Ενέργειες',
+      align: 'center',
+      width: 48,
+      enableHide: false,
+      enableResize: false,
+      cell: r => <GuideActionsCell row={r} onDeleted={() => router.refresh()} />,
+    },
+  ]
 
-      <div className="table-foot dotted-row-top">
-        <span>{rows.length} {rows.length === 1 ? 'οδηγός' : 'οδηγοί'}</span>
-      </div>
-    </div>
+  return (
+    <DataTable
+      tableId="tax-guides"
+      columns={columns}
+      rows={rows}
+      rowKey={r => r.id}
+      onRowClick={r => router.push(`/tax-templates/${r.id}`)}
+      emptyMessage={
+        <div>
+          <div className="mb-3 text-[13px] text-muted-foreground">
+            Δεν υπάρχουν ακόμη οδηγοί εντύπων — δημιούργησε τον πρώτο για να ξεκινήσεις τη χαρτογράφηση πεδίων.
+          </div>
+          <NewGuideDialog />
+        </div>
+      }
+      footer={<span>{rows.length} {rows.length === 1 ? 'οδηγός' : 'οδηγοί'}</span>}
+    />
   )
 }
 
-function GuideRow({ row, onDeleted }: { row: TemplateListItem; onDeleted: () => void }) {
+function GuideActionsCell({ row, onDeleted }: { row: TemplateListItem; onDeleted: () => void }) {
   const router = useRouter()
   const [deleting, startDelete] = useTransition()
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -81,58 +141,25 @@ function GuideRow({ row, onDeleted }: { row: TemplateListItem; onDeleted: () => 
   }
 
   return (
-    <>
-      <tr className="dotted-row-bottom cursor-pointer" onClick={openGuide}>
-        <td>
-          <span className="user-cell">
-            <span className="avatar-ring size-8 shrink-0 text-[11px]">
-              <LuFileText className="size-3.5" aria-hidden />
-            </span>
-            <span>
-              <b>{row.name}</b>
-            </span>
-          </span>
-        </td>
-        <td>
-          <span className="font-mono text-[12.5px]">{row.code}</span>
-          {row.year != null && <small className="ml-1.5 text-muted-foreground">{row.year}</small>}
-        </td>
-        <td className="max-w-[280px] truncate text-muted-foreground" title={row.description ?? undefined}>
-          {row.description ?? '—'}
-        </td>
-        <td className="num">{row.fieldCount}</td>
-        <td>
-          {row.status === 'READY' ? (
-            <span className="badge-pill ok">
-              <LuCircleCheck className="size-3" aria-hidden /> Έτοιμο
-            </span>
-          ) : (
-            <span className="badge-pill warn">
-              <LuPencilLine className="size-3" aria-hidden /> Πρόχειρο
-            </span>
-          )}
-        </td>
-        <td className="ctr" onClick={e => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button type="button" className="rowmenu-btn" aria-label={`Ενέργειες για ${row.name}`}>
-                  <LuEllipsisVertical className="size-4" aria-hidden />
-                </button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={openGuide}>
-                <LuFileText className="size-3.5" aria-hidden /> Άνοιγμα
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
-                <LuTrash2 className="size-3.5" aria-hidden /> Διαγραφή
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </td>
-      </tr>
+    <span onClick={e => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button type="button" className="rowmenu-btn" aria-label={`Ενέργειες για ${row.name}`}>
+              <LuEllipsisVertical className="size-4" aria-hidden />
+            </button>
+          }
+        />
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={openGuide}>
+            <LuFileText className="size-3.5" aria-hidden /> Άνοιγμα
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+            <LuTrash2 className="size-3.5" aria-hidden /> Διαγραφή
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
@@ -150,6 +177,6 @@ function GuideRow({ row, onDeleted }: { row: TemplateListItem; onDeleted: () => 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </span>
   )
 }

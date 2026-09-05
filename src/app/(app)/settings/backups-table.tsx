@@ -4,6 +4,7 @@ import { LuDatabaseBackup, LuCircleCheck, LuCircleX } from 'react-icons/lu'
 import type { IconType } from 'react-icons'
 import type { DbBackupStatus } from '@prisma/client'
 import { cn } from '@/lib/utils'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { BackupNowButton } from './backup-now-button'
 import { BackupRowActions } from './backup-row-actions'
 
@@ -72,50 +73,73 @@ export function BackupsTable({ rows }: { rows: BackupRow[] }) {
     )
   }
 
-  return (
-    <div className="glass table-card stagger">
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Ημ/νία</th>
-              <th>Αρχείο</th>
-              <th className="num">Μέγεθος</th>
-              <th>Τρόπος</th>
-              <th>Κατάσταση</th>
-              <th className="ctr" style={{ width: 40 }}>⋯</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(row => {
-              const meta = STATUS_META[row.status]
-              return (
-                <tr key={row.id} className="dotted-row-bottom">
-                  <td title={row.createdAtRelative}>{row.createdAtLabel}</td>
-                  <td className="max-w-[280px] truncate font-mono text-[12px]" title={row.filename}>{row.filename}</td>
-                  <td className="num">{formatBytes(row.sizeBytes)}</td>
-                  <td><TriggerBadge trigger={row.trigger} isPreRestoreSafety={row.isPreRestoreSafety} /></td>
-                  <td>
-                    <span className={meta.badgeClass} style={meta.style} title={row.status === 'FAILED' ? (row.errorMessage ?? undefined) : undefined}>
-                      {meta.pulse
-                        ? <span className="status-dot pulse" style={{ background: 'var(--warning)', color: 'var(--warning)' }} aria-hidden />
-                        : (meta.icon ? <meta.icon className="size-3" aria-hidden /> : null)}
-                      {meta.label}
-                    </span>
-                  </td>
-                  <td className="ctr">
-                    <BackupRowActions backup={row} />
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+  const columns: DataTableColumn<BackupRow>[] = [
+    {
+      id: 'date',
+      header: 'Ημ/νία',
+      width: 160,
+      sortValue: row => row.createdAtLabel,
+      cell: row => <span title={row.createdAtRelative}>{row.createdAtLabel}</span>,
+    },
+    {
+      id: 'filename',
+      header: 'Αρχείο',
+      width: 280,
+      sortValue: row => row.filename,
+      cell: row => <span className="block max-w-[280px] truncate font-mono text-[12px]" title={row.filename}>{row.filename}</span>,
+    },
+    {
+      id: 'size',
+      header: 'Μέγεθος',
+      align: 'right',
+      width: 110,
+      sortValue: row => row.sizeBytes,
+      cell: row => formatBytes(row.sizeBytes),
+    },
+    {
+      id: 'trigger',
+      header: 'Τρόπος',
+      width: 140,
+      sortValue: row => (row.isPreRestoreSafety ? 'zzz' : row.trigger),
+      cell: row => <TriggerBadge trigger={row.trigger} isPreRestoreSafety={row.isPreRestoreSafety} />,
+    },
+    {
+      id: 'status',
+      header: 'Κατάσταση',
+      width: 160,
+      sortValue: row => STATUS_META[row.status].label,
+      cell: row => {
+        const meta = STATUS_META[row.status]
+        return (
+          <span className={meta.badgeClass} style={meta.style} title={row.status === 'FAILED' ? (row.errorMessage ?? undefined) : undefined}>
+            {meta.pulse
+              ? <span className="status-dot pulse" style={{ background: 'var(--warning)', color: 'var(--warning)' }} aria-hidden />
+              : (meta.icon ? <meta.icon className="size-3" aria-hidden /> : null)}
+            {meta.label}
+          </span>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      header: '⋯',
+      headerLabel: 'Ενέργειες',
+      align: 'center',
+      width: 48,
+      enableHide: false,
+      enableResize: false,
+      cell: row => <BackupRowActions backup={row} />,
+    },
+  ]
 
-      <div className="table-foot dotted-row-top">
-        <span>{rows.length} {rows.length === 1 ? 'αντίγραφο' : 'αντίγραφα'}</span>
-      </div>
-    </div>
+  return (
+    <DataTable
+      tableId="backups"
+      columns={columns}
+      rows={rows}
+      rowKey={row => row.id}
+      emptyMessage="Δεν υπάρχουν αντίγραφα ασφαλείας."
+      footer={<span>{rows.length} {rows.length === 1 ? 'αντίγραφο' : 'αντίγραφα'}</span>}
+    />
   )
 }

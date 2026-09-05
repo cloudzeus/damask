@@ -14,6 +14,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { createCategory, updateCategory, deleteCategory, translateCategoryNameDraft, type CategoryFormValues } from './actions'
 
 export type CategoryRow = {
@@ -27,57 +28,69 @@ export type CategoryRow = {
 export function CategoriesTab({ categories, canEdit }: { categories: CategoryRow[]; canEdit: boolean }) {
   const [createOpen, setCreateOpen] = useState(false)
 
+  const columns: DataTableColumn<CategoryRow>[] = [
+    {
+      id: 'nameEl',
+      header: 'Όνομα (Ελληνικά)',
+      width: 220,
+      sortValue: category => category.nameEl,
+      cell: category => <span className="font-semibold">{category.nameEl}</span>,
+    },
+    {
+      id: 'nameEn',
+      header: 'Όνομα (English)',
+      width: 220,
+      sortValue: category => category.nameEn ?? '',
+      cell: category => category.nameEn ?? '—',
+    },
+    {
+      id: 'slug',
+      header: 'Slug',
+      width: 200,
+      sortValue: category => category.slug,
+      cell: category => <span className="text-muted-foreground">{category.slug}</span>,
+    },
+    {
+      id: 'postCount',
+      header: 'Άρθρα',
+      width: 90,
+      sortValue: category => category.postCount,
+      cell: category => <span className="tabular-nums">{category.postCount}</span>,
+    },
+    ...(canEdit
+      ? ([
+          {
+            id: 'actions',
+            header: '⋯',
+            headerLabel: 'Ενέργειες',
+            align: 'center',
+            width: 48,
+            enableHide: false,
+            enableResize: false,
+            cell: category => <CategoryRowActions category={category} />,
+          },
+        ] as DataTableColumn<CategoryRow>[])
+      : []),
+  ]
+
   return (
-    <div className="glass table-card stagger">
-      <div className="table-toolbar">
-        <span className="mr-auto text-[12.5px] text-muted-foreground">
-          {categories.length} {categories.length === 1 ? 'κατηγορία' : 'κατηγορίες'}
-        </span>
-        {canEdit && (
+    <>
+      <DataTable
+        tableId="cms-categories"
+        columns={columns}
+        rows={categories}
+        rowKey={category => category.id}
+        emptyMessage="Δεν υπάρχουν κατηγορίες ακόμα."
+        footer={<span>{categories.length} {categories.length === 1 ? 'κατηγορία' : 'κατηγορίες'}</span>}
+        toolbarExtras={canEdit ? (
           <Button type="button" size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="size-3.5" strokeWidth={2} aria-hidden /> Νέα κατηγορία
           </Button>
-        )}
-      </div>
-
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Όνομα (Ελληνικά)</th>
-              <th>Όνομα (English)</th>
-              <th>Slug</th>
-              <th>Άρθρα</th>
-              {canEdit && <th className="ctr" style={{ width: 40 }}>⋯</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map(category => (
-              <tr key={category.id} className="dotted-row-bottom">
-                <td className="font-semibold">{category.nameEl}</td>
-                <td>{category.nameEn ?? '—'}</td>
-                <td className="text-muted-foreground">{category.slug}</td>
-                <td className="tabular-nums">{category.postCount}</td>
-                {canEdit && (
-                  <td className="ctr">
-                    <CategoryRowActions category={category} />
-                  </td>
-                )}
-              </tr>
-            ))}
-            {categories.length === 0 && (
-              <tr>
-                <td colSpan={canEdit ? 5 : 4} className="py-8 text-center text-muted-foreground">
-                  Δεν υπάρχουν κατηγορίες ακόμα.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        ) : undefined}
+      />
 
       {canEdit && <CategoryFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} />}
-    </div>
+    </>
   )
 }
 

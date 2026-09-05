@@ -1,4 +1,7 @@
+'use client'
+
 import { Coins } from 'lucide-react'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import type { GroupedRow } from './costs-data'
 import { formatEur, formatUsd, formatTokens, scopeLabel } from './costs-format'
 
@@ -31,59 +34,112 @@ export function CostsGroupedTable({ grouped, isSuperAdmin, fxLatest, fxDay }: {
     )
   }
 
-  return (
-    <div className="glass table-card stagger">
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Provider</th>
-              <th>Μοντέλο</th>
-              <th>Scope</th>
-              <th className="num">Κλήσεις</th>
-              <th className="num">Input tokens</th>
-              <th className="num">Output tokens</th>
-              <th className="num">Σύνολο tokens</th>
-              {isSuperAdmin ? (
-                <>
-                  <th className="num">Κόστος βάσης $</th>
-                  <th className="num">Markup %</th>
-                  <th className="num">Τελικό €</th>
-                </>
-              ) : (
-                <th className="num">Κόστος €</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {grouped.map(g => (
-              <tr key={g.key} className="dotted-row-bottom">
-                <td><span className="badge-pill info capitalize">{g.provider}</span></td>
-                <td className="font-mono text-[12px]">{g.model}</td>
-                <td><span className="badge-pill muted">{scopeLabel(g.scope)}</span></td>
-                <td className="num tabular-nums">{formatTokens(g.calls)}</td>
-                <td className="num tabular-nums">{formatTokens(g.inputTokens)}</td>
-                <td className="num tabular-nums">{formatTokens(g.outputTokens)}</td>
-                <td className="num tabular-nums font-semibold">{formatTokens(g.totalTokens)}</td>
-                {isSuperAdmin ? (
-                  <>
-                    <td className="num tabular-nums text-muted-foreground">{formatUsd(g.baseCostUsd)}</td>
-                    <td className="num tabular-nums">{g.markupPct > 0 ? `+${g.markupPct}%` : `${g.markupPct}%`}</td>
-                    <td className="num tabular-nums font-semibold">{formatEur(g.finalCostEur)}</td>
-                  </>
-                ) : (
-                  <td className="num tabular-nums font-semibold">{formatEur(g.finalCostEur)}</td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  const columns: DataTableColumn<GroupedRow>[] = [
+    {
+      id: 'provider',
+      header: 'Provider',
+      width: 140,
+      sortValue: g => g.provider,
+      cell: g => <span className="badge-pill info capitalize">{g.provider}</span>,
+    },
+    {
+      id: 'model',
+      header: 'Μοντέλο',
+      width: 200,
+      sortValue: g => g.model,
+      cell: g => <span className="font-mono text-[12px]">{g.model}</span>,
+    },
+    {
+      id: 'scope',
+      header: 'Scope',
+      width: 140,
+      sortValue: g => scopeLabel(g.scope),
+      cell: g => <span className="badge-pill muted">{scopeLabel(g.scope)}</span>,
+    },
+    {
+      id: 'calls',
+      header: 'Κλήσεις',
+      align: 'right',
+      width: 100,
+      sortValue: g => g.calls,
+      cell: g => <span className="tabular-nums">{formatTokens(g.calls)}</span>,
+    },
+    {
+      id: 'inputTokens',
+      header: 'Input tokens',
+      align: 'right',
+      width: 120,
+      sortValue: g => g.inputTokens,
+      cell: g => <span className="tabular-nums">{formatTokens(g.inputTokens)}</span>,
+    },
+    {
+      id: 'outputTokens',
+      header: 'Output tokens',
+      align: 'right',
+      width: 120,
+      sortValue: g => g.outputTokens,
+      cell: g => <span className="tabular-nums">{formatTokens(g.outputTokens)}</span>,
+    },
+    {
+      id: 'totalTokens',
+      header: 'Σύνολο tokens',
+      align: 'right',
+      width: 130,
+      sortValue: g => g.totalTokens,
+      cell: g => <span className="tabular-nums font-semibold">{formatTokens(g.totalTokens)}</span>,
+    },
+    ...(isSuperAdmin
+      ? ([
+          {
+            id: 'base',
+            header: 'Κόστος βάσης $',
+            align: 'right',
+            width: 130,
+            sortValue: g => g.baseCostUsd,
+            cell: g => <span className="tabular-nums text-muted-foreground">{formatUsd(g.baseCostUsd)}</span>,
+          },
+          {
+            id: 'markup',
+            header: 'Markup %',
+            align: 'right',
+            width: 100,
+            sortValue: g => g.markupPct,
+            cell: g => <span className="tabular-nums">{g.markupPct > 0 ? `+${g.markupPct}%` : `${g.markupPct}%`}</span>,
+          },
+          {
+            id: 'final',
+            header: 'Τελικό €',
+            align: 'right',
+            width: 110,
+            sortValue: g => g.finalCostEur,
+            cell: g => <span className="tabular-nums font-semibold">{formatEur(g.finalCostEur)}</span>,
+          },
+        ] as DataTableColumn<GroupedRow>[])
+      : ([
+          {
+            id: 'final',
+            header: 'Κόστος €',
+            align: 'right',
+            width: 110,
+            sortValue: g => g.finalCostEur,
+            cell: g => <span className="tabular-nums font-semibold">{formatEur(g.finalCostEur)}</span>,
+          },
+        ] as DataTableColumn<GroupedRow>[])),
+  ]
 
-      <div className="table-foot dotted-row-top">
-        <span>{grouped.length} {grouped.length === 1 ? 'ομάδα' : 'ομάδες'} (provider · μοντέλο · scope)</span>
-        <span className="ml-auto text-muted-foreground">Ισοτιμία Frankfurter ({fxDay}): 1 USD = {fxLatest.toFixed(4)} EUR</span>
-      </div>
-    </div>
+  return (
+    <DataTable
+      tableId="costs-grouped"
+      columns={columns}
+      rows={grouped}
+      rowKey={g => g.key}
+      emptyMessage="Καμία κλήση AI σε αυτό το εύρος."
+      footer={
+        <>
+          <span>{grouped.length} {grouped.length === 1 ? 'ομάδα' : 'ομάδες'} (provider · μοντέλο · scope)</span>
+          <span className="ml-auto text-muted-foreground">Ισοτιμία Frankfurter ({fxDay}): 1 USD = {fxLatest.toFixed(4)} EUR</span>
+        </>
+      }
+    />
   )
 }

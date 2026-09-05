@@ -16,6 +16,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { MediaPicker } from '@/components/media/media-picker'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { createAuthor, updateAuthor, deleteAuthor, type AuthorFormValues } from './actions'
 
 export type AuthorRow = {
@@ -35,68 +36,87 @@ const NO_USER = '__none__'
 export function AuthorsTab({ authors, users, canEdit }: { authors: AuthorRow[]; users: UserOption[]; canEdit: boolean }) {
   const [createOpen, setCreateOpen] = useState(false)
 
+  const columns: DataTableColumn<AuthorRow>[] = [
+    {
+      id: 'avatar',
+      header: '',
+      headerLabel: 'Εικόνα',
+      width: 48,
+      enableHide: false,
+      enableResize: false,
+      cell: author => (
+        author.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={author.avatarUrl} alt={author.name} className="size-7 rounded-full object-cover" />
+        ) : (
+          <span className="avatar-ring size-7 text-[10.5px]">
+            {author.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+          </span>
+        )
+      ),
+    },
+    {
+      id: 'name',
+      header: 'Όνομα',
+      width: 200,
+      sortValue: author => author.name,
+      cell: author => <span className="font-semibold">{author.name}</span>,
+    },
+    {
+      id: 'bio',
+      header: 'Bio',
+      width: 280,
+      sortValue: author => author.bio ?? '',
+      cell: author => <span className="block max-w-[280px] truncate text-muted-foreground">{author.bio ?? '—'}</span>,
+    },
+    {
+      id: 'user',
+      header: 'Συνδεδεμένος χρήστης',
+      width: 180,
+      sortValue: author => author.userName ?? '',
+      cell: author => author.userName ?? '—',
+    },
+    {
+      id: 'postCount',
+      header: 'Άρθρα',
+      width: 90,
+      sortValue: author => author.postCount,
+      cell: author => <span className="tabular-nums">{author.postCount}</span>,
+    },
+    ...(canEdit
+      ? ([
+          {
+            id: 'actions',
+            header: '⋯',
+            headerLabel: 'Ενέργειες',
+            align: 'center',
+            width: 48,
+            enableHide: false,
+            enableResize: false,
+            cell: author => <AuthorRowActions author={author} users={users} />,
+          },
+        ] as DataTableColumn<AuthorRow>[])
+      : []),
+  ]
+
   return (
-    <div className="glass table-card stagger">
-      <div className="table-toolbar">
-        <span className="mr-auto text-[12.5px] text-muted-foreground">
-          {authors.length} {authors.length === 1 ? 'συγγραφέας' : 'συγγραφείς'}
-        </span>
-        {canEdit && (
+    <>
+      <DataTable
+        tableId="cms-authors"
+        columns={columns}
+        rows={authors}
+        rowKey={author => author.id}
+        emptyMessage="Δεν υπάρχουν συγγραφείς ακόμα."
+        footer={<span>{authors.length} {authors.length === 1 ? 'συγγραφέας' : 'συγγραφείς'}</span>}
+        toolbarExtras={canEdit ? (
           <Button type="button" size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="size-3.5" strokeWidth={2} aria-hidden /> Νέος συγγραφέας
           </Button>
-        )}
-      </div>
-
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }} />
-              <th>Όνομα</th>
-              <th>Bio</th>
-              <th>Συνδεδεμένος χρήστης</th>
-              <th>Άρθρα</th>
-              {canEdit && <th className="ctr" style={{ width: 40 }}>⋯</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {authors.map(author => (
-              <tr key={author.id} className="dotted-row-bottom">
-                <td>
-                  {author.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={author.avatarUrl} alt={author.name} className="size-7 rounded-full object-cover" />
-                  ) : (
-                    <span className="avatar-ring size-7 text-[10.5px]">
-                      {author.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
-                    </span>
-                  )}
-                </td>
-                <td className="font-semibold">{author.name}</td>
-                <td className="max-w-[280px] truncate text-muted-foreground">{author.bio ?? '—'}</td>
-                <td>{author.userName ?? '—'}</td>
-                <td className="tabular-nums">{author.postCount}</td>
-                {canEdit && (
-                  <td className="ctr">
-                    <AuthorRowActions author={author} users={users} />
-                  </td>
-                )}
-              </tr>
-            ))}
-            {authors.length === 0 && (
-              <tr>
-                <td colSpan={canEdit ? 6 : 5} className="py-8 text-center text-muted-foreground">
-                  Δεν υπάρχουν συγγραφείς ακόμα.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        ) : undefined}
+      />
 
       {canEdit && <AuthorFormDialog mode="create" open={createOpen} onOpenChange={setCreateOpen} users={users} />}
-    </div>
+    </>
   )
 }
 
