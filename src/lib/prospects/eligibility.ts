@@ -22,6 +22,8 @@ export interface ProgramKadInput {
 export interface KadRuleResult {
   pass: boolean
   reason: string
+  /** Οι ΚΑΔ του Trdr που ταίριαξαν με επιλέξιμο ΚΑΔ του προγράμματος (για εμφάνιση ανά γραμμή). */
+  matchedCodes: string[]
 }
 
 export type EligibilityCriterionKey = 'kad' | 'region' | 'legalForm'
@@ -49,6 +51,8 @@ export interface EligibilityEvalResult {
   eligible: boolean
   matched: EligibilityCriterionKey[]
   failed: EligibilityCriterionKey[]
+  /** Οι ΚΑΔ του Trdr που ταίριαξαν με το πρόγραμμα (μόνο όταν το κριτήριο ΚΑΔ είναι επιλεγμένο). */
+  matchedKads: string[]
 }
 
 /** Remove Greek diacritics so "Αττική" === "ΑΤΤΙΚΗ" after upper-casing. */
@@ -153,7 +157,7 @@ export function evalKadRule(rule: KadRule, programKads: ProgramKadInput[], trdrC
   const excluded = programKads.filter((k) => k.excluded).map((k) => k.code)
 
   if (rule === 'UNSPECIFIED' || (listed.length === 0 && excluded.length === 0)) {
-    return { pass: true, reason: 'δεν διευκρινίζεται' }
+    return { pass: true, reason: 'δεν διευκρινίζεται', matchedCodes: [] }
   }
 
   const matchedListed = trdrCodes.filter((c) => listed.some((l) => kadMatches(l, c)))
@@ -161,17 +165,20 @@ export function evalKadRule(rule: KadRule, programKads: ProgramKadInput[], trdrC
 
   if (rule === 'ALL_EXCEPT_LISTED') {
     const pass = matchedExcluded.length === 0
-    return { pass, reason: pass ? 'δεν εμπίπτει σε εξαίρεση' : 'ΚΑΔ εξαιρείται από το πρόγραμμα' }
+    // Εδώ «match» = ο ΚΑΔ που ΕΞΑΙΡΕΙ (όταν κόβεται) — για eligible γραμμές δεν
+    // υπάρχει θετικός ΚΑΔ, οπότε δείχνουμε τους εξαιρούμενους μόνο όταν κόβεται.
+    return { pass, reason: pass ? 'δεν εμπίπτει σε εξαίρεση' : 'ΚΑΔ εξαιρείται από το πρόγραμμα', matchedCodes: pass ? [] : matchedExcluded }
   }
   if (rule === 'ONLY_LISTED') {
     const pass = matchedListed.length > 0
-    return { pass, reason: pass ? 'επιλέξιμος ΚΑΔ' : 'κανένας επιλέξιμος ΚΑΔ' }
+    return { pass, reason: pass ? 'επιλέξιμος ΚΑΔ' : 'κανένας επιλέξιμος ΚΑΔ', matchedCodes: matchedListed }
   }
   // MIXED — needs at least one listed match AND no excluded match.
   const pass = matchedListed.length > 0 && matchedExcluded.length === 0
   return {
     pass,
     reason: pass ? 'επιλέξιμος ΚΑΔ' : matchedExcluded.length > 0 ? 'ΚΑΔ εξαιρείται' : 'κανένας επιλέξιμος ΚΑΔ',
+    matchedCodes: matchedListed,
   }
 }
 
@@ -189,9 +196,11 @@ export function evaluateTrdrEligibility(
 ): EligibilityEvalResult {
   const matched: EligibilityCriterionKey[] = []
   const failed: EligibilityCriterionKey[] = []
+  let matchedKads: string[] = []
 
   if (selected.kad) {
-    const { pass } = evalKadRule(program.kadRule, program.kads, input.trdrCodes)
+    const { pass, matchedCodes } = evalKadRule(program.kadRule, program.kads, input.trdrCodes)
+    matchedKads = matchedCodes
     if (pass) matched.push('kad')
     else failed.push('kad')
   }
@@ -217,5 +226,5 @@ export function evaluateTrdrEligibility(
     }
   }
 
-  return { eligible: failed.length === 0, matched, failed }
+  return { eligible: failed.length === 0, matched, failed, matchedKads }
 }

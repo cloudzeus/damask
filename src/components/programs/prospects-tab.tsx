@@ -256,6 +256,7 @@ export function ProspectsTab({ programId }: { programId: string }) {
                       <th>Email</th>
                       <th>Επιλεξιμότητα</th>
                       <th>Κριτήρια</th>
+                      <th>ΚΑΔ που ταιριάζει</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -272,7 +273,9 @@ export function ProspectsTab({ programId }: { programId: string }) {
                               aria-label={`Επιλογή ${row.name}`}
                             />
                           </td>
-                          <td className="font-semibold">{row.name}</td>
+                          <td className="font-semibold">
+                            <Link href={`/partners/${row.trdrId}`} className="hover:underline">{row.name}</Link>
+                          </td>
                           <td className="text-muted-foreground">{row.email ?? '—'}</td>
                           <td>
                             <span className={cn('badge-pill', row.eligible ? 'ok' : 'muted')}>
@@ -288,6 +291,17 @@ export function ProspectsTab({ programId }: { programId: string }) {
                                 <span key={k} className="badge-pill" style={{ color: 'var(--coral)', background: 'var(--coral-soft)' }}>{CRITERIA_LABELS[k]}</span>
                               ))}
                             </div>
+                          </td>
+                          <td>
+                            {row.matchedKads.length === 0 ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {row.matchedKads.map(code => (
+                                  <span key={code} className="badge-pill ok tabular-nums">{code}</span>
+                                ))}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )
