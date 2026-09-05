@@ -1,6 +1,7 @@
 import { requirePermission } from '@/lib/rbac-server'
 import { listVisibleApplications, listVisibleObligations } from '@/lib/pm/actions'
 import { PmWorkspace } from '@/components/pm/pm-workspace'
+import { PageHeader } from '@/components/ui/page-header'
 
 /**
  * `/pm` workspace (Task 9 → C2b tabbed workspace): «Έργα» (πίνακας αιτήσεων)
@@ -21,15 +22,11 @@ export default async function PmPage() {
 
   return (
     <div>
-      <div className="mb-4 pt-1.5">
-        <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-          Ευρωπαϊκά Προγράμματα <span aria-hidden>›</span> <b className="text-foreground">Έργα</b>
-        </div>
-        <h1 className="text-[22px]">Έργα</h1>
-        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-          Οι αιτήσεις προγραμμάτων που έχεις ανατεθεί (ως διαχειριστής ή εισηγητής).
-        </p>
-      </div>
+      <PageHeader
+        breadcrumb={<>Ευρωπαϊκά Προγράμματα <span aria-hidden>›</span></>}
+        title="Έργα"
+        subtitle="Οι αιτήσεις προγραμμάτων που έχεις ανατεθεί (ως διαχειριστής ή εισηγητής)."
+      />
 
       <PmWorkspace applications={applications} obligations={obligations} />
     </div>

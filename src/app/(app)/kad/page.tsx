@@ -2,6 +2,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { can } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
 import { KadView } from '@/components/registries/kad-view'
+import { PageHeader } from '@/components/ui/page-header'
 
 /**
  * `/kad` — διαχείριση μητρώου ΚΑΔ, ενότητα «Ευρωπαϊκά Προγράμματα». RSC: gate +
@@ -19,17 +20,11 @@ export default async function KadPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Ευρωπαϊκά Προγράμματα <span aria-hidden>›</span> <b className="text-foreground">ΚΑΔ</b>
-          </div>
-          <h1 className="text-[22px]">ΚΑΔ</h1>
-          <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-            Ιεραρχικός κατάλογος Κωδικών Αριθμών Δραστηριότητας.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<>Ευρωπαϊκά Προγράμματα <span aria-hidden>›</span></>}
+        title="ΚΑΔ"
+        subtitle="Ιεραρχικός κατάλογος Κωδικών Αριθμών Δραστηριότητας."
+      />
 
       <KadView
         total={total}

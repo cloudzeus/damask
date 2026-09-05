@@ -2,6 +2,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { can } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
 import { RegionsView } from '@/components/registries/regions-view'
+import { PageHeader } from '@/components/ui/page-header'
 
 /**
  * `/regions` — διαχείριση μητρώου Περιφερειών (Καλλικράτης), ενότητα
@@ -17,17 +18,11 @@ export default async function RegionsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Ευρωπαϊκά Προγράμματα <span aria-hidden>›</span> <b className="text-foreground">Περιφέρειες</b>
-          </div>
-          <h1 className="text-[22px]">Περιφέρειες</h1>
-          <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-            Δενδροειδής δομή Καλλικράτη — Περιφέρεια › Περιφερειακή Ενότητα/Νομός › Δήμος ({total.toLocaleString('el-GR')} εγγραφές).
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<>Ευρωπαϊκά Προγράμματα <span aria-hidden>›</span></>}
+        title="Περιφέρειες"
+        subtitle={<>Δενδροειδής δομή Καλλικράτη — Περιφέρεια › Περιφερειακή Ενότητα/Νομός › Δήμος ({total.toLocaleString('el-GR')} εγγραφές).</>}
+      />
 
       <RegionsView total={total} canManage={canManage} />
     </div>

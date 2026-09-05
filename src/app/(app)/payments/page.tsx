@@ -7,6 +7,7 @@ import { relativeTime } from '@/lib/relative-time'
 import { formatEuro } from '@/lib/utils'
 import { PaymentsTable, type PaymentRow } from './payments-table'
 import { NewPaymentButton } from './new-payment-dialog'
+import { PageHeader } from '@/components/ui/page-header'
 
 // Viva paymentTimeout που στέλνουμε στο createPaymentOrder (βλ. lib/viva.ts) — 30 λεπτά.
 const PAYMENT_TIMEOUT_MS = 30 * 60 * 1000
@@ -69,21 +70,16 @@ export default async function PaymentsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Καθημερινά <span aria-hidden>›</span> <b className="text-foreground">Πληρωμές</b>
-          </div>
-          <h1 className="text-[22px]">Πληρωμές</h1>
-          <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Μοναδικοί κωδικοί πληρωμής Viva — κάρτα ή τραπεζική κατάθεση, με αυτόματη παρακολούθηση μέσω webhook.
-          </p>
-        </div>
-        <div className="flex-1" />
-        {canManage && (
-          <NewPaymentButton customers={customerOptions} bankInstructions={vivaSettings.bankInstructions} />
-        )}
-      </div>
+      <PageHeader
+        breadcrumb={<>Καθημερινά <span aria-hidden>›</span></>}
+        title="Πληρωμές"
+        subtitle="Μοναδικοί κωδικοί πληρωμής Viva — κάρτα ή τραπεζική κατάθεση, με αυτόματη παρακολούθηση μέσω webhook."
+        actions={
+          canManage && (
+            <NewPaymentButton customers={customerOptions} bankInstructions={vivaSettings.bankInstructions} />
+          )
+        }
+      />
 
       <div className="stagger mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {kpis.map(k => (

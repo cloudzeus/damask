@@ -8,6 +8,7 @@ import { SeoTab } from './seo-tab'
 import { BackupsTab } from './backups-tab'
 import { ObjectsTab } from './objects-tab'
 import { SyncTab } from './sync-tab'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function SettingsPage() {
   const session = await requirePermission('settings.manage')
@@ -18,17 +19,11 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Διαχείριση <span aria-hidden>›</span> <b className="text-foreground">Ρυθμίσεις</b>
-          </div>
-          <h1 className="text-[22px]">Ρυθμίσεις</h1>
-          <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Στοιχεία εταιρείας, διασυνδέσεις με εξωτερικές υπηρεσίες, προεπιλογές SEO, αντίγραφα ασφαλείας.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<>Διαχείριση <span aria-hidden>›</span></>}
+        title="Ρυθμίσεις"
+        subtitle="Στοιχεία εταιρείας, διασυνδέσεις με εξωτερικές υπηρεσίες, προεπιλογές SEO, αντίγραφα ασφαλείας."
+      />
 
       <SettingsTabs
         company={<CompanyTab />}

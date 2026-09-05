@@ -8,6 +8,7 @@ import { loadAllApiCostConfigs } from '@/lib/api-costs'
 import { groupUsageRows, computeKpis, costForRow, rangeFromParam, cutoffForRange, type AiUsageRow } from './costs-data'
 import { summarizeApiUsageByService, totalApiCostEur, startOfCurrentMonth, type ApiUsageRow } from './api-costs-data'
 import { CostsView } from './costs-view'
+import { PageHeader } from '@/components/ui/page-header'
 
 /** Ανώτατο πλήθος γραμμών που φορτώνουμε ανά περίοδο για aggregation — αρκετό για εσωτερικό cost dashboard, όχι απεριόριστο. */
 const MAX_ROWS = 5000
@@ -92,17 +93,11 @@ export default async function CostsPage({
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Διαχείριση <span aria-hidden>›</span> <b className="text-foreground">Κόστη</b>
-          </div>
-          <h1 className="text-[22px]">Κόστη</h1>
-          <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Κόστος χρήσης AI (DeepSeek, Gemini, Claude…) και API υπηρεσιών (Mailgun, BunnyCDN, Viva, ΑΑΔΕ…) — μονάδες, free quotas, markup, τελικό κόστος σε EUR.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<>Διαχείριση <span aria-hidden>›</span></>}
+        title="Κόστη"
+        subtitle="Κόστος χρήσης AI (DeepSeek, Gemini, Claude…) και API υπηρεσιών (Mailgun, BunnyCDN, Viva, ΑΑΔΕ…) — μονάδες, free quotas, markup, τελικό κόστος σε EUR."
+      />
 
       <CostsView
         role={session.user.role}

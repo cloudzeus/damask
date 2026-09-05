@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { TemplateEditor, type TemplateMeta } from '@/components/tax/template-editor'
 import type { TemplateField } from '@/lib/tax/template'
+import { PageHeader } from '@/components/ui/page-header'
 
 /**
  * Workbench εντύπου (Task 13): ανέβασμα δείγματος, σχεδίαση περιοχών πάνω στις
@@ -48,18 +49,22 @@ export default async function TaxTemplateDetailPage({ params }: { params: Promis
 
   return (
     <div>
-      <div className="mb-4 pt-1.5">
-        <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-          <Link href="/tax-templates" className="hover:text-foreground hover:underline">Οδηγοί Εντύπων</Link>{' '}
-          <span aria-hidden>›</span> <b className="text-foreground">{template.name}</b>
-        </div>
-        <h1 className="text-[22px]">{template.name}</h1>
-        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-          Κωδικός <span className="font-mono">{template.code}</span>
-          {template.year != null ? ` · ${template.year}` : ''} — χαρτογράφησε περιοχές πάνω στο δείγμα και
-          δοκίμασε κάθε πεδίο πριν το μαρκάρεις «Έτοιμο».
-        </p>
-      </div>
+      <PageHeader
+        breadcrumb={
+          <>
+            <Link href="/tax-templates" className="hover:text-foreground hover:underline">Οδηγοί Εντύπων</Link>{' '}
+            <span aria-hidden>›</span>
+          </>
+        }
+        title={template.name}
+        subtitle={
+          <>
+            Κωδικός <span className="font-mono">{template.code}</span>
+            {template.year != null ? ` · ${template.year}` : ''} — χαρτογράφησε περιοχές πάνω στο δείγμα και
+            δοκίμασε κάθε πεδίο πριν το μαρκάρεις «Έτοιμο».
+          </>
+        }
+      />
 
       <TemplateEditor template={meta} fields={fields} />
     </div>

@@ -1,6 +1,7 @@
 import { requirePermission } from '@/lib/rbac-server'
 import { assertObjectEnabled } from '@/lib/objects-server'
 import { OcrDemoClient } from './ocr-demo-client'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function OcrDemoPage() {
   // 'media.manage' είναι ΠΡΟΣΩΡΙΝΟ permission — δεν υπάρχει ακόμα δικό του permission
@@ -11,17 +12,11 @@ export default async function OcrDemoPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Καθημερινά <span aria-hidden>›</span> <b className="text-foreground">OCR (δοκιμή)</b>
-          </div>
-          <h1 className="text-[22px]">OCR (δοκιμή)</h1>
-          <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Δοκιμαστική σελίδα του &lt;OcrUploader&gt; — θα χρησιμοποιηθεί στη ροή παραστατικών (findocs).
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<>Καθημερινά <span aria-hidden>›</span></>}
+        title="OCR (δοκιμή)"
+        subtitle={<>Δοκιμαστική σελίδα του &lt;OcrUploader&gt; — θα χρησιμοποιηθεί στη ροή παραστατικών (findocs).</>}
+      />
 
       <OcrDemoClient />
     </div>

@@ -11,6 +11,7 @@ import { slugify } from '@/lib/slug'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { MediaPicker } from '@/components/media/media-picker'
+import { PageHeader } from '@/components/ui/page-header'
 import { createPost, updatePost, translateFieldsToEnglish, type PostFormValues, type LocaleContentValues } from './actions'
 
 const NO_CATEGORY = '__none__'
@@ -94,20 +95,23 @@ export function PostEditor({
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+      <PageHeader
+        breadcrumb={
+          <>
             CMS <span aria-hidden>›</span> <Link href="/cms/posts" className="hover:text-foreground hover:underline">Νέα</Link>{' '}
             <span aria-hidden>›</span> <b className="text-foreground">{mode === 'create' ? 'Νέο άρθρο' : 'Επεξεργασία άρθρου'}</b>
-          </div>
-          <h1 className="text-[22px]">{mode === 'create' ? 'Νέο άρθρο' : (values.el.title || 'Επεξεργασία άρθρου')}</h1>
-        </div>
-        <div className="flex-1" />
-        <Button type="button" variant="outline" onClick={() => router.push('/cms/posts')}>Πίσω</Button>
-        <Button type="submit" form="post-editor-form" disabled={pending}>
-          <Save className="size-3.5" strokeWidth={1.8} aria-hidden /> {pending ? 'Αποθήκευση…' : 'Αποθήκευση'}
-        </Button>
-      </div>
+          </>
+        }
+        title={mode === 'create' ? 'Νέο άρθρο' : (values.el.title || 'Επεξεργασία άρθρου')}
+        actions={
+          <>
+            <Button type="button" variant="outline" onClick={() => router.push('/cms/posts')}>Πίσω</Button>
+            <Button type="submit" form="post-editor-form" disabled={pending}>
+              <Save className="size-3.5" strokeWidth={1.8} aria-hidden /> {pending ? 'Αποθήκευση…' : 'Αποθήκευση'}
+            </Button>
+          </>
+        }
+      />
 
       <form id="post-editor-form" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">

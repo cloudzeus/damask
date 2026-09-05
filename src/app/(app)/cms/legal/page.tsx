@@ -6,6 +6,7 @@ import { relativeTime } from '@/lib/relative-time'
 import { LegalTabs } from './legal-tabs'
 import { LegalPagesTable, type LegalPageRow } from './legal-pages-table'
 import { ConsentModalTab } from './consent-modal-tab'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function CmsLegalPage() {
   const session = await requirePermission('cms.view')
@@ -32,17 +33,11 @@ export default async function CmsLegalPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            CMS <span aria-hidden>›</span> <b className="text-foreground">Νομικά</b>
-          </div>
-          <h1 className="text-[22px]">Νομικά</h1>
-          <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Σελίδες πολιτικών (απόρρητο, όροι, cookies…) και το consent modal του δημόσιου site.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<>CMS <span aria-hidden>›</span></>}
+        title="Νομικά"
+        subtitle="Σελίδες πολιτικών (απόρρητο, όροι, cookies…) και το consent modal του δημόσιου site."
+      />
 
       <LegalTabs
         pages={<LegalPagesTable pages={pageRows} canEdit={canEdit} />}

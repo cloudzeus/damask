@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requirePermission } from '@/lib/rbac-server'
 import { getApplication } from '@/lib/pm/actions'
 import { ApplicationHub } from '@/components/pm/application-hub'
+import { PageHeader } from '@/components/ui/page-header'
 
 /**
  * Το «Έργο hub» (Task 10) — κεντρική οθόνη PM για μία αίτηση προγράμματος.
@@ -19,18 +20,18 @@ export default async function ApplicationHubPage({ params }: { params: Promise<{
 
   return (
     <div>
-      <div className="mb-4 pt-1.5">
-        <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-          <Link href="/programs" className="hover:text-foreground hover:underline">Προγράμματα</Link>{' '}
-          <span aria-hidden>›</span>{' '}
-          <Link href={`/programs/${app.programId}`} className="hover:text-foreground hover:underline">{app.programTitle}</Link>{' '}
-          <span aria-hidden>›</span> <b className="text-foreground">Έργο</b>
-        </div>
-        <h1 className="text-[22px]">{app.trdrName}</h1>
-        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-          Στάδιο, αναθέσεις, αξιολόγηση και υποχρεώσεις της αίτησης στο πρόγραμμα «{app.programTitle}».
-        </p>
-      </div>
+      <PageHeader
+        breadcrumb={
+          <>
+            <Link href="/programs" className="hover:text-foreground hover:underline">Προγράμματα</Link>{' '}
+            <span aria-hidden>›</span>{' '}
+            <Link href={`/programs/${app.programId}`} className="hover:text-foreground hover:underline">{app.programTitle}</Link>{' '}
+            <span aria-hidden>›</span> <b className="text-foreground">Έργο</b>
+          </>
+        }
+        title={app.trdrName}
+        subtitle={<>Στάδιο, αναθέσεις, αξιολόγηση και υποχρεώσεις της αίτησης στο πρόγραμμα «{app.programTitle}».</>}
+      />
 
       <ApplicationHub app={app} />
     </div>

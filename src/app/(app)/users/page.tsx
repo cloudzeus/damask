@@ -6,6 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { UsersTable, type UserRow } from './users-table'
 import { AccessRequestsPanel, type AccessRequestRow } from './access-requests'
 import { NewUserButton } from './new-user-button'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function UsersPage() {
   const session = await requirePermission('user.manage')
@@ -121,31 +122,30 @@ export default async function UsersPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Διαχείριση <span aria-hidden>›</span> <b className="text-foreground">Χρήστες</b>
-          </div>
-          <h1 className="text-[22px]">Χρήστες</h1>
-        </div>
-        <div className="flex-1" />
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                className="btn-pill btn-glass"
-                aria-disabled="true"
-                style={{ opacity: 0.6, cursor: 'default' }}
-              >
-                <Download className="size-3.5" strokeWidth={1.8} aria-hidden /> Λήψη Excel
-              </button>
-            }
-          />
-          <TooltipContent>Έρχεται με το Import/Export Engine (Φάση 2)</TooltipContent>
-        </Tooltip>
-        <NewUserButton roles={roles} />
-      </div>
+      <PageHeader
+        breadcrumb={<>Διαχείριση <span aria-hidden>›</span></>}
+        title="Χρήστες"
+        actions={
+          <>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    className="btn-pill btn-glass"
+                    aria-disabled="true"
+                    style={{ opacity: 0.6, cursor: 'default' }}
+                  >
+                    <Download className="size-3.5" strokeWidth={1.8} aria-hidden /> Λήψη Excel
+                  </button>
+                }
+              />
+              <TooltipContent>Έρχεται με το Import/Export Engine (Φάση 2)</TooltipContent>
+            </Tooltip>
+            <NewUserButton roles={roles} />
+          </>
+        }
+      />
 
       <div className="stagger mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map(kpi => (

@@ -7,6 +7,7 @@ import { NewPartnerButton } from './new-partner-button'
 import { getMapsClientConfig } from './actions'
 import { getPartnerFormOptions } from '@/lib/s1-options'
 import { IngestEntryButton } from '@/components/ingestion/ingest-entry-button'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function PartnersPage() {
   await requirePermission('customer.view')
@@ -67,17 +68,16 @@ export default async function PartnersPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Καθημερινά <span aria-hidden>›</span> <b className="text-foreground">Συναλλασσόμενοι</b>
-          </div>
-          <h1 className="text-[22px]">Συναλλασσόμενοι</h1>
-        </div>
-        <div className="flex-1" />
-        <IngestEntryButton targetKey="partner" />
-        <NewPartnerButton mapsConfig={mapsConfig} formOptions={formOptions} />
-      </div>
+      <PageHeader
+        breadcrumb={<>Καθημερινά <span aria-hidden>›</span></>}
+        title="Συναλλασσόμενοι"
+        actions={
+          <>
+            <IngestEntryButton targetKey="partner" />
+            <NewPartnerButton mapsConfig={mapsConfig} formOptions={formOptions} />
+          </>
+        }
+      />
 
       <div className="stagger mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map(kpi => (

@@ -4,6 +4,7 @@ import { ROLE_ORDER } from '@/lib/permissions'
 import { groupedPermissionsFor } from '@/lib/objects'
 import { getEnabledObjectKeys } from '@/lib/objects-server'
 import { RolesMatrix, type RoleData } from './roles-matrix'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function RolesPage() {
   const session = await requirePermission('user.manage')
@@ -39,17 +40,11 @@ export default async function RolesPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Διαχείριση <span aria-hidden>›</span> <b className="text-foreground">Ρόλοι &amp; Δικαιώματα</b>
-          </div>
-          <h1 className="text-[22px]">Ρόλοι &amp; Δικαιώματα</h1>
-          <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Κλικ σε κελί για εναλλαγή — αποθηκεύεται αυτόματα
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<>Διαχείριση <span aria-hidden>›</span></>}
+        title="Ρόλοι & Δικαιώματα"
+        subtitle="Κλικ σε κελί για εναλλαγή — αποθηκεύεται αυτόματα"
+      />
 
       <RolesMatrix roles={rolesData} groups={groups} isSuperAdmin={isSuperAdmin} />
 

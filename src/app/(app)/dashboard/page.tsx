@@ -1,4 +1,5 @@
 import { Package, Languages, Container, ClipboardList } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
 
 const CARDS = [
   { title: 'Προϊόντα', value: '—', hint: 'Sync στη Φάση 2', icon: Package },
@@ -10,14 +11,10 @@ const CARDS = [
 export default function DashboardPage() {
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            Καθημερινά <span aria-hidden>›</span> <b className="text-foreground">Dashboard</b>
-          </div>
-          <h1 className="text-[22px]">Dashboard</h1>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={<>Καθημερινά <span aria-hidden>›</span></>}
+        title="Dashboard"
+      />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {CARDS.map(c => (
           <div key={c.title} className="glass lift relative px-[17px] pt-[15px] pb-[13px]">

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { slugify } from '@/lib/slug'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { PageHeader } from '@/components/ui/page-header'
 import { createLegalPage, updateLegalPage, translateLegalFieldsToEnglish, type LegalPageFormValues } from './actions'
 
 export function LegalEditor({
@@ -77,25 +78,28 @@ export function LegalEditor({
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+      <PageHeader
+        breadcrumb={
+          <>
             CMS <span aria-hidden>›</span> <Link href="/cms/legal" className="hover:text-foreground hover:underline">Νομικά</Link>{' '}
             <span aria-hidden>›</span> <b className="text-foreground">{mode === 'create' ? 'Νέα σελίδα' : 'Επεξεργασία σελίδας'}</b>
-          </div>
-          <h1 className="text-[22px]">{mode === 'create' ? 'Νέα νομική σελίδα' : (values.el.title || 'Επεξεργασία σελίδας')}</h1>
-        </div>
-        <div className="flex-1" />
-        {mode === 'edit' && values.published && (
-          <a href={`/legal/${values.slug}`} target="_blank" rel="noopener noreferrer" className="btn-pill btn-glass h-9 px-4 text-[12.5px]">
-            <ExternalLink className="size-3.5" strokeWidth={1.8} aria-hidden /> Προβολή
-          </a>
-        )}
-        <Button type="button" variant="outline" onClick={() => router.push('/cms/legal')}>Πίσω</Button>
-        <Button type="submit" form="legal-editor-form" disabled={pending}>
-          <Save className="size-3.5" strokeWidth={1.8} aria-hidden /> {pending ? 'Αποθήκευση…' : 'Αποθήκευση'}
-        </Button>
-      </div>
+          </>
+        }
+        title={mode === 'create' ? 'Νέα νομική σελίδα' : (values.el.title || 'Επεξεργασία σελίδας')}
+        actions={
+          <>
+            {mode === 'edit' && values.published && (
+              <a href={`/legal/${values.slug}`} target="_blank" rel="noopener noreferrer" className="btn-pill btn-glass h-9 px-4 text-[12.5px]">
+                <ExternalLink className="size-3.5" strokeWidth={1.8} aria-hidden /> Προβολή
+              </a>
+            )}
+            <Button type="button" variant="outline" onClick={() => router.push('/cms/legal')}>Πίσω</Button>
+            <Button type="submit" form="legal-editor-form" disabled={pending}>
+              <Save className="size-3.5" strokeWidth={1.8} aria-hidden /> {pending ? 'Αποθήκευση…' : 'Αποθήκευση'}
+            </Button>
+          </>
+        }
+      />
 
       <form id="legal-editor-form" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">

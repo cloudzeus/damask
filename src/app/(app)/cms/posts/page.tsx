@@ -8,6 +8,7 @@ import { CategoriesTab, type CategoryRow } from './categories-tab'
 import { AuthorsTab, type AuthorRow } from './authors-tab'
 import { NewPostButton } from './new-post-button'
 import { AiGenerateButton } from './ai-generate-dialog'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function CmsPostsPage() {
   const session = await requirePermission('cms.view')
@@ -71,24 +72,19 @@ export default async function CmsPostsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-end gap-3 pt-1.5">
-        <div>
-          <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-            CMS <span aria-hidden>›</span> <b className="text-foreground">Νέα</b>
-          </div>
-          <h1 className="text-[22px]">Νέα</h1>
-          <p className="page-head-subtitle mt-0.5 text-[12.5px]">
-            Άρθρα, κατηγορίες και συγγραφείς — με αυτόματη δημιουργία και μετάφραση EL→EN μέσω DeepSeek.
-          </p>
-        </div>
-        <div className="flex-1" />
-        {canEdit && (
-          <>
-            <AiGenerateButton categories={categoryOptions} />
-            <NewPostButton />
-          </>
-        )}
-      </div>
+      <PageHeader
+        breadcrumb={<>CMS <span aria-hidden>›</span></>}
+        title="Νέα"
+        subtitle="Άρθρα, κατηγορίες και συγγραφείς — με αυτόματη δημιουργία και μετάφραση EL→EN μέσω DeepSeek."
+        actions={
+          canEdit && (
+            <>
+              <AiGenerateButton categories={categoryOptions} />
+              <NewPostButton />
+            </>
+          )
+        }
+      />
 
       <CmsPostsTabs
         posts={<PostsTable posts={postRows} canEdit={canEdit} />}
