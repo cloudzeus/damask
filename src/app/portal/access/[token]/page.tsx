@@ -28,7 +28,7 @@ export default async function PortalAccessPage({ params }: { params: Promise<{ t
       <div className="w-full max-w-2xl">
         <div className="stagger mb-6 text-center">
           <Link href="/" className="wordmark mb-6 inline-flex text-[18px] text-foreground">
-            DAMASK
+            World Wide Associates
           </Link>
           <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
             {d.customerName}

@@ -20,7 +20,7 @@ export default async function LeadClickPage({ params }: { params: Promise<{ toke
     <div className="app-canvas flex min-h-screen flex-col items-center justify-center px-6">
       <div className="glass stagger w-full max-w-md p-8 text-center">
         <Link href="/" className="wordmark mb-6 inline-flex text-[18px] text-foreground">
-          DAMASK
+          World Wide Associates
         </Link>
         <h1 className="mb-2 text-[22px]">Ευχαριστούμε!</h1>
         <p className="text-sm text-muted-foreground">

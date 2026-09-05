@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { Sidebar } from '@/components/shell/sidebar'
 import { Topbar } from '@/components/shell/topbar'
 import { PageTransition } from '@/components/shell/page-transition'
+import { MobileNavProvider } from '@/components/shell/mobile-nav'
 import { getEnabledObjectKeys } from '@/lib/objects-server'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,21 +16,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const enabled = await getEnabledObjectKeys()
 
   return (
-    <div className="app-canvas">
-      <div className="flex">
-        <Sidebar
-          enabledKeys={[...enabled]}
-          permissions={session.user.permissions}
-          userName={session.user.name ?? ''}
-          userRole={session.user.role}
-        />
-        <div className="flex min-h-screen flex-1 flex-col">
-          <Topbar />
-          <main className="flex-1 px-3.5 pb-16">
-            <PageTransition>{children}</PageTransition>
-          </main>
+    <MobileNavProvider>
+      <div className="app-canvas">
+        <div className="flex">
+          <Sidebar
+            enabledKeys={[...enabled]}
+            permissions={session.user.permissions}
+            userName={session.user.name ?? ''}
+            userRole={session.user.role}
+          />
+          <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+            <Topbar />
+            <main className="flex-1 px-3.5 pb-16">
+              <PageTransition>{children}</PageTransition>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </MobileNavProvider>
   )
 }

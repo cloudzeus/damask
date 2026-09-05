@@ -13,7 +13,7 @@ export function RegisterForm() {
   if (state.success) {
     return (
       <div className="auth-card glass stagger">
-        <span className="wordmark">DAMASK</span>
+        <span className="wordmark">World Wide Associates</span>
         <p className="sub">Αίτημα πρόσβασης B2B</p>
         <div className="notice success" role="status">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -30,7 +30,7 @@ export function RegisterForm() {
 
   return (
     <div className="auth-card glass stagger" style={{ maxWidth: 528 }}>
-      <span className="wordmark">DAMASK</span>
+      <span className="wordmark">World Wide Associates</span>
       <p className="sub">Αίτημα πρόσβασης B2B</p>
 
       <form action={action}>
@@ -62,7 +62,7 @@ export function RegisterForm() {
             onClick={() => setRole('SUPPLIER')}
           >
             <b>🏭 Προμηθευτής</b>
-            <small>Προμηθεύω προϊόντα στην Damask</small>
+            <small>Προμηθεύω προϊόντα στη World Wide Associates</small>
           </button>
         </div>
 

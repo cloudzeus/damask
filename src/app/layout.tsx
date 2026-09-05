@@ -16,8 +16,8 @@ const comfortaa = Comfortaa({
 })
 
 export const metadata: Metadata = {
-  title: 'DAMASK PIM',
-  description: 'Product Information Management — Damask',
+  title: 'World Wide Associates',
+  description: 'CRM Διαχείρισης Ευρωπαϊκών Προγραμμάτων',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

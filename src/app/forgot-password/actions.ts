@@ -28,13 +28,13 @@ export async function requestPasswordReset(
         const html = renderEmailShell({
           heading: 'Επαναφορά κωδικού πρόσβασης',
           bodyHtml:
-            '<p>Ζήτησες επαναφορά του κωδικού πρόσβασής σου στο DAMASK PIM. Πάτησε το παρακάτω κουμπί για να ' +
+            '<p>Ζήτησες επαναφορά του κωδικού πρόσβασής σου στο World Wide Associates. Πάτησε το παρακάτω κουμπί για να ' +
             'ορίσεις νέο κωδικό — ο σύνδεσμος ισχύει για 30 λεπτά.</p>' +
             '<p>Αν δεν το ζήτησες εσύ, μπορείς να αγνοήσεις αυτό το email — ο κωδικός σου παραμένει ίδιος.</p>',
           ctaLabel: 'Ορισμός νέου κωδικού',
           ctaUrl: resetUrl,
         })
-        const result = await sendMail({ to: email, subject: 'Επαναφορά κωδικού — DAMASK PIM', html })
+        const result = await sendMail({ to: email, subject: 'Επαναφορά κωδικού — World Wide Associates', html })
         if (!result.ok) {
           // Mailgun ρυθμισμένο αλλά η αποστολή απέτυχε live — fallback σε log ώστε να μη χαθεί το link.
           console.log(`[password-reset] Αποστολή Mailgun απέτυχε (${result.error}) — ${email} → ${resetUrl}`)

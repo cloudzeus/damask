@@ -81,7 +81,7 @@ export function MailgunCard({
         <TextField id="mailgun-domain" label="Domain" icon={Globe2} value={values.domain} onChange={v => set('domain', v)} error={fieldErrors.domain} placeholder="mg.example.com" />
         <SelectField id="mailgun-region" label="Περιοχή" value={values.region} onChange={v => set('region', v)} options={REGION_OPTIONS} />
         <TextField id="mailgun-from-email" label="Αποστολέας (email)" icon={AtSign} type="email" value={values.fromEmail} onChange={v => set('fromEmail', v)} error={fieldErrors.fromEmail} placeholder="noreply@damask.gr" />
-        <TextField id="mailgun-from-name" label="Αποστολέας (όνομα)" icon={Tag} value={values.fromName} onChange={v => set('fromName', v)} error={fieldErrors.fromName} placeholder="DAMASK" />
+        <TextField id="mailgun-from-name" label="Αποστολέας (όνομα)" icon={Tag} value={values.fromName} onChange={v => set('fromName', v)} error={fieldErrors.fromName} placeholder="World Wide Associates" />
       </div>
       <div className="mt-1 flex items-center gap-2">
         <Button type="button" onClick={handleSave} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Button>

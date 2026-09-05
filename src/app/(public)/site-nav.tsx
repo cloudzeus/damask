@@ -3,7 +3,7 @@ import Link from 'next/link'
 export function SiteNav() {
   return (
     <header className="site-nav glass stagger">
-      <span className="wordmark text-[18px] text-foreground">DAMASK</span>
+      <span className="wordmark text-[18px] text-foreground">World Wide Associates</span>
       <nav className="links">
         <a href="#">Συλλογή</a>
         <a href="#">Έργα</a>
