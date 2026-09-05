@@ -36,8 +36,7 @@ export function LoginForm({ justReset = false }: { justReset?: boolean }) {
         />
 
         <div className="auth-card glass stagger">
-          <Logo className="mx-auto mb-2 h-10 w-auto" />
-          <span className="wordmark">World Wide Associates</span>
+          <Logo variant="full-white" className="mx-auto mb-3 h-12 w-auto" />
           <p className="sub">Διαχείριση Ευρωπαϊκών Προγραμμάτων</p>
 
           {justReset && (
