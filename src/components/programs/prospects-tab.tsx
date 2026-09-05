@@ -34,6 +34,12 @@ import type { SelectedCriteria, EligibilityCriterionKey } from '@/lib/prospects/
  * Ίδιο idiom self-fetching client tab με required-forms-tab.tsx.
  */
 
+const CRITERIA_COLOR: Record<EligibilityCriterionKey, string> = {
+  kad: 'info',       // μπλε
+  region: 'teal',    // τιρκουάζ
+  legalForm: 'violet', // μωβ
+}
+
 const CRITERIA_LABELS: Record<EligibilityCriterionKey, string> = {
   kad: 'ΚΑΔ',
   region: 'Περιφέρεια',
@@ -265,10 +271,10 @@ export function ProspectsTab({ programId }: { programId: string }) {
       cell: row => (
         <div className="flex flex-wrap gap-1">
           {row.matched.map(k => (
-            <span key={k} className="badge-pill ok">{CRITERIA_LABELS[k]}</span>
+            <span key={k} className={cn('badge-pill', CRITERIA_COLOR[k])}>{CRITERIA_LABELS[k]}</span>
           ))}
           {row.failed.map(k => (
-            <span key={k} className="badge-pill" style={{ color: 'var(--coral)', background: 'var(--coral-soft)' }}>{CRITERIA_LABELS[k]}</span>
+            <span key={k} className="badge-pill danger">{CRITERIA_LABELS[k]}</span>
           ))}
         </div>
       ),
@@ -279,17 +285,20 @@ export function ProspectsTab({ programId }: { programId: string }) {
       width: 200,
       cell: row => {
         if (row.matchedKads.length === 0) return <span className="text-muted-foreground">—</span>
-        const primary = new Set(row.matchedPrimaryKads)
-        // Κύριος ΚΑΔ που ταιριάζει → μπλε (info) με ★· δευτερεύων → πράσινο (ok).
+        // Κύριος ΚΑΔ → coral (primary-kad) με ★ και πάντα πρώτος· δευτερεύων → πράσινο.
+        // Tooltip (title) = περιγραφή ΚΑΔ.
+        const sorted = [...row.matchedKads].sort((a, b) => Number(b.primary) - Number(a.primary))
         return (
           <div className="flex flex-wrap gap-1">
-            {[...row.matchedKads].sort((a, b) => Number(primary.has(b)) - Number(primary.has(a))).map(code =>
-              primary.has(code) ? (
-                <span key={code} className="badge-pill info tabular-nums" title="Κύριος ΚΑΔ — επιλέξιμος">★ {code}</span>
-              ) : (
-                <span key={code} className="badge-pill ok tabular-nums">{code}</span>
-              ),
-            )}
+            {sorted.map(k => (
+              <span
+                key={k.code}
+                className={cn('badge-pill tabular-nums', k.primary ? 'primary-kad' : 'ok')}
+                title={k.description ? `${k.code} — ${k.description}${k.primary ? ' (Κύριος)' : ''}` : k.code}
+              >
+                {k.primary ? `★ ${k.code}` : k.code}
+              </span>
+            ))}
           </div>
         )
       },

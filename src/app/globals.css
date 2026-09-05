@@ -421,35 +421,59 @@
 .badge-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 5px;
+  font-family: var(--font-display); /* Roboto Condensed */
+  font-size: 9.5px;
   font-weight: 700;
-  border-radius: 999px;
-  padding: 3.5px 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase; /* ελληνικά κεφαλαία χωρίς τόνο (html lang="el") */
+  border-radius: 5px;
+  padding: 2.5px 7px;
   white-space: nowrap;
 }
-/* Πιο έντονα badges: ισχυρότερο tint + colored ring για ξεκάθαρο οπτικό σήμα,
-   κρατώντας σκούρο saturated κείμενο (contrast-safe). Το ring μέσω inset shadow
-   ώστε να μη μετακινείται το layout. */
+/* Έντονα solid badges: γεμάτο saturated χρώμα + λευκό κείμενο για ξεκάθαρο σήμα. */
 .badge-pill.ok {
-  color: var(--success);
-  background: rgb(46 158 99 / 20%);
-  box-shadow: inset 0 0 0 1px rgb(46 158 99 / 40%);
+  color: #fff;
+  background: var(--success);
 }
 .badge-pill.warn {
-  color: var(--warning);
-  background: rgb(199 126 30 / 20%);
-  box-shadow: inset 0 0 0 1px rgb(199 126 30 / 40%);
+  color: #fff;
+  background: var(--warning);
 }
 .badge-pill.info {
-  color: var(--info);
-  background: rgb(59 125 168 / 20%);
-  box-shadow: inset 0 0 0 1px rgb(59 125 168 / 40%);
+  color: #fff;
+  background: var(--info);
 }
 .badge-pill.muted {
   color: var(--muted-foreground);
   background: var(--muted);
   box-shadow: inset 0 0 0 1px var(--border);
+}
+/* Πάνω σε solid badge, το status-dot γίνεται λευκό για να φαίνεται. */
+.badge-pill.ok .status-dot,
+.badge-pill.warn .status-dot,
+.badge-pill.info .status-dot {
+  background: #fff !important;
+  color: #fff !important;
+}
+/* Κύριος (PRIMARY) ΚΑΔ — ξεχωριστό, έντονο brand χρώμα (ροζ) για μέγιστη διάκριση. */
+.badge-pill.primary-kad {
+  color: #fff;
+  background: var(--coral);
+  box-shadow: 0 1px 4px rgb(228 87 77 / 45%);
+}
+/* Επιπλέον έντονα χρώματα για ποικιλία/διάκριση (κριτήρια κ.λπ.). */
+.badge-pill.violet {
+  color: #fff;
+  background: #7a2fb0;
+}
+.badge-pill.teal {
+  color: #fff;
+  background: #1f9d94;
+}
+.badge-pill.danger {
+  color: #fff;
+  background: var(--coral);
 }
 
 .icon-pill {
@@ -1116,6 +1140,14 @@
 .data-table.dt-fixed td {
   overflow: hidden;
   text-overflow: ellipsis;
+  vertical-align: top;
+  height: auto;
+  padding: 9px 10px;
+  /* Πυκνός, έντονος γκρι διαχωρισμός ανά γραμμή (ανά εταιρία) — αξιόπιστο στο td. */
+  background-image: repeating-linear-gradient(90deg, rgb(71 85 105 / 60%) 0 1.5px, transparent 1.5px 4px);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 1.5px;
 }
 /* Wrap mode: αναδίπλωση κειμένου· τα κελιά μεγαλώνουν σε ύψος. */
 .data-table.dt-wrap td {

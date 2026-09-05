@@ -54,10 +54,8 @@ export type ProspectRow = {
   eligible: boolean
   matched: EligibilityCriterionKey[]
   failed: EligibilityCriterionKey[]
-  /** Οι ΚΑΔ του πελάτη που ταίριαξαν με το πρόγραμμα (εμφανίζονται ανά γραμμή). */
-  matchedKads: string[]
-  /** Υποσύνολο των matchedKads που είναι ο ΚΥΡΙΟΣ (PRIMARY) ΚΑΔ του πελάτη — highlight. */
-  matchedPrimaryKads: string[]
+  /** Οι ΚΑΔ του πελάτη που ταίριαξαν με το πρόγραμμα (code + περιγραφή + αν είναι κύριος). */
+  matchedKads: { code: string; description: string | null; primary: boolean }[]
 }
 
 /**
@@ -103,7 +101,7 @@ export async function findProspects(programId: string, selected: SelectedCriteri
         EMAIL: true,
         appLegalForm: true,
         regionCode: true,
-        kads: { select: { code: true, kind: true } },
+        kads: { select: { code: true, kind: true, description: true } },
       },
     }),
     prisma.region.findMany({ select: { code: true, nameEL: true, level: true, parentCode: true } }),
@@ -120,7 +118,7 @@ export async function findProspects(programId: string, selected: SelectedCriteri
       programInput,
       selected,
     )
-    const primaryCodes = new Set(t.kads.filter(k => k.kind === 'PRIMARY').map(k => k.code))
+    const kadInfo = new Map(t.kads.map(k => [k.code, k]))
     return {
       trdrId: t.id,
       name: t.NAME,
@@ -128,8 +126,10 @@ export async function findProspects(programId: string, selected: SelectedCriteri
       eligible: result.eligible,
       matched: result.matched,
       failed: result.failed,
-      matchedKads: result.matchedKads,
-      matchedPrimaryKads: result.matchedKads.filter(c => primaryCodes.has(c)),
+      matchedKads: result.matchedKads.map(code => {
+        const info = kadInfo.get(code)
+        return { code, description: info?.description ?? null, primary: info?.kind === 'PRIMARY' }
+      }),
     }
   })
 }
