@@ -10,6 +10,7 @@ import { persistExtractedProgram } from '@/lib/programs/persist'
 import { suggestCategory } from '@/lib/programs/categorize'
 import { expenseCatInput } from '@/lib/programs/expense-prep'
 import { buildOcrCostViewForSession, type OcrCostView } from '@/lib/ingestion/ocr-cost'
+import { logActivity } from '@/lib/activity/log'
 
 /**
  * Server orchestration για τη διαχείριση Προγραμμάτων Χρηματοδότησης
@@ -83,6 +84,7 @@ export async function createProgram(input: {
       createdById: session.user.id,
     },
   })
+  await logActivity('program.create', { entityType: 'program', entityId: id, summary: input.title })
   revalidatePath('/programs')
   return { id }
 }
@@ -139,6 +141,7 @@ export async function updateProgramMeta(
 export async function deleteProgram(id: string): Promise<void> {
   await requirePermission('programs.manage')
   await prisma.program.delete({ where: { id } })
+  await logActivity('program.delete', { entityType: 'program', entityId: id })
   revalidatePath('/programs')
 }
 
@@ -154,6 +157,7 @@ export async function extractProgram(programId: string, text: string): Promise<{
       data: { model: r.model, extractedData: r.data as Prisma.InputJsonValue },
     })
     const cost = await buildOcrCostViewForSession(session.user.role, r.model, r.tokensUsed)
+    await logActivity('program.extract', { entityType: 'program', entityId: programId, userId: session.user.id, meta: { model: r.model } })
     revalidatePath(`/programs/${programId}`)
     return { ok: true, cost }
   } catch (err) {
@@ -202,6 +206,7 @@ export async function createApplication(input: { trdrId: string; programId: stri
     console.error('[createApplication] deliverable generation failed', err)
   }
 
+  await logActivity('application.create', { entityType: 'application', entityId: app.id, userId: session.user.id })
   return { id: app.id }
 }
 

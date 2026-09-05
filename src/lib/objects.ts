@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, FolderTree, Ruler, Handshake, ClipboardList,
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
   Cookie, CreditCard, ScanText, Coins, FileText, Landmark, FolderKanban,
-  MapPin, Tags, MailCheck, UserPlus,
+  MapPin, Tags, MailCheck, UserPlus, Activity,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -118,6 +118,9 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     ] },
     { key: 'mail-report', href: '/mail-report', label: 'Mail Stats', icon: MailCheck, menuPermission: 'mail.report', core: true, permissions: [
       { key: 'mail.report', description: 'Προβολή αναφοράς email (Mailgun analytics, funnel newsletters)' },
+    ] },
+    { key: 'activity', href: '/activity', label: 'Δραστηριότητα', icon: Activity, menuPermission: 'activity.view', core: true, permissions: [
+      { key: 'activity.view', description: 'Προβολή δραστηριότητας/παραγωγικότητας χρηστών (admin)' },
     ] },
     { key: 'settings', href: '/settings', label: 'Ρυθμίσεις', icon: Settings, menuPermission: 'settings.manage', core: true, permissions: [
       { key: 'settings.manage', description: 'Ρυθμίσεις συστήματος' },

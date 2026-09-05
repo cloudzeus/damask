@@ -5,6 +5,7 @@ import { Prisma, type ApplicationLifecycle } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { computeSinglePair, type SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
+import { logActivity } from '@/lib/activity/log'
 import type { LifecycleStr, StageStr, VerdictStr } from '@/lib/pm/types'
 
 /**
@@ -87,6 +88,7 @@ export async function associateTrdrProgram(trdrId: string, programId: string): P
     },
     select: { id: true },
   })
+  await logActivity('application.associate', { entityType: 'application', entityId: app.id, userId: session.user.id, meta: { programId, eligible: snapshot.eligible } })
   revalidatePath(`/partners/${trdrId}`)
   return { id: app.id }
 }
@@ -99,6 +101,7 @@ export async function setApplicationLifecycle(applicationId: string, lifecycle: 
     data: { lifecycle },
     select: { trdrId: true },
   })
+  await logActivity('application.lifecycle', { entityType: 'application', entityId: applicationId, meta: { lifecycle } })
   revalidatePath(`/partners/${app.trdrId}`)
 }
 
@@ -109,5 +112,6 @@ export async function removeTrdrProgram(applicationId: string): Promise<void> {
     where: { id: applicationId },
     select: { trdrId: true },
   })
+  await logActivity('application.remove', { entityType: 'application', entityId: applicationId })
   revalidatePath(`/partners/${app.trdrId}`)
 }
