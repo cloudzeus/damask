@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requirePermission } from '@/lib/rbac-server'
+import { can } from '@/lib/rbac'
 import { getApplication } from '@/lib/pm/actions'
 import { ApplicationHub } from '@/components/pm/application-hub'
 import { PageHeader } from '@/components/ui/page-header'
@@ -14,7 +15,7 @@ import { PageHeader } from '@/components/ui/page-header'
  * στον χρήστη (π.χ. pm.work χωρίς να είναι manager/processor της).
  */
 export default async function ApplicationHubPage({ params }: { params: Promise<{ id: string; appId: string }> }) {
-  await requirePermission('pm.work')
+  const session = await requirePermission('pm.work')
   const { appId } = await params
   const app = await getApplication(appId)
 
@@ -33,7 +34,7 @@ export default async function ApplicationHubPage({ params }: { params: Promise<{
         subtitle={<>Στάδιο, αναθέσεις, αξιολόγηση και υποχρεώσεις της αίτησης στο πρόγραμμα «{app.programTitle}».</>}
       />
 
-      <ApplicationHub app={app} />
+      <ApplicationHub app={app} canSend={can(session, 'customer.edit')} />
     </div>
   )
 }

@@ -13,6 +13,7 @@ import { PartnerMapCard } from './partner-map-card'
 import { ContactsPanel, type ContactRow } from './contacts-panel'
 import { FinancialsTab } from '@/components/tax/financials-tab'
 import { TrdrProgramsPanel } from '@/components/pm/trdr-programs-panel'
+import { EmailHistory } from '@/components/email/email-history'
 import {
   GemiAadeCard, TrdrKadCard, TrdrDocumentsCard, type TrdrKadRow, type TrdrDocumentRow,
 } from '@/components/trdr/trdr-enrich-cards'
@@ -188,6 +189,13 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
             />
           }
           contacts={<ContactsPanel trdrId={trdr.id} contacts={contactRows} />}
+          comm={
+            <EmailHistory
+              trdrId={trdr.id}
+              defaultTo={trdr.EMAIL ?? undefined}
+              canSend={canEdit}
+            />
+          }
         />
       </div>
 

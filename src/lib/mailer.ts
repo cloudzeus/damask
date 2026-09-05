@@ -9,11 +9,31 @@ import { logApiUsage } from '@/lib/api-usage'
  * fallback όταν δεν έχει ρυθμιστεί ακόμα Mailgun.
  */
 
+/** Συνημμένο για αποστολή: bytes (content) ή fetch από URL (url). filename υποχρεωτικό. */
+export type MailAttachment = {
+  filename: string
+  content?: Buffer | Uint8Array
+  url?: string
+  contentType?: string
+}
+
 export type SendMailInput = {
   to: string
+  cc?: string
+  bcc?: string
   subject: string
   html: string
   text?: string
+  /** Reply-To header — για threading/plus-address ώστε οι απαντήσεις να αναγνωρίζονται. */
+  replyTo?: string
+  /** Σταθερό RFC Message-Id (χωρίς <>· προστίθενται) — για matching απαντήσεων (In-Reply-To/References). */
+  messageId?: string
+  /** Επιπλέον custom headers (γίνονται h:<name> στο Mailgun). */
+  headers?: Record<string, string>
+  /** Mailgun variables (γίνονται v:<name>). Δεν επιβιώνουν στις απαντήσεις — για δικό μας tracking. */
+  variables?: Record<string, string>
+  /** Συνημμένα — όταν υπάρχουν, η αποστολή γίνεται multipart. */
+  attachments?: MailAttachment[]
   /** Προαιρετικά — μόνο για μέτρηση κόστους (src/lib/api-usage.ts), ΔΕΝ επηρεάζουν την αποστολή. */
   userId?: string
   refType?: string
@@ -66,27 +86,66 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   const base = cfg.region === 'EU' ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net'
   const from = cfg.fromName?.trim() ? `${cfg.fromName} <${cfg.fromEmail}>` : cfg.fromEmail
 
-  const form = new URLSearchParams()
-  form.set('from', from)
-  form.set('to', input.to)
-  form.set('subject', input.subject)
-  form.set('html', input.html)
-  form.set('text', input.text ?? stripHtml(input.html))
+  // Κοινά πεδία (κλειδί→τιμή) — μπαίνουν είτε σε urlencoded είτε σε multipart body.
+  const fields: [string, string][] = [
+    ['from', from],
+    ['to', input.to],
+    ['subject', input.subject],
+    ['html', input.html],
+    ['text', input.text ?? stripHtml(input.html)],
+  ]
+  if (input.cc?.trim()) fields.push(['cc', input.cc])
+  if (input.bcc?.trim()) fields.push(['bcc', input.bcc])
+  if (input.replyTo?.trim()) fields.push(['h:Reply-To', input.replyTo])
+  if (input.messageId?.trim()) fields.push(['h:Message-Id', `<${input.messageId.replace(/^<|>$/g, '')}>`])
+  for (const [k, v] of Object.entries(input.headers ?? {})) fields.push([`h:${k}`, v])
+  for (const [k, v] of Object.entries(input.variables ?? {})) fields.push([`v:${k}`, v])
   if (input.tracking !== false) {
-    form.set('o:tracking', 'yes')
-    form.set('o:tracking-opens', 'yes')
-    form.set('o:tracking-clicks', 'htmlonly')
+    fields.push(['o:tracking', 'yes'], ['o:tracking-opens', 'yes'], ['o:tracking-clicks', 'htmlonly'])
+  }
+
+  const attachments = input.attachments ?? []
+  // Υλοποίηση fetch attachment bytes (όταν δίνεται url αντί για content).
+  const resolvedAttachments: { filename: string; bytes: Uint8Array; contentType?: string }[] = []
+  for (const a of attachments) {
+    try {
+      let bytes: Uint8Array | null = null
+      if (a.content) bytes = a.content instanceof Buffer ? new Uint8Array(a.content) : a.content
+      else if (a.url) {
+        const r = await fetch(a.url, { signal: AbortSignal.timeout(20_000) })
+        if (r.ok) bytes = new Uint8Array(await r.arrayBuffer())
+      }
+      if (bytes) resolvedAttachments.push({ filename: a.filename, bytes, contentType: a.contentType })
+    } catch (err) {
+      console.error(`sendMail: αποτυχία λήψης συνημμένου ${a.filename}`, err)
+    }
+  }
+
+  const useMultipart = resolvedAttachments.length > 0
+  let body: BodyInit
+  const reqHeaders: Record<string, string> = {
+    Authorization: `Basic ${Buffer.from(`api:${cfg.apiKey}`).toString('base64')}`,
+  }
+  if (useMultipart) {
+    const fd = new FormData()
+    for (const [k, v] of fields) fd.append(k, v)
+    for (const a of resolvedAttachments) {
+      fd.append('attachment', new Blob([a.bytes as BlobPart], { type: a.contentType || 'application/octet-stream' }), a.filename)
+    }
+    body = fd // fetch θέτει μόνο του το multipart boundary Content-Type
+  } else {
+    const form = new URLSearchParams()
+    for (const [k, v] of fields) form.append(k, v)
+    reqHeaders['Content-Type'] = 'application/x-www-form-urlencoded'
+    body = form.toString()
   }
 
   try {
     const res = await fetch(`${base}/v3/${cfg.domain}/messages`, {
       method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`api:${cfg.apiKey}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: form.toString(),
-      signal: AbortSignal.timeout(20_000),
+      headers: reqHeaders,
+      body,
+      signal: AbortSignal.timeout(30_000),
     })
     if (!res.ok) {
       const detail = await res.text().catch(() => '')

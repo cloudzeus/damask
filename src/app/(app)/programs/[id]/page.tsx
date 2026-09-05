@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
+import { can } from '@/lib/rbac'
 import { ProgramEditor, type ProgramData } from '@/components/programs/program-editor'
 import { ApplicationsPanel } from '@/components/programs/applications-panel'
+import { EmailHistory } from '@/components/email/email-history'
 import { PageHeader } from '@/components/ui/page-header'
 
 /**
@@ -21,7 +23,7 @@ import { PageHeader } from '@/components/ui/page-header'
  * από εκεί, ανεκτικά, μόνο για προβολή.
  */
 export default async function ProgramDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requirePermission('programs.manage')
+  const session = await requirePermission('programs.manage')
   const { id } = await params
 
   const program = await prisma.program.findUnique({
@@ -121,6 +123,10 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
 
       <div className="mt-3">
         <ApplicationsPanel programId={program.id} />
+      </div>
+
+      <div className="mt-3">
+        <EmailHistory programId={program.id} canSend={can(session, 'customer.edit')} />
       </div>
     </div>
   )

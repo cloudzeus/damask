@@ -44,6 +44,10 @@ export const ACTIONS = {
   // Δημόσια φόρμα επιλεξιμότητας
   'public_lead.request': { category: 'PROSPECT', label: 'Αίτημα επιλεξιμότητας (site)', weight: 1 },
   'public_lead.verified': { category: 'PROSPECT', label: 'Επιβεβαιωμένο αίτημα επιλεξιμότητας', weight: 3 },
+  // Επικοινωνία με πελάτες / δικαιολογητικά
+  'email.send': { category: 'COMMUNICATION', label: 'Αποστολή email σε πελάτη', weight: 2 },
+  'file_request.create': { category: 'COMMUNICATION', label: 'Αίτημα δικαιολογητικών', weight: 2 },
+  'file_request.completed': { category: 'COMMUNICATION', label: 'Ολοκλήρωση δικαιολογητικών', weight: 2 },
   // Συμμετοχές / Έργα
   'application.associate': { category: 'APPLICATION', label: 'Σύνδεση πελάτη με πρόγραμμα', weight: 2 },
   'application.lifecycle': { category: 'APPLICATION', label: 'Αλλαγή κατάστασης συμμετοχής', weight: 1 },

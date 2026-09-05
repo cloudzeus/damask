@@ -76,6 +76,7 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   taxform: 'Διαχείριση',
   programs: 'Ευρωπαϊκά Προγράμματα',
   pm: 'Ευρωπαϊκά Προγράμματα',
+  application: 'Ευρωπαϊκά Προγράμματα',
   regions: 'Ευρωπαϊκά Προγράμματα',
   kad: 'Ευρωπαϊκά Προγράμματα',
 }

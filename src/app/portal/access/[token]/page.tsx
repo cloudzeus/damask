@@ -36,12 +36,48 @@ export default async function PortalAccessPage({ params }: { params: Promise<{ t
           <h1 className="text-[22px]">Πρόοδος έργων</h1>
         </div>
 
-        {d.applications.length === 0 ? (
+        {d.applications.length === 0 && d.fileRequests.length === 0 ? (
           <div className="glass stagger p-8 text-center text-sm text-muted-foreground">
             Δεν υπάρχουν ενεργά έργα αυτή τη στιγμή.
           </div>
         ) : (
           <div className="flex flex-col gap-3">
+            {/* Read-only λίστα εκκρεμών αιτημάτων δικαιολογητικών (FileRequest). Το
+                ανέβασμα γίνεται μέσω του δικού τους one-time link /r/{token} (email)
+                — το raw token δεν υπάρχει εδώ, οπότε ΔΕΝ ενσωματώνουμε τον uploader.
+                Πλήρες in-portal upload = follow-up. */}
+            {d.fileRequests.length > 0 && (
+              <div className="glass stagger p-5">
+                <p className="mb-2 text-[13px] font-semibold text-foreground">Δικαιολογητικά που εκκρεμούν</p>
+                <p className="mb-3 text-[11.5px] text-muted-foreground">
+                  Θα λάβεις (ή έχεις λάβει) ξεχωριστό σύνδεσμο μέσω email για το ανέβασμα των παρακάτω δικαιολογητικών.
+                </p>
+                <ul className="flex flex-col gap-3">
+                  {d.fileRequests.map(fr => (
+                    <li key={fr.id} className="rounded-lg border border-border p-3">
+                      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">{fr.title}</span>
+                        <span className="badge-pill muted shrink-0" lang="el">{fr.itemsUploaded}/{fr.itemsTotal} ανέβηκαν</span>
+                      </div>
+                      <ul className="flex flex-col gap-1">
+                        {fr.items.map(it => (
+                          <li key={it.id} className="flex items-center justify-between gap-2 text-[12.5px]">
+                            <span className="min-w-0 truncate">
+                              {it.label}
+                              {!it.required && <span className="text-muted-foreground"> · προαιρετικό</span>}
+                            </span>
+                            <span className={`badge-pill shrink-0 ${it.uploaded ? 'ok' : 'muted'}`} lang="el">
+                              {it.uploaded ? 'Ανέβηκε' : 'Εκκρεμεί'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {d.applications.map((app, i) => (
               <div key={i} className="glass stagger p-5">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">

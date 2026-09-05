@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { hashToken, isExpired } from '@/lib/pm/portal-token'
-import { stageLabel } from '@/lib/pm/types'
+import { stageLabel, type StageStr } from '@/lib/pm/types'
 
 // 8MB file → ~11MB base64 body, under the 12mb serverActions bodySizeLimit
 // (next.config.ts). Keep these two in sync.
@@ -44,7 +44,21 @@ export async function submitDocumentUpload(raw: string, file: { filename: string
   return { ok: true }
 }
 
-export type PortalDashboard = { ok: true; customerName: string; applications: { programTitle: string; stage: string; openObligations: number; overdueObligations: number; openRequests: { title: string; status: string }[] }[] } | { ok: false }
+/** Εκκρεμές αίτημα δικαιολογητικών (FileRequest) του πελάτη — read-only προβολή στο
+ * portal. Το raw file-request token ΔΕΝ είναι διαθέσιμο στο portal context, οπότε
+ * εδώ μόνο απαριθμούμε (χωρίς uploader — βλ. σχόλιο στη σελίδα portal). */
+export type PortalFileRequest = {
+  id: string
+  title: string
+  message: string | null
+  status: string
+  expiresAt: string
+  itemsTotal: number
+  itemsUploaded: number
+  items: { id: string; label: string; required: boolean; uploaded: boolean }[]
+}
+
+export type PortalDashboard = { ok: true; customerName: string; applications: { programTitle: string; stage: string; openObligations: number; overdueObligations: number; openRequests: { title: string; status: string }[] }[]; fileRequests: PortalFileRequest[] } | { ok: false }
 
 export async function getPortalDashboardByToken(raw: string): Promise<PortalDashboard> {
   const tok = await prisma.portalToken.findUnique({ where: { tokenHash: hashToken(raw) }, include: { trdr: { select: { NAME: true } } } })
@@ -58,7 +72,21 @@ export async function getPortalDashboardByToken(raw: string): Promise<PortalDash
   const applications = apps.map(a => {
     const open = a.obligations.filter(o => o.status === 'PENDING' || o.status === 'IN_PROGRESS' || o.status === 'SUBMITTED')
     const overdue = open.filter(o => o.dueDate && o.dueDate.getTime() < todayMs)
-    return { programTitle: a.program?.title ?? '—', stage: stageLabel(a.stage as any), openObligations: open.length, overdueObligations: overdue.length, openRequests: a.documentRequests.map(r => ({ title: r.title, status: r.status })) }
+    return { programTitle: a.program?.title ?? '—', stage: stageLabel(a.stage as StageStr), openObligations: open.length, overdueObligations: overdue.length, openRequests: a.documentRequests.map(r => ({ title: r.title, status: r.status })) }
   })
-  return { ok: true, customerName: tok.trdr?.NAME ?? '', applications }
+
+  // Ενεργά αιτήματα δικαιολογητικών (FileRequest) του πελάτη — μόνο για ενημερωτική
+  // λίστα στο portal (read-only). Το ανέβασμα γίνεται μέσω του δικού τους /r/{token}
+  // one-time link (email), όχι εδώ — το raw token δεν υπάρχει στο portal context.
+  const frs = await prisma.fileRequest.findMany({
+    where: { trdrId: tok.trdrId, status: { in: ['PENDING', 'PARTIAL'] } },
+    orderBy: { createdAt: 'desc' },
+    include: { items: { orderBy: { order: 'asc' }, select: { id: true, label: true, required: true, fileUrl: true } } },
+  })
+  const fileRequests: PortalFileRequest[] = frs.map(fr => {
+    const items = fr.items.map(i => ({ id: i.id, label: i.label, required: i.required, uploaded: Boolean(i.fileUrl) }))
+    return { id: fr.id, title: fr.title, message: fr.message, status: fr.status, expiresAt: fr.expiresAt.toISOString(), itemsTotal: items.length, itemsUploaded: items.filter(i => i.uploaded).length, items }
+  })
+
+  return { ok: true, customerName: tok.trdr?.NAME ?? '', applications, fileRequests }
 }

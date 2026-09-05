@@ -2156,3 +2156,181 @@ model NewsletterConsent {
   @@index([action])
   @@index([createdAt])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Επικοινωνία με πελάτες (email) + αιτήματα δικαιολογητικών (one-time upload)
+// ─────────────────────────────────────────────────────────────────────────────
+// Correlation-first σχεδίαση: κάθε email φέρει σταθερό Message-Id + token (subject
+// tag + Reply-To plus-address) ώστε όταν συνδεθεί το mailbox, οι απαντήσεις να
+// αναγνωρίζονται (In-Reply-To/References/plus-address) και να καταχωρούνται στο
+// ιστορικό επικοινωνίας του πελάτη / έργου / task. Οι συσχετίσεις (trdr/program/
+// application/obligation/user) είναι soft-ref στήλες (ΟΧΙ @relation) ώστε το
+// migration να μένει απομονωμένο και portal-aware (query κατά trdrId).
+
+enum EmailDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum EmailMessageStatus {
+  QUEUED
+  SENT
+  FAILED
+  RECEIVED
+}
+
+/// Νήμα επικοινωνίας (conversation). Ομαδοποιεί outbound + (μελλοντικά) inbound
+/// μηνύματα γύρω από ένα θέμα, συσχετισμένο με πελάτη/πρόγραμμα/έργο/task.
+model EmailThread {
+  id            String         @id @default(cuid())
+  token         String         @unique // κωδικός συσχέτισης (subject tag + reply-to plus-address)
+  subject       String
+  // soft refs (χωρίς @relation — isolated migration, portal-aware)
+  trdrId        String?
+  programId     String?
+  applicationId String?
+  obligationId  String?
+  createdById   String?
+  status        String         @default("OPEN") // OPEN | CLOSED
+  lastMessageAt DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  messages      EmailMessage[]
+
+  @@index([trdrId])
+  @@index([programId])
+  @@index([applicationId])
+  @@index([obligationId])
+  @@index([createdById])
+}
+
+/// Ένα μήνυμα (εξερχόμενο ή εισερχόμενο). messageId = RFC Message-Id (δικό μας για
+/// outbound, parsed για inbound) → matching απαντήσεων. attachments = JSON λίστα
+/// {name,url,size,mime}. Οι soft-ref στήλες αντιγράφονται από το thread για γρήγορα
+/// φίλτρα ιστορικού ανά πελάτη/έργο.
+model EmailMessage {
+  id            String             @id @default(cuid())
+  threadId      String
+  thread        EmailThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  direction     EmailDirection     @default(OUTBOUND)
+  messageId     String?            @unique
+  inReplyTo     String?
+  references    String?
+  fromEmail     String
+  fromName      String?
+  toEmails      String[]
+  cc            String[]
+  subject       String
+  bodyHtml      String?
+  bodyText      String?
+  snippet       String?
+  mailgunId     String? // provider id (data.id)
+  status        EmailMessageStatus @default(QUEUED)
+  error         String?
+  sentById      String? // soft ref User (ποιος υπάλληλος έστειλε)
+  trdrId        String?
+  programId     String?
+  applicationId String?
+  obligationId  String?
+  attachments   Json? // [{ name, url, size, mime }]
+  createdAt     DateTime           @default(now())
+  sentAt        DateTime?
+
+  @@index([threadId])
+  @@index([direction])
+  @@index([status])
+  @@index([createdAt])
+  @@index([trdrId])
+}
+
+enum FileRequestStatus {
+  PENDING // στάλθηκε, καμία μεταφόρτωση ακόμα
+  PARTIAL // κάποια δικαιολογητικά ανέβηκαν
+  COMPLETED // όλα τα υποχρεωτικά ανέβηκαν
+  EXPIRED
+  CANCELLED
+}
+
+enum FileRequestItemStatus {
+  PENDING
+  UPLOADED // ανέβηκε από τον πελάτη, αναμονή ελέγχου
+  ACCEPTED // εγκρίθηκε από υπάλληλο
+  REJECTED // απορρίφθηκε — ζητείται εκ νέου
+}
+
+/// Αίτημα μεταφόρτωσης δικαιολογητικών προς τον πελάτη μέσω one-time URL (token +
+/// expiry). Περιέχει λίστα ζητούμενων στοιχείων (items) — π.χ. 4 δικαιολογητικά.
+/// Όταν όλα τα υποχρεωτικά items ολοκληρωθούν → status COMPLETED και ειδοποιούνται
+/// πελάτης + υπάλληλος. Portal-aware: trdrId indexed ώστε να εμφανίζεται και μέσα
+/// στο portal του πελάτη, όχι μόνο από το one-time link.
+model FileRequest {
+  id                 String            @id @default(cuid())
+  tokenHash          String            @unique // raw token στο URL, hash εδώ
+  title              String
+  message            String?
+  email              String?
+  status             FileRequestStatus @default(PENDING)
+  expiresAt          DateTime
+  // soft refs
+  trdrId             String
+  programId          String?
+  applicationId      String?
+  obligationId       String?
+  createdById        String?
+  emailThreadId      String? // αν στάλθηκε ως μέρος email thread
+  completedAt        DateTime?
+  customerNotifiedAt DateTime?
+  staffNotifiedAt    DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  items              FileRequestItem[]
+
+  @@index([trdrId])
+  @@index([programId])
+  @@index([applicationId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+/// Ένα ζητούμενο δικαιολογητικό μέσα σε ένα FileRequest. Ο πελάτης συσχετίζει κάθε
+/// αρχείο που ανεβάζει με ένα item (combo box). required=true μετράει για την
+/// ολοκλήρωση του αιτήματος.
+model FileRequestItem {
+  id            String                @id @default(cuid())
+  fileRequestId String
+  fileRequest   FileRequest           @relation(fields: [fileRequestId], references: [id], onDelete: Cascade)
+  label         String
+  description   String?
+  required      Boolean               @default(true)
+  order         Int                   @default(0)
+  status        FileRequestItemStatus @default(PENDING)
+  // ανεβασμένο αρχείο (Bunny public cdnUrl)
+  fileName      String?
+  fileUrl       String?
+  mimeType      String?
+  sizeBytes     Int?
+  mediaAssetId  String?
+  uploadedAt    DateTime?
+  note          String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([fileRequestId])
+  @@index([status])
+}
+
+/// Ανάθεση έργου (ProgramApplication) σε υπαλλήλους. Ο manager παραμένει το single
+/// ProgramApplication.managerId· εδώ κρατάμε τους (πολλαπλούς) υπαλλήλους-εκτελεστές.
+/// Soft-ref (χωρίς @relation) — μόνο admin/super-admin αναθέτει (permission
+/// application.assign). Query: «τα έργα μου» = ApplicationAssignment.userId.
+model ApplicationAssignment {
+  id            String   @id @default(cuid())
+  applicationId String
+  userId        String // υπάλληλος-εκτελεστής
+  assignedById  String? // ποιος admin/super-admin ανέθεσε
+  createdAt     DateTime @default(now())
+
+  @@unique([applicationId, userId])
+  @@index([applicationId])
+  @@index([userId])
+}

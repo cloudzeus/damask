@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
  * δεν φορτώνει μέχρι να επιλεγεί το tab). Το ενεργό tab persist-άρεται τοπικά.
  */
 
-type TabKey = 'info' | 'gemi' | 'kad' | 'docs' | 'map' | 'contacts'
+type TabKey = 'info' | 'gemi' | 'kad' | 'docs' | 'map' | 'contacts' | 'comm'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'info', label: 'Στοιχεία' },
@@ -21,12 +21,13 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'docs', label: 'Έγγραφα ΓΕΜΗ' },
   { key: 'map', label: 'Χάρτης' },
   { key: 'contacts', label: 'Επαφές' },
+  { key: 'comm', label: 'Επικοινωνία' },
 ]
 
 const STORAGE_KEY = 'partner-detail-tab'
 
 export function PartnerDetailTabs({
-  info, gemi, kad, docs, map, contacts,
+  info, gemi, kad, docs, map, contacts, comm,
 }: {
   info: React.ReactNode
   gemi: React.ReactNode
@@ -34,6 +35,7 @@ export function PartnerDetailTabs({
   docs: React.ReactNode
   map: React.ReactNode
   contacts: React.ReactNode
+  comm: React.ReactNode
 }) {
   const [active, setActive] = React.useState<TabKey>('info')
 
@@ -59,7 +61,7 @@ export function PartnerDetailTabs({
     }
   }, [active])
 
-  const panels: Record<TabKey, React.ReactNode> = { info, gemi, kad, docs, map, contacts }
+  const panels: Record<TabKey, React.ReactNode> = { info, gemi, kad, docs, map, contacts, comm }
 
   return (
     <div className="flex flex-col gap-3">

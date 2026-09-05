@@ -22,6 +22,7 @@ import { GanttView } from './gantt-view'
 import { PaymentsTab } from './payments-tab'
 import { DocumentRequestsTab } from './document-requests-tab'
 import { PortalAccessDialog } from './portal-access-dialog'
+import { EmailHistory } from '@/components/email/email-history'
 
 /**
  * Το «Έργο hub» (Task 10) — κεντρική οθόνη PM για μία αίτηση προγράμματος:
@@ -42,7 +43,7 @@ import { PortalAccessDialog } from './portal-access-dialog'
  * [appId]) — γι' αυτό μετά από ΚΑΘΕ mutation καλούμε ρητά router.refresh()
  * αντί να βασιζόμαστε στο server-side revalidate.
  */
-export function ApplicationHub({ app }: { app: ApplicationDetail }) {
+export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetail; canSend?: boolean }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = React.useState<TabKey>('assessment')
   const [changingStage, setChangingStage] = React.useState(false)
@@ -161,6 +162,14 @@ export function ApplicationHub({ app }: { app: ApplicationDetail }) {
       {activeTab === 'gantt' && <GanttView applicationId={app.id} programId={app.programId} />}
       {activeTab === 'docrequests' && <DocumentRequestsTab applicationId={app.id} />}
       {activeTab === 'payments' && <PaymentsTab applicationId={app.id} />}
+      {activeTab === 'comm' && (
+        <EmailHistory
+          trdrId={app.trdrId}
+          programId={app.programId}
+          applicationId={app.id}
+          canSend={canSend}
+        />
+      )}
     </div>
   )
 }
@@ -223,7 +232,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
 
 /* ── Tab bar — mirror του idiom στο program-editor.tsx (pill row, navy
  * active, χωρίς Tabs primitive). ── */
-type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'gantt' | 'docrequests' | 'payments' | 'opske'
+type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'gantt' | 'docrequests' | 'payments' | 'opske' | 'comm'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'assessment', label: 'Αξιολόγηση' },
@@ -235,6 +244,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'docrequests', label: 'Αιτήματα εγγράφων' },
   { key: 'payments', label: 'Αποπληρωμές' },
   { key: 'opske', label: 'ΟΠΣΚΕ' },
+  { key: 'comm', label: 'Επικοινωνία' },
 ]
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
