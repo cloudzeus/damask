@@ -54,14 +54,26 @@ export async function getSeriesOptions(sodtype?: number): Promise<S1Option[]> {
   return rows.map(r => ({ value: String(r.SERIES), label: r.NAME }))
 }
 
+/** Ενεργοί συστήστες ως options για το partner form (ΟΧΙ S1 — app-only Referrer).
+ * Gated από το customer.view της σελίδας /partners, όχι από referrer.view. */
+export async function getReferrerOptions(): Promise<S1Option[]> {
+  const rows = await prisma.referrer.findMany({
+    where: { active: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, type: true },
+  })
+  return rows.map(r => ({ value: r.id, label: `${r.name} · ${r.type === 'COMPANY' ? 'Εταιρία' : 'Ιδιώτης'}` }))
+}
+
 /** Όλα τα partner-form combos σε ένα call (partners/page.tsx + partners/[id]/page.tsx). */
 export async function getPartnerFormOptions() {
-  const [country, irsdata, trdCategory, payment, shipment] = await Promise.all([
+  const [country, irsdata, trdCategory, payment, shipment, referrer] = await Promise.all([
     getCountryOptions(),
     getIrsdataOptions(),
     getTrdCategoryOptions(),
     getPaymentOptions(),
     getShipmentOptions(),
+    getReferrerOptions(),
   ])
-  return { country, irsdata, trdCategory, payment, shipment }
+  return { country, irsdata, trdCategory, payment, shipment, referrer }
 }

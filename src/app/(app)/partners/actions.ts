@@ -79,6 +79,7 @@ const partnerFormShape = {
   appEmployees: z.union([z.literal(''), z.string().trim().regex(/^\d+$/, 'Ο αριθμός εργαζομένων πρέπει να είναι ακέραιος.')]).optional(),
   appAnnualRevenue: z.union([z.literal(''), z.string().trim().regex(/^\d+([.,]\d+)?$/, 'Μη έγκυρο ποσό εσόδων.')]).optional(),
   appNotes: z.string().trim().max(2000).optional(),
+  referrerId: z.string().trim().max(40).optional(), // Referrer.id (cuid) — ποιος έφερε τον πελάτη
 }
 
 /** '1.234,56' δεν υποστηρίζεται εδώ — το form δίνει απλό αριθμό με , ή . δεκαδικά. */
@@ -141,6 +142,7 @@ export async function createPartner(input: PartnerFormValues): Promise<ActionRes
         appEmployees: ni(data.appEmployees),
         appAnnualRevenue: nDec(data.appAnnualRevenue),
         appNotes: n(data.appNotes),
+        referrerId: n(data.referrerId),
       },
     })
     revalidatePartners()
@@ -199,6 +201,7 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
         appEmployees: ni(data.appEmployees),
         appAnnualRevenue: nDec(data.appAnnualRevenue),
         appNotes: n(data.appNotes),
+        referrerId: n(data.referrerId),
       },
     })
   } catch (e) {

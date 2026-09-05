@@ -20,7 +20,7 @@ export function PartnerHeader({
   partner: EditablePartner
   logoUrl: string | null
   mapsConfig: MapsClientConfig
-  formOptions: { country: S1Option[]; irsdata: S1Option[]; trdCategory: S1Option[]; payment: S1Option[]; shipment: S1Option[] }
+  formOptions: { country: S1Option[]; irsdata: S1Option[]; trdCategory: S1Option[]; payment: S1Option[]; shipment: S1Option[]; referrer: S1Option[] }
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)

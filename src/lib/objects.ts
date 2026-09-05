@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, FolderTree, Ruler, Handshake, ClipboardList,
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
   Cookie, CreditCard, ScanText, Coins, FileText, Landmark, FolderKanban,
-  MapPin, Tags, MailCheck,
+  MapPin, Tags, MailCheck, UserPlus,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -44,6 +44,10 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     { key: 'partners', href: '/partners', label: 'Συναλλασσόμενοι', icon: Handshake, menuPermission: 'customer.view', softone: { object: 'TRDR' }, permissions: [
       { key: 'customer.view', description: 'Προβολή πελατών' },
       { key: 'customer.edit', description: 'Επεξεργασία πελατών/επαφών' },
+    ] },
+    { key: 'referrers', href: '/referrers', label: 'Συστήστες', icon: UserPlus, menuPermission: 'referrer.view', core: true, permissions: [
+      { key: 'referrer.view', description: 'Προβολή συστηστών (ποιος έφερε πελάτη)' },
+      { key: 'referrer.manage', description: 'Διαχείριση συστηστών' },
     ] },
   ] },
   { key: 'orders', label: 'Παραγγελίες & Πωλήσεις', items: [

@@ -128,6 +128,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
           employees: trdr.appEmployees,
           annualRevenue: trdr.appAnnualRevenue != null ? Number(trdr.appAnnualRevenue) : null,
           notes: trdr.appNotes,
+          referrerId: trdr.referrerId,
         }}
         logoUrl={trdr.appLogoUrl}
         mapsConfig={mapsConfig}

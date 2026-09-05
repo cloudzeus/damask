@@ -11,7 +11,7 @@ export function NewPartnerButton({
   mapsConfig, formOptions,
 }: {
   mapsConfig: MapsClientConfig
-  formOptions: { country: S1Option[]; irsdata: S1Option[]; trdCategory: S1Option[]; payment: S1Option[]; shipment: S1Option[] }
+  formOptions: { country: S1Option[]; irsdata: S1Option[]; trdCategory: S1Option[]; payment: S1Option[]; shipment: S1Option[]; referrer: S1Option[] }
 }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()

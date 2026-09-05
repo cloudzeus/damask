@@ -326,6 +326,9 @@ model Trdr {
   geocodedAddress String? // canonical address returned by geocoder
   regionCode      String?
   region          Region?   @relation(fields: [regionCode], references: [code], onDelete: SetNull)
+  // Συστήστης — ποιος έφερε τον πελάτη (άλλη εταιρία/συνεργάτης ή ιδιώτης)
+  referrerId      String?
+  referrer        Referrer? @relation("TrdrReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   users        User[]
@@ -341,11 +344,40 @@ model Trdr {
   kads             TrdrKad[]
   documents        TrdrDocument[]
   programLeads     ProgramLead[]
+  referrerLinks    Referrer[] @relation("ReferrerTrdr") // Referrer records που δείχνουν σε αυτόν τον Trdr
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
   @@index([AFM])
   @@index([regionCode])
+  @@index([referrerId])
+}
+
+/// Συστήστης — ποιος έφερε έναν πελάτη στην εταιρία. Μπορεί να είναι εταιρία/
+/// συνεργάτης (COMPANY) ή ιδιώτης (INDIVIDUAL). Προαιρετικά συνδέεται με υπάρχοντα
+/// Trdr (αν ο συστήστης είναι ήδη συναλλασσόμενος στο σύστημα).
+enum ReferrerType {
+  COMPANY
+  INDIVIDUAL
+}
+
+model Referrer {
+  id        String       @id @default(cuid())
+  name      String
+  type      ReferrerType @default(COMPANY)
+  email     String?
+  phone     String?
+  afm       String?
+  notes     String?
+  active    Boolean      @default(true)
+  trdrId    String? // αν ο συστήστης είναι ήδη συναλλασσόμενος
+  trdr      Trdr?        @relation("ReferrerTrdr", fields: [trdrId], references: [id], onDelete: SetNull)
+  referred  Trdr[]       @relation("TrdrReferrer") // πελάτες που έφερε
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([active])
+  @@index([trdrId])
 }
 
 model Contact {

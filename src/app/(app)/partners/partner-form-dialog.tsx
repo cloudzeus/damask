@@ -11,6 +11,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { CountrySelect } from '@/components/s1/country-select'
+import { S1SearchableSelect } from '@/components/s1/s1-select'
 import { IrsdataSelect } from '@/components/s1/irsdata-select'
 import { TrdCategorySelect } from '@/components/s1/trd-category-select'
 import { PaymentSelect } from '@/components/s1/payment-select'
@@ -56,6 +57,7 @@ export type EditablePartner = {
   employees: number | null
   annualRevenue: number | null
   notes: string | null
+  referrerId: string | null
 }
 
 function emptyForm(): PartnerFormValues {
@@ -84,6 +86,7 @@ function emptyForm(): PartnerFormValues {
     appEmployees: '',
     appAnnualRevenue: '',
     appNotes: '',
+    referrerId: '',
   }
 }
 
@@ -113,6 +116,7 @@ function toFormValues(p: EditablePartner): PartnerFormValues {
     appEmployees: p.employees != null ? String(p.employees) : '',
     appAnnualRevenue: p.annualRevenue != null ? String(p.annualRevenue) : '',
     appNotes: p.notes ?? '',
+    referrerId: p.referrerId ?? '',
   }
 }
 
@@ -124,7 +128,7 @@ export function PartnerFormDialog({
   onOpenChange: (open: boolean) => void
   partner?: EditablePartner
   mapsConfig: MapsClientConfig
-  formOptions: { country: S1Option[]; irsdata: S1Option[]; trdCategory: S1Option[]; payment: S1Option[]; shipment: S1Option[] }
+  formOptions: { country: S1Option[]; irsdata: S1Option[]; trdCategory: S1Option[]; payment: S1Option[]; shipment: S1Option[]; referrer: S1Option[] }
   onCreated?: (partnerId: string) => void
 }) {
   const [values, setValues] = useState<PartnerFormValues>(() => (partner ? toFormValues(partner) : emptyForm()))
@@ -349,6 +353,15 @@ export function PartnerFormDialog({
               options={formOptions.shipment}
               value={values.SHIPMENT || null}
               onChange={v => set('SHIPMENT', v ?? '')}
+            />
+
+            <S1SearchableSelect
+              id="partner-form-referrer"
+              label="Συστήστης (ποιος τον έφερε)"
+              options={formOptions.referrer}
+              value={values.referrerId || null}
+              onChange={v => set('referrerId', v ?? '')}
+              placeholder="Αναζήτηση συστήστη…"
             />
 
             <div className="sm:col-span-2">
