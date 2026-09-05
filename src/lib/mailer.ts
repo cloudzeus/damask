@@ -125,7 +125,7 @@ export function renderEmailShell(opts: {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
             <tr>
               <td style="padding-bottom:20px;text-align:center;">
-                <span style="font-size:15px;font-weight:700;letter-spacing:0.14em;color:#16323F;">DAMASK</span>
+                <span style="font-size:15px;font-weight:700;letter-spacing:0.14em;color:#16323F;">World Wide Associates</span>
               </td>
             </tr>
             <tr>
@@ -148,7 +148,7 @@ export function renderEmailShell(opts: {
             </tr>
             <tr>
               <td style="padding-top:18px;text-align:center;font-size:11.5px;color:#8098A5;">
-                Αυτό είναι αυτοματοποιημένο μήνυμα από το DAMASK PIM — μην απαντήσεις σε αυτό το email.
+                Αυτό είναι αυτοματοποιημένο μήνυμα από το World Wide Associates — μην απαντήσεις σε αυτό το email.
               </td>
             </tr>
           </table>

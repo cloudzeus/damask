@@ -11,7 +11,7 @@ export function ForgotForm() {
 
   return (
     <div className="auth-card glass stagger">
-      <span className="wordmark">DAMASK</span>
+      <span className="wordmark">World Wide Associates</span>
       <p className="sub">Ανάκτηση κωδικού</p>
 
       {state.submitted ? (

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { loginAction } from './actions'
+import { Logo } from '@/components/shell/logo'
 
 export function LoginForm({ justReset = false }: { justReset?: boolean }) {
   const [state, action, pending] = useActionState(loginAction, {})
@@ -35,8 +36,9 @@ export function LoginForm({ justReset = false }: { justReset?: boolean }) {
         />
 
         <div className="auth-card glass stagger">
-          <span className="wordmark">DAMASK</span>
-          <p className="sub">Product Information Management</p>
+          <Logo className="mx-auto mb-2 h-10 w-auto" />
+          <span className="wordmark">World Wide Associates</span>
+          <p className="sub">Διαχείριση Ευρωπαϊκών Προγραμμάτων</p>
 
           {justReset && (
             <div className="notice success" role="status">

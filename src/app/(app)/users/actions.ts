@@ -121,13 +121,13 @@ export async function approveAccessRequest(requestId: string): Promise<ActionRes
       heading: 'Ο λογαριασμός σου είναι έτοιμος',
       bodyHtml:
         `<p>Γεια σου ${escapeHtml(request.name)},</p>` +
-        '<p>Το αίτημα πρόσβασής σου στο DAMASK PIM εγκρίθηκε. Στοιχεία σύνδεσης:</p>' +
+        '<p>Το αίτημα πρόσβασής σου στο World Wide Associates εγκρίθηκε. Στοιχεία σύνδεσης:</p>' +
         `<p><b>Email:</b> ${escapeHtml(request.email)}<br/><b>Προσωρινός κωδικός:</b> ${escapeHtml(tempPassword)}</p>` +
         '<p>Σύνδεσου και άλλαξε τον κωδικό σου το συντομότερο.</p>',
       ctaLabel: 'Σύνδεση',
       ctaUrl: loginUrl,
     })
-    const result = await sendMail({ to: request.email, subject: 'Ο λογαριασμός σου στο DAMASK εγκρίθηκε', html })
+    const result = await sendMail({ to: request.email, subject: 'Ο λογαριασμός σου στη World Wide Associates εγκρίθηκε', html })
     if (!result.ok) {
       // Mailgun ρυθμισμένο αλλά η αποστολή απέτυχε live — fallback σε log ώστε να μη χαθεί ο κωδικός.
       console.log(`[access-request] Αποστολή Mailgun απέτυχε (${result.error}) — Εγκρίθηκε ${request.email} (${roleName}) — προσωρινός κωδικός: ${tempPassword}`)

@@ -23,7 +23,7 @@ export default async function PortalUploadPage({ params }: { params: Promise<{ t
     <div className="app-canvas flex min-h-screen flex-col items-center justify-center px-6">
       <div className="glass stagger w-full max-w-md p-8 text-center">
         <Link href="/" className="wordmark mb-6 inline-flex text-[18px] text-foreground">
-          DAMASK
+          World Wide Associates
         </Link>
         <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
           Αίτημα εγγράφου

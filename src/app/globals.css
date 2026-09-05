@@ -428,21 +428,28 @@
   padding: 3.5px 11px;
   white-space: nowrap;
 }
+/* Πιο έντονα badges: ισχυρότερο tint + colored ring για ξεκάθαρο οπτικό σήμα,
+   κρατώντας σκούρο saturated κείμενο (contrast-safe). Το ring μέσω inset shadow
+   ώστε να μη μετακινείται το layout. */
 .badge-pill.ok {
   color: var(--success);
-  background: var(--success-soft);
+  background: rgb(46 158 99 / 20%);
+  box-shadow: inset 0 0 0 1px rgb(46 158 99 / 40%);
 }
 .badge-pill.warn {
   color: var(--warning);
-  background: var(--warning-soft);
+  background: rgb(199 126 30 / 20%);
+  box-shadow: inset 0 0 0 1px rgb(199 126 30 / 40%);
 }
 .badge-pill.info {
   color: var(--info);
-  background: var(--info-soft);
+  background: rgb(59 125 168 / 20%);
+  box-shadow: inset 0 0 0 1px rgb(59 125 168 / 40%);
 }
 .badge-pill.muted {
   color: var(--muted-foreground);
   background: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 .icon-pill {

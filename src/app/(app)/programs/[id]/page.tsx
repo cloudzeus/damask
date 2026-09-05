@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { ProgramEditor, type ProgramData } from '@/components/programs/program-editor'
 import { ApplicationsPanel } from '@/components/programs/applications-panel'
+import { PageHeader } from '@/components/ui/page-header'
 
 /**
  * Detail/editor οθόνη ενός Προγράμματος (Task 14): μετά την αρχική AI
@@ -105,17 +106,16 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div>
-      <div className="mb-4 pt-1.5">
-        <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
-          <Link href="/programs" className="hover:text-foreground hover:underline">Προγράμματα</Link>{' '}
-          <span aria-hidden>›</span> <b className="text-foreground">{program.title}</b>
-        </div>
-        <h1 className="text-[22px]">{program.title}</h1>
-        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-          {program.referenceCode ? <>Κωδικός <span className="font-mono">{program.referenceCode}</span> — </> : null}
-          ανασκόπησε τα στοιχεία που εξήγαγε η AI αποδελτίωση και διόρθωσε ό,τι χρειάζεται.
-        </p>
-      </div>
+      <PageHeader
+        breadcrumb={<><Link href="/programs" className="hover:text-foreground hover:underline">Προγράμματα</Link><span aria-hidden>›</span></>}
+        title={program.title}
+        subtitle={
+          <>
+            {program.referenceCode ? <>Κωδικός <span className="font-mono">{program.referenceCode}</span> — </> : null}
+            ανασκόπησε τα στοιχεία που εξήγαγε η AI αποδελτίωση και διόρθωσε ό,τι χρειάζεται.
+          </>
+        }
+      />
 
       <ProgramEditor program={data} />
 

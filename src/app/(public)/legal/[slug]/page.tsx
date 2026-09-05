@@ -31,7 +31,7 @@ export async function generateMetadata({
   const page = await loadPublishedLegalPage(slug)
   if (!page) return {}
   const { translation } = pickTranslation(page, undefined)
-  return { title: translation ? `${translation.title} — DAMASK` : 'DAMASK' }
+  return { title: translation ? `${translation.title} — World Wide Associates` : 'World Wide Associates' }
 }
 
 export default async function LegalPageRoute({

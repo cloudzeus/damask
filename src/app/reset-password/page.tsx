@@ -25,7 +25,7 @@ export default async function ResetPasswordPage({
         />
 
         <div className="auth-card glass stagger">
-          <span className="wordmark">DAMASK</span>
+          <span className="wordmark">World Wide Associates</span>
           <p className="sub">Νέος κωδικός</p>
 
           {result.ok ? (
