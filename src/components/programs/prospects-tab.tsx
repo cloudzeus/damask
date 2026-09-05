@@ -277,16 +277,22 @@ export function ProspectsTab({ programId }: { programId: string }) {
       id: 'kads',
       header: 'ΚΑΔ που ταιριάζει',
       width: 200,
-      cell: row =>
-        row.matchedKads.length === 0 ? (
-          <span className="text-muted-foreground">—</span>
-        ) : (
+      cell: row => {
+        if (row.matchedKads.length === 0) return <span className="text-muted-foreground">—</span>
+        const primary = new Set(row.matchedPrimaryKads)
+        // Κύριος ΚΑΔ που ταιριάζει → μπλε (info) με ★· δευτερεύων → πράσινο (ok).
+        return (
           <div className="flex flex-wrap gap-1">
-            {row.matchedKads.map(code => (
-              <span key={code} className="badge-pill ok tabular-nums">{code}</span>
-            ))}
+            {[...row.matchedKads].sort((a, b) => Number(primary.has(b)) - Number(primary.has(a))).map(code =>
+              primary.has(code) ? (
+                <span key={code} className="badge-pill info tabular-nums" title="Κύριος ΚΑΔ — επιλέξιμος">★ {code}</span>
+              ) : (
+                <span key={code} className="badge-pill ok tabular-nums">{code}</span>
+              ),
+            )}
           </div>
-        ),
+        )
+      },
     },
   ]
 
