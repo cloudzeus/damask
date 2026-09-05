@@ -357,11 +357,11 @@ export function PartnerFormDialog({
 
             <S1SearchableSelect
               id="partner-form-referrer"
-              label="Συστήστης (ποιος τον έφερε)"
+              label="Παραπομπή (ποιος τον έφερε)"
               options={formOptions.referrer}
               value={values.referrerId || null}
               onChange={v => set('referrerId', v ?? '')}
-              placeholder="Αναζήτηση συστήστη…"
+              placeholder="Αναζήτηση παραπομπής…"
             />
 
             <div className="sm:col-span-2">

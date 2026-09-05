@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, LoaderCircle, Building2, User } from 'lucide-react'
+import { Plus, Pencil, Trash2, LoaderCircle, Building2, User, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
-import { createReferrer, updateReferrer, deleteReferrer, type ReferrerRow, type ReferrerInput } from '@/lib/referrers/actions'
+import { createReferrer, updateReferrer, deleteReferrer, lookupReferrerAfm, type ReferrerRow, type ReferrerInput } from '@/lib/referrers/actions'
 
 type ReferrerTypeValue = 'COMPANY' | 'INDIVIDUAL'
 
@@ -34,11 +34,11 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
   }
 
   async function handleDelete(row: ReferrerRow) {
-    if (!window.confirm(`Διαγραφή του συστήστη «${row.name}»;\nΟι πελάτες που συνδέονται θα αποσυνδεθούν (δεν διαγράφονται).`)) return
+    if (!window.confirm(`Διαγραφή της παραπομπής «${row.name}»;\nΟι πελάτες που συνδέονται θα αποσυνδεθούν (δεν διαγράφονται).`)) return
     setDeletingId(row.id)
     try {
       await deleteReferrer(row.id)
-      toast.success('Ο συστήστης διαγράφηκε.')
+      toast.success('Η παραπομπή διαγράφηκε.')
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Η διαγραφή απέτυχε.')
@@ -117,12 +117,12 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
         columns={columns}
         rows={rows}
         rowKey={r => r.id}
-        emptyMessage="Δεν υπάρχουν συστήστες ακόμη."
-        footer={<span>{rows.length} {rows.length === 1 ? 'συστήστης' : 'συστήστες'}</span>}
+        emptyMessage="Δεν υπάρχουν παραπομπές ακόμη."
+        footer={<span>{rows.length} {rows.length === 1 ? 'παραπομπή' : 'παραπομπές'}</span>}
         toolbarExtras={
           canManage ? (
             <Button type="button" size="sm" onClick={openCreate}>
-              <Plus className="size-3.5" aria-hidden /> Νέος συστήστης
+              <Plus className="size-3.5" aria-hidden /> Νέα παραπομπή
             </Button>
           ) : undefined
         }
@@ -157,6 +157,29 @@ function ReferrerFormDialog({
   const [notes, setNotes] = React.useState(editing?.notes ?? '')
   const [active, setActive] = React.useState(editing?.active ?? true)
   const [saving, setSaving] = React.useState(false)
+  const [looking, setLooking] = React.useState(false)
+
+  async function handleAfmLookup() {
+    const clean = afm.replace(/\D/g, '')
+    if (clean.length !== 9) {
+      toast.error('Το ΑΦΜ πρέπει να έχει 9 ψηφία.')
+      return
+    }
+    setLooking(true)
+    try {
+      const res = await lookupReferrerAfm(clean)
+      if (!res.found || !res.name) {
+        toast.warning('Δεν βρέθηκαν στοιχεία για αυτό το ΑΦΜ στο μητρώο της ΑΑΔΕ.')
+        return
+      }
+      setName(res.name)
+      toast.success('Συμπληρώθηκε η επωνυμία από την ΑΑΔΕ.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Η αναζήτηση ΑΑΔΕ απέτυχε.')
+    } finally {
+      setLooking(false)
+    }
+  }
 
   async function handleSave() {
     if (!name.trim()) {
@@ -168,7 +191,7 @@ function ReferrerFormDialog({
     try {
       if (editing) await updateReferrer(editing.id, input)
       else await createReferrer(input)
-      toast.success(editing ? 'Ο συστήστης ενημερώθηκε.' : 'Ο συστήστης δημιουργήθηκε.')
+      toast.success(editing ? 'Η παραπομπή ενημερώθηκε.' : 'Η παραπομπή δημιουργήθηκε.')
       onSaved()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Η αποθήκευση απέτυχε.')
@@ -181,7 +204,7 @@ function ReferrerFormDialog({
     <Dialog open={open} onOpenChange={next => { if (!saving) onOpenChange(next) }}>
       <DialogContent className="glass sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>{editing ? 'Επεξεργασία συστήστη' : 'Νέος συστήστης'}</DialogTitle>
+          <DialogTitle>{editing ? 'Επεξεργασία παραπομπής' : 'Νέα παραπομπή'}</DialogTitle>
           <DialogDescription>Ποιος έφερε τον πελάτη — εταιρία/συνεργάτης ή ιδιώτης.</DialogDescription>
         </DialogHeader>
 
@@ -206,7 +229,15 @@ function ReferrerFormDialog({
 
           <div className="field">
             <label htmlFor="referrer-afm">ΑΦΜ</label>
-            <Input id="referrer-afm" className="w-full" value={afm} onChange={e => setAfm(e.target.value)} placeholder="Προαιρετικό" />
+            <div className="flex items-center gap-1.5">
+              <Input id="referrer-afm" className="w-full" value={afm} onChange={e => setAfm(e.target.value)} placeholder="Προαιρετικό" />
+              {type === 'COMPANY' && (
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={handleAfmLookup} disabled={looking}>
+                  {looking ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Search className="size-3.5" aria-hidden />}
+                  ΑΑΔΕ
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="field">

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { ReferrerType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
+import { aadeLookup } from '@/lib/trdr/aade'
 
 /**
  * Server actions για τους «Συστήστες» (Referrers) — ποιος έφερε έναν πελάτη.
@@ -114,6 +115,16 @@ export async function updateReferrer(id: string, input: ReferrerInput): Promise<
     },
   })
   revalidatePath('/referrers')
+}
+
+/** Αναζήτηση ΑΑΔΕ με ΑΦΜ (για παραπομπές τύπου εταιρίας) — επιστρέφει επωνυμία. */
+export async function lookupReferrerAfm(afm: string): Promise<{ found: boolean; name: string | null }> {
+  await requirePermission('referrer.manage')
+  const clean = (afm ?? '').replace(/\D/g, '')
+  if (clean.length !== 9) throw new Error('Το ΑΦΜ πρέπει να έχει 9 ψηφία.')
+  const res = await aadeLookup(clean)
+  if (!res) return { found: false, name: null }
+  return { found: true, name: res.mapped.NAME || null }
 }
 
 export async function deleteReferrer(id: string): Promise<void> {

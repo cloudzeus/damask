@@ -45,9 +45,9 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
       { key: 'customer.view', description: 'Προβολή πελατών' },
       { key: 'customer.edit', description: 'Επεξεργασία πελατών/επαφών' },
     ] },
-    { key: 'referrers', href: '/referrers', label: 'Συστήστες', icon: UserPlus, menuPermission: 'referrer.view', core: true, permissions: [
-      { key: 'referrer.view', description: 'Προβολή συστηστών (ποιος έφερε πελάτη)' },
-      { key: 'referrer.manage', description: 'Διαχείριση συστηστών' },
+    { key: 'referrers', href: '/referrers', label: 'Παραπομπές', icon: UserPlus, menuPermission: 'referrer.view', core: true, permissions: [
+      { key: 'referrer.view', description: 'Προβολή παραπομπών (ποιος έφερε πελάτη)' },
+      { key: 'referrer.manage', description: 'Διαχείριση παραπομπών' },
     ] },
   ] },
   { key: 'orders', label: 'Παραγγελίες & Πωλήσεις', items: [
