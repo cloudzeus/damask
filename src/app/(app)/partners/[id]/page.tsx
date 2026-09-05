@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { getMapsClientConfig } from '../actions'
 import { getPartnerFormOptions } from '@/lib/s1-options'
 import { PartnerHeader } from './partner-header'
+import { PartnerDetailTabs } from './partner-detail-tabs'
 import { PartnerInfoCard } from './partner-info-card'
 import { PartnerMapCard } from './partner-map-card'
 import { ContactsPanel, type ContactRow } from './contacts-panel'
@@ -133,39 +134,59 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
         formOptions={formOptions}
       />
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <PartnerInfoCard
-          trdrId={trdr.id}
-          afm={trdr.AFM}
-          irsdataName={irsdata?.NAME ?? trdr.IRSDATA}
-          legalForm={trdr.appLegalForm}
-          jobtypetrd={trdr.JOBTYPETRD}
-          address={trdr.ADDRESS}
-          city={trdr.CITY}
-          zip={trdr.ZIP}
-          countryName={country?.NAME ?? null}
-          trdCategoryName={trdCategory?.NAME ?? null}
-          paymentName={payment?.NAME ?? null}
-          shipmentName={shipment?.NAME ?? null}
-          phone={trdr.PHONE01}
-          phone2={trdr.PHONE02}
-          emailAcc={trdr.EMAILACC}
-          employees={trdr.appEmployees}
-          annualRevenue={trdr.appAnnualRevenue != null ? Number(trdr.appAnnualRevenue) : null}
-          email={trdr.EMAIL}
-          website={trdr.WEBPAGE}
-        />
-        <PartnerMapCard
-          id={trdr.id}
-          lat={trdr.appLat}
-          lng={trdr.appLng}
-          maptilerApiKey={mapsConfig.maptilerApiKey}
-          editable={canEdit}
-        />
-      </div>
-
       <div className="mt-3">
-        <ContactsPanel trdrId={trdr.id} contacts={contactRows} />
+        <PartnerDetailTabs
+          info={
+            <PartnerInfoCard
+              trdrId={trdr.id}
+              afm={trdr.AFM}
+              irsdataName={irsdata?.NAME ?? trdr.IRSDATA}
+              legalForm={trdr.appLegalForm}
+              jobtypetrd={trdr.JOBTYPETRD}
+              address={trdr.ADDRESS}
+              city={trdr.CITY}
+              zip={trdr.ZIP}
+              countryName={country?.NAME ?? null}
+              trdCategoryName={trdCategory?.NAME ?? null}
+              paymentName={payment?.NAME ?? null}
+              shipmentName={shipment?.NAME ?? null}
+              phone={trdr.PHONE01}
+              phone2={trdr.PHONE02}
+              emailAcc={trdr.EMAILACC}
+              employees={trdr.appEmployees}
+              annualRevenue={trdr.appAnnualRevenue != null ? Number(trdr.appAnnualRevenue) : null}
+              email={trdr.EMAIL}
+              website={trdr.WEBPAGE}
+            />
+          }
+          gemi={
+            <GemiAadeCard
+              trdrId={trdr.id}
+              name={trdr.NAME}
+              afm={trdr.AFM}
+              arGemi={trdr.arGemi}
+              gemiOffice={trdr.gemiOffice}
+              gemiStatus={trdr.gemiStatus}
+              foundingDate={dateLabel(trdr.foundingDate)}
+              aadeStatus={trdr.aadeStatus}
+              aadeFirmKind={trdr.aadeFirmKind}
+              gemiSyncedAt={dateTimeLabel(trdr.gemiSyncedAt)}
+              aadeSyncedAt={dateTimeLabel(trdr.aadeSyncedAt)}
+            />
+          }
+          kad={<TrdrKadCard kads={kadRows} trdrId={trdr.id} afm={trdr.AFM} canEdit={canEdit} />}
+          docs={<TrdrDocumentsCard trdrId={trdr.id} arGemi={trdr.arGemi} documents={documentRows} />}
+          map={
+            <PartnerMapCard
+              id={trdr.id}
+              lat={trdr.appLat}
+              lng={trdr.appLng}
+              maptilerApiKey={mapsConfig.maptilerApiKey}
+              editable={canEdit}
+            />
+          }
+          contacts={<ContactsPanel trdrId={trdr.id} contacts={contactRows} />}
+        />
       </div>
 
       <div className="mt-3">
@@ -174,27 +195,6 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
 
       <div className="mt-3">
         <TrdrApplicationsTab trdrId={trdr.id} />
-      </div>
-
-      <div className="mt-3">
-        <GemiAadeCard
-          trdrId={trdr.id}
-          name={trdr.NAME}
-          afm={trdr.AFM}
-          arGemi={trdr.arGemi}
-          gemiOffice={trdr.gemiOffice}
-          gemiStatus={trdr.gemiStatus}
-          foundingDate={dateLabel(trdr.foundingDate)}
-          aadeStatus={trdr.aadeStatus}
-          aadeFirmKind={trdr.aadeFirmKind}
-          gemiSyncedAt={dateTimeLabel(trdr.gemiSyncedAt)}
-          aadeSyncedAt={dateTimeLabel(trdr.aadeSyncedAt)}
-        />
-      </div>
-
-      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <TrdrKadCard kads={kadRows} trdrId={trdr.id} afm={trdr.AFM} canEdit={canEdit} />
-        <TrdrDocumentsCard trdrId={trdr.id} arGemi={trdr.arGemi} documents={documentRows} />
       </div>
     </div>
   )
