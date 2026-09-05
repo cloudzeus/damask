@@ -20,6 +20,23 @@ import { createPartner, updatePartner, lookupPartnerAfm, geocodeAddressAction, t
 import { GooglePlacesInput, type PlaceResolved } from './google-places-input'
 import type { MapsClientConfig } from './actions'
 import type { S1Option } from '@/lib/s1-options'
+import { cn } from '@/lib/utils'
+
+type FormTabKey = 'basic' | 'address' | 'contact' | 'commercial'
+const FORM_TABS: { key: FormTabKey; label: string }[] = [
+  { key: 'basic', label: 'Βασικά' },
+  { key: 'address', label: 'Διεύθυνση & Χάρτης' },
+  { key: 'contact', label: 'Επικοινωνία' },
+  { key: 'commercial', label: 'Εμπορικά & Λοιπά' },
+]
+/** Σε ποιο tab ανήκει κάθε πεδίο με πιθανό σφάλμα — για auto-switch στο submit. */
+const FIELD_TAB: Record<string, FormTabKey> = {
+  NAME: 'basic', AFM: 'basic',
+  ADDRESS: 'address',
+  EMAIL: 'contact', EMAILACC: 'contact',
+  appEmployees: 'commercial', appAnnualRevenue: 'commercial',
+}
+const GRID_STYLE: React.CSSProperties = { gridTemplateColumns: '1fr 1fr', gap: '0 12px' }
 
 const SODTYPE_OPTIONS = [
   { value: '13', label: 'Πελάτης' },
@@ -139,6 +156,13 @@ export function PartnerFormDialog({
   const [coordsHint, setCoordsHint] = useState<string | null>(
     partner?.lat != null && partner?.lng != null ? `${partner.lat.toFixed(5)}, ${partner.lng.toFixed(5)}` : null,
   )
+  const [tab, setTab] = useState<FormTabKey>('basic')
+
+  /** Μετά από αποτυχία validation, πήγαινε στο tab του πρώτου πεδίου με σφάλμα. */
+  function focusErrorTab(errs: Record<string, string>) {
+    const firstKey = Object.keys(errs).find(k => FIELD_TAB[k])
+    if (firstKey) setTab(FIELD_TAB[firstKey])
+  }
 
   function set<K extends keyof PartnerFormValues>(key: K, value: PartnerFormValues[K]) {
     setValues(v => ({ ...v, [key]: value }))
@@ -222,6 +246,7 @@ export function PartnerFormDialog({
         } else {
           toast.error(res.message)
           setFieldErrors(res.fieldErrors ?? {})
+          focusErrorTab(res.fieldErrors ?? {})
         }
         return
       }
@@ -232,6 +257,7 @@ export function PartnerFormDialog({
       } else {
         toast.error(res.message)
         setFieldErrors(res.fieldErrors ?? {})
+        focusErrorTab(res.fieldErrors ?? {})
       }
     })
   }
@@ -247,7 +273,17 @@ export function PartnerFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
+          <div role="tablist" className="mb-3 flex flex-wrap gap-1 rounded-full bg-muted/60 p-1">
+            {FORM_TABS.map(t => (
+              <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
+                className={cn('rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
+                  tab === t.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: tab === 'basic' ? 'grid' : 'none', ...GRID_STYLE }}>
             <div className="field">
               <label htmlFor="partner-form-sodtype">Τύπος*</label>
               <Select value={String(values.SODTYPE) as '12' | '13'} onValueChange={v => handleSodtypeChange(v as '12' | '13')}>
@@ -311,20 +347,6 @@ export function PartnerFormDialog({
               onChange={v => set('IRSDATA', v ?? '')}
             />
 
-            <CountrySelect
-              id="partner-form-country"
-              options={formOptions.country}
-              value={values.COUNTRY || null}
-              onChange={v => set('COUNTRY', v ?? '')}
-            />
-
-            <TrdCategorySelect
-              id="partner-form-trdcategory"
-              options={formOptions.trdCategory}
-              value={values.TRDCATEGORY || null}
-              onChange={v => set('TRDCATEGORY', v ?? '')}
-            />
-
             <div className="field">
               <label htmlFor="partner-form-legalform">Νομική μορφή</label>
               <div className="inwrap">
@@ -341,18 +363,11 @@ export function PartnerFormDialog({
               </div>
             </div>
 
-            <PaymentSelect
-              id="partner-form-payment"
-              options={formOptions.payment}
-              value={values.PAYMENT || null}
-              onChange={v => set('PAYMENT', v ?? '')}
-            />
-
-            <ShipmentSelect
-              id="partner-form-shipment"
-              options={formOptions.shipment}
-              value={values.SHIPMENT || null}
-              onChange={v => set('SHIPMENT', v ?? '')}
+            <TrdCategorySelect
+              id="partner-form-trdcategory"
+              options={formOptions.trdCategory}
+              value={values.TRDCATEGORY || null}
+              onChange={v => set('TRDCATEGORY', v ?? '')}
             />
 
             <S1SearchableSelect
@@ -363,7 +378,9 @@ export function PartnerFormDialog({
               onChange={v => set('referrerId', v ?? '')}
               placeholder="Αναζήτηση παραπομπής…"
             />
+          </div>
 
+          <div style={{ display: tab === 'address' ? 'grid' : 'none', ...GRID_STYLE }}>
             <div className="sm:col-span-2">
               <GooglePlacesInput
                 id="partner-form-address"
@@ -392,6 +409,13 @@ export function PartnerFormDialog({
               </div>
             </div>
 
+            <CountrySelect
+              id="partner-form-country"
+              options={formOptions.country}
+              value={values.COUNTRY || null}
+              onChange={v => set('COUNTRY', v ?? '')}
+            />
+
             <div className="sm:col-span-2 flex items-center gap-2.5">
               <Button type="button" variant="outline" onClick={handleGeocode} disabled={geocoding}>
                 {geocoding ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Compass className="size-3.5" aria-hidden />}
@@ -401,7 +425,9 @@ export function PartnerFormDialog({
                 {coordsHint ? `Συντεταγμένες: ${coordsHint}` : 'Χωρίς συντεταγμένες ακόμα — επίλεξε πρόταση Google Places ή πάτησε «Γεωκωδικοποίηση».'}
               </span>
             </div>
+          </div>
 
+          <div style={{ display: tab === 'contact' ? 'grid' : 'none', ...GRID_STYLE }}>
             <div className="field">
               <label htmlFor="partner-form-phone">Τηλέφωνο</label>
               <div className="inwrap">
@@ -436,6 +462,32 @@ export function PartnerFormDialog({
               {fieldErrors.EMAILACC && <div className="error">{fieldErrors.EMAILACC}</div>}
             </div>
 
+            <div className="sm:col-span-2">
+              <div className="field">
+                <label htmlFor="partner-form-website">Website</label>
+                <div className="inwrap">
+                  <Globe aria-hidden />
+                  <input id="partner-form-website" value={values.WEBPAGE} onChange={e => set('WEBPAGE', e.target.value)} placeholder="https://…" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: tab === 'commercial' ? 'grid' : 'none', ...GRID_STYLE }}>
+            <PaymentSelect
+              id="partner-form-payment"
+              options={formOptions.payment}
+              value={values.PAYMENT || null}
+              onChange={v => set('PAYMENT', v ?? '')}
+            />
+
+            <ShipmentSelect
+              id="partner-form-shipment"
+              options={formOptions.shipment}
+              value={values.SHIPMENT || null}
+              onChange={v => set('SHIPMENT', v ?? '')}
+            />
+
             <div className="field">
               <label htmlFor="partner-form-employees">Αριθμός εργαζομένων</label>
               <div className="inwrap">
@@ -452,16 +504,6 @@ export function PartnerFormDialog({
                 <input id="partner-form-revenue" inputMode="decimal" value={values.appAnnualRevenue} onChange={e => set('appAnnualRevenue', e.target.value)} />
               </div>
               {fieldErrors.appAnnualRevenue && <div className="error">{fieldErrors.appAnnualRevenue}</div>}
-            </div>
-
-            <div className="sm:col-span-2">
-              <div className="field">
-                <label htmlFor="partner-form-website">Website</label>
-                <div className="inwrap">
-                  <Globe aria-hidden />
-                  <input id="partner-form-website" value={values.WEBPAGE} onChange={e => set('WEBPAGE', e.target.value)} placeholder="https://…" />
-                </div>
-              </div>
             </div>
 
             <div className="sm:col-span-2">
