@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
-  LuSearch, LuSend, LuLoaderCircle, LuExternalLink, LuFolderKanban, LuFlaskConical,
+  LuSearch, LuSend, LuLoaderCircle, LuExternalLink, LuFolderKanban, LuFlaskConical, LuSave,
 } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   findProspects, sendProgramNewsletter, sendProgramNewsletterTest, listProgramLeads, createOpportunityApplication,
+  saveProgramLeads,
   type ProspectRow, type ProgramLeadRow,
 } from '@/lib/prospects/actions'
 import type { SelectedCriteria, EligibilityCriterionKey } from '@/lib/prospects/eligibility'
@@ -41,6 +42,7 @@ const CRITERIA_LABELS: Record<EligibilityCriterionKey, string> = {
 
 const LEAD_STATUS_META: Record<string, { label: string; badgeClass: string; style?: React.CSSProperties }> = {
   PENDING: { label: 'Εκκρεμεί', badgeClass: 'badge-pill muted' },
+  SAVED: { label: 'Αποθηκευμένος', badgeClass: 'badge-pill muted' },
   SENT: { label: 'Εστάλη', badgeClass: 'badge-pill info' },
   CLICKED: { label: 'Ευκαιρία', badgeClass: 'badge-pill ok' },
   FAILED: {
@@ -143,6 +145,24 @@ export function ProspectsTab({ programId }: { programId: string }) {
       toast.error('Η αποστολή του δοκιμαστικού απέτυχε.')
     } finally {
       setSendingTest(false)
+    }
+  }
+
+  // ── Αποθήκευση λίστας χωρίς email ────────────────────────────────────
+  const [savingList, setSavingList] = React.useState(false)
+
+  async function handleSaveList() {
+    const ids = displayedRows.map(r => r.trdrId)
+    if (ids.length === 0) return
+    setSavingList(true)
+    try {
+      const res = await saveProgramLeads(programId, ids)
+      toast.success(`Αποθηκεύτηκαν ${res.saved} δυνητικοί (χωρίς email).`)
+      loadLeads()
+    } catch {
+      toast.error('Η αποθήκευση της λίστας απέτυχε.')
+    } finally {
+      setSavingList(false)
     }
   }
 
@@ -327,7 +347,11 @@ export function ProspectsTab({ programId }: { programId: string }) {
               }
             />
 
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" onClick={handleSaveList} disabled={savingList || displayedRows.length === 0}>
+                {savingList ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuSave className="size-3.5" aria-hidden />}
+                Αποθήκευση λίστας ({displayedRows.length})
+              </Button>
               <Button type="button" onClick={() => setConfirmOpen(true)} disabled={selected.size === 0}>
                 <LuSend className="size-3.5" aria-hidden /> Αποστολή ενημέρωσης ({selected.size})
               </Button>
@@ -394,7 +418,7 @@ export function ProspectsTab({ programId }: { programId: string }) {
                   return (
                     <tr key={lead.id} className="dotted-row-bottom">
                       <td className="font-semibold">{lead.name}</td>
-                      <td className="text-muted-foreground">{lead.email}</td>
+                      <td className="text-muted-foreground">{lead.email ?? '—'}</td>
                       <td><span className={meta.badgeClass} style={meta.style}>{meta.label}</span></td>
                       <td className="text-muted-foreground">{formatDateTime(lead.sentAt)}</td>
                       <td className="text-muted-foreground">{formatDateTime(lead.clickedAt)}</td>

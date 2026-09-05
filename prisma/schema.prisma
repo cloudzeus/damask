@@ -1293,6 +1293,17 @@ enum ApplicationStage {
   MONITORING
 }
 
+/// Κύκλος ζωής συμμετοχής πελάτη σε πρόγραμμα (customer-facing) — ΞΕΧΩΡΙΣΤΟΣ από
+/// το ApplicationStage (back-office PM workflow). Οδηγεί το χρώμα της κάρτας στην
+/// καρτέλα πελάτη: Δυνητικός → Υποβαλλόμενος → Υλοποίηση → Τροποποιήσεις → Αποπληρωμή.
+enum ApplicationLifecycle {
+  POTENTIAL
+  SUBMITTING
+  IMPLEMENTATION
+  MODIFICATIONS
+  PAYMENT
+}
+
 enum ObligationKind {
   DELIVERABLE
   FORM
@@ -1346,6 +1357,7 @@ enum ProgramLeadStatus {
   SENT
   FAILED
   CLICKED
+  SAVED // αποθηκευμένος δυνητικός χωρίς αποστολή email
 }
 
 // Δυνητικός πελάτης (bulk eligibility match) ανά Program×Trdr — βλ.
@@ -1357,8 +1369,8 @@ model ProgramLead {
   program     Program           @relation(fields: [programId], references: [id], onDelete: Cascade)
   trdrId      String
   trdr        Trdr              @relation(fields: [trdrId], references: [id], onDelete: Cascade)
-  email       String
-  tokenHash   String            @unique
+  email       String? // nullable: αποθηκευμένοι δυνητικοί (SAVED) μπορεί να μην έχουν email
+  tokenHash   String?           @unique // nullable: μόνο τα SENT leads έχουν magic-link token
   status      ProgramLeadStatus @default(PENDING)
   sentAt      DateTime?
   clickedAt   DateTime?
@@ -1377,6 +1389,8 @@ model ProgramApplication {
   programId   String
   program     Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
   status      String           @default("ACTIVE")
+  lifecycle   ApplicationLifecycle @default(POTENTIAL) // customer-facing κύκλος ζωής (χρώμα κάρτας)
+  eligibilitySnapshot Json? // αποθηκευμένο αποτέλεσμα αξιολόγησης (matched/failed/matchedKads/eligible) τη στιγμή της σύνδεσης
   notes       String?
   createdById String?
   createdAt   DateTime         @default(now())
