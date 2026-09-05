@@ -65,6 +65,14 @@ describe('evalKadRule', () => {
       const r = evalKadRule('ONLY_LISTED', kads, ['10.11'])
       expect(r.pass).toBe(false)
     })
+    it('returns the trdr codes that matched (matchedCodes) for display', () => {
+      const r = evalKadRule('ONLY_LISTED', kads, ['62.01.11', '10.11', '62.01.30'])
+      expect(r.matchedCodes.sort()).toEqual(['62.01.11', '62.01.30'])
+    })
+    it('matchedCodes is empty when nothing matches', () => {
+      const r = evalKadRule('ONLY_LISTED', kads, ['10.11'])
+      expect(r.matchedCodes).toEqual([])
+    })
   })
 
   describe('MIXED', () => {
@@ -204,6 +212,16 @@ describe('evaluateTrdrEligibility', () => {
     expect(r.matched.sort()).toEqual(['kad', 'legalForm', 'region'])
     expect(r.failed).toEqual([])
     expect(r.eligible).toBe(true)
+    expect(r.matchedKads).toEqual(['62.01.11'])
+  })
+
+  it('matchedKads is empty when the kad criterion is not selected', () => {
+    const r = evaluateTrdrEligibility(
+      { trdrCodes: ['62.01.11'], legalForm: 'Ι.Κ.Ε.', regionName: 'Περιφέρεια Αττικής' },
+      fullyEligibleProgram,
+      { kad: false, region: true, legalForm: true },
+    )
+    expect(r.matchedKads).toEqual([])
   })
 
   it('fails when any one selected criterion fails, listing exactly the failing ones', () => {

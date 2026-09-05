@@ -53,6 +53,8 @@ export type ProspectRow = {
   eligible: boolean
   matched: EligibilityCriterionKey[]
   failed: EligibilityCriterionKey[]
+  /** Οι ΚΑΔ του πελάτη που ταίριαξαν με το πρόγραμμα (εμφανίζονται ανά γραμμή). */
+  matchedKads: string[]
 }
 
 /**
@@ -122,6 +124,7 @@ export async function findProspects(programId: string, selected: SelectedCriteri
       eligible: result.eligible,
       matched: result.matched,
       failed: result.failed,
+      matchedKads: result.matchedKads,
     }
   })
 }
