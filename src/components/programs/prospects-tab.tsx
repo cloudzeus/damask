@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
@@ -291,13 +292,18 @@ export function ProspectsTab({ programId }: { programId: string }) {
         return (
           <div className="flex flex-wrap gap-1">
             {sorted.map(k => (
-              <span
-                key={k.code}
-                className={cn('badge-pill tabular-nums', k.primary ? 'primary-kad' : 'ok')}
-                title={k.description ? `${k.code} — ${k.description}${k.primary ? ' (Κύριος)' : ''}` : k.code}
-              >
-                {k.primary ? `★ ${k.code}` : k.code}
-              </span>
+              <Tooltip key={k.code}>
+                <TooltipTrigger
+                  render={
+                    <span className={cn('badge-pill tabular-nums cursor-default', k.primary ? 'primary-kad' : 'ok')}>
+                      {k.primary ? `★ ${k.code}` : k.code}
+                    </span>
+                  }
+                />
+                <TooltipContent>
+                  {k.code}{k.description ? ` — ${k.description}` : ''}{k.primary ? ' (Κύριος)' : ''}
+                </TooltipContent>
+              </Tooltip>
             ))}
           </div>
         )
