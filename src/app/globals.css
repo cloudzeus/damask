@@ -258,6 +258,15 @@
   .glass { background: var(--glass-strong); }
 }
 
+/* Modals: opaque surface + ελαφρύ blur ώστε οι φόρμες να είναι ευανάγνωστες
+   (ui-ux-pro-max: surface readability / modal legibility). Υπερισχύει του .glass. */
+[data-slot="dialog-content"],
+[data-slot="dialog-content"].glass {
+  background: var(--card);
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+}
+
 .lift {
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }

@@ -4,15 +4,14 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Plus, LoaderCircle, Landmark, ExternalLink, Trash2, CircleCheck, CircleX } from 'lucide-react'
+import { Plus, LoaderCircle, Landmark, ExternalLink, Trash2, CircleCheck, CircleX, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { S1SearchableSelect } from '@/components/s1/s1-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import {
-  listTrdrProgramCards, listActivePrograms, evaluateTrdrForProgram, associateTrdrProgram,
+  listTrdrProgramCards, listActivePrograms, associateTrdrPrograms,
   setApplicationLifecycle, removeTrdrProgram, type TrdrProgramCard,
 } from '@/lib/pm/program-link'
 import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
@@ -238,8 +237,8 @@ function AddProgramDialog({
   onSaved: () => void
 }) {
   const [options, setOptions] = React.useState<{ value: string; label: string }[]>([])
-  const [programId, setProgramId] = React.useState<string | null>(null)
-  const [evalState, setEvalState] = React.useState<{ status: 'idle' | 'loading' | 'done'; result?: SinglePairEligibility }>({ status: 'idle' })
+  const [query, setQuery] = React.useState('')
+  const [selected, setSelected] = React.useState<Set<string>>(new Set())
   const [saving, setSaving] = React.useState(false)
 
   React.useEffect(() => {
@@ -248,27 +247,36 @@ function AddProgramDialog({
     return () => { cancelled = true }
   }, [])
 
-  React.useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      if (!programId) { setEvalState({ status: 'idle' }); return }
-      setEvalState({ status: 'loading' })
-      try {
-        const result = await evaluateTrdrForProgram(trdrId, programId)
-        if (!cancelled) setEvalState({ status: 'done', result })
-      } catch {
-        if (!cancelled) setEvalState({ status: 'idle' })
-      }
-    })()
-    return () => { cancelled = true }
-  }, [programId, trdrId])
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return q ? options.filter(o => o.label.toLowerCase().includes(q)) : options
+  }, [options, query])
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(o => selected.has(o.value))
+
+  function toggle(value: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(value)) next.delete(value)
+      else next.add(value)
+      return next
+    })
+  }
+  function toggleAll() {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (allFilteredSelected) filtered.forEach(o => next.delete(o.value))
+      else filtered.forEach(o => next.add(o.value))
+      return next
+    })
+  }
 
   async function handleSave() {
-    if (!programId) return
+    if (selected.size === 0) return
     setSaving(true)
     try {
-      await associateTrdrProgram(trdrId, programId)
-      toast.success('Η σύνδεση αποθηκεύτηκε (Δυνητικός).')
+      const res = await associateTrdrPrograms(trdrId, [...selected])
+      toast.success(`Συνδέθηκαν ${res.linked} ${res.linked === 1 ? 'πρόγραμμα' : 'προγράμματα'} (Δυνητικός).`)
       onSaved()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Η σύνδεση απέτυχε.')
@@ -278,41 +286,50 @@ function AddProgramDialog({
 
   return (
     <Dialog open={open} onOpenChange={next => { if (!saving) onOpenChange(next) }}>
-      <DialogContent className="glass max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-[520px]">
+      <DialogContent className="flex max-h-[85vh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-[720px]">
         <DialogHeader>
-          <DialogTitle>Σύνδεση με ενεργό πρόγραμμα</DialogTitle>
-          <DialogDescription>Επίλεξε πρόγραμμα για να δεις αν ο πελάτης μπορεί να ενταχθεί, μετά αποθήκευσε.</DialogDescription>
+          <DialogTitle>Σύνδεση με ενεργά προγράμματα</DialogTitle>
+          <DialogDescription>Επίλεξε ένα ή περισσότερα ενεργά προγράμματα. Αποθηκεύονται ως «Δυνητικός» με αυτόματη αξιολόγηση ένταξης.</DialogDescription>
         </DialogHeader>
 
-        <S1SearchableSelect
-          id="add-program-select"
-          label="Ενεργό πρόγραμμα"
-          options={options}
-          value={programId}
-          onChange={setProgramId}
-          placeholder="Αναζήτηση προγράμματος…"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex min-w-[200px] flex-1 items-center gap-2 rounded-full border border-border bg-card px-3 py-2">
+            <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <input
+              type="text" value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Αναζήτηση προγράμματος…" className="w-full bg-transparent text-[13px] outline-none"
+              aria-label="Αναζήτηση προγράμματος"
+            />
+          </label>
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[12.5px] font-semibold whitespace-nowrap">
+            <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} disabled={filtered.length === 0} className="size-4" />
+            Επιλογή όλων
+          </label>
+          <span className="text-[12px] text-muted-foreground">{selected.size} επιλεγμένα</span>
+        </div>
 
-        {evalState.status === 'loading' && (
-          <div className="flex items-center justify-center gap-2 py-4 text-[12.5px] text-muted-foreground">
-            <LoaderCircle className="size-4 animate-spin" aria-hidden /> Έλεγχος ένταξης…
-          </div>
-        )}
-        {evalState.status === 'done' && evalState.result && (
-          <div className="flex flex-col gap-2">
-            <div className={evalState.result.eligible ? 'notice success' : 'notice'}>
-              {evalState.result.eligible ? <CircleCheck aria-hidden /> : <CircleX aria-hidden />}
-              <span>{evalState.result.eligible ? 'Ο πελάτης πληροί τα κριτήρια.' : 'Ο πελάτης δεν πληροί όλα τα κριτήρια — μπορείς πάντως να τον συνδέσεις ως δυνητικό.'}</span>
-            </div>
-            <CriteriaBadges snapshot={evalState.result} />
-          </div>
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν ενεργά προγράμματα.</p>
+          ) : (
+            <ul className="flex flex-col">
+              {filtered.map(o => (
+                <li key={o.value} className="dotted-row-bottom">
+                  <label className="flex min-h-[44px] cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted">
+                    <input type="checkbox" checked={selected.has(o.value)} onChange={() => toggle(o.value)} className="size-4 shrink-0" />
+                    <span className="text-[13px]">{o.label}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <DialogFooter>
           <DialogClose render={<Button type="button" variant="outline" disabled={saving}>Άκυρο</Button>} />
-          <Button type="button" onClick={handleSave} disabled={!programId || saving}>
+          <Button type="button" onClick={handleSave} disabled={selected.size === 0 || saving}>
             {saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}
-            Αποθήκευση σύνδεσης
+            Αποθήκευση σύνδεσης ({selected.size})
           </Button>
         </DialogFooter>
       </DialogContent>

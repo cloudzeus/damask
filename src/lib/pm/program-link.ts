@@ -93,6 +93,34 @@ export async function associateTrdrProgram(trdrId: string, programId: string): P
   return { id: app.id }
 }
 
+/** Μαζική σύνδεση πελάτη με ΠΟΛΛΑ προγράμματα ταυτόχρονα (multiselect modal). */
+export async function associateTrdrPrograms(trdrId: string, programIds: string[]): Promise<{ linked: number }> {
+  const session = await requirePermission('programs.manage')
+  let linked = 0
+  for (const programId of programIds) {
+    try {
+      const snapshot = await computeSinglePair(trdrId, programId)
+      await prisma.programApplication.upsert({
+        where: { trdrId_programId: { trdrId, programId } },
+        create: {
+          trdrId,
+          programId,
+          lifecycle: 'POTENTIAL',
+          eligibilitySnapshot: snapshot as unknown as Prisma.InputJsonValue,
+          createdById: session.user.id,
+        },
+        update: { eligibilitySnapshot: snapshot as unknown as Prisma.InputJsonValue },
+      })
+      await logActivity('application.associate', { entityType: 'application', entityId: `${trdrId}:${programId}`, userId: session.user.id, meta: { programId, eligible: snapshot.eligible } })
+      linked++
+    } catch (err) {
+      console.error(`associateTrdrPrograms: αποτυχία για program ${programId}`, err)
+    }
+  }
+  revalidatePath(`/partners/${trdrId}`)
+  return { linked }
+}
+
 /** Αλλάζει τον κύκλο ζωής μιας συμμετοχής (χρώμα κάρτας). */
 export async function setApplicationLifecycle(applicationId: string, lifecycle: ApplicationLifecycle): Promise<void> {
   await requirePermission('programs.manage')
