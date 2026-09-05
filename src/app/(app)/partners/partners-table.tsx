@@ -6,6 +6,7 @@ import { Search } from 'lucide-react'
 import { PartnerRowActions } from './partner-row-actions'
 import { BulkRegionMatchButton } from '@/components/trdr/bulk-region-match-button'
 import { BulkKadMatchButton } from '@/components/trdr/bulk-kad-match-button'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 
 export type PartnerRow = {
   id: string
@@ -63,106 +64,105 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
     )
   }, [byTab, query])
 
+  const columns: DataTableColumn<PartnerRow>[] = [
+    {
+      id: 'name',
+      header: 'Συναλλασσόμενος',
+      width: 260,
+      enableHide: false,
+      sortValue: p => p.name,
+      cell: p => (
+        <Link href={`/partners/${p.id}`} className="user-cell">
+          <LogoAvatar name={p.name} logoUrl={p.logoUrl} />
+          <span>
+            <b>{p.name}</b>
+            <small>{p.afm ? `ΑΦΜ ${p.afm}` : 'Χωρίς ΑΦΜ'}</small>
+          </span>
+        </Link>
+      ),
+    },
+    { id: 'city', header: 'Πόλη', width: 130, sortValue: p => p.city, cell: p => p.city ?? '—' },
+    {
+      id: 'region',
+      header: 'Περιφέρεια',
+      width: 160,
+      sortValue: p => p.regionName,
+      cell: p => (p.regionName ? <span className="badge-pill muted">{p.regionName}</span> : <span className="text-muted-foreground">—</span>),
+    },
+    { id: 'phone', header: 'Τηλέφωνο', width: 130, sortValue: p => p.phone, cell: p => p.phone ?? '—' },
+    { id: 'contacts', header: 'Επαφές', align: 'right', width: 90, sortValue: p => p.contactsCount, cell: p => p.contactsCount },
+    {
+      id: 'status',
+      header: 'Κατάσταση',
+      width: 130,
+      sortValue: p => (p.sodtype === 12 ? 0 : p.isProsp ? 1 : 2),
+      cell: p =>
+        p.sodtype === 12 ? (
+          <span className="badge-pill muted">—</span>
+        ) : p.isProsp ? (
+          <span className="badge-pill warn">
+            <span className="status-dot" style={{ background: 'var(--warning)' }} aria-hidden />
+            Υποψήφιος
+          </span>
+        ) : (
+          <span className="badge-pill ok">
+            <span className="status-dot" style={{ background: 'var(--success)' }} aria-hidden />
+            Πελάτης
+          </span>
+        ),
+    },
+    {
+      id: 'sync',
+      header: 'Sync',
+      width: 110,
+      sortValue: p => (p.trdr !== null ? 1 : 0),
+      cell: p => (p.trdr !== null ? <span className="badge-pill info">S1 ✓</span> : <span className="badge-pill muted">Τοπικός</span>),
+    },
+    {
+      id: 'actions',
+      header: '⋯',
+      headerLabel: 'Ενέργειες',
+      align: 'center',
+      width: 48,
+      enableHide: false,
+      enableResize: false,
+      cell: p => <PartnerRowActions id={p.id} name={p.name} afm={p.afm} isProsp={p.isProsp} isLocal={p.trdr === null} />,
+    },
+  ]
+
   return (
-    <div className="glass table-card stagger">
-      <div className="table-toolbar">
-        <label className="search">
-          <Search className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
-          <input
-            type="text"
-            placeholder="Αναζήτηση με επωνυμία, ΑΦΜ ή πόλη…"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            aria-label="Αναζήτηση συναλλασσόμενων"
-          />
-        </label>
-        <button type="button" className={`pill${tab === 'customers' ? ' on' : ''}`} onClick={() => setTab('customers')}>
-          Πελάτες <span className="cnt">{counts.customers}</span>
-        </button>
-        <button type="button" className={`pill${tab === 'suppliers' ? ' on' : ''}`} onClick={() => setTab('suppliers')}>
-          Προμηθευτές <span className="cnt">{counts.suppliers}</span>
-        </button>
-        <button type="button" className={`pill${tab === 'leads' ? ' on' : ''}`} onClick={() => setTab('leads')}>
-          Leads <span className="cnt">{counts.leads}</span>
-        </button>
-        <div className="flex-1" />
-        <BulkKadMatchButton />
-        <BulkRegionMatchButton />
-      </div>
-
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Συναλλασσόμενος</th>
-              <th>Πόλη</th>
-              <th>Περιφέρεια</th>
-              <th>Τηλέφωνο</th>
-              <th className="num">Επαφές</th>
-              <th>Κατάσταση</th>
-              <th>Sync</th>
-              <th className="ctr" style={{ width: 40 }}>⋯</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(p => (
-              <tr key={p.id} className="dotted-row-bottom">
-                <td>
-                  <Link href={`/partners/${p.id}`} className="user-cell">
-                    <LogoAvatar name={p.name} logoUrl={p.logoUrl} />
-                    <span>
-                      <b>{p.name}</b>
-                      <small>{p.afm ? `ΑΦΜ ${p.afm}` : 'Χωρίς ΑΦΜ'}</small>
-                    </span>
-                  </Link>
-                </td>
-                <td>{p.city ?? '—'}</td>
-                <td>
-                  {p.regionName ? <span className="badge-pill muted">{p.regionName}</span> : <span className="text-muted-foreground">—</span>}
-                </td>
-                <td>{p.phone ?? '—'}</td>
-                <td className="num">{p.contactsCount}</td>
-                <td>
-                  {p.sodtype === 12 ? (
-                    <span className="badge-pill muted">—</span>
-                  ) : p.isProsp ? (
-                    <span className="badge-pill warn">
-                      <span className="status-dot" style={{ background: 'var(--warning)' }} aria-hidden />
-                      Υποψήφιος
-                    </span>
-                  ) : (
-                    <span className="badge-pill ok">
-                      <span className="status-dot" style={{ background: 'var(--success)' }} aria-hidden />
-                      Πελάτης
-                    </span>
-                  )}
-                </td>
-                <td>
-                  {p.trdr !== null ? (
-                    <span className="badge-pill info">S1 ✓</span>
-                  ) : (
-                    <span className="badge-pill muted">Τοπικός</span>
-                  )}
-                </td>
-                <td className="ctr">
-                  <PartnerRowActions id={p.id} name={p.name} afm={p.afm} isProsp={p.isProsp} isLocal={p.trdr === null} />
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                  Δεν βρέθηκαν συναλλασσόμενοι.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-foot dotted-row-top">
-        <span>{filtered.length} {filtered.length === 1 ? 'εγγραφή' : 'εγγραφές'}</span>
-      </div>
-    </div>
+    <DataTable
+      tableId="partners"
+      columns={columns}
+      rows={filtered}
+      rowKey={p => p.id}
+      emptyMessage="Δεν βρέθηκαν συναλλασσόμενοι."
+      footer={<span>{filtered.length} {filtered.length === 1 ? 'εγγραφή' : 'εγγραφές'}</span>}
+      toolbarExtras={
+        <>
+          <label className="search">
+            <Search className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
+            <input
+              type="text"
+              placeholder="Αναζήτηση με επωνυμία, ΑΦΜ ή πόλη…"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              aria-label="Αναζήτηση συναλλασσόμενων"
+            />
+          </label>
+          <button type="button" className={`pill${tab === 'customers' ? ' on' : ''}`} onClick={() => setTab('customers')}>
+            Πελάτες <span className="cnt">{counts.customers}</span>
+          </button>
+          <button type="button" className={`pill${tab === 'suppliers' ? ' on' : ''}`} onClick={() => setTab('suppliers')}>
+            Προμηθευτές <span className="cnt">{counts.suppliers}</span>
+          </button>
+          <button type="button" className={`pill${tab === 'leads' ? ' on' : ''}`} onClick={() => setTab('leads')}>
+            Leads <span className="cnt">{counts.leads}</span>
+          </button>
+          <BulkKadMatchButton />
+          <BulkRegionMatchButton />
+        </>
+      }
+    />
   )
 }

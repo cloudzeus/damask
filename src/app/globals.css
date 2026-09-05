@@ -1090,6 +1090,99 @@
 .data-table th.ctr {
   text-align: center;
 }
+/* ── DataTable engine (Φάση 2): fixed layout + resize + wrap ─────────────── */
+/* Fixed layout ώστε τα πλάτη των <col> να είναι authoritative (προϋπόθεση για
+   αξιόπιστο resize ΚΑΙ για wrap μέσα σε bounded column). */
+.data-table.dt-fixed {
+  table-layout: fixed;
+}
+/* Non-wrap mode: κόψιμο με ellipsis αντί να ξεχειλίζει στο διπλανό κελί. */
+.data-table.dt-fixed td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Wrap mode: αναδίπλωση κειμένου· τα κελιά μεγαλώνουν σε ύψος. */
+.data-table.dt-wrap td {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  height: auto;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+/* Στήλες που πρέπει να μένουν σε μία γραμμή ακόμη και σε wrap mode. */
+.data-table td.dt-nowrap {
+  white-space: nowrap;
+}
+/* Λαβή resize στη δεξιά άκρη κάθε th (το th είναι ήδη position:relative). */
+.dt-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 9px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+.dt-resizer::after {
+  content: '';
+  position: absolute;
+  top: 25%;
+  right: 3px;
+  width: 2px;
+  height: 50%;
+  border-radius: 2px;
+  background: var(--border);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.data-table th:hover .dt-resizer::after,
+.dt-resizer:hover::after {
+  opacity: 1;
+}
+/* «Στήλες ▾» chooser popover. */
+.dt-cols {
+  position: relative;
+}
+.dt-cols-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.dt-cols-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 50;
+  min-width: 190px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 5px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgb(23 43 58 / 14%);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dt-cols-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dt-cols-item:hover {
+  background: var(--muted);
+}
+
 .data-table tbody tr {
   transition: background 0.15s ease;
 }

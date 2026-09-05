@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
@@ -195,6 +196,80 @@ export function ProspectsTab({ programId }: { programId: string }) {
     }
   }
 
+  const prospectColumns: DataTableColumn<ProspectRow>[] = [
+    {
+      id: 'select',
+      header: (
+        <input type="checkbox" checked={allSelected} onChange={toggleAll} disabled={selectableIds.length === 0} aria-label="Επιλογή όλων" />
+      ),
+      headerLabel: 'Επιλογή',
+      width: 34,
+      enableHide: false,
+      enableResize: false,
+      cell: row => (
+        <input
+          type="checkbox"
+          checked={selected.has(row.trdrId)}
+          onChange={() => toggleRow(row.trdrId)}
+          disabled={!(row.eligible && !!row.email)}
+          aria-label={`Επιλογή ${row.name}`}
+        />
+      ),
+    },
+    {
+      id: 'name',
+      header: 'Επωνυμία',
+      width: 220,
+      enableHide: false,
+      sortValue: r => r.name,
+      cell: row => (
+        <Link href={`/partners/${row.trdrId}`} className="font-semibold hover:underline">{row.name}</Link>
+      ),
+    },
+    { id: 'email', header: 'Email', width: 200, sortValue: r => r.email, cell: row => <span className="text-muted-foreground">{row.email ?? '—'}</span> },
+    {
+      id: 'eligible',
+      header: 'Επιλεξιμότητα',
+      width: 130,
+      sortValue: r => r.eligible,
+      cell: row => (
+        <span className={cn('badge-pill', row.eligible ? 'ok' : 'muted')}>
+          {row.eligible ? 'Επιλέξιμος' : 'Μη επιλέξιμος'}
+        </span>
+      ),
+    },
+    {
+      id: 'criteria',
+      header: 'Κριτήρια',
+      width: 180,
+      cell: row => (
+        <div className="flex flex-wrap gap-1">
+          {row.matched.map(k => (
+            <span key={k} className="badge-pill ok">{CRITERIA_LABELS[k]}</span>
+          ))}
+          {row.failed.map(k => (
+            <span key={k} className="badge-pill" style={{ color: 'var(--coral)', background: 'var(--coral-soft)' }}>{CRITERIA_LABELS[k]}</span>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: 'kads',
+      header: 'ΚΑΔ που ταιριάζει',
+      width: 200,
+      cell: row =>
+        row.matchedKads.length === 0 ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {row.matchedKads.map(code => (
+              <span key={code} className="badge-pill ok tabular-nums">{code}</span>
+            ))}
+          </div>
+        ),
+    },
+  ]
+
   return (
     <>
       {/* Κριτήρια + αναζήτηση δυνητικών πελατών */}
@@ -225,16 +300,6 @@ export function ProspectsTab({ programId }: { programId: string }) {
 
         {results && (
           <div className="mt-4">
-            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-              <div className="text-[12.5px] font-semibold text-muted-foreground">
-                {displayedRows.length} από {results.length} {results.length === 1 ? 'εταιρεία' : 'εταιρείες'}
-              </div>
-              <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
-                Μόνο επιλέξιμοι
-                <Switch checked={onlyEligible} onCheckedChange={setOnlyEligible} size="sm" />
-              </label>
-            </div>
-
             {failSummary && (
               <p className="mb-2.5 rounded-xl px-3 py-2 text-[12px]" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>
                 Καμία εταιρεία δεν πληροί ΟΛΑ τα επιλεγμένα κριτήρια. Αποτυχίες ανά κριτήριο (στις {results.length}): {failSummary}.
@@ -242,74 +307,25 @@ export function ProspectsTab({ programId }: { programId: string }) {
               </p>
             )}
 
-            {displayedRows.length === 0 ? (
-              <p className="py-6 text-center text-[12.5px] text-muted-foreground">Κανένα αποτέλεσμα.</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 30 }}>
-                        <input type="checkbox" checked={allSelected} onChange={toggleAll} disabled={selectableIds.length === 0} aria-label="Επιλογή όλων" />
-                      </th>
-                      <th>Επωνυμία</th>
-                      <th>Email</th>
-                      <th>Επιλεξιμότητα</th>
-                      <th>Κριτήρια</th>
-                      <th>ΚΑΔ που ταιριάζει</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayedRows.map(row => {
-                      const selectable = row.eligible && !!row.email
-                      return (
-                        <tr key={row.trdrId} className="dotted-row-bottom">
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={selected.has(row.trdrId)}
-                              onChange={() => toggleRow(row.trdrId)}
-                              disabled={!selectable}
-                              aria-label={`Επιλογή ${row.name}`}
-                            />
-                          </td>
-                          <td className="font-semibold">
-                            <Link href={`/partners/${row.trdrId}`} className="hover:underline">{row.name}</Link>
-                          </td>
-                          <td className="text-muted-foreground">{row.email ?? '—'}</td>
-                          <td>
-                            <span className={cn('badge-pill', row.eligible ? 'ok' : 'muted')}>
-                              {row.eligible ? 'Επιλέξιμος' : 'Μη επιλέξιμος'}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="flex flex-wrap gap-1">
-                              {row.matched.map(k => (
-                                <span key={k} className="badge-pill ok">{CRITERIA_LABELS[k]}</span>
-                              ))}
-                              {row.failed.map(k => (
-                                <span key={k} className="badge-pill" style={{ color: 'var(--coral)', background: 'var(--coral-soft)' }}>{CRITERIA_LABELS[k]}</span>
-                              ))}
-                            </div>
-                          </td>
-                          <td>
-                            {row.matchedKads.length === 0 ? (
-                              <span className="text-muted-foreground">—</span>
-                            ) : (
-                              <div className="flex flex-wrap gap-1">
-                                {row.matchedKads.map(code => (
-                                  <span key={code} className="badge-pill ok tabular-nums">{code}</span>
-                                ))}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <DataTable
+              bare
+              tableId="prospects"
+              columns={prospectColumns}
+              rows={displayedRows}
+              rowKey={r => r.trdrId}
+              emptyMessage="Κανένα αποτέλεσμα."
+              toolbarExtras={
+                <>
+                  <div className="text-[12.5px] font-semibold text-muted-foreground">
+                    {displayedRows.length} από {results.length} {results.length === 1 ? 'εταιρεία' : 'εταιρείες'}
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
+                    Μόνο επιλέξιμοι
+                    <Switch checked={onlyEligible} onCheckedChange={setOnlyEligible} size="sm" />
+                  </label>
+                </>
+              }
+            />
 
             <div className="mt-3 flex justify-end">
               <Button type="button" onClick={() => setConfirmOpen(true)} disabled={selected.size === 0}>

@@ -14,6 +14,7 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
   AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { deleteProgram, type ProgramListItem } from '@/lib/programs/actions'
 import { NewProgramDialog } from './new-program-dialog'
 
@@ -52,55 +53,99 @@ function formatDate(iso: string | null): string {
 export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
   const router = useRouter()
 
-  return (
-    <div className="glass table-card stagger">
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Τίτλος</th>
-              <th>Κωδικός</th>
-              <th className="num">Π/Υ</th>
-              <th className="num">Επιχορήγηση</th>
-              <th>Λήξη υποβολής</th>
-              <th>Κατάσταση</th>
-              <th>Αποδελτίωση</th>
-              <th className="ctr" style={{ width: 40 }}>⋯</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <ProgramRow key={r.id} row={r} onDeleted={() => router.refresh()} />
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={8} className="py-10 text-center">
-                  <div className="mb-3 text-[13px] text-muted-foreground">
-                    Δεν υπάρχουν ακόμη προγράμματα — δημιούργησε το πρώτο ανεβάζοντας την προκήρυξή του.
-                  </div>
-                  <NewProgramDialog />
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+  const columns: DataTableColumn<ProgramListItem>[] = [
+    {
+      id: 'title',
+      header: 'Τίτλος',
+      width: 280,
+      enableHide: false,
+      sortValue: r => r.title,
+      cell: r => (
+        <span className="user-cell">
+          <span className="avatar-ring size-8 shrink-0 text-[11px]">
+            <LuLandmark className="size-3.5" aria-hidden />
+          </span>
+          <span>
+            <b>{r.title}</b>
+          </span>
+        </span>
+      ),
+    },
+    {
+      id: 'code',
+      header: 'Κωδικός',
+      width: 150,
+      sortValue: r => r.referenceCode,
+      cell: r => <span className="font-mono text-[12.5px]">{r.referenceCode ?? '—'}</span>,
+    },
+    { id: 'budget', header: 'Π/Υ', align: 'right', width: 130, sortValue: r => r.totalBudget, cell: r => formatBudget(r.totalBudget) },
+    { id: 'rate', header: 'Επιχορήγηση', align: 'right', width: 130, sortValue: r => r.fundingRate, cell: r => formatRate(r.fundingRate) },
+    { id: 'deadline', header: 'Λήξη υποβολής', width: 150, sortValue: r => r.submissionEnd, cell: r => formatDate(r.submissionEnd) },
+    {
+      id: 'status',
+      header: 'Κατάσταση',
+      width: 120,
+      sortValue: r => r.status,
+      cell: r => {
+        const status = STATUS_META[r.status] ?? STATUS_META.DRAFT
+        return <span className={status.badgeClass}>{status.label}</span>
+      },
+    },
+    {
+      id: 'extract',
+      header: 'Αποδελτίωση',
+      width: 160,
+      sortValue: r => r.extractStatus,
+      cell: r => {
+        const extract = EXTRACT_META[r.extractStatus] ?? EXTRACT_META.PENDING
+        const ExtractIcon = extract.icon
+        return (
+          <span className={cn(extract.badgeClass)} style={extract.style}>
+            <ExtractIcon className={cn('size-3', r.extractStatus === 'RUNNING' && 'animate-spin')} aria-hidden /> {extract.label}
+          </span>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      header: '⋯',
+      headerLabel: 'Ενέργειες',
+      align: 'center',
+      width: 48,
+      enableHide: false,
+      enableResize: false,
+      cell: r => (
+        <span onClick={e => e.stopPropagation()}>
+          <ProgramRowActions row={r} onDeleted={() => router.refresh()} />
+        </span>
+      ),
+    },
+  ]
 
-      <div className="table-foot dotted-row-top">
-        <span>{rows.length} {rows.length === 1 ? 'πρόγραμμα' : 'προγράμματα'}</span>
-      </div>
-    </div>
+  return (
+    <DataTable
+      tableId="programs"
+      columns={columns}
+      rows={rows}
+      rowKey={r => r.id}
+      onRowClick={r => router.push(`/programs/${r.id}`)}
+      emptyMessage={
+        <div>
+          <div className="mb-3 text-[13px] text-muted-foreground">
+            Δεν υπάρχουν ακόμη προγράμματα — δημιούργησε το πρώτο ανεβάζοντας την προκήρυξή του.
+          </div>
+          <NewProgramDialog />
+        </div>
+      }
+      footer={<span>{rows.length} {rows.length === 1 ? 'πρόγραμμα' : 'προγράμματα'}</span>}
+    />
   )
 }
 
-function ProgramRow({ row, onDeleted }: { row: ProgramListItem; onDeleted: () => void }) {
+function ProgramRowActions({ row, onDeleted }: { row: ProgramListItem; onDeleted: () => void }) {
   const router = useRouter()
   const [deleting, startDelete] = useTransition()
   const [deleteOpen, setDeleteOpen] = useState(false)
-
-  const extract = EXTRACT_META[row.extractStatus] ?? EXTRACT_META.PENDING
-  const status = STATUS_META[row.status] ?? STATUS_META.DRAFT
-  const ExtractIcon = extract.icon
 
   function openProgram() {
     router.push(`/programs/${row.id}`)
@@ -121,50 +166,24 @@ function ProgramRow({ row, onDeleted }: { row: ProgramListItem; onDeleted: () =>
 
   return (
     <>
-      <tr className="dotted-row-bottom cursor-pointer" onClick={openProgram}>
-        <td>
-          <span className="user-cell">
-            <span className="avatar-ring size-8 shrink-0 text-[11px]">
-              <LuLandmark className="size-3.5" aria-hidden />
-            </span>
-            <span>
-              <b>{row.title}</b>
-            </span>
-          </span>
-        </td>
-        <td className="font-mono text-[12.5px]">{row.referenceCode ?? '—'}</td>
-        <td className="num">{formatBudget(row.totalBudget)}</td>
-        <td className="num">{formatRate(row.fundingRate)}</td>
-        <td>{formatDate(row.submissionEnd)}</td>
-        <td>
-          <span className={status.badgeClass}>{status.label}</span>
-        </td>
-        <td>
-          <span className={cn(extract.badgeClass)} style={extract.style}>
-            <ExtractIcon className={cn('size-3', row.extractStatus === 'RUNNING' && 'animate-spin')} aria-hidden /> {extract.label}
-          </span>
-        </td>
-        <td className="ctr" onClick={e => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button type="button" className="rowmenu-btn" aria-label={`Ενέργειες για ${row.title}`}>
-                  <LuEllipsisVertical className="size-4" aria-hidden />
-                </button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={openProgram}>
-                <LuLandmark className="size-3.5" aria-hidden /> Άνοιγμα
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
-                <LuTrash2 className="size-3.5" aria-hidden /> Διαγραφή
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </td>
-      </tr>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button type="button" className="rowmenu-btn" aria-label={`Ενέργειες για ${row.title}`}>
+              <LuEllipsisVertical className="size-4" aria-hidden />
+            </button>
+          }
+        />
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={openProgram}>
+            <LuLandmark className="size-3.5" aria-hidden /> Άνοιγμα
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+            <LuTrash2 className="size-3.5" aria-hidden /> Διαγραφή
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
