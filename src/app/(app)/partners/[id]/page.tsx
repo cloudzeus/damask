@@ -12,7 +12,7 @@ import { PartnerInfoCard } from './partner-info-card'
 import { PartnerMapCard } from './partner-map-card'
 import { ContactsPanel, type ContactRow } from './contacts-panel'
 import { FinancialsTab } from '@/components/tax/financials-tab'
-import { TrdrApplicationsTab } from '@/components/pm/trdr-applications-tab'
+import { TrdrProgramsPanel } from '@/components/pm/trdr-programs-panel'
 import {
   GemiAadeCard, TrdrKadCard, TrdrDocumentsCard, type TrdrKadRow, type TrdrDocumentRow,
 } from '@/components/trdr/trdr-enrich-cards'
@@ -92,6 +92,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
   const dateTimeLabel = (d: Date | null) => d ? d.toLocaleString('el-GR', { dateStyle: 'medium', timeStyle: 'short' }) : null
 
   const canEdit = can(session, 'customer.edit')
+  const canManagePrograms = can(session, 'programs.manage')
 
   return (
     <div>
@@ -195,7 +196,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="mt-3">
-        <TrdrApplicationsTab trdrId={trdr.id} />
+        <TrdrProgramsPanel trdrId={trdr.id} canManage={canManagePrograms} />
       </div>
     </div>
   )

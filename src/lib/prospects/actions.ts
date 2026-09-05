@@ -269,11 +269,32 @@ export async function sendProgramNewsletter(programId: string, trdrIds: string[]
   return { sent, skipped, failed }
 }
 
+/**
+ * Αποθήκευση δυνητικών πελατών ΧΩΡΙΣ αποστολή email (status SAVED). Το email δεν
+ * είναι υποχρεωτικό. Δεν υποβαθμίζει υπάρχοντα leads (SENT/CLICKED) — μόνο
+ * δημιουργεί νέα SAVED εγγραφή όπου δεν υπάρχει.
+ */
+export async function saveProgramLeads(programId: string, trdrIds: string[]): Promise<{ saved: number }> {
+  await requirePermission('programs.manage')
+  const trdrs = await prisma.trdr.findMany({ where: { id: { in: trdrIds } }, select: { id: true, EMAIL: true } })
+  let saved = 0
+  for (const trdr of trdrs) {
+    await prisma.programLead.upsert({
+      where: { programId_trdrId: { programId, trdrId: trdr.id } },
+      create: { programId, trdrId: trdr.id, email: trdr.EMAIL, status: 'SAVED' },
+      update: {}, // αν υπάρχει ήδη (π.χ. SENT), μην το αγγίξεις
+    })
+    saved++
+  }
+  revalidatePath(`/programs/${programId}`)
+  return { saved }
+}
+
 export type ProgramLeadRow = {
   id: string
   trdrId: string
   name: string
-  email: string
+  email: string | null
   status: string
   sentAt: string | null
   clickedAt: string | null

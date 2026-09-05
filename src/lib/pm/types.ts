@@ -37,6 +37,30 @@ const VERDICT_LABELS: Record<VerdictStr, string> = {
   INELIGIBLE: 'Δεν εντάσσεται',
 }
 
+// ── Κύκλος ζωής συμμετοχής πελάτη σε πρόγραμμα (customer-facing κάρτες) ──────
+export type LifecycleStr = 'POTENTIAL' | 'SUBMITTING' | 'IMPLEMENTATION' | 'MODIFICATIONS' | 'PAYMENT'
+
+export const LIFECYCLE_ORDER: LifecycleStr[] = ['POTENTIAL', 'SUBMITTING', 'IMPLEMENTATION', 'MODIFICATIONS', 'PAYMENT']
+
+const LIFECYCLE_LABELS: Record<LifecycleStr, string> = {
+  POTENTIAL: 'Δυνητικός',
+  SUBMITTING: 'Υποβαλλόμενος',
+  IMPLEMENTATION: 'Υλοποίηση',
+  MODIFICATIONS: 'Τροποποιήσεις',
+  PAYMENT: 'Αποπληρωμή',
+}
+
+/** CSS-variable χρώματα ανά κατάσταση (border/bg/text) για τις κάρτες προγράμματος. */
+export const LIFECYCLE_COLORS: Record<LifecycleStr, { fg: string; bg: string }> = {
+  POTENTIAL: { fg: 'var(--muted-foreground)', bg: 'var(--muted)' },
+  SUBMITTING: { fg: 'var(--warning)', bg: 'var(--warning-soft)' },
+  IMPLEMENTATION: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  MODIFICATIONS: { fg: 'var(--coral)', bg: 'var(--coral-soft)' },
+  PAYMENT: { fg: 'var(--success)', bg: 'var(--success-soft)' },
+}
+
+export const lifecycleLabel = (l: LifecycleStr) => LIFECYCLE_LABELS[l]
+
 export const stageLabel = (s: StageStr) => STAGE_LABELS[s]
 export const obligationKindLabel = (k: ObligationKindStr) => KIND_LABELS[k]
 export const obligationStatusLabel = (s: ObligationStatusStr) => STATUS_LABELS[s]
