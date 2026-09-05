@@ -8,12 +8,16 @@ export function SiteNav() {
         <a href="#">Συλλογή</a>
         <a href="#">Έργα</a>
         <a href="#">Η εταιρεία</a>
+        <Link href="/eligibility">Επιδοτήσεις</Link>
         <a href="#">Επικοινωνία</a>
       </nav>
       <div className="flex-1" />
       <button type="button" className="pill">
         EL ▾
       </button>
+      <Link href="/eligibility" className="btn-pill btn-glass h-10">
+        Έλεγχος επιλεξιμότητας
+      </Link>
       <Link href="/login" className="btn-pill btn-navy h-10">
         Σύνδεση <span className="arr">→</span>
       </Link>

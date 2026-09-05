@@ -62,12 +62,13 @@ model User {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  managedApplications   ProgramApplication[]    @relation("AppManager")
-  processedApplications ProgramApplication[]    @relation("AppProcessor")
-  assignedObligations   ApplicationObligation[]
+  managedApplications    ProgramApplication[]          @relation("AppManager")
+  processedApplications  ProgramApplication[]          @relation("AppProcessor")
+  assignedObligations    ApplicationObligation[]
   verifiedCertifications ProgramExpenseCertification[] @relation("CertVerifier")
-  reminders             ReminderLog[]           @relation("UserReminders")
-  activityLogs          ActivityLog[]
+  reminders              ReminderLog[]                 @relation("UserReminders")
+  activityLogs           ActivityLog[]
+  notificationReads      NotificationRead[]
 
   @@index([roleId])
   @@index([trdrId])
@@ -300,47 +301,47 @@ model MediaAsset {
 /// όχι Prisma relation, ώστε η σειρά sync (S1 reference data πριν τα TRDR) να
 /// μην είναι FK-constrained.
 model Trdr {
-  id           String              @id @default(cuid())
-  TRDR         Int?                @unique // null = καρτέλα που δεν έχει συγχρονιστεί ακόμα με SoftOne (π.χ. δημιουργήθηκε από OCR)
-  SODTYPE      Int                 @default(13) // 13 = Πελάτης, 12 = Προμηθευτής
-  CODE         String?
-  NAME         String
-  AFM          String?
-  IRSDATA      String? // κωδ.Δ.Ο.Υ. (soft ref στο mirror Irsdata.CODE — string κωδικός, ΟΧΙ το Irsdata.IRSDATA numeric id)
-  JOBTYPETRD   String? // επάγγελμα, free text
-  ADDRESS      String?
-  ZIP          String?
-  DISTRICT     String?
-  CITY         String?
-  COUNTRY      Int? // soft ref Country.COUNTRY
-  PHONE01      String?
-  PHONE02      String?
-  FAX          String?
-  EMAIL        String?
-  EMAILACC     String? // email λογιστηρίου (SoftOne TRDR.EMAILACC)
-  WEBPAGE      String?
-  TRDCATEGORY  Int? // soft ref TrdCategory.TRDCATEGORY
-  TRDPGROUP    Int?
-  TRDBUSINESS  Int?
-  PAYMENT      Int? // soft ref S1Payment.PAYMENT
-  SHIPMENT     Int? // soft ref Shipment.SHIPMENT
-  SOCURRENCY   Int?                @default(100) // 100 = ΕΥΡΩ (default SoftOne)
-  ISACTIVE     Int                 @default(1)
-  ISPROSP      Int                 @default(0) // 1 = Υποψήφιος (lead flag)
-  REMARKS      String?
-  CODE1        String?
-  UPDDATE      DateTime? // τελευταία μεταβολή στο SoftOne
+  id                   String                   @id @default(cuid())
+  TRDR                 Int?                     @unique // null = καρτέλα που δεν έχει συγχρονιστεί ακόμα με SoftOne (π.χ. δημιουργήθηκε από OCR)
+  SODTYPE              Int                      @default(13) // 13 = Πελάτης, 12 = Προμηθευτής
+  CODE                 String?
+  NAME                 String
+  AFM                  String?
+  IRSDATA              String? // κωδ.Δ.Ο.Υ. (soft ref στο mirror Irsdata.CODE — string κωδικός, ΟΧΙ το Irsdata.IRSDATA numeric id)
+  JOBTYPETRD           String? // επάγγελμα, free text
+  ADDRESS              String?
+  ZIP                  String?
+  DISTRICT             String?
+  CITY                 String?
+  COUNTRY              Int? // soft ref Country.COUNTRY
+  PHONE01              String?
+  PHONE02              String?
+  FAX                  String?
+  EMAIL                String?
+  EMAILACC             String? // email λογιστηρίου (SoftOne TRDR.EMAILACC)
+  WEBPAGE              String?
+  TRDCATEGORY          Int? // soft ref TrdCategory.TRDCATEGORY
+  TRDPGROUP            Int?
+  TRDBUSINESS          Int?
+  PAYMENT              Int? // soft ref S1Payment.PAYMENT
+  SHIPMENT             Int? // soft ref Shipment.SHIPMENT
+  SOCURRENCY           Int?                     @default(100) // 100 = ΕΥΡΩ (default SoftOne)
+  ISACTIVE             Int                      @default(1)
+  ISPROSP              Int                      @default(0) // 1 = Υποψήφιος (lead flag)
+  REMARKS              String?
+  CODE1                String?
+  UPDDATE              DateTime? // τελευταία μεταβολή στο SoftOne
   // ── app extras (ΟΧΙ SoftOne) ──
-  appLat       Float?
-  appLng       Float?
-  appLogoUrl   String?
-  appLegalForm String?
-  appNotes     String?
-  appEmployees      Int? // αριθμός εργαζομένων (app-only, από import/χειροκίνητα)
-  appAnnualRevenue  Decimal? @db.Decimal(14, 2) // τελευταία ετήσια έσοδα € (app-only)
-  syncedAt     DateTime?
+  appLat               Float?
+  appLng               Float?
+  appLogoUrl           String?
+  appLegalForm         String?
+  appNotes             String?
+  appEmployees         Int? // αριθμός εργαζομένων (app-only, από import/χειροκίνητα)
+  appAnnualRevenue     Decimal?                 @db.Decimal(14, 2) // τελευταία ετήσια έσοδα € (app-only)
+  syncedAt             DateTime?
   // ΓΕΜΗ (Open Data businessportal.gr)
-  arGemi               String?   @unique // Αριθμός ΓΕΜΗ
+  arGemi               String?                  @unique // Αριθμός ΓΕΜΗ
   gemiOffice           String? // Τοπική Υπηρεσία ΓΕΜΗ
   gemiStatus           String? // Κατάσταση επιχείρησης (ΓΕΜΗ)
   gemiObjective        String? // Σκοπός εταιρείας
@@ -350,34 +351,36 @@ model Trdr {
   gemiSyncedAt         DateTime?
   gemiData             Json? // raw GEMI response για future-proofing
   // ΑΑΔΕ (vat.wwa.gr/afm2info)
-  foundingDate DateTime? // ημερομηνία ίδρυσης (regist_date)
-  aadeStatus   String? // deactivation_flag_descr
-  aadeFirmKind String? // firm_flag_descr
-  aadeSyncedAt DateTime?
+  foundingDate         DateTime? // ημερομηνία ίδρυσης (regist_date)
+  aadeStatus           String? // deactivation_flag_descr
+  aadeFirmKind         String? // firm_flag_descr
+  aadeSyncedAt         DateTime?
   // Geocoding / Region (reuse appLat/appLng — ΟΧΙ νέα lat/lng)
-  geocodedAt      DateTime?
-  geocodedAddress String? // canonical address returned by geocoder
-  regionCode      String?
-  region          Region?   @relation(fields: [regionCode], references: [code], onDelete: SetNull)
+  geocodedAt           DateTime?
+  geocodedAddress      String? // canonical address returned by geocoder
+  regionCode           String?
+  region               Region?                  @relation(fields: [regionCode], references: [code], onDelete: SetNull)
   // Συστήστης — ποιος έφερε τον πελάτη (άλλη εταιρία/συνεργάτης ή ιδιώτης)
-  referrerId      String?
-  referrer        Referrer? @relation("TrdrReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  users        User[]
-  contacts     Contact[]
-  orders       Order[]
-  architects   ArchitectCustomer[]
-  priceCache   PriceCache[]
-  formRecords     TrdrFormRecord[]
-  financialValues TrdrFinancialValue[]
-  programApplications ProgramApplication[]
-  documentRequests DocumentRequest[]
-  portalTokens     PortalToken[]
-  kads             TrdrKad[]
-  documents        TrdrDocument[]
-  programLeads     ProgramLead[]
-  referrerLinks    Referrer[] @relation("ReferrerTrdr") // Referrer records που δείχνουν σε αυτόν τον Trdr
+  referrerId           String?
+  referrer             Referrer?                @relation("TrdrReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  users                User[]
+  contacts             Contact[]
+  orders               Order[]
+  architects           ArchitectCustomer[]
+  priceCache           PriceCache[]
+  formRecords          TrdrFormRecord[]
+  financialValues      TrdrFinancialValue[]
+  programApplications  ProgramApplication[]
+  documentRequests     DocumentRequest[]
+  portalTokens         PortalToken[]
+  kads                 TrdrKad[]
+  documents            TrdrDocument[]
+  programLeads         ProgramLead[]
+  referrerLinks        Referrer[]               @relation("ReferrerTrdr") // Referrer records που δείχνουν σε αυτόν τον Trdr
+  publicLeadRequests   PublicLeadRequest[] // αιτήματα από τη δημόσια φόρμα επιλεξιμότητας
+  newsletterSubs       NewsletterSubscription[]
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
@@ -1004,90 +1007,94 @@ enum FinancialValueSource {
 }
 
 model TaxFormTemplate {
-  id               String   @id @default(cuid())
+  id               String                 @id @default(cuid())
   code             String
   name             String
   year             Int?
   description      String?
-  status           TaxTemplateStatus @default(DRAFT)
+  status           TaxTemplateStatus      @default(DRAFT)
   sampleStorageKey String?
   samplePageCount  Int?
   sampleThumbUrl   String?
   createdById      String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
   fields           TaxFormTemplateField[]
   records          TrdrFormRecord[]
   requiredForms    ProgramRequiredForm[]
+
   @@unique([code, year])
   @@index([status])
 }
 
 model TaxFormTemplateField {
-  id          String   @id @default(cuid())
-  templateId  String
-  template    TaxFormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  fieldKey    String
-  label       String
-  section     String?
-  valueType   FinancialValueType @default(CURRENCY)
-  kind        TaxFieldKind @default(SINGLE)
-  config      Json?
-  regionHint  Json?
-  aiHint      String?
-  required    Boolean  @default(false)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String             @id @default(cuid())
+  templateId String
+  template   TaxFormTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  fieldKey   String
+  label      String
+  section    String?
+  valueType  FinancialValueType @default(CURRENCY)
+  kind       TaxFieldKind       @default(SINGLE)
+  config     Json?
+  regionHint Json?
+  aiHint     String?
+  required   Boolean            @default(false)
+  order      Int                @default(0)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
   @@unique([templateId, fieldKey])
   @@index([templateId])
 }
 
 model TrdrFormRecord {
-  id            String   @id @default(cuid())
+  id            String               @id @default(cuid())
   name          String
   usage         String?
   trdrId        String
-  trdr          Trdr     @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  trdr          Trdr                 @relation(fields: [trdrId], references: [id], onDelete: Cascade)
   templateId    String
-  template      TaxFormTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  template      TaxFormTemplate      @relation(fields: [templateId], references: [id], onDelete: Restrict)
   year          Int
   storageKey    String
   pageCount     Int?
-  status        String   @default("PENDING")
+  status        String               @default("PENDING")
   extractedData Json?
   model         String?
   tokensUsed    Int?
   createdById   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   values        TrdrFinancialValue[]
+
   @@index([trdrId])
   @@index([templateId])
   @@index([trdrId, year])
 }
 
 model TrdrFinancialValue {
-  id               String   @id @default(cuid())
-  trdrId           String
-  trdr             Trdr     @relation(fields: [trdrId], references: [id], onDelete: Cascade)
-  fieldKey         String
-  templateId       String?
-  year             Int
-  value            Decimal? @db.Decimal(18, 2)
-  valueText        String?
-  valueJson        Json?
-  kind             TaxFieldKind @default(SINGLE)
-  valueType        FinancialValueType
-  source           FinancialValueSource @default(OCR)
-  sourceRecordId   String?
-  sourceRecord     TrdrFormRecord? @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
-  confidence       Float?
-  verified         Boolean  @default(false)
-  verifiedById     String?
-  note             String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id             String               @id @default(cuid())
+  trdrId         String
+  trdr           Trdr                 @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  fieldKey       String
+  templateId     String?
+  year           Int
+  value          Decimal?             @db.Decimal(18, 2)
+  valueText      String?
+  valueJson      Json?
+  kind           TaxFieldKind         @default(SINGLE)
+  valueType      FinancialValueType
+  source         FinancialValueSource @default(OCR)
+  sourceRecordId String?
+  sourceRecord   TrdrFormRecord?      @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+  confidence     Float?
+  verified       Boolean              @default(false)
+  verifiedById   String?
+  note           String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
   @@unique([trdrId, fieldKey, year])
   @@index([trdrId])
   @@index([fieldKey, year])
@@ -1145,47 +1152,47 @@ enum DeliverableScope {
 }
 
 model Program {
-  id                  String                     @id @default(cuid())
-  title               String
-  summary             String?
-  referenceCode       String?
-  sourceFileName      String?
-  storageKey          String?                    @unique
-  mimeType            String?
-  size                Int?
-  publicationDate     DateTime?
-  submissionStart     DateTime?
-  submissionEnd       DateTime?
-  totalBudget         Decimal?                   @db.Decimal(18, 2)
-  fundingRate         Decimal?                   @db.Decimal(5, 2)
-  durationMonths      Int?
-  minEmployeesFte     Decimal?                   @db.Decimal(10, 2)
-  minOperationalYears Decimal?                   @db.Decimal(5, 2)
-  eligibilityNote     String?
-  status              ProgramStatus              @default(DRAFT)
-  extractStatus       ProgramExtractStatus       @default(PENDING)
-  extractedData       Json?
-  model               String?
-  tokensUsed          Int?
-  errorMessage        String?
-  notes               String?
-  createdById         String?
-  createdAt           DateTime                   @default(now())
-  updatedAt           DateTime                   @updatedAt
-  expenseCats         ProgramExpenseCategory[]
-  kads                ProgramKad[]
-  bonuses             ProgramBonus[]
-  criteria            ProgramCriterion[]
-  deadlines           ProgramDeadline[]
-  phases              ProgramPhase[]
-  deliverables        ProgramDeliverable[]
-  regions             ProgramRegion[]
-  legalForms          ProgramEligibleLegalForm[]
-  applications        ProgramApplication[]
-  requiredForms       ProgramRequiredForm[]
-  taskTemplates       ProgramTaskTemplate[]
+  id                   String                       @id @default(cuid())
+  title                String
+  summary              String?
+  referenceCode        String?
+  sourceFileName       String?
+  storageKey           String?                      @unique
+  mimeType             String?
+  size                 Int?
+  publicationDate      DateTime?
+  submissionStart      DateTime?
+  submissionEnd        DateTime?
+  totalBudget          Decimal?                     @db.Decimal(18, 2)
+  fundingRate          Decimal?                     @db.Decimal(5, 2)
+  durationMonths       Int?
+  minEmployeesFte      Decimal?                     @db.Decimal(10, 2)
+  minOperationalYears  Decimal?                     @db.Decimal(5, 2)
+  eligibilityNote      String?
+  status               ProgramStatus                @default(DRAFT)
+  extractStatus        ProgramExtractStatus         @default(PENDING)
+  extractedData        Json?
+  model                String?
+  tokensUsed           Int?
+  errorMessage         String?
+  notes                String?
+  createdById          String?
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  expenseCats          ProgramExpenseCategory[]
+  kads                 ProgramKad[]
+  bonuses              ProgramBonus[]
+  criteria             ProgramCriterion[]
+  deadlines            ProgramDeadline[]
+  phases               ProgramPhase[]
+  deliverables         ProgramDeliverable[]
+  regions              ProgramRegion[]
+  legalForms           ProgramEligibleLegalForm[]
+  applications         ProgramApplication[]
+  requiredForms        ProgramRequiredForm[]
+  taskTemplates        ProgramTaskTemplate[]
   deliverableTemplates ProgramDeliverableTemplate[]
-  leads               ProgramLead[]
+  leads                ProgramLead[]
 
   @@index([status])
   @@index([extractStatus])
@@ -1302,16 +1309,16 @@ model ProgramEligibleLegalForm {
 }
 
 model ProgramRequiredForm {
-  id         String  @id @default(cuid())
+  id         String           @id @default(cuid())
   programId  String
-  program    Program @relation(fields: [programId], references: [id], onDelete: Cascade)
-  name       String                              // π.χ. «Ε3», «Βεβαίωση έναρξης» (from extraction or manual)
-  mandatory  Boolean @default(true)
+  program    Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name       String // π.χ. «Ε3», «Βεβαίωση έναρξης» (from extraction or manual)
+  mandatory  Boolean          @default(true)
   notes      String?
-  order      Int     @default(0)
-  templateId String?                             // optional link to a «Οδηγός Εντύπου» (TaxFormTemplate)
+  order      Int              @default(0)
+  templateId String? // optional link to a «Οδηγός Εντύπου» (TaxFormTemplate)
   template   TaxFormTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  createdAt  DateTime @default(now())
+  createdAt  DateTime         @default(now())
 
   @@index([programId])
   @@index([templateId])
@@ -1397,18 +1404,18 @@ enum ProgramLeadStatus {
 // src/lib/prospects/eligibility.ts (pure engine) + actions.ts (bulk matching,
 // newsletter αποστολή). click = εκδήλωση ενδιαφέροντος (Ευκαιρία).
 model ProgramLead {
-  id          String            @id @default(cuid())
-  programId   String
-  program     Program           @relation(fields: [programId], references: [id], onDelete: Cascade)
-  trdrId      String
-  trdr        Trdr              @relation(fields: [trdrId], references: [id], onDelete: Cascade)
-  email       String? // nullable: αποθηκευμένοι δυνητικοί (SAVED) μπορεί να μην έχουν email
-  tokenHash   String?           @unique // nullable: μόνο τα SENT leads έχουν magic-link token
-  status      ProgramLeadStatus @default(PENDING)
-  sentAt      DateTime?
-  clickedAt   DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id        String            @id @default(cuid())
+  programId String
+  program   Program           @relation(fields: [programId], references: [id], onDelete: Cascade)
+  trdrId    String
+  trdr      Trdr              @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  email     String? // nullable: αποθηκευμένοι δυνητικοί (SAVED) μπορεί να μην έχουν email
+  tokenHash String?           @unique // nullable: μόνο τα SENT leads έχουν magic-link token
+  status    ProgramLeadStatus @default(PENDING)
+  sentAt    DateTime?
+  clickedAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@unique([programId, trdrId])
   @@index([programId])
@@ -1416,36 +1423,36 @@ model ProgramLead {
 }
 
 model ProgramApplication {
-  id          String           @id @default(cuid())
-  trdrId      String
-  trdr        Trdr             @relation(fields: [trdrId], references: [id], onDelete: Cascade)
-  programId   String
-  program     Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
-  status      String           @default("ACTIVE")
-  lifecycle   ApplicationLifecycle @default(POTENTIAL) // customer-facing κύκλος ζωής (χρώμα κάρτας)
+  id                  String               @id @default(cuid())
+  trdrId              String
+  trdr                Trdr                 @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  programId           String
+  program             Program              @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status              String               @default("ACTIVE")
+  lifecycle           ApplicationLifecycle @default(POTENTIAL) // customer-facing κύκλος ζωής (χρώμα κάρτας)
   eligibilitySnapshot Json? // αποθηκευμένο αποτέλεσμα αξιολόγησης (matched/failed/matchedKads/eligible) τη στιγμή της σύνδεσης
-  notes       String?
-  createdById String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  expenses    ProgramExpense[]
+  notes               String?
+  createdById         String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  expenses            ProgramExpense[]
 
-  stage              ApplicationStage @default(ASSESSMENT)
-  managerId          String?
-  manager            User? @relation("AppManager",   fields: [managerId],   references: [id], onDelete: SetNull)
-  processorId        String?
-  processor          User? @relation("AppProcessor", fields: [processorId], references: [id], onDelete: SetNull)
-  assessmentScore    Float?
-  assessmentMaxScore Float?
-  assessmentVerdict  AssessmentVerdict @default(PENDING)
-  opskeStatus        String?
-  opskeRef           String?
-  opskeSubmittedAt   DateTime?
-  obligations        ApplicationObligation[]
-  documents          ApplicationDocument[]
-  criterionScores    ApplicationCriterionScore[]
-  paymentRequests    PaymentRequest[]
-  documentRequests   DocumentRequest[]
+  stage               ApplicationStage            @default(ASSESSMENT)
+  managerId           String?
+  manager             User?                       @relation("AppManager", fields: [managerId], references: [id], onDelete: SetNull)
+  processorId         String?
+  processor           User?                       @relation("AppProcessor", fields: [processorId], references: [id], onDelete: SetNull)
+  assessmentScore     Float?
+  assessmentMaxScore  Float?
+  assessmentVerdict   AssessmentVerdict           @default(PENDING)
+  opskeStatus         String?
+  opskeRef            String?
+  opskeSubmittedAt    DateTime?
+  obligations         ApplicationObligation[]
+  documents           ApplicationDocument[]
+  criterionScores     ApplicationCriterionScore[]
+  paymentRequests     PaymentRequest[]
+  documentRequests    DocumentRequest[]
   expenseDeliverables ExpenseDeliverable[]
 
   @@unique([trdrId, programId])
@@ -1454,12 +1461,12 @@ model ProgramApplication {
 }
 
 model ProgramExpense {
-  id                   String                  @id @default(cuid())
+  id                   String                       @id @default(cuid())
   applicationId        String
-  application          ProgramApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application          ProgramApplication           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   description          String
-  amount               Decimal                 @db.Decimal(18, 2)
-  vatAmount            Decimal?                @db.Decimal(18, 2)
+  amount               Decimal                      @db.Decimal(18, 2)
+  vatAmount            Decimal?                     @db.Decimal(18, 2)
   date                 DateTime?
   vendor               String?
   vendorAfm            String?
@@ -1469,18 +1476,18 @@ model ProgramExpense {
   suggestionConfidence Float?
   suggestionSource     ExpenseSuggestSource?
   categoryId           String?
-  category             ProgramExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  confirmed            Boolean                 @default(false)
-  status               ExpenseStatus           @default(ACTIVE)
-  replacesExpenseId    String?                 @unique
-  replaces             ProgramExpense?         @relation("ExpenseReplacement", fields: [replacesExpenseId], references: [id], onDelete: SetNull)
-  replacedBy           ProgramExpense?         @relation("ExpenseReplacement")
+  category             ProgramExpenseCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  confirmed            Boolean                      @default(false)
+  status               ExpenseStatus                @default(ACTIVE)
+  replacesExpenseId    String?                      @unique
+  replaces             ProgramExpense?              @relation("ExpenseReplacement", fields: [replacesExpenseId], references: [id], onDelete: SetNull)
+  replacedBy           ProgramExpense?              @relation("ExpenseReplacement")
   certification        ProgramExpenseCertification?
   paymentRequestId     String?
-  paymentRequest       PaymentRequest?         @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
+  paymentRequest       PaymentRequest?              @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
   createdById          String?
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
   deliverables         ExpenseDeliverable[]
 
   @@index([applicationId])
@@ -1490,8 +1497,8 @@ model ProgramExpense {
 }
 
 model ProgramExpenseCertification {
-  id                String   @id @default(cuid())
-  expenseId         String   @unique
+  id                String         @id @default(cuid())
+  expenseId         String         @unique
   expense           ProgramExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   serialNumber      String?
   location          String?
@@ -1500,49 +1507,49 @@ model ProgramExpenseCertification {
   photoKey          String?
   bankStatementKey  String?
   newUnusedCertKey  String?
-  paid              Boolean  @default(false)
-  verified          Boolean  @default(false)
+  paid              Boolean        @default(false)
+  verified          Boolean        @default(false)
   verifiedById      String?
-  verifiedBy        User?    @relation("CertVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedBy        User?          @relation("CertVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
   notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@index([expenseId])
 }
 
 model ProgramDeliverableTemplate {
-  id                 String           @id @default(cuid())
-  programId          String
-  program            Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
-  name               String
-  description        String?
-  appliesTo          DeliverableScope @default(EXPENSE)
-  order              Int              @default(0)
-  active             Boolean          @default(true)
-  sourceTemplateId   String?
-  fromExtraction     Boolean          @default(false)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  tasks              ProgramDeliverableTask[]
-  instances          ExpenseDeliverable[]
+  id               String                   @id @default(cuid())
+  programId        String
+  program          Program                  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  appliesTo        DeliverableScope         @default(EXPENSE)
+  order            Int                      @default(0)
+  active           Boolean                  @default(true)
+  sourceTemplateId String?
+  fromExtraction   Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  tasks            ProgramDeliverableTask[]
+  instances        ExpenseDeliverable[]
 
   @@index([programId])
 }
 
 model ProgramDeliverableTask {
-  id                 String           @id @default(cuid())
+  id                 String                     @id @default(cuid())
   templateId         String
   template           ProgramDeliverableTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   phase              DeliverablePhase
   name               String
   description        String?
-  mandatory          Boolean          @default(true)
-  onSiteVerification Boolean          @default(false)
-  minFiles           Int              @default(1)
-  order              Int              @default(0)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  mandatory          Boolean                    @default(true)
+  onSiteVerification Boolean                    @default(false)
+  minFiles           Int                        @default(1)
+  order              Int                        @default(0)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
   instances          ExpenseDeliverableTask[]
 
   @@index([templateId])
@@ -1550,19 +1557,19 @@ model ProgramDeliverableTask {
 }
 
 model ExpenseDeliverable {
-  id                 String            @id @default(cuid())
-  applicationId      String
-  application        ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  expenseId          String?
-  expense            ProgramExpense?   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  templateId         String?
-  template           ProgramDeliverableTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  name               String
-  notes              String?
-  order              Int               @default(0)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  tasks              ExpenseDeliverableTask[]
+  id            String                      @id @default(cuid())
+  applicationId String
+  application   ProgramApplication          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  expenseId     String?
+  expense       ProgramExpense?             @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  templateId    String?
+  template      ProgramDeliverableTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  name          String
+  notes         String?
+  order         Int                         @default(0)
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  tasks         ExpenseDeliverableTask[]
 
   @@unique([applicationId, expenseId, templateId])
   @@index([applicationId])
@@ -1570,23 +1577,23 @@ model ExpenseDeliverable {
 }
 
 model ExpenseDeliverableTask {
-  id                 String            @id @default(cuid())
+  id                 String                  @id @default(cuid())
   deliverableId      String
-  deliverable        ExpenseDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  deliverable        ExpenseDeliverable      @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
   taskTemplateId     String?
   taskTemplate       ProgramDeliverableTask? @relation(fields: [taskTemplateId], references: [id], onDelete: SetNull)
   phase              DeliverablePhase
   name               String
-  mandatory          Boolean           @default(true)
-  onSiteVerification Boolean           @default(false)
-  minFiles           Int               @default(1)
-  status             DeliverableStatus @default(PENDING)
+  mandatory          Boolean                 @default(true)
+  onSiteVerification Boolean                 @default(false)
+  minFiles           Int                     @default(1)
+  status             DeliverableStatus       @default(PENDING)
   acceptedById       String?
   acceptedAt         DateTime?
   notes              String?
-  order              Int               @default(0)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  order              Int                     @default(0)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
   files              DeliverableFile[]
   dependencies       DeliverableDependency[] @relation("Dependent")
   dependents         DeliverableDependency[] @relation("Prerequisite")
@@ -1598,72 +1605,72 @@ model ExpenseDeliverableTask {
 }
 
 model DeliverableFile {
-  id            String   @id @default(cuid())
-  taskId        String
-  task          ExpenseDeliverableTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  name          String
-  storageKey    String
-  mimeType      String?
-  size          Int?
-  uploadedById  String?
-  uploadedAt    DateTime @default(now())
+  id           String                 @id @default(cuid())
+  taskId       String
+  task         ExpenseDeliverableTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  name         String
+  storageKey   String
+  mimeType     String?
+  size         Int?
+  uploadedById String?
+  uploadedAt   DateTime               @default(now())
 
   @@index([taskId])
 }
 
 model DeliverableDependency {
-  id             String  @id @default(cuid())
+  id             String                 @id @default(cuid())
   dependentId    String
   dependent      ExpenseDeliverableTask @relation("Dependent", fields: [dependentId], references: [id], onDelete: Cascade)
   prerequisiteId String
   prerequisite   ExpenseDeliverableTask @relation("Prerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
-  auto           Boolean @default(true)
+  auto           Boolean                @default(true)
 
   @@unique([dependentId, prerequisiteId])
   @@index([prerequisiteId])
 }
 
 model PaymentRequest {
-  id            String   @id @default(cuid())
+  id            String               @id @default(cuid())
   applicationId String
-  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application   ProgramApplication   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   ordinal       Int
   title         String?
-  targetAmount  Decimal? @db.Decimal(18, 2)
+  targetAmount  Decimal?             @db.Decimal(18, 2)
   status        PaymentRequestStatus @default(DRAFT)
   notes         String?
   submittedAt   DateTime?
   approvedAt    DateTime?
   paidAt        DateTime?
-  paidAmount    Decimal? @db.Decimal(18, 2)
+  paidAmount    Decimal?             @db.Decimal(18, 2)
   createdById   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   expenses      ProgramExpense[]
 
   @@index([applicationId])
 }
 
 model ApplicationObligation {
-  id            String   @id @default(cuid())
-  applicationId String
-  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  stage         ApplicationStage
-  kind          ObligationKind @default(TASK)
-  sourceId      String?
-  name          String
-  mandatory     Boolean @default(true)
-  status        ObligationStatus @default(PENDING)
-  dueDate       DateTime?
-  assigneeId    String?
-  assignee      User? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
-  notes         String?
-  order         Int @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  documents     ApplicationDocument[]
-  templateId    String?
-  template      ProgramTaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  id               String                @id @default(cuid())
+  applicationId    String
+  application      ProgramApplication    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  stage            ApplicationStage
+  kind             ObligationKind        @default(TASK)
+  sourceId         String?
+  name             String
+  mandatory        Boolean               @default(true)
+  status           ObligationStatus      @default(PENDING)
+  dueDate          DateTime?
+  assigneeId       String?
+  assignee         User?                 @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  notes            String?
+  order            Int                   @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  documents        ApplicationDocument[]
+  templateId       String?
+  template         ProgramTaskTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
   documentRequests DocumentRequest[]
 
   @@index([applicationId])
@@ -1673,9 +1680,9 @@ model ApplicationObligation {
 }
 
 model ApplicationDocument {
-  id            String   @id @default(cuid())
+  id            String                 @id @default(cuid())
   applicationId String
-  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application   ProgramApplication     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   obligationId  String?
   obligation    ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
   name          String
@@ -1683,24 +1690,24 @@ model ApplicationDocument {
   mimeType      String?
   size          Int?
   uploadedById  String?
-  uploadedAt    DateTime @default(now())
-  requestUpload DocumentRequest? @relation("RequestUpload")
+  uploadedAt    DateTime               @default(now())
+  requestUpload DocumentRequest?       @relation("RequestUpload")
 
   @@index([applicationId])
   @@index([obligationId])
 }
 
 model ApplicationCriterionScore {
-  id            String   @id @default(cuid())
+  id            String             @id @default(cuid())
   applicationId String
   application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   criterionId   String?
   name          String
-  weight        Float @default(1)
+  weight        Float              @default(1)
   score         Float?
-  maxScore      Float @default(100)
+  maxScore      Float              @default(100)
   note          String?
-  order         Int @default(0)
+  order         Int                @default(0)
 
   @@unique([applicationId, criterionId])
   @@index([applicationId])
@@ -1722,22 +1729,22 @@ model ProgramTaskTemplate {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  obligations   ApplicationObligation[]
+  obligations ApplicationObligation[]
 
   @@index([programId])
   @@index([programId, stage])
 }
 
 model ReminderLog {
-  id           String   @id @default(cuid())
+  id           String         @id @default(cuid())
   userId       String?
-  user         User?    @relation("UserReminders", fields: [userId], references: [id], onDelete: SetNull)
+  user         User?          @relation("UserReminders", fields: [userId], references: [id], onDelete: SetNull)
   email        String
-  dueSoonCount Int      @default(0)
-  overdueCount Int      @default(0)
+  dueSoonCount Int            @default(0)
+  overdueCount Int            @default(0)
   status       ReminderStatus @default(SENT)
   error        String?
-  sentAt       DateTime @default(now())
+  sentAt       DateTime       @default(now())
 
   @@index([userId])
   @@index([sentAt])
@@ -1752,27 +1759,27 @@ enum DocumentRequestStatus {
 }
 
 model DocumentRequest {
-  id                 String   @id @default(cuid())
+  id                 String                  @id @default(cuid())
   applicationId      String
-  application        ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application        ProgramApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   obligationId       String?
-  obligation         ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
+  obligation         ApplicationObligation?  @relation(fields: [obligationId], references: [id], onDelete: SetNull)
   deliverableTaskId  String?
   deliverableTask    ExpenseDeliverableTask? @relation(fields: [deliverableTaskId], references: [id], onDelete: SetNull)
   trdrId             String
-  trdr               Trdr @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  trdr               Trdr                    @relation(fields: [trdrId], references: [id], onDelete: Cascade)
   title              String
   description        String?
   email              String
-  tokenHash          String   @unique
-  status             DocumentRequestStatus @default(PENDING)
+  tokenHash          String                  @unique
+  status             DocumentRequestStatus   @default(PENDING)
   expiresAt          DateTime
-  uploadedDocumentId String?  @unique
-  uploadedDocument   ApplicationDocument? @relation("RequestUpload", fields: [uploadedDocumentId], references: [id], onDelete: SetNull)
+  uploadedDocumentId String?                 @unique
+  uploadedDocument   ApplicationDocument?    @relation("RequestUpload", fields: [uploadedDocumentId], references: [id], onDelete: SetNull)
   uploadedAt         DateTime?
   createdById        String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
   @@index([applicationId])
   @@index([trdrId])
@@ -1781,35 +1788,35 @@ model DocumentRequest {
 }
 
 model PortalToken {
-  id           String   @id @default(cuid())
-  tokenHash    String   @unique
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique
   trdrId       String
-  trdr         Trdr @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  trdr         Trdr      @relation(fields: [trdrId], references: [id], onDelete: Cascade)
   email        String
   expiresAt    DateTime
   lastAccessAt DateTime?
   createdById  String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   @@index([trdrId])
 }
 
 // Καλλικράτης δενδροειδής δομή — seed από public/periferies-*.json (όχι GEMI).
 model Region {
-  code        String   @id            // "111" (Περιφ.), "11102" (Π.Ε./Νομός), "1110202" (Δήμος)
-  nameEL      String
-  nameEN      String?
-  level       Int                      // 3=Περιφέρεια, 4=Περιφ. Ενότητα/Νομός, 5=Δήμος
-  parentCode  String?
-  parent      Region?  @relation("RegionHierarchy", fields: [parentCode], references: [code], onDelete: SetNull)
-  children    Region[] @relation("RegionHierarchy")
-  path        String?                  // "111>11102>1110202"
-  latitude    Float?
-  longitude   Float?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  trdrs       Trdr[]
+  code       String   @id // "111" (Περιφ.), "11102" (Π.Ε./Νομός), "1110202" (Δήμος)
+  nameEL     String
+  nameEN     String?
+  level      Int // 3=Περιφέρεια, 4=Περιφ. Ενότητα/Νομός, 5=Δήμος
+  parentCode String?
+  parent     Region?  @relation("RegionHierarchy", fields: [parentCode], references: [code], onDelete: SetNull)
+  children   Region[] @relation("RegionHierarchy")
+  path       String? // "111>11102>1110202"
+  latitude   Float?
+  longitude  Float?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  trdrs      Trdr[]
 
   @@index([parentCode])
   @@index([level])
@@ -1820,17 +1827,17 @@ model Region {
 // Master catalog of all ΚΑΔ codes (Greek Activity Code register).
 // Auto-populated from ΑΕΔΕΕ lookups and used for mapping/search across companies.
 model KadCode {
-  code            String    @id                              // canonical with dots, π.χ. "43.21.00" ή "62.10.12.00"
-  codeWithoutDots String?   @unique @db.VarChar(10)          // "43210000" (padded to 8 για NACE-level)
-  description     String                                     // legacy alias of title (kept for backward compat)
-  title           String?                                    // επίσημος τίτλος (από kad2025.json)
-  level           Int?                                       // 1..7
-  sector          String?   @db.VarChar(3)                   // π.χ. "Α", "ΣΤ"
-  sectorLetter    String?   @db.VarChar(3)                   // same as sector — indexed for filtering
-  parentCode      String?                                    // πατρικός ΚΑΔ (string FK to KadCode.code)
+  code            String    @id // canonical with dots, π.χ. "43.21.00" ή "62.10.12.00"
+  codeWithoutDots String?   @unique @db.VarChar(10) // "43210000" (padded to 8 για NACE-level)
+  description     String // legacy alias of title (kept for backward compat)
+  title           String? // επίσημος τίτλος (από kad2025.json)
+  level           Int? // 1..7
+  sector          String?   @db.VarChar(3) // π.χ. "Α", "ΣΤ"
+  sectorLetter    String?   @db.VarChar(3) // same as sector — indexed for filtering
+  parentCode      String? // πατρικός ΚΑΔ (string FK to KadCode.code)
   parent          KadCode?  @relation("KadHierarchy", fields: [parentCode], references: [code], onDelete: SetNull)
   children        KadCode[] @relation("KadHierarchy")
-  path            String?                                    // π.χ. "Α>01>01.1>01.11>01.11.1>01.11.11"
+  path            String? // π.χ. "Α>01>01.1>01.11>01.11.1>01.11.11"
   category        String?
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
@@ -1850,20 +1857,20 @@ model KadCode {
 // Λίστα ΚΑΔ που απαιτούν Άδεια Λειτουργίας (και άλλους τύπους αδειών στο μέλλον).
 // Seeded από public/NF BUSNESS.xlsx. Τα παιδιά κληρονομούν τον κανόνα μέσω inherited=true.
 enum KadLicenseType {
-  OPERATING_LICENSE   // Άδεια λειτουργίας
+  OPERATING_LICENSE // Άδεια λειτουργίας
 }
 
 model KadLicenseRequirement {
-  id               Int             @id @default(autoincrement())
-  code             String          @db.VarChar(20)
-  kadCode          KadCode         @relation(fields: [code], references: [code], onDelete: Cascade)
-  licenseType      KadLicenseType  @default(OPERATING_LICENSE)
-  inherited        Boolean         @default(false)   // true = το κληρονόμησε από parent ΚΑΔ
-  sourceParentCode String?         @db.VarChar(20)   // ο ρητά αναφερόμενος γονέας (αν inherited)
-  source           String          @default("NF BUSNESS")
+  id               Int            @id @default(autoincrement())
+  code             String         @db.VarChar(20)
+  kadCode          KadCode        @relation(fields: [code], references: [code], onDelete: Cascade)
+  licenseType      KadLicenseType @default(OPERATING_LICENSE)
+  inherited        Boolean        @default(false) // true = το κληρονόμησε από parent ΚΑΔ
+  sourceParentCode String?        @db.VarChar(20) // ο ρητά αναφερόμενος γονέας (αν inherited)
+  source           String         @default("NF BUSNESS")
   notes            String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@unique([code, licenseType])
   @@index([licenseType])
@@ -1925,28 +1932,28 @@ enum TrdrDocumentKind {
 // Έγγραφα ανά Trdr (ΓΕΜΗ ή χειροκίνητα). Αρχείο σε Bunny private
 // (storageKey) — βλ. bunnyUploadPrivate/bunnyDownload.
 model TrdrDocument {
-  id               String            @id @default(cuid())
-  trdrId           String
-  trdr             Trdr              @relation(fields: [trdrId], references: [id], onDelete: Cascade)
-  source           DocumentSource    @default(GEMI)
-  docKind          TrdrDocumentKind  @default(OTHER)
-  title            String // τίτλος (decisionSubject ή summary ή filename)
+  id                  String           @id @default(cuid())
+  trdrId              String
+  trdr                Trdr             @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  source              DocumentSource   @default(GEMI)
+  docKind             TrdrDocumentKind @default(OTHER)
+  title               String // τίτλος (decisionSubject ή summary ή filename)
   // GEMI document metadata
-  kak              String? // Κωδικός Αριθμός Καταχώρισης
-  assembly         String? // είδος οργάνου
-  summary          String? // περίληψη
-  decisionSubject  String?
+  kak                 String? // Κωδικός Αριθμός Καταχώρισης
+  assembly            String? // είδος οργάνου
+  summary             String? // περίληψη
+  decisionSubject     String?
   dateAssemblyDecided DateTime?
   dateAnnounced       DateTime?
   dateRegistrated     DateTime?
-  applicationStatus String?
+  applicationStatus   String?
   // File on Bunny CDN (private)
-  sourceUrl        String? // αρχική URL στο businessportal
-  storageKey       String? // path στο Bunny zone
-  mimeType         String?
-  sizeBytes        Int?
-  metadata         Json? // raw GEMI item για debugging
-  createdAt        DateTime          @default(now())
+  sourceUrl           String? // αρχική URL στο businessportal
+  storageKey          String? // path στο Bunny zone
+  mimeType            String?
+  sizeBytes           Int?
+  metadata            Json? // raw GEMI item για debugging
+  createdAt           DateTime         @default(now())
 
   @@unique([trdrId, kak])
   @@index([trdrId])
@@ -1985,9 +1992,9 @@ model CompanyStatusRef {
 }
 
 model PrefectureRef {
-  id            String          @id // GEMI prefecture.id (string)
-  descr         String
-  lastUpdated   DateTime?
+  id             String            @id // GEMI prefecture.id (string)
+  descr          String
+  lastUpdated    DateTime?
   municipalities MunicipalityRef[]
 }
 
@@ -1999,4 +2006,153 @@ model MunicipalityRef {
   lastUpdated  DateTime?
 
   @@index([prefectureId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Δημόσια φόρμα επιλεξιμότητας (landing) + OTP + Newsletter + Ειδοποιήσεις
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PublicLeadStatus {
+  PENDING_OTP // στάλθηκε OTP, αναμονή επιβεβαίωσης
+  VERIFIED // επιβεβαιωμένο· εντοπίστηκαν προγράμματα & δημιουργήθηκε δυνητικός
+  EXPIRED // έληξε το OTP χωρίς επιβεβαίωση
+  FAILED // απέτυχε (π.χ. δεν βρέθηκε ΑΦΜ ή υπέρβαση προσπαθειών)
+}
+
+/// Αίτημα ελέγχου επιλεξιμότητας από τον δημόσιο ιστότοπο. Ο επισκέπτης δίνει
+/// ΑΦΜ + email + τηλέφωνο, βρίσκουμε την επωνυμία μέσω ΑΑΔΕ, στέλνουμε 6ψήφιο OTP
+/// στο email και μετά την επιβεβαίωση ελέγχουμε τα ενεργά προγράμματα. Κρατά μόνο
+/// το hash του OTP (ποτέ τον κωδικό). Χρησιμεύει και ως audit/anti-abuse log.
+model PublicLeadRequest {
+  id                 String           @id @default(cuid())
+  afm                String
+  email              String
+  phone              String
+  companyName        String? // από ΑΑΔΕ (επωνυμία)
+  otpHash            String // sha256 του 6ψήφιου κωδικού
+  otpExpiresAt       DateTime
+  attempts           Int              @default(0) // λανθασμένες προσπάθειες επιβεβαίωσης
+  resendCount        Int              @default(0)
+  status             PublicLeadStatus @default(PENDING_OTP)
+  newsletterOptIn    Boolean          @default(false)
+  ipHash             String? // sha256(ip) για rate-limiting/anti-abuse
+  userAgent          String?
+  aadeSnapshot       Json? // στιγμιότυπο απάντησης ΑΑΔΕ (επωνυμία/ΚΑΔ/διεύθυνση)
+  eligibleProgramIds String[] // αποτέλεσμα αξιολόγησης
+  trdrId             String?
+  trdr               Trdr?            @relation(fields: [trdrId], references: [id], onDelete: SetNull)
+  verifiedAt         DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([afm])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([ipHash])
+}
+
+enum NewsletterSource {
+  PUBLIC_LEAD // εγγραφή μέσω δημόσιας φόρμας επιλεξιμότητας
+  ADMIN // προστέθηκε από το διαχειριστικό
+  IMPORT // μαζική εισαγωγή
+}
+
+enum NewsletterStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+  BOUNCED
+}
+
+/// Εγγεγραμμένος στο newsletter. Η επιβεβαίωση OTP στη δημόσια φόρμα λειτουργεί ως
+/// double opt-in (confirmedAt). Ένα email = μία εγγραφή.
+model NewsletterSubscription {
+  id                   String           @id @default(cuid())
+  email                String           @unique
+  name                 String?
+  afm                  String?
+  trdrId               String?
+  trdr                 Trdr?            @relation(fields: [trdrId], references: [id], onDelete: SetNull)
+  source               NewsletterSource @default(ADMIN)
+  status               NewsletterStatus @default(SUBSCRIBED)
+  confirmedAt          DateTime?
+  unsubscribeTokenHash String?          @unique // one-click unsubscribe
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@index([status])
+  @@index([source])
+  @@index([trdrId])
+}
+
+enum NotificationType {
+  PUBLIC_LEAD // νέο αίτημα επιλεξιμότητας από τον ιστότοπο
+  GENERIC
+}
+
+/// In-app ειδοποίηση για την ομάδα (dashboard bell + feed). Broadcast event· η
+/// κατάσταση ανάγνωσης είναι ανά χρήστη μέσω NotificationRead.
+model Notification {
+  id         String             @id @default(cuid())
+  type       NotificationType   @default(GENERIC)
+  title      String
+  body       String?
+  entityType String? // π.χ. "PublicLeadRequest"
+  entityId   String?
+  meta       Json?
+  createdAt  DateTime           @default(now())
+  reads      NotificationRead[]
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+/// Κατάσταση ανάγνωσης ειδοποίησης ανά χρήστη.
+model NotificationRead {
+  id             String       @id @default(cuid())
+  notificationId String
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt         DateTime     @default(now())
+
+  @@unique([notificationId, userId])
+  @@index([userId])
+}
+
+enum ConsentAction {
+  SUBSCRIBE
+  UNSUBSCRIBE
+}
+
+enum ConsentMethod {
+  DOUBLE_OPT_IN_OTP // επιβεβαίωση email μέσω OTP στη δημόσια φόρμα (απόδειξη κατοχής email)
+  PUBLIC_FORM // δημόσια φόρμα χωρίς OTP
+  ADMIN // καταχώριση/διαγραφή από υπάλληλο
+  IMPORT
+  UNSUBSCRIBE_LINK // one-click unsubscribe από email
+}
+
+/// Append-only απόδειξη συγκατάθεσης (GDPR) για αποστολή email/newsletter. Κάθε
+/// γραμμή είναι αμετάβλητο τεκμήριο: ποιος, πότε, από ποια IP/συσκευή, με ποια
+/// μέθοδο, και το ΑΚΡΙΒΕΣ κείμενο/έκδοση συναίνεσης που αποδέχθηκε. Ποτέ δεν
+/// διαγράφεται/επεξεργάζεται — η ανάκληση καταγράφεται ως νέα γραμμή UNSUBSCRIBE.
+model NewsletterConsent {
+  id                  String        @id @default(cuid())
+  email               String
+  afm                 String?
+  trdrId              String?
+  action              ConsentAction @default(SUBSCRIBE)
+  method              ConsentMethod
+  consentText         String // το ακριβές κείμενο που εμφανίστηκε στον χρήστη
+  consentVersion      String? // έκδοση κειμένου συναίνεσης (setting)
+  ip                  String? // πλήρης IP — νομική απόδειξη double opt-in
+  userAgent           String?
+  source              String? // π.χ. "eligibility-form"
+  publicLeadRequestId String?
+  createdAt           DateTime      @default(now())
+
+  @@index([email])
+  @@index([action])
+  @@index([createdAt])
 }

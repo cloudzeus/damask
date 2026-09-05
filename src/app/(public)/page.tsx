@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { SiteNav } from './site-nav'
 
 export default function HomePage() {
@@ -14,9 +15,9 @@ export default function HomePage() {
             χώρους με πρόθεση. Από το 1987.
           </p>
           <div className="cta-row">
-            <button type="button" className="btn-pill btn-navy">
-              Δες τη συλλογή <span className="arr">→</span>
-            </button>
+            <Link href="/eligibility" className="btn-pill btn-navy">
+              Έλεγχος επιλεξιμότητας <span className="arr">→</span>
+            </Link>
             <button type="button" className="btn-pill btn-glass">
               Συνεργασία για επαγγελματίες
             </button>

@@ -39,6 +39,11 @@ export const ACTIONS = {
   'prospect.save': { category: 'PROSPECT', label: 'Αποθήκευση λίστας δυνητικών', weight: 2 },
   'newsletter.send': { category: 'COMMUNICATION', label: 'Αποστολή ενημέρωσης', weight: 2 },
   'newsletter.test': { category: 'COMMUNICATION', label: 'Δοκιμαστικό email', weight: 1 },
+  'newsletter.subscribe': { category: 'COMMUNICATION', label: 'Εγγραφή στο newsletter', weight: 1 },
+  'newsletter.unsubscribe': { category: 'COMMUNICATION', label: 'Διαγραφή από newsletter', weight: 1 },
+  // Δημόσια φόρμα επιλεξιμότητας
+  'public_lead.request': { category: 'PROSPECT', label: 'Αίτημα επιλεξιμότητας (site)', weight: 1 },
+  'public_lead.verified': { category: 'PROSPECT', label: 'Επιβεβαιωμένο αίτημα επιλεξιμότητας', weight: 3 },
   // Συμμετοχές / Έργα
   'application.associate': { category: 'APPLICATION', label: 'Σύνδεση πελάτη με πρόγραμμα', weight: 2 },
   'application.lifecycle': { category: 'APPLICATION', label: 'Αλλαγή κατάστασης συμμετοχής', weight: 1 },

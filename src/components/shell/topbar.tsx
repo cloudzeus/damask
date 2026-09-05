@@ -1,4 +1,4 @@
-import { Bell, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { auth, signOut } from '@/auth'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel,
@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SignOutMenuItem } from './sign-out-item'
 import { MobileNavToggle } from './mobile-nav'
+import { NotificationsBell } from './notifications-bell'
 
 export async function Topbar() {
   const session = await auth()
@@ -24,10 +25,7 @@ export async function Topbar() {
         <span className="status-dot pulse" style={{ background: 'var(--success)', color: 'var(--success)' }} aria-hidden />
         Sync πριν 4′
       </span>
-      <button type="button" className="icon-pill" aria-label="Ειδοποιήσεις">
-        <Bell className="size-4" strokeWidth={1.8} />
-        <span className="ndot" aria-hidden />
-      </button>
+      <NotificationsBell />
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
