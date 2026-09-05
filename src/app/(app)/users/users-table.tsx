@@ -1,8 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Search, Columns3 } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { roleColorVar } from '@/lib/role-meta'
 import { UserRowActions } from './row-actions'
 
@@ -70,144 +71,139 @@ export function UsersTable({
     })
   }, [users, query, status])
 
+  const columns: DataTableColumn<UserRow>[] = [
+    {
+      id: 'select',
+      header: <input type="checkbox" aria-label="Επιλογή όλων" disabled />,
+      headerLabel: 'Επιλογή',
+      cell: user => <input type="checkbox" aria-label={`Επιλογή ${user.name}`} disabled />,
+      width: 34,
+      enableHide: false,
+      enableResize: false,
+    },
+    {
+      id: 'user',
+      header: 'Χρήστης',
+      width: 240,
+      sortValue: u => u.name,
+      cell: user => {
+        const lines = contactLines(user)
+        return (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <div className="user-cell cursor-default">
+                  <span className="avatar-ring size-8 text-[11px]">{initialsOf(user.name)}</span>
+                  <span>
+                    <b>{user.name}</b>
+                    <small>{user.email}</small>
+                  </span>
+                </div>
+              }
+            />
+            <TooltipContent>
+              <div className="flex flex-col gap-0.5">
+                {lines.length > 0
+                  ? lines.map((line, i) => <span key={i}>{line}</span>)
+                  : <span>Χωρίς επιπλέον στοιχεία επικοινωνίας</span>}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        )
+      },
+    },
+    {
+      id: 'role',
+      header: 'Ρόλος',
+      width: 150,
+      sortValue: u => u.roleName,
+      cell: user => (
+        <span className="role-pill">
+          <i style={{ background: roleColorVar(user.roleName) }} />
+          {user.roleName}
+        </span>
+      ),
+    },
+    { id: 'phone', header: 'Τηλέφωνο', width: 130, sortValue: u => u.phone, cell: u => u.phone ?? '—' },
+    { id: 'city', header: 'Πόλη', width: 130, sortValue: u => u.city, cell: u => u.city ?? '—' },
+    { id: 'connected', header: 'Συνδεδεμένος πελάτης', width: 180, sortValue: u => u.connectedLabel, cell: u => u.connectedLabel },
+    { id: 'updated', header: 'Ενημερώθηκε', width: 140, sortValue: u => u.updatedLabel, cell: u => u.updatedLabel },
+    {
+      id: 'status',
+      header: 'Κατάσταση',
+      width: 130,
+      sortValue: u => u.active,
+      cell: user =>
+        user.active ? (
+          <span className="badge-pill ok">
+            <span className="status-dot pulse" style={{ background: 'var(--success)', color: 'var(--success)' }} aria-hidden />
+            Ενεργός
+          </span>
+        ) : (
+          <span className="badge-pill" style={{ color: 'var(--muted-foreground)', background: 'var(--muted)' }}>
+            <span className="status-dot" style={{ background: 'var(--muted-foreground)' }} aria-hidden />
+            Ανενεργός
+          </span>
+        ),
+    },
+    {
+      id: 'actions',
+      header: '⋯',
+      headerLabel: 'Ενέργειες',
+      align: 'center',
+      width: 48,
+      enableHide: false,
+      enableResize: false,
+      cell: user => (
+        <UserRowActions
+          userId={user.id}
+          userName={user.name}
+          userEmail={user.email}
+          active={user.active}
+          roleId={user.roleId}
+          roles={roles}
+          isSelf={user.id === currentUserId}
+          phone={user.phone}
+          mobile={user.mobile}
+          address={user.address}
+          city={user.city}
+          country={user.country}
+        />
+      ),
+    },
+  ]
+
   return (
-    <div className="glass table-card stagger">
-      <div className="table-toolbar">
-        <label className="search">
-          <Search className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
-          <input
-            type="text"
-            placeholder="Αναζήτηση με όνομα ή email…"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            aria-label="Αναζήτηση χρηστών"
-          />
-        </label>
-        <button type="button" className={`pill${status === 'all' ? ' on' : ''}`} onClick={() => setStatus('all')}>
-          Όλοι
-        </button>
-        <button type="button" className={`pill${status === 'active' ? ' on' : ''}`} onClick={() => setStatus('active')}>
-          Ενεργοί <span className="cnt">{activeCount}</span>
-        </button>
-        <button type="button" className={`pill${status === 'inactive' ? ' on' : ''}`} onClick={() => setStatus('inactive')}>
-          Ανενεργοί <span className="cnt">{inactiveCount}</span>
-        </button>
-        <div className="flex-1" />
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button type="button" className="pill" aria-disabled="true" style={{ opacity: 0.55, cursor: 'default' }}>
-                <Columns3 className="size-3.5" strokeWidth={1.8} aria-hidden /> Στήλες ▾
-              </button>
-            }
-          />
-          <TooltipContent>Έρχεται με το DataTable engine (Φάση 2)</TooltipContent>
-        </Tooltip>
-      </div>
-
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 30 }}>
-                <input type="checkbox" aria-label="Επιλογή όλων" disabled />
-              </th>
-              <th>Χρήστης</th>
-              <th>Ρόλος</th>
-              <th>Τηλέφωνο</th>
-              <th>Πόλη</th>
-              <th>Συνδεδεμένος πελάτης</th>
-              <th>Ενημερώθηκε</th>
-              <th>Κατάσταση</th>
-              <th className="ctr" style={{ width: 40 }}>⋯</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(user => {
-              const lines = contactLines(user)
-              return (
-                <tr key={user.id} className="dotted-row-bottom">
-                  <td>
-                    <input type="checkbox" aria-label={`Επιλογή ${user.name}`} disabled />
-                  </td>
-                  <td>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <div className="user-cell cursor-default">
-                            <span className="avatar-ring size-8 text-[11px]">{initialsOf(user.name)}</span>
-                            <span>
-                              <b>{user.name}</b>
-                              <small>{user.email}</small>
-                            </span>
-                          </div>
-                        }
-                      />
-                      <TooltipContent>
-                        <div className="flex flex-col gap-0.5">
-                          {lines.length > 0
-                            ? lines.map((line, i) => <span key={i}>{line}</span>)
-                            : <span>Χωρίς επιπλέον στοιχεία επικοινωνίας</span>}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </td>
-                  <td>
-                    <span className="role-pill">
-                      <i style={{ background: roleColorVar(user.roleName) }} />
-                      {user.roleName}
-                    </span>
-                  </td>
-                  <td>{user.phone ?? '—'}</td>
-                  <td>{user.city ?? '—'}</td>
-                  <td>{user.connectedLabel}</td>
-                  <td>{user.updatedLabel}</td>
-                  <td>
-                    {user.active ? (
-                      <span className="badge-pill ok">
-                        <span className="status-dot pulse" style={{ background: 'var(--success)', color: 'var(--success)' }} aria-hidden />
-                        Ενεργός
-                      </span>
-                    ) : (
-                      <span className="badge-pill" style={{ color: 'var(--muted-foreground)', background: 'var(--muted)' }}>
-                        <span className="status-dot" style={{ background: 'var(--muted-foreground)' }} aria-hidden />
-                        Ανενεργός
-                      </span>
-                    )}
-                  </td>
-                  <td className="ctr">
-                    <UserRowActions
-                      userId={user.id}
-                      userName={user.name}
-                      userEmail={user.email}
-                      active={user.active}
-                      roleId={user.roleId}
-                      roles={roles}
-                      isSelf={user.id === currentUserId}
-                      phone={user.phone}
-                      mobile={user.mobile}
-                      address={user.address}
-                      city={user.city}
-                      country={user.country}
-                    />
-                  </td>
-                </tr>
-              )
-            })}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={9} className="py-8 text-center text-muted-foreground">
-                  Δεν βρέθηκαν χρήστες.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="table-foot dotted-row-top">
-        <span>{filtered.length} {filtered.length === 1 ? 'χρήστης' : 'χρήστες'}</span>
-      </div>
-    </div>
+    <DataTable
+      tableId="users"
+      columns={columns}
+      rows={filtered}
+      rowKey={u => u.id}
+      emptyMessage="Δεν βρέθηκαν χρήστες."
+      footer={<span>{filtered.length} {filtered.length === 1 ? 'χρήστης' : 'χρήστες'}</span>}
+      toolbarExtras={
+        <>
+          <label className="search">
+            <Search className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
+            <input
+              type="text"
+              placeholder="Αναζήτηση με όνομα ή email…"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              aria-label="Αναζήτηση χρηστών"
+            />
+          </label>
+          <button type="button" className={`pill${status === 'all' ? ' on' : ''}`} onClick={() => setStatus('all')}>
+            Όλοι
+          </button>
+          <button type="button" className={`pill${status === 'active' ? ' on' : ''}`} onClick={() => setStatus('active')}>
+            Ενεργοί <span className="cnt">{activeCount}</span>
+          </button>
+          <button type="button" className={`pill${status === 'inactive' ? ' on' : ''}`} onClick={() => setStatus('inactive')}>
+            Ανενεργοί <span className="cnt">{inactiveCount}</span>
+          </button>
+        </>
+      }
+    />
   )
 }
