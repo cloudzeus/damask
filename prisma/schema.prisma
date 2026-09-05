@@ -6,6 +6,38 @@ datasource db {
   provider = "postgresql"
 }
 
+/// Καταγραφή δραστηριότητας χρηστών (audit/productivity) — μία γραμμή ανά
+/// ουσιώδη business ενέργεια. Το `weight` (πόντοι) + `category` έρχονται από το
+/// κεντρικό μητρώο src/lib/activity/registry.ts. Βλ. σελίδα /activity (admin).
+enum ActivityCategory {
+  PARTNER
+  REFERRER
+  PROGRAM
+  PROSPECT
+  APPLICATION
+  COMMUNICATION
+  SYSTEM
+}
+
+model ActivityLog {
+  id         String           @id @default(cuid())
+  userId     String?
+  user       User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String // π.χ. "partner.create" — key στο registry
+  category   ActivityCategory
+  weight     Int              @default(1)
+  entityType String?
+  entityId   String?
+  summary    String?
+  meta       Json?
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([category])
+  @@index([action])
+}
+
 // ── RBAC ─────────────────────────────────────────────
 model User {
   id             String            @id @default(cuid())
@@ -35,6 +67,7 @@ model User {
   assignedObligations   ApplicationObligation[]
   verifiedCertifications ProgramExpenseCertification[] @relation("CertVerifier")
   reminders             ReminderLog[]           @relation("UserReminders")
+  activityLogs          ActivityLog[]
 
   @@index([roleId])
   @@index([trdrId])

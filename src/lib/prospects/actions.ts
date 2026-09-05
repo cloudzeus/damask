@@ -7,6 +7,7 @@ import { newToken } from '@/lib/pm/portal-token'
 import { sendMail, isMailerConfigured } from '@/lib/mailer'
 import { newsletterHtml, newsletterSubject, type NewsletterProgram } from '@/lib/prospects/newsletter-template'
 import { createApplication } from '@/lib/programs/actions'
+import { logActivity } from '@/lib/activity/log'
 import { deriveHierarchyFromMap, type RegionNodeLookup } from '@/lib/registries/regions-tree'
 import {
   evaluateTrdrEligibility,
@@ -265,6 +266,7 @@ export async function sendProgramNewsletter(programId: string, trdrIds: string[]
     }
   }
 
+  await logActivity('newsletter.send', { entityType: 'program', entityId: programId, meta: { sent, skipped, failed } })
   revalidatePath(`/programs/${programId}`)
   return { sent, skipped, failed }
 }
@@ -286,6 +288,7 @@ export async function saveProgramLeads(programId: string, trdrIds: string[]): Pr
     })
     saved++
   }
+  await logActivity('prospect.save', { entityType: 'program', entityId: programId, meta: { saved } })
   revalidatePath(`/programs/${programId}`)
   return { saved }
 }

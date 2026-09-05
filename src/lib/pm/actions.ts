@@ -3,6 +3,7 @@
 import type { Session } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
+import { logActivity } from '@/lib/activity/log'
 import { revalidatePath } from 'next/cache'
 import { notFound } from 'next/navigation'
 import { visibleApplicationWhere } from '@/lib/pm/scoping'
@@ -548,6 +549,7 @@ export async function setApplicationStage(applicationId: string, stage: StageStr
     where: { applicationId, stage: app.stage, mandatory: true, status: 'PENDING' },
   })
   await prisma.programApplication.update({ where: { id: applicationId }, data: { stage } })
+  await logActivity('application.stage', { entityType: 'application', entityId: applicationId, meta: { stage } })
   revalidatePath(`/pm/applications/${applicationId}`)
   return { pendingMandatory }
 }

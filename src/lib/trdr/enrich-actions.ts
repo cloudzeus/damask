@@ -21,6 +21,7 @@ import { aadeLookup } from '@/lib/trdr/aade'
 import { resolveIrsdataCode } from '@/lib/trdr/irsdata'
 import { resolveKadForActivity } from '@/lib/registries/kad'
 import { matchRegion, type RegionMatch } from '@/lib/registries/regions'
+import { logActivity } from '@/lib/activity/log'
 
 /**
  * Server actions πίσω από τον εμπλουτισμό Trdr με ΓΕΜΗ/ΑΑΔΕ/Geo (W2 spec §0.7).
@@ -138,6 +139,7 @@ export async function applyAadeToTrdr(trdrId: string) {
     await replaceTrdrKad(tx, trdrId, kadRows)
   })
 
+  await logActivity('partner.aade_check', { entityType: 'trdr', entityId: trdrId, summary: mapped.NAME ?? undefined, meta: { kads: kadRows.length } })
   revalidatePath(`/partners/${trdrId}`)
   return { ok: true as const, name: mapped.NAME, kads: kadRows.length }
 }
@@ -399,6 +401,7 @@ export async function gemiSyncTrdr(trdrId: string, opts: { arGemi?: string; sync
     }
   }
 
+  await logActivity('partner.gemi_sync', { entityType: 'trdr', entityId: trdrId, meta: { kads: kadRows.length, documentsImported, documentsFailed } })
   revalidatePath(`/partners/${trdrId}`)
   return { ok: true as const, arGemi, kads: kadRows.length, documentsImported, documentsFailed }
 }
@@ -514,6 +517,7 @@ export async function bulkAadeKadTrdr(): Promise<BulkKadTallies> {
     }
   }
 
+  await logActivity('partner.kad_bulk', { entityType: 'trdr', meta: { ...tallies } })
   revalidatePath('/partners')
   return tallies
 }

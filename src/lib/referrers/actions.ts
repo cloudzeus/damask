@@ -5,6 +5,7 @@ import { ReferrerType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { aadeLookup } from '@/lib/trdr/aade'
+import { logActivity } from '@/lib/activity/log'
 
 /**
  * Server actions για τους «Συστήστες» (Referrers) — ποιος έφερε έναν πελάτη.
@@ -93,6 +94,7 @@ export async function createReferrer(input: ReferrerInput): Promise<{ id: string
     },
     select: { id: true },
   })
+  await logActivity('referrer.create', { entityType: 'referrer', entityId: created.id, summary: name })
   revalidatePath('/referrers')
   return { id: created.id }
 }
@@ -114,6 +116,7 @@ export async function updateReferrer(id: string, input: ReferrerInput): Promise<
       trdrId: s(input.trdrId),
     },
   })
+  await logActivity('referrer.update', { entityType: 'referrer', entityId: id, summary: name })
   revalidatePath('/referrers')
 }
 
@@ -132,5 +135,6 @@ export async function deleteReferrer(id: string): Promise<void> {
   // onDelete: SetNull στο Trdr.referrerId — οι πελάτες δεν χάνονται, απλώς
   // αποσυνδέονται από τον διαγραμμένο συστήστη.
   await prisma.referrer.delete({ where: { id } })
+  await logActivity('referrer.delete', { entityType: 'referrer', entityId: id })
   revalidatePath('/referrers')
 }

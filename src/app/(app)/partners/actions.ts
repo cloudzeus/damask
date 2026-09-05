@@ -9,6 +9,7 @@ import { getIntegration } from '@/lib/settings'
 import { aadeLookup, type AadeCompany } from '@/lib/aade'
 import { resolveIrsdataCode } from '@/lib/trdr/irsdata'
 import { geocodeSearch, geocodeSuggest, geocodeReverse, GeocodeError, type GeocodeResult } from '@/lib/geocode'
+import { logActivity } from '@/lib/activity/log'
 
 /**
  * Server actions πίσω από /partners (Συναλλασσόμενοι κατά SoftOne SODTYPE —
@@ -146,6 +147,7 @@ export async function createPartner(input: PartnerFormValues): Promise<ActionRes
       },
     })
     revalidatePartners()
+    await logActivity('partner.create', { entityType: 'trdr', entityId: created.id, summary: created.NAME })
     return { ok: true, message: `Ο συναλλασσόμενος «${created.NAME}» δημιουργήθηκε.`, partnerId: created.id }
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -212,6 +214,7 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
   }
 
   revalidatePartners(id)
+  await logActivity('partner.update', { entityType: 'trdr', entityId: id, summary: data.NAME })
   return { ok: true, message: `Οι αλλαγές για «${data.NAME}» αποθηκεύτηκαν.` }
 }
 
@@ -227,6 +230,7 @@ export async function deletePartner(id: string): Promise<ActionResult> {
 
   await prisma.trdr.delete({ where: { id } })
   revalidatePartners()
+  await logActivity('partner.delete', { entityType: 'trdr', entityId: id, summary: existing.NAME })
   return { ok: true, message: `Ο συναλλασσόμενος «${existing.NAME}» διαγράφηκε.` }
 }
 
