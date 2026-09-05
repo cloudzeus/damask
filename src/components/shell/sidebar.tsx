@@ -76,9 +76,8 @@ export function Sidebar({
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-      <Link href="/dashboard" className="flex items-center gap-2 px-3 pt-3 pb-4 text-foreground">
-        <Logo className="h-7 w-auto shrink-0" />
-        <span className="wordmark text-[13px] leading-tight">World Wide Associates</span>
+      <Link href="/dashboard" aria-label="World Wide Associates" className="flex items-center px-3 pt-3 pb-4">
+        <Logo className="h-9 w-auto" />
       </Link>
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
         {nav.map(section => {
