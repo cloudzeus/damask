@@ -85,6 +85,20 @@ export function canonicalLegalForm(s: string): string {
 }
 
 /**
+ * Οι ΑΝΑΓΝΩΡΙΣΜΕΝΕΣ νομικές μορφές (canonical tokens). Ό,τι ΔΕΝ ανήκει εδώ (π.χ.
+ * «Μικρές/Μεσαίες επιχειρήσεις» = κατηγορίες ΜΕΓΕΘΟΥΣ ΜμΕ, όχι νομικές μορφές)
+ * ΔΕΝ πρέπει να χρησιμοποιείται ως φίλτρο νομικής μορφής — αλλιώς κόβει ΟΛΟΥΣ.
+ */
+export const KNOWN_LEGAL_FORMS = new Set<string>([
+  'ΑΕ', 'ΕΠΕ', 'ΙΚΕ', 'ΟΕ', 'ΕΕ', 'ΑΤΟΜΙΚΗ', 'ΣΥΝΕΤΑΙΡΙΣΜΟΣ', 'ΚΟΙΝΣΕΠ', 'ΚΟΙΣΠΕ', 'ΑΜΚΕ',
+])
+
+/** true αν το όνομα αντιστοιχεί σε πραγματική νομική μορφή (όχι μέγεθος/άσχετη φράση). */
+export function isKnownLegalForm(name: string): boolean {
+  return KNOWN_LEGAL_FORMS.has(canonicalLegalForm(name))
+}
+
+/**
  * Normalise a region name: drop accents + the word "ΠΕΡΙΦΕΡΕΙΑ", keep letters only.
  * Καλλικράτης registry stores "ΠΕΡΙΦΕΡΕΙΑ ΑΤΤΙΚΗΣ" (genitive); programs say "Αττική".
  * (ref: lib/programs/eligibility.ts normRegion — ported verbatim.)
@@ -216,10 +230,14 @@ export function evaluateTrdrEligibility(
   }
 
   if (selected.legalForm) {
-    if (program.legalFormNames.length === 0) {
+    // Αυτόματο mapping: κράτα ΜΟΝΟ αναγνωρισμένες νομικές μορφές. Οι φράσεις
+    // μεγέθους («Μικρές/Μεσαίες επιχειρήσεις» κ.λπ.) ΔΕΝ είναι νομικές μορφές —
+    // αν το πρόγραμμα δεν λίστα καμία πραγματική νομική μορφή, το κριτήριο δεν
+    // περιορίζει (auto-pass), αλλιώς έκοβε τους πάντες.
+    const allowed = program.legalFormNames.map(canonicalLegalForm).filter(f => KNOWN_LEGAL_FORMS.has(f))
+    if (allowed.length === 0) {
       matched.push('legalForm')
     } else {
-      const allowed = program.legalFormNames.map(canonicalLegalForm)
       const pass = !!input.legalForm && allowed.includes(canonicalLegalForm(input.legalForm))
       if (pass) matched.push('legalForm')
       else failed.push('legalForm')
