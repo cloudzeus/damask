@@ -6,7 +6,11 @@ COPY package.json package-lock.json ./
 # στο build stage (@tailwindcss/postcss για το globals.css, tailwindcss, typescript).
 # Το --include=dev υπερισχύει του NODE_ENV/omit. Το runtime image (standalone) δεν
 # τα κουβαλάει ούτως ή άλλως, άρα δεν φουσκώνει το τελικό image.
-RUN npm ci --include=dev
+# fetch-retries: ο Coolify builder έχει βγάλει ECONNRESET στο registry — retry με
+# exponential backoff ώστε ένα transient network reset να μη ρίχνει όλο το build.
+RUN npm ci --include=dev --no-audit --no-fund \
+  --fetch-retries=5 --fetch-retry-factor=4 \
+  --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
 FROM node:22-alpine AS build
 WORKDIR /app
@@ -25,7 +29,9 @@ RUN apk add --no-cache postgresql16-client
 # Prisma CLI (+dotenv) global για `migrate deploy` στο startup — ο Dockerfile
 # αλλιώς δεν εφαρμόζει ΠΟΤΕ migrations σε prod. NODE_PATH ώστε το prisma.config.ts
 # (φορτώνεται από το global prisma) να βρίσκει τα 'dotenv/config' + 'prisma/config'.
-RUN npm i -g prisma@7.8.0 dotenv
+RUN npm i -g prisma@7.8.0 dotenv --no-audit --no-fund \
+  --fetch-retries=5 --fetch-retry-factor=4 \
+  --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 ENV NODE_PATH=/usr/local/lib/node_modules
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
