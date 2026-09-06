@@ -6,6 +6,7 @@ import { Badge } from './_components/badge'
 import { ProgramCard, type ProgramCardData } from './_components/program-card'
 import { Faq, type FaqItem } from './_components/faq'
 import { EligibilityCta } from './_components/eligibility-cta'
+import { wwaPhoto } from './_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
 
 export const metadata: Metadata = {
@@ -16,17 +17,17 @@ export const metadata: Metadata = {
 
 const FALLBACK_PROGRAMS: ProgramCardData[] = [
   {
-    image: '/wwa/photo-startup.jpg', title: 'Ξεκινώ Επιχειρηματικά 2026',
+    image: wwaPhoto('startup'), title: 'Ξεκινώ Επιχειρηματικά 2026',
     description: 'Για πτυχιούχους που ιδρύουν επιχείρηση στο αντικείμενο των σπουδών τους. Εξοπλισμός, λειτουργικά, μισθολογικό κόστος.',
-    amount: '€36.000', amountNote: 'επιδότηση 100%', deadline: '31/10/2026', region: 'Όλη η Ελλάδα', status: 'active', isNew: true,
+    amount: 'έως 100%', amountNote: 'επιδότηση €36.000', deadline: '31/10/2026', region: 'Όλη η Ελλάδα', status: 'active', isNew: true,
   },
   {
-    image: '/wwa/photo-manufacturing.jpg', title: 'Παράγουμε στην Ελλάδα',
+    image: wwaPhoto('manufacturing'), title: 'Παράγουμε στην Ελλάδα',
     description: 'Ενίσχυση της παραγωγικής βάσης και της διεθνούς ανταγωνιστικότητας μεταποιητικών ΜμΕ.',
-    amount: '45–60%', amountNote: 'επί των επιλέξιμων δαπανών', deadline: '15/12/2026', region: '€50.000–€1.000.000', status: 'active',
+    amount: '45–60%', amountNote: 'επί των επιλέξιμων δαπανών', deadline: '15/12/2026', region: 'Όλη η Ελλάδα', status: 'active',
   },
   {
-    image: '/wwa/photo-hotel.jpg', title: 'Κοινωνική Επιχειρηματικότητα — Ιόνια Νησιά',
+    image: wwaPhoto('hotel'), title: 'Κοινωνική Επιχειρηματικότητα — Ιόνια Νησιά',
     description: 'Ενίσχυση φορέων κοινωνικής και αλληλέγγυας οικονομίας στην Περιφέρεια Ιονίων Νήσων.',
     amount: 'έως 100%', amountNote: 'περιφερειακή δράση', deadline: '30/11/2026', region: 'Ιόνια Νησιά', status: 'active',
   },
@@ -62,7 +63,7 @@ export default async function HomePage() {
       {/* HERO */}
       <section lang="el" className="hero" id="top">
         <div className="banner">
-          <img src={featured?.image || '/wwa/photo-consulting.jpg'} alt="" />
+          <img src={featured?.image || wwaPhoto('consulting')} alt="" />
           {featured ? (
             <div className="wrap"><div className="content">
               <span className="tag">Πιο πρόσφατο πρόγραμμα · {heroDeadline}</span>
@@ -139,7 +140,7 @@ export default async function HomePage() {
       <section lang="el" className="company" id="company">
         <div className="wrap">
           <div className="promo r">
-            <div className="photo square"><img src="/wwa/photo-team.jpg" alt="Η ομάδα σε επιχείρηση-πελάτη" /></div>
+            <div className="photo square"><img src={wwaPhoto('team')} alt="Η ομάδα σε επιχείρηση-πελάτη" /></div>
             <div className="txt">
               <span className="eyebrow" style={{ color: 'rgba(255,255,255,.7)' }}><span className="idx" style={{ color: 'var(--wwa-cyan-400)' }}>03</span>Η εταιρεία</span>
               <h2>Γιατί οι επιχειρήσεις μάς εμπιστεύονται ξανά</h2>
@@ -173,9 +174,9 @@ export default async function HomePage() {
         <div className="wrap">
           <div className="sec-head r"><span className="eyebrow"><span className="idx">05</span>Νέα &amp; προκηρύξεις</span><h2>Τι αλλάζει αυτόν τον μήνα</h2></div>
           <div className="cards3">
-            <article className="card card-hover ncard r"><div className="media"><img src="/wwa/photo-ecommerce.jpg" alt="" /></div><div className="body"><div className="date"><Badge variant="upcoming">Αναμένεται</Badge>04/09/2026</div><h3><Link href="/#news">Ψηφιακός Μετασχηματισμός ΜμΕ: τι φέρνει ο νέος κύκλος</Link></h3><p>Τρεις δράσεις (βασικός, προηγμένος, αιχμής) με νέες προϋποθέσεις για λογισμικό και υπηρεσίες cloud.</p></div></article>
-            <article className="card card-hover ncard r"><div className="media"><img src="/wwa/photo-cosmetics.jpg" alt="" /></div><div className="body"><div className="date"><Badge variant="active">Ενεργό</Badge>28/08/2026</div><h3><Link href="/#news">Παράγουμε στην Ελλάδα: οδηγός επιλέξιμων δαπανών</Link></h3><p>Τι καλύπτεται σε μηχανήματα, κτιριακά, πιστοποιήσεις και τι εξαιρείται ρητά από την προκήρυξη.</p></div></article>
-            <article className="card card-hover ncard r"><div className="media"><img src="/wwa/photo-hotel.jpg" alt="" /></div><div className="body"><div className="date"><Badge variant="running">Σε υλοποίηση</Badge>19/08/2026</div><h3><Link href="/#news">Πράσινη Παραγωγική Επένδυση: προθεσμίες ολοκλήρωσης</Link></h3><p>Παράταση 6 μηνών για την ολοκλήρωση φυσικού και οικονομικού αντικειμένου.</p></div></article>
+            <article className="card card-hover ncard r"><div className="media"><img src={wwaPhoto('ecommerce')} alt="" /></div><div className="body"><div className="date"><Badge variant="upcoming">Αναμένεται</Badge>04/09/2026</div><h3><Link href="/#news">Ψηφιακός Μετασχηματισμός ΜμΕ: τι φέρνει ο νέος κύκλος</Link></h3><p>Τρεις δράσεις (βασικός, προηγμένος, αιχμής) με νέες προϋποθέσεις για λογισμικό και υπηρεσίες cloud.</p></div></article>
+            <article className="card card-hover ncard r"><div className="media"><img src={wwaPhoto('cosmetics')} alt="" /></div><div className="body"><div className="date"><Badge variant="active">Ενεργό</Badge>28/08/2026</div><h3><Link href="/#news">Παράγουμε στην Ελλάδα: οδηγός επιλέξιμων δαπανών</Link></h3><p>Τι καλύπτεται σε μηχανήματα, κτιριακά, πιστοποιήσεις και τι εξαιρείται ρητά από την προκήρυξη.</p></div></article>
+            <article className="card card-hover ncard r"><div className="media"><img src={wwaPhoto('hotel')} alt="" /></div><div className="body"><div className="date"><Badge variant="running">Σε υλοποίηση</Badge>19/08/2026</div><h3><Link href="/#news">Πράσινη Παραγωγική Επένδυση: προθεσμίες ολοκλήρωσης</Link></h3><p>Παράταση 6 μηνών για την ολοκλήρωση φυσικού και οικονομικού αντικειμένου.</p></div></article>
           </div>
           <div className="sec-foot r"><Button href="/#news" variant="outline">Όλα τα νέα</Button></div>
         </div>

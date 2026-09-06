@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ProgramCard } from '../_components/program-card'
 import { EligibilityCta } from '../_components/eligibility-cta'
 import { Faq, type FaqItem } from '../_components/faq'
+import { wwaPhoto } from '../_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export default async function ProgrammataPage() {
   return (
     <>
       <section className="sub-banner" lang="el">
-        <img src="/wwa/photo-consulting.jpg" alt="" />
+        <img src={wwaPhoto('consulting')} alt="" />
         <div className="wrap"><div className="content">
           <div className="crumbs"><Link href="/">Αρχική</Link><span aria-hidden>›</span><span>Προγράμματα</span></div>
           <h1>Ενεργά προγράμματα ΕΣΠΑ</h1>

@@ -178,7 +178,8 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
  * clients δεν υποστηρίζουν backdrop-filter/εξωτερικά CSS). Table-based layout
  * για συμβατότητα. Χρησιμοποιείται από forgot-password + approve access request.
  */
-const EMAIL_APP_URL = process.env.AUTH_URL ?? 'http://localhost:3000'
+// Λογότυπο από CDN (πάντα προσβάσιμο σε email clients, σε αντίθεση με localhost/app URL)
+const EMAIL_LOGO_URL = 'https://damask-1.b-cdn.net/wwa/site/wwa-logo-light-text.png'
 
 export function renderEmailShell(opts: {
   preheader?: string
@@ -205,7 +206,7 @@ export function renderEmailShell(opts: {
           <!-- header band -->
           <tr>
             <td style="background:${NAVY_950};border-radius:18px 18px 0 0;padding:24px 30px;">
-              <img src="${EMAIL_APP_URL}/wwa/wwa-logo-light-text.png" alt="World Wide Associates" height="40" style="height:40px;width:auto;display:block;border:0;outline:none;text-decoration:none;" />
+              <img src="${EMAIL_LOGO_URL}" alt="World Wide Associates" height="40" style="height:40px;width:auto;display:block;border:0;outline:none;text-decoration:none;" />
               <div style="margin-top:8px;font-size:12px;letter-spacing:0.02em;color:${CYAN};">Σύμβουλοι ΕΣΠΑ &amp; Ευρωπαϊκών Προγραμμάτων</div>
             </td>
           </tr>

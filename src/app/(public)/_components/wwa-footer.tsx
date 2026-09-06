@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { wwaLogoDark } from '../_wwa/assets'
 
 /**
  * WWA public footer — λευκό, 4 στήλες + legal bar. Δομή από ui_kits/wwa-web.
@@ -11,25 +12,25 @@ export function WwaFooter() {
         <div className="cols">
           <div className="about">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/wwa/wwa-logo-dark-text.svg" alt="World Wide Associates" style={{ height: 40 }} />
+            <img src={wwaLogoDark} alt="World Wide Associates" style={{ height: 40 }} />
             <p>World Wide Associates Ε.Ε. — σύμβουλοι διαχείρισης και αξιοποίησης ΕΣΠΑ και ευρωπαϊκών χρηματοδοτικών εργαλείων. Έδρα: Αθήνα.</p>
           </div>
           <div>
             <h4>Εταιρεία</h4>
             <ul>
-              <li><Link href="/#company">Η εταιρεία</Link></li>
-              <li><Link href="/#services">Υπηρεσίες</Link></li>
-              <li><Link href="/#company">Πελάτες</Link></li>
-              <li><Link href="/#news">Νέα</Link></li>
+              <li><Link href="/etaireia">Η εταιρεία</Link></li>
+              <li><Link href="/ypiresies">Υπηρεσίες</Link></li>
+              <li><Link href="/pelates">Πελάτες</Link></li>
+              <li><Link href="/nea">Νέα</Link></li>
             </ul>
           </div>
           <div>
             <h4>Προγράμματα</h4>
             <ul>
-              <li><Link href="/programmata">Ενεργά</Link></li>
-              <li><Link href="/programmata">Σε υλοποίηση</Link></li>
-              <li><Link href="/programmata">Ολοκληρωμένα</Link></li>
-              <li><Link href="/programmata">Αναπτυξιακός Νόμος</Link></li>
+              <li><Link href="/programmata">Ενεργά προγράμματα</Link></li>
+              <li><Link href="/ypiresies">Υπηρεσίες ΕΣΠΑ</Link></li>
+              <li><Link href="/epikoinonia">Δωρεάν αξιολόγηση</Link></li>
+              <li><Link href="/nea">Προκηρύξεις &amp; νέα</Link></li>
             </ul>
           </div>
           <div>

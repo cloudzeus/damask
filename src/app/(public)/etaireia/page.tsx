@@ -1,0 +1,81 @@
+/* eslint-disable @next/next/no-img-element -- public φωτογραφίες με object-fit cover */
+import type { Metadata } from 'next'
+import { SubBanner } from '../_components/sub-banner'
+import { Faq, type FaqItem } from '../_components/faq'
+import { IconCheck, IconInfo, IconShield, IconChart } from '../_components/icons'
+import { wwaPhoto } from '../_wwa/assets'
+
+export const metadata: Metadata = {
+  title: 'Η εταιρεία — World Wide Associates, Σύμβουλοι ΕΣΠΑ',
+  description: 'Σύμβουλοι ΕΣΠΑ με έδρα την Αθήνα και 2.500+ εγκεκριμένα επενδυτικά σχέδια, ποσοστό εγκρίσεων 98–100%. Διαφάνεια, αξιοπιστία, αποτελεσματικότητα.',
+}
+
+const FAQS: FaqItem[] = [
+  { q: 'Τι είναι η World Wide Associates;', a: 'Η World Wide Associates (WWA) είναι εταιρεία συμβούλων επιχειρήσεων με έδρα την Αθήνα, εξειδικευμένη σε προγράμματα ΕΣΠΑ, Αναπτυξιακού Νόμου και Ταμείου Ανάκαμψης. Έχει υποβάλει περισσότερα από 2.500 επενδυτικά σχέδια με ποσοστό εγκρίσεων 98–100%.' },
+  { q: 'Πού βρίσκεται η WWA και ποιες περιοχές εξυπηρετεί;', a: 'Τα γραφεία βρίσκονται στην οδό Αλεξανδρουπόλεως 25, Αθήνα 115 27. Εξυπηρετούμε επιχειρήσεις σε όλη την Ελλάδα, ηλεκτρονικά και τηλεφωνικά, με επιτόπιες επισκέψεις όπου το απαιτεί το πρόγραμμα.' },
+  { q: 'Σε ποιους φορείς συμμετέχει η WWA;', a: 'Είμαστε επίσημοι σύμβουλοι του ΣΕΔΕ και μέλη του ΣΥ.Σ.ΕΠ., του GR.EC.A, του ΠΣΒΑΚ και του BNI Greece, καθώς και συνεργάτες του δικτύου Entersoftone.' },
+  { q: 'Ποιος θα χειρίζεται τον φάκελό μου;', a: 'Ο ίδιος σύμβουλος από την αξιολόγηση μέχρι την τελική εκταμίευση. Δεν υπάρχει μεταβίβαση σε διαφορετικά τμήματα ανά στάδιο.' },
+  { q: 'Με ποιους κλάδους έχετε μεγαλύτερη εμπειρία;', a: 'Μεταποίηση και τρόφιμα, τουρισμός, λιανεμπόριο και ηλεκτρονικό εμπόριο, τεχνολογία και λογισμικό, καλλυντικά, κοινωνική οικονομία.' },
+]
+
+export default function CompanyPage() {
+  return (
+    <>
+      <SubBanner
+        image={wwaPhoto('team')}
+        crumbs={[{ label: 'Εταιρεία' }]}
+        title="Η ΕΤΑΙΡΕΙΑ"
+        sub={<>Σύμβουλοι ΕΣΠΑ με <span style={{ color: 'var(--wwa-cyan-400)' }}>2.500+</span> εγκεκριμένα σχέδια</>}
+        lead="Η World Wide Associates Ε.Ε. λειτουργεί από την Αθήνα με πελάτες σε όλη την Ελλάδα. Διαφάνεια, αξιοπιστία και αποτελεσματικότητα σε κάθε στάδιο."
+      />
+
+      <section lang="el">
+        <div className="wrap layout company-layout">
+          <nav className="side-nav" aria-label="Ενότητες εταιρείας">
+            <a href="#profil" aria-current="page">Εταιρικό προφίλ</a>
+            <a href="#values">Αξίες</a>
+            <a href="#team">Η ομάδα</a>
+            <a href="#foreis">Φορείς &amp; συνεργασίες</a>
+            <a href="#numbers">Σε αριθμούς</a>
+          </nav>
+          <div className="content">
+            <h2 id="profil">Εταιρικό προφίλ</h2>
+            <p>Η World Wide Associates ιδρύθηκε για να βοηθά ελληνικές μικρομεσαίες επιχειρήσεις να αξιοποιούν τα ευρωπαϊκά και εθνικά χρηματοδοτικά εργαλεία: ΕΣΠΑ, Αναπτυξιακό Νόμο, Ταμείο Ανάκαμψης και περιφερειακά προγράμματα.</p>
+            <p>Δουλεύουμε με ένα μοντέλο: ο ίδιος σύμβουλος συνοδεύει την επιχείρηση από την αξιολόγηση της ιδέας μέχρι την τελική εκταμίευση. Αναλαμβάνουμε μόνο σχέδια που μπορούν να εγκριθούν — γι’ αυτό το ποσοστό εγκρίσεών μας κινείται σταθερά στο 98–100%.</p>
+            <div className="note"><IconInfo /><span>Έδρα: Αλεξανδρουπόλεως 25, Αθήνα 115 27 · Εξυπηρετούμε επιχειρήσεις σε όλη την Ελλάδα, με επιτόπιες επισκέψεις όπου χρειάζεται.</span></div>
+
+            <h2 id="values">Αξίες</h2>
+            <div className="values">
+              <div className="value"><IconShield /><h3>Διαφάνεια</h3><p>Λέμε από την πρώτη επικοινωνία αν ένα σχέδιο έχει πιθανότητες. Καμία υπόσχεση που δεν μπορούμε να κρατήσουμε.</p></div>
+              <div className="value"><IconCheck /><h3>Αξιοπιστία</h3><p>Φάκελος έτοιμος πριν από τη λήξη, πιστοποιήσεις στην ώρα τους, καμία χαμένη εκταμίευση.</p></div>
+              <div className="value"><IconChart /><h3>Αποτελεσματικότητα</h3><p>Μετράμε τη δουλειά μας σε εγκρίσεις και εκταμιεύσεις, όχι σε υποβολές.</p></div>
+            </div>
+
+            <h2 id="team">Η ομάδα</h2>
+            <p>Οικονομολόγοι, μηχανικοί και νομικοί με εμπειρία σε τρεις προγραμματικές περιόδους ΕΣΠΑ.</p>
+            <div className="team">
+              <article className="person"><div className="photo square ph"><img src={wwaPhoto('consulting')} alt="" /></div><div className="b"><h3>Α. Στάμος</h3><div className="role">Διευθύνων Σύμβουλος · Οικονομολόγος</div><p>20+ χρόνια σε επενδυτικά σχέδια ΕΣΠΑ και Αναπτυξιακού Νόμου.</p></div></article>
+              <article className="person"><div className="photo square ph"><img src={wwaPhoto('team')} alt="" /></div><div className="b"><h3>Ομάδα υποβολών</h3><div className="role">Σύνταξη &amp; υποβολή φακέλων</div><p>Τεχνική και οικονομική τεκμηρίωση, ΟΠΣΚΕ, διευκρινίσεις αξιολογητών.</p></div></article>
+              <article className="person"><div className="photo square ph"><img src={wwaPhoto('manufacturing')} alt="" /></div><div className="b"><h3>Ομάδα υλοποίησης</h3><div className="role">Διαχείριση έργων &amp; πιστοποιήσεις</div><p>Επιτόπιες επαληθεύσεις, τροποποιήσεις, εκταμιεύσεις.</p></div></article>
+            </div>
+
+            <h2 id="foreis">Φορείς &amp; συνεργασίες</h2>
+            <p>Επίσημοι σύμβουλοι του ΣΕΔΕ (Σύνδεσμος Επιχειρήσεων Διαδικτύου) και μέλη στον ΣΥ.Σ.ΕΠ., τον GR.EC.A, τον ΠΣΒΑΚ και το BNI Greece. Συνεργάτες του δικτύου Entersoftone.</p>
+            <div className="logo-strip" style={{ padding: '12px 0 8px' }}><span>ΣΕΔΕ</span><span>ΣΥ.Σ.ΕΠ.</span><span>GR.EC.A</span><span>ΠΣΒΑΚ</span><span>BNI Greece</span><span>Entersoftone</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section lang="el" className="stats alt" id="numbers">
+        <div className="wrap">
+          <div className="stat"><div className="value" data-count="2500" data-suffix="+">2.500+</div><div className="label">επενδυτικά σχέδια με έγκριση</div></div>
+          <div className="stat accent"><div className="value">98–100%</div><div className="label">ποσοστό εγκρίσεων</div></div>
+          <div className="stat"><div className="value" data-count="30" data-suffix="+">30+</div><div className="label">προγράμματα σε υλοποίηση ή ολοκληρωμένα</div></div>
+          <div className="stat"><div className="value">3</div><div className="label">προγραμματικές περίοδοι ΕΣΠΑ</div></div>
+        </div>
+      </section>
+
+      <Faq items={FAQS} idx="02" subtitle="Τα πιο συχνά ερωτήματα για την εταιρεία." />
+    </>
+  )
+}

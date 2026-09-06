@@ -81,9 +81,11 @@ export type PublicProgramCard = {
   heroSubtitle: string
 }
 
+// CDN (Media Gallery «WWA — Δημόσιο site») — βλ. app/(public)/_wwa/assets.ts
+const WWA_CDN = 'https://damask-1.b-cdn.net/wwa/site'
 const FALLBACK_IMAGES = [
-  '/wwa/photo-manufacturing.jpg', '/wwa/photo-startup.jpg', '/wwa/photo-hotel.jpg',
-  '/wwa/photo-ecommerce.jpg', '/wwa/photo-cosmetics.jpg', '/wwa/photo-consulting.jpg',
+  `${WWA_CDN}/photo-manufacturing.webp`, `${WWA_CDN}/photo-startup.webp`, `${WWA_CDN}/photo-hotel.webp`,
+  `${WWA_CDN}/photo-ecommerce.webp`, `${WWA_CDN}/photo-cosmetics.webp`, `${WWA_CDN}/photo-consulting.webp`,
 ]
 
 export async function listPublicPrograms(): Promise<PublicProgramCard[]> {

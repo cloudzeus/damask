@@ -2,24 +2,33 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { openEligibility } from './eligibility-modal'
+import { wwaLogoDark } from '../_wwa/assets'
 
 /**
  * WWA public header — utility bar (navy-950) + sticky λευκό topbar με λογότυπο,
  * ΚΕΦΑΛΑΙΑ Condensed nav, «Σύνδεση» + pill CTA «Δωρεάν αξιολόγηση». Client για
- * το mobile burger. Το header shadow-on-scroll το χειρίζεται το WwaMotion.
+ * το mobile burger + active nav (usePathname). Το header shadow-on-scroll το
+ * χειρίζεται το WwaMotion.
  */
 const NAV = [
   { label: 'Αρχική', href: '/' },
   { label: 'Προγράμματα ΕΣΠΑ', href: '/programmata' },
-  { label: 'Υπηρεσίες', href: '/#services' },
-  { label: 'Εταιρεία', href: '/#company' },
-  { label: 'Νέα', href: '/#news' },
-  { label: 'Επικοινωνία', href: '/#contact' },
+  { label: 'Υπηρεσίες', href: '/ypiresies' },
+  { label: 'Εταιρεία', href: '/etaireia' },
+  { label: 'Νέα', href: '/nea' },
+  { label: 'Επικοινωνία', href: '/epikoinonia' },
 ]
+
+function useActive() {
+  const pathname = usePathname()
+  return (href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`))
+}
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
+  const isActive = useActive()
   return (
     <>
       <div className="util" lang="el">
@@ -39,11 +48,11 @@ export function SiteHeader() {
         <div className="wrap">
           <Link href="/" aria-label="World Wide Associates — Αρχική">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/wwa/wwa-logo-dark-text.svg" alt="World Wide Associates" />
+            <img src={wwaLogoDark} alt="World Wide Associates" />
           </Link>
           <nav lang="el" aria-label="Κύριο μενού">
-            {NAV.map((n, i) => (
-              <Link key={n.href} href={n.href} aria-current={i === 0 ? 'page' : undefined}>{n.label}</Link>
+            {NAV.map(n => (
+              <Link key={n.href} href={n.href} aria-current={isActive(n.href) ? 'page' : undefined}>{n.label}</Link>
             ))}
           </nav>
           <div className="cta">
