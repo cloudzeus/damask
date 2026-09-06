@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, FolderTree, Ruler, Handshake, ClipboardList,
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
   Cookie, CreditCard, ScanText, Coins, FileText, Landmark, FolderKanban,
-  MapPin, Tags, MailCheck, UserPlus, Activity, Mails, UsersRound,
+  MapPin, Tags, MailCheck, UserPlus, Activity, Mails, UsersRound, Gauge,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -88,6 +88,7 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     { key: 'assignments', href: '/assignments', label: 'Αναθέσεις', icon: UsersRound, menuPermission: 'application.assign', permissions: [
       { key: 'application.assign', description: 'Ανάθεση έργων σε manager & υπαλλήλους (admin/super-admin)' },
     ] },
+    { key: 'workload', href: '/workload', label: 'Φόρτος εργασίας', icon: Gauge, menuPermission: 'application.assign', permissions: [] },
     { key: 'regions', href: '/regions', label: 'Περιφέρειες', icon: MapPin, menuPermission: 'regions.view', permissions: [
       { key: 'regions.view', description: 'Προβολή μητρώου περιφερειών (Καλλικράτης)' },
       { key: 'regions.manage', description: 'Διαχείριση μητρώου περιφερειών — προσθήκη/επεξεργασία/διαγραφή' },

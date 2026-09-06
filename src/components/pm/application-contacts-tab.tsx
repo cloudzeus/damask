@@ -1,0 +1,274 @@
+'use client'
+
+import * as React from 'react'
+import { toast } from 'sonner'
+import { Users, UserPlus, Mail, Phone, Check, LoaderCircle, Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
+} from '@/components/ui/dialog'
+import {
+  listApplicationContactOptions, setApplicationContacts, type AppContactOption,
+} from '@/lib/pm/application-contacts'
+
+/**
+ * «Επαφές» tab του έργου (ProgramApplication hub) — συνδέει μία ή περισσότερες
+ * επαφές του πελάτη με το συγκεκριμένο έργο. Self-fetching client component,
+ * mirror του idiom document-requests-tab.tsx: αρχική φόρτωση μέσα σε effect με
+ * setState ΜΕΤΑ το await (react-hooks/set-state-in-effect). Ανάγνωση gated
+ * customer.view· η διαχείριση (Dialog με checkbox list) gated programs.manage
+ * και εμφανίζεται μόνο όταν canManage.
+ */
+export function ApplicationContactsTab({ applicationId, canManage }: { applicationId: string; canManage: boolean }) {
+  const [options, setOptions] = React.useState<AppContactOption[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+  const [manageOpen, setManageOpen] = React.useState(false)
+
+  // Καθαρή ανάκτηση — δεν αγγίζει state, ώστε να καλείται και μέσα σε effect
+  // (μετά το await) και από event handlers.
+  const fetchOptions = React.useCallback(() => listApplicationContactOptions(applicationId), [applicationId])
+
+  // Manual reload — καλείται ΜΟΝΟ από event handlers (μετά το save), όπου το
+  // synchronous setState επιτρέπεται.
+  const reload = React.useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      setOptions(await fetchOptions())
+    } catch {
+      setError('Η φόρτωση των επαφών απέτυχε.')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchOptions])
+
+  // Αρχική φόρτωση — setState ΜΕΤΑ το await.
+  React.useEffect(() => {
+    let cancelled = false
+    fetchOptions()
+      .then(rows => { if (!cancelled) setOptions(rows) })
+      .catch(() => { if (!cancelled) setError('Η φόρτωση των επαφών απέτυχε.') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [fetchOptions])
+
+  const linked = options.filter(o => o.linked)
+  const hasContacts = options.length > 0
+
+  return (
+    <section className="glass rounded-[22px] p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+          Επαφές έργου ({linked.length})
+        </div>
+        {canManage && (
+          <Button type="button" onClick={() => setManageOpen(true)} disabled={loading}>
+            <UserPlus className="size-4" aria-hidden /> Διαχείριση επαφών
+          </Button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+          <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
+        </div>
+      ) : error ? (
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
+      ) : linked.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <Users className="size-6 text-muted-foreground" aria-hidden />
+          <p className="text-[0.78125rem] text-muted-foreground">Δεν έχουν συνδεθεί επαφές.</p>
+          {canManage && (
+            <p className="text-[0.71875rem] text-muted-foreground">
+              {hasContacts
+                ? 'Πάτησε «Διαχείριση επαφών» για να συνδέσεις επαφές του πελάτη.'
+                : 'Ο πελάτης δεν έχει καταχωρημένες επαφές — προστίθενται από την καρτέλα πελάτη.'}
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {linked.map(c => <ContactCard key={c.contactId} contact={c} />)}
+        </div>
+      )}
+
+      {canManage && (
+        <ManageContactsDialog
+          applicationId={applicationId}
+          options={options}
+          open={manageOpen}
+          onOpenChange={setManageOpen}
+          onSaved={() => { setManageOpen(false); void reload() }}
+        />
+      )}
+    </section>
+  )
+}
+
+function ContactCard({ contact }: { contact: AppContactOption }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card/60 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[0.8125rem] font-semibold">{contact.name}</span>
+            {contact.isPrimary && <span className="badge-pill ok shrink-0">Κύρια</span>}
+          </div>
+          {contact.position && <p className="mt-1 text-[0.75rem] text-muted-foreground">{contact.position}</p>}
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1 text-[0.71875rem] text-muted-foreground">
+          {contact.email && (
+            <a href={`mailto:${contact.email}`} className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline">
+              <Mail className="size-3.5" aria-hidden /> {contact.email}
+            </a>
+          )}
+          {contact.phone && (
+            <a href={`tel:${contact.phone}`} className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline">
+              <Phone className="size-3.5" aria-hidden /> {contact.phone}
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ManageContactsDialog({
+  applicationId, options, open, onOpenChange, onSaved,
+}: {
+  applicationId: string
+  options: AppContactOption[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSaved: () => void
+}) {
+  const [selected, setSelected] = React.useState<Set<string>>(new Set())
+  const [query, setQuery] = React.useState('')
+  const [saving, startSaving] = React.useTransition()
+
+  // Κάθε άνοιγμα προεπιλέγει τις ήδη συνδεδεμένες επαφές. Ρυθμίζεται κατά το
+  // render όταν αλλάζει το `open` (documented React pattern), αντί για effect —
+  // αποφεύγει το react-hooks/set-state-in-effect.
+  const [prevOpen, setPrevOpen] = React.useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) setSelected(new Set(options.filter(o => o.linked).map(o => o.contactId)))
+  }
+
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return q
+      ? options.filter(o =>
+          o.name.toLowerCase().includes(q)
+          || (o.position?.toLowerCase().includes(q) ?? false)
+          || (o.email?.toLowerCase().includes(q) ?? false))
+      : options
+  }, [options, query])
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(o => selected.has(o.contactId))
+
+  function toggle(contactId: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(contactId)) next.delete(contactId)
+      else next.add(contactId)
+      return next
+    })
+  }
+  function toggleAll() {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (allFilteredSelected) filtered.forEach(o => next.delete(o.contactId))
+      else filtered.forEach(o => next.add(o.contactId))
+      return next
+    })
+  }
+
+  function handleSave() {
+    startSaving(async () => {
+      try {
+        const res = await setApplicationContacts(applicationId, [...selected])
+        if (!res.ok) throw new Error(res.error)
+        toast.success(`Συνδέθηκαν ${res.linked} ${res.linked === 1 ? 'επαφή' : 'επαφές'}.`)
+        onSaved()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Η αποθήκευση απέτυχε.')
+      }
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={next => { if (!saving) onOpenChange(next) }}>
+      <DialogContent className="flex max-h-[85vh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden bg-popover sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle>Διαχείριση επαφών έργου</DialogTitle>
+          <DialogDescription>Επίλεξε μία ή περισσότερες επαφές του πελάτη για σύνδεση με αυτό το έργο.</DialogDescription>
+        </DialogHeader>
+
+        {options.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <Users className="size-6 text-muted-foreground" aria-hidden />
+            <p className="text-[0.78125rem] text-muted-foreground">Ο πελάτης δεν έχει καταχωρημένες επαφές.</p>
+            <p className="text-[0.71875rem] text-muted-foreground">Οι επαφές διαχειρίζονται από την καρτέλα πελάτη.</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex min-w-[200px] flex-1 items-center gap-2 rounded-full border border-border bg-card px-3 py-2">
+                <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                <input
+                  type="text" value={query} onChange={e => setQuery(e.target.value)}
+                  placeholder="Αναζήτηση επαφής…" className="w-full bg-transparent text-[0.8125rem] outline-none"
+                  aria-label="Αναζήτηση επαφής"
+                />
+              </label>
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold whitespace-nowrap">
+                <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} disabled={filtered.length === 0} className="size-4" />
+                Επιλογή όλων
+              </label>
+              <span className="text-[0.75rem] text-muted-foreground">{selected.size} επιλεγμένες</span>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
+              {filtered.length === 0 ? (
+                <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν βρέθηκαν επαφές.</p>
+              ) : (
+                <ul className="flex flex-col">
+                  {filtered.map(o => (
+                    <li key={o.contactId} className="dotted-row-bottom">
+                      <label className="flex min-h-[44px] cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted">
+                        <input type="checkbox" checked={selected.has(o.contactId)} onChange={() => toggle(o.contactId)} className="size-4 shrink-0" />
+                        <span className="flex min-w-0 flex-col">
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[0.8125rem] font-semibold">{o.name}</span>
+                            {o.isPrimary && <span className="badge-pill ok shrink-0">Κύρια</span>}
+                          </span>
+                          {(o.position || o.email) && (
+                            <span className="truncate text-[0.71875rem] text-muted-foreground">
+                              {[o.position, o.email].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" disabled={saving}>Άκυρο</Button>} />
+          {options.length > 0 && (
+            <Button type="button" onClick={handleSave} disabled={saving}>
+              {saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Check className="size-3.5" aria-hidden />}
+              Αποθήκευση ({selected.size})
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

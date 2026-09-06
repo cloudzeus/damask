@@ -418,27 +418,28 @@ model Referrer {
 }
 
 model Contact {
-  id        String  @id @default(cuid())
-  trdrId    String
-  trdr      Trdr    @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  id               String               @id @default(cuid())
+  trdrId           String
+  trdr             Trdr                 @relation(fields: [trdrId], references: [id], onDelete: Cascade)
   /// Mirror CUSPRSN/SUPPRSN pattern (S1 person-on-trader link) — PRSN = S1
   /// person id (PRSN→PRSNOUT στο S1 export), TRDBRANCH/LINENUM = θέση μέσα
   /// στην CUSPRSN/SUPPRSN γραμμή, COMMENTS = παρατηρήσεις S1.
-  PRSN      Int?
-  TRDBRANCH Int?
-  LINENUM   Int?
-  COMMENTS  String?
-  name      String
-  position  String?
-  email     String?
-  phone     String?
-  mobile    String?
-  isPrimary Boolean @default(false)
+  PRSN             Int?
+  TRDBRANCH        Int?
+  LINENUM          Int?
+  COMMENTS         String?
+  name             String
+  position         String?
+  email            String?
+  phone            String?
+  mobile           String?
+  isPrimary        Boolean              @default(false)
   /// Σύνδεση με User όταν εγκρίνεται το αίτημα πρόσβασης της επαφής (βλ.
   /// approveAccessRequest, src/app/(app)/users/actions.ts) — ίδιο idiom με
   /// ArchitectProfile.userId παρακάτω.
-  userId    String? @unique
-  user      User?   @relation(fields: [userId], references: [id])
+  userId           String?              @unique
+  user             User?                @relation(fields: [userId], references: [id])
+  applicationLinks ApplicationContact[]
 
   @@index([trdrId])
 }
@@ -1191,6 +1192,7 @@ model Program {
   legalForms           ProgramEligibleLegalForm[]
   applications         ProgramApplication[]
   requiredForms        ProgramRequiredForm[]
+  phaseFiles           ProgramPhaseFile[]
   taskTemplates        ProgramTaskTemplate[]
   deliverableTemplates ProgramDeliverableTemplate[]
   leads                ProgramLead[]
@@ -1455,10 +1457,47 @@ model ProgramApplication {
   paymentRequests     PaymentRequest[]
   documentRequests    DocumentRequest[]
   expenseDeliverables ExpenseDeliverable[]
+  contactLinks        ApplicationContact[]
 
   @@unique([trdrId, programId])
   @@index([trdrId])
   @@index([programId])
+}
+
+/// Απαιτούμενα αρχεία ΑΠΟ ΤΟΝ ΠΕΛΑΤΗ ανά πρόγραμμα × φάση — ο admin ορίζει τι
+/// δικαιολογητικά χρειάζονται σε κάθε φάση. Τροφοδοτεί τα αιτήματα δικαιολογητικών
+/// (FileRequest) ως πρότυπο. Ξεχωριστό από τα εσωτερικά ProgramDeliverableTask.
+model ProgramPhaseFile {
+  id          String           @id @default(cuid())
+  programId   String
+  program     Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  phase       DeliverablePhase
+  label       String
+  description String?
+  required    Boolean          @default(true)
+  order       Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([programId])
+  @@index([programId, phase])
+}
+
+/// Σύνδεση έργου (ProgramApplication) με μία ή περισσότερες επαφές από τη μεριά
+/// του πελάτη (Contact). Οι επαφές ανήκουν στον ίδιο Trdr με το έργο.
+model ApplicationContact {
+  id            String             @id @default(cuid())
+  applicationId String
+  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contactId     String
+  contact       Contact            @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  role          String?
+  createdById   String?
+  createdAt     DateTime           @default(now())
+
+  @@unique([applicationId, contactId])
+  @@index([applicationId])
+  @@index([contactId])
 }
 
 model ProgramExpense {
