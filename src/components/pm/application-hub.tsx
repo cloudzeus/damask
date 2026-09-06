@@ -21,6 +21,7 @@ import { DeliverablesMatrixTab } from './deliverables-matrix-tab'
 import { GanttView } from './gantt-view'
 import { PaymentsTab } from './payments-tab'
 import { DocumentRequestsTab } from './document-requests-tab'
+import { FileRequestsReviewTab } from './file-requests-review-tab'
 import { ApplicationContactsTab } from './application-contacts-tab'
 import { PortalAccessDialog } from './portal-access-dialog'
 import { EmailHistory } from '@/components/email/email-history'
@@ -171,6 +172,7 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
       {activeTab === 'certification' && <DeliverablesMatrixTab applicationId={app.id} programId={app.programId} />}
       {activeTab === 'gantt' && <GanttView applicationId={app.id} programId={app.programId} />}
       {activeTab === 'docrequests' && <DocumentRequestsTab applicationId={app.id} />}
+      {activeTab === 'filereq' && <FileRequestsReviewTab applicationId={app.id} />}
       {activeTab === 'contacts' && <ApplicationContactsTab applicationId={app.id} canManage={app.canManage} />}
       {activeTab === 'payments' && <PaymentsTab applicationId={app.id} />}
       {activeTab === 'comm' && (
@@ -243,7 +245,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
 
 /* ── Tab bar — mirror του idiom στο program-editor.tsx (pill row, navy
  * active, χωρίς Tabs primitive). ── */
-type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'gantt' | 'docrequests' | 'contacts' | 'payments' | 'opske' | 'comm'
+type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'gantt' | 'docrequests' | 'filereq' | 'contacts' | 'payments' | 'opske' | 'comm'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'assessment', label: 'Αξιολόγηση' },
@@ -253,6 +255,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'certification', label: 'Φάκελος & Πιστοποίηση' },
   { key: 'gantt', label: 'Gantt' },
   { key: 'docrequests', label: 'Αιτήματα εγγράφων' },
+  { key: 'filereq', label: 'Δικαιολογητικά' },
   { key: 'contacts', label: 'Επαφές' },
   { key: 'payments', label: 'Αποπληρωμές' },
   { key: 'opske', label: 'ΟΠΣΚΕ' },

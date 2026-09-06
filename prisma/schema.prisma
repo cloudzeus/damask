@@ -2354,6 +2354,10 @@ model FileRequestItem {
   mediaAssetId  String?
   uploadedAt    DateTime?
   note          String?
+  // Επιβεβαίωση από manager/ανατεθειμένο του έργου (ποιος + πότε).
+  reviewedById  String?
+  reviewedAt    DateTime?
+  reviewNote    String?
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 

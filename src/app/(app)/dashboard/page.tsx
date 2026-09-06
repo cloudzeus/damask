@@ -3,6 +3,7 @@ import { Package, Languages, Container, ClipboardList, Bell } from 'lucide-react
 import { PageHeader } from '@/components/ui/page-header'
 import { getNotifications } from '@/lib/notifications/actions'
 import { relativeTime } from '@/lib/relative-time'
+import { PendingReviews } from '@/components/pm/pending-reviews'
 
 const CARDS = [
   { title: 'Προϊόντα', value: '—', hint: 'Sync στη Φάση 2', icon: Package },
@@ -44,6 +45,8 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+
+      <PendingReviews />
 
       <section className="glass mt-3 px-4 pt-3.5 pb-3">
         <header className="mb-2.5 flex items-center gap-2">
