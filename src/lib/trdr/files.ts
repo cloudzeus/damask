@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/rbac-server'
 import { prisma } from '@/lib/prisma'
-import { bunnyList, bunnyUploadPrivate, bunnyDeleteOne } from '@/lib/bunny-storage'
+import { bunnyList, bunnyUploadPrivate, bunnyDeleteOne, bunnyDownload } from '@/lib/bunny-storage'
 import { buildTrdrFolderPath } from '@/lib/trdr/cdn-folder'
 
 /**
@@ -75,6 +75,27 @@ export async function deleteTrdrFile(trdrId: string, key: string): Promise<{ ok:
   const root = await rootFor(trdrId)
   if (!key.startsWith(root) || key.includes('..')) return { ok: false, error: 'Μη έγκυρο αρχείο.' }
   await bunnyDeleteOne(key)
+  revalidatePath(`/partners/${trdrId}`)
+  return { ok: true }
+}
+
+/** Μετονομασία αρχείου (Bunny: copy bytes σε νέο key + delete παλιό). Ίδιος φάκελος. */
+export async function renameTrdrFile(trdrId: string, key: string, newName: string): Promise<{ ok: boolean; error?: string }> {
+  await requirePermission('customer.edit')
+  const root = await rootFor(trdrId)
+  if (!key.startsWith(root) || key.includes('..')) return { ok: false, error: 'Μη έγκυρο αρχείο.' }
+  const safe = newName.trim().replace(/[/\\]/g, '').replace(/\.\.+/g, '.')
+  if (!safe) return { ok: false, error: 'Μη έγκυρο όνομα.' }
+  const dir = key.slice(0, key.lastIndexOf('/') + 1)
+  const newKey = `${dir}${safe}`
+  if (newKey === key) return { ok: true }
+  try {
+    const buf = await bunnyDownload(key)
+    await bunnyUploadPrivate({ key: newKey, body: buf })
+    await bunnyDeleteOne(key)
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Η μετονομασία απέτυχε.' }
+  }
   revalidatePath(`/partners/${trdrId}`)
   return { ok: true }
 }

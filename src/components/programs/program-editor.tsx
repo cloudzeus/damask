@@ -17,6 +17,7 @@ import { extractPdfText } from '@/lib/programs/pdf-text'
 import { RequiredFormsTab } from './required-forms-tab'
 import { TaskTemplatesTab } from './task-templates-tab'
 import { DeliverableTemplatesTab } from './deliverable-templates-tab'
+import { PhaseFilesTab } from './phase-files-tab'
 import { ProspectsTab } from './prospects-tab'
 
 /**
@@ -162,7 +163,7 @@ function validateNonNegativeInteger(v: string, label: string): string | null {
 /* ── Tab bar — lightweight, χωρίς Tabs primitive (δεν υπάρχει στο
  * src/components/ui) — pill row, navy active state (Steel & Frost §4β). */
 
-type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'prospects'
+type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'phaseFiles' | 'prospects'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'desc', label: 'Περιγραφή & Ημερομηνίες' },
@@ -173,6 +174,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'forms', label: 'Έντυπα' },
   { key: 'tasks', label: 'Βήματα Διαχείρισης' },
   { key: 'deliverableTemplates', label: 'Παραδοτέα ανά Φάση' },
+  { key: 'phaseFiles', label: 'Αρχεία πελάτη' },
   { key: 'prospects', label: 'Δυνητικοί πελάτες' },
 ]
 
@@ -580,6 +582,9 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
 
       {/* «Παραδοτέα ανά Φάση» (C2g) — wizard-authored πρότυπα παραδοτέων + tasks ανά φάση */}
       {activeTab === 'deliverableTemplates' && <DeliverableTemplatesTab programId={program.id} />}
+
+      {/* «Αρχεία πελάτη» — απαιτούμενα αρχεία από τον πελάτη ανά φάση (πρότυπο FileRequest) */}
+      {activeTab === 'phaseFiles' && <PhaseFilesTab programId={program.id} />}
 
       {activeTab === 'prospects' && <ProspectsTab programId={program.id} />}
     </div>

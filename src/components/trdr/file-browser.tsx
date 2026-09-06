@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useState, useTransition, type MouseEvent, type ReactNode } from 'react'
 import {
   Folder, FileText, Download, Trash2, FolderPlus, ChevronRight, ArrowLeft, LoaderCircle, Upload,
+  Pencil, Copy, ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,8 +12,9 @@ import {
 } from '@/components/ui/dialog'
 import { FileDropzone, xhrUpload } from '@/components/ui/file-dropzone'
 import {
-  listTrdrFiles, deleteTrdrFile, createTrdrSubfolder, type TrdrFilesListing, type BrowserFile,
+  listTrdrFiles, deleteTrdrFile, createTrdrSubfolder, renameTrdrFile, type TrdrFilesListing, type BrowserFile,
 } from '@/lib/trdr/files'
+import { toast } from 'sonner'
 import { relativeTime } from '@/lib/relative-time'
 
 /**
@@ -49,7 +51,25 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
   const [actionError, setActionError] = useState<string | null>(null)
   const [folderOpen, setFolderOpen] = useState(false)
   const [folderName, setFolderName] = useState('')
+  const [menu, setMenu] = useState<{ x: number; y: number; file: BrowserFile } | null>(null)
+  const [renameTarget, setRenameTarget] = useState<BrowserFile | null>(null)
+  const [renameName, setRenameName] = useState('')
   const [pending, startTransition] = useTransition()
+
+  // Κλείσιμο context menu σε click/scroll/Escape (χωρίς setState στο σώμα του effect).
+  useEffect(() => {
+    if (!menu) return
+    const close = () => setMenu(null)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(null) }
+    window.addEventListener('click', close)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('click', close)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [menu])
 
   // Manual reload — καλείται ΜΟΝΟ από event handlers, όπου το synchronous
   // setState επιτρέπεται (react-hooks/set-state-in-effect).
@@ -118,6 +138,38 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
       if (!res.ok) { setActionError(res.error ?? 'Η δημιουργία φακέλου απέτυχε.'); return }
       setFolderOpen(false)
       setFolderName('')
+      await reload()
+    })
+  }
+
+  function openMenu(e: MouseEvent, file: BrowserFile) {
+    e.preventDefault()
+    e.stopPropagation()
+    setMenu({ x: e.clientX, y: e.clientY, file })
+  }
+
+  function copyLink(file: BrowserFile) {
+    const url = `${window.location.origin}${file.downloadUrl}`
+    navigator.clipboard.writeText(url).then(
+      () => toast.success('Ο σύνδεσμος αντιγράφηκε.'),
+      () => toast.error('Αδυναμία αντιγραφής.'),
+    )
+  }
+
+  function openRename(file: BrowserFile) {
+    setRenameTarget(file)
+    setRenameName(file.name)
+  }
+
+  function handleRename() {
+    const target = renameTarget
+    const name = renameName.trim()
+    if (!target || !name || name === target.name) { setRenameTarget(null); return }
+    setActionError(null)
+    startTransition(async () => {
+      const res = await renameTrdrFile(trdrId, target.key, name)
+      if (!res.ok) { setActionError(res.error ?? 'Η μετονομασία απέτυχε.'); return }
+      setRenameTarget(null)
       await reload()
     })
   }
@@ -216,7 +268,11 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
                 ))}
 
                 {listing.files.map(file => (
-                  <li key={file.key} className="flex min-h-11 items-center gap-3 px-3.5 py-2.5">
+                  <li
+                    key={file.key}
+                    className="flex min-h-11 items-center gap-3 px-3.5 py-2.5"
+                    onContextMenu={e => openMenu(e, file)}
+                  >
                     <FileText className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm font-medium">{file.name}</span>
@@ -303,7 +359,75 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Δεξί-click context menu σε αρχείο */}
+      {menu && (
+        <div
+          role="menu"
+          className="fixed z-[100] min-w-52 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg"
+          style={{ top: menu.y, left: menu.x }}
+          onContextMenu={e => e.preventDefault()}
+        >
+          <ContextItem icon={<Download className="size-4" aria-hidden />} onClick={() => { window.location.href = menu.file.downloadUrl }}>
+            Λήψη
+          </ContextItem>
+          <ContextItem icon={<ExternalLink className="size-4" aria-hidden />} onClick={() => window.open(menu.file.downloadUrl, '_blank', 'noopener')}>
+            Άνοιγμα σε νέα καρτέλα
+          </ContextItem>
+          <ContextItem icon={<Copy className="size-4" aria-hidden />} onClick={() => copyLink(menu.file)}>
+            Αντιγραφή συνδέσμου
+          </ContextItem>
+          {canEdit && (
+            <>
+              <ContextItem icon={<Pencil className="size-4" aria-hidden />} onClick={() => openRename(menu.file)}>
+                Μετονομασία
+              </ContextItem>
+              <div className="my-1 h-px bg-border" />
+              <ContextItem icon={<Trash2 className="size-4" aria-hidden />} danger onClick={() => handleDelete(menu.file)}>
+                Διαγραφή
+              </ContextItem>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Μετονομασία */}
+      <Dialog open={!!renameTarget} onOpenChange={open => { if (!open) setRenameTarget(null) }}>
+        <DialogContent className="glass">
+          <DialogHeader>
+            <DialogTitle>Μετονομασία αρχείου</DialogTitle>
+            <DialogDescription>Δώσε νέο όνομα (μαζί με την κατάληξη, π.χ. .pdf).</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={renameName}
+            onChange={e => setRenameName(e.target.value)}
+            autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleRename() } }}
+          />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRenameTarget(null)} disabled={pending}>Άκυρο</Button>
+            <Button type="button" onClick={handleRename} disabled={pending || !renameName.trim()}>
+              {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <Pencil className="size-4" aria-hidden />}
+              Μετονομασία
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+function ContextItem({ icon, children, onClick, danger }: { icon: ReactNode; children: ReactNode; onClick: () => void; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={`flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm transition-colors hover:bg-muted ${danger ? 'text-destructive' : 'text-foreground'}`}
+    >
+      {icon}
+      {children}
+    </button>
   )
 }
 
