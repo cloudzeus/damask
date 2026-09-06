@@ -2,9 +2,12 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { FileCheck2, Check, X, Download, Eye } from 'lucide-react'
+import { FileCheck2, Check, X, Download, Eye, MoreVertical } from 'lucide-react'
 import { listMyPendingReviews, reviewFileRequestItem, type PendingReviewRow } from '@/lib/file-requests/review'
 import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { relativeTime } from '@/lib/relative-time'
 
 const inlineUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}disp=inline`
@@ -112,37 +115,39 @@ export function PendingReviews() {
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
-                {r.downloadUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setViewer({ name: r.fileName ?? r.label, url: inlineUrl(r.downloadUrl!) })}
-                    className="inline-flex size-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    title="Προβολή"
-                    aria-label="Προβολή"
-                  >
-                    <Eye className="size-4" strokeWidth={1.9} />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleReview(r.itemId, 'ACCEPTED')}
-                  disabled={rowBusy}
-                  className="inline-flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-lg px-3 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                  style={{ background: 'var(--success-soft)', color: 'var(--success)' }}
-                >
-                  <Check className="size-4" strokeWidth={2} />
-                  Έγκριση
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReview(r.itemId, 'REJECTED')}
-                  disabled={rowBusy}
-                  className="inline-flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-lg px-3 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                  style={{ background: 'color-mix(in srgb, var(--destructive) 14%, transparent)', color: 'var(--destructive)' }}
-                >
-                  <X className="size-4" strokeWidth={2} />
-                  Απόρριψη
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <button
+                        type="button"
+                        aria-label="Ενέργειες"
+                        disabled={rowBusy}
+                        className="inline-flex size-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                      >
+                        <MoreVertical className="size-4" strokeWidth={1.9} />
+                      </button>
+                    }
+                  />
+                  <DropdownMenuContent align="end" className="w-max min-w-48">
+                    {r.downloadUrl && (
+                      <>
+                        <DropdownMenuItem onClick={() => setViewer({ name: r.fileName ?? r.label, url: inlineUrl(r.downloadUrl!) })}>
+                          <Eye className="size-3.5" aria-hidden /> Προβολή
+                        </DropdownMenuItem>
+                        <DropdownMenuItem render={<a href={r.downloadUrl} />}>
+                          <Download className="size-3.5" aria-hidden /> Λήψη
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem onClick={() => handleReview(r.itemId, 'ACCEPTED')}>
+                      <Check className="size-3.5" aria-hidden /> Έγκριση
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleReview(r.itemId, 'REJECTED')} style={{ color: 'var(--destructive)' }}>
+                      <X className="size-3.5" aria-hidden /> Απόρριψη
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </li>
           )

@@ -2,9 +2,11 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { FileCheck2, Check, X, Download, Eye, UserCheck, LoaderCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { FileCheck2, Check, X, Download, Eye, UserCheck, LoaderCircle, MoreVertical } from 'lucide-react'
 import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { relativeTime } from '@/lib/relative-time'
 import {
   listApplicationFileRequests, reviewFileRequestItem, type FileRequestGroup, type ReviewItem,
@@ -178,27 +180,8 @@ function FileRequestItemRow({ item, onReload }: { item: ReviewItem; onReload: ()
         </div>
 
         {item.fileName && (
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-[0.71875rem] text-muted-foreground">
+          <div className="mt-1 text-[0.71875rem] text-muted-foreground">
             <span className="truncate">{item.fileName}</span>
-            {item.downloadUrl && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setViewer({ name: item.fileName ?? 'αρχείο', url: inlineUrl(item.downloadUrl!) })}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  title="Προβολή"
-                  aria-label={`Προβολή ${item.fileName ?? 'αρχείου'}`}
-                >
-                  <Eye className="size-3.5" aria-hidden />
-                </button>
-                <a
-                  href={item.downloadUrl}
-                  className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
-                >
-                  <Download className="size-3.5" aria-hidden /> Λήψη
-                </a>
-              </>
-            )}
           </div>
         )}
 
@@ -212,29 +195,44 @@ function FileRequestItemRow({ item, onReload }: { item: ReviewItem; onReload: ()
         )}
       </div>
 
-      {canReview && (
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => handleReview('ACCEPTED')}
-            disabled={pending || item.status === 'ACCEPTED'}
-          >
-            {pending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Check className="size-3.5" aria-hidden />}
-            Έγκριση
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => handleReview('REJECTED')}
-            disabled={pending || item.status === 'REJECTED'}
-          >
-            {pending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <X className="size-3.5" aria-hidden />}
-            Απόρριψη
-          </Button>
-        </div>
+      {(item.downloadUrl || canReview) && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                aria-label="Ενέργειες"
+                disabled={pending}
+                className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+              >
+                {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <MoreVertical className="size-4" aria-hidden />}
+              </button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-max min-w-48">
+            {item.downloadUrl && (
+              <>
+                <DropdownMenuItem onClick={() => setViewer({ name: item.fileName ?? 'αρχείο', url: inlineUrl(item.downloadUrl!) })}>
+                  <Eye className="size-3.5" aria-hidden /> Προβολή
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<a href={item.downloadUrl} />}>
+                  <Download className="size-3.5" aria-hidden /> Λήψη
+                </DropdownMenuItem>
+              </>
+            )}
+            {canReview && (
+              <>
+                {item.downloadUrl && <DropdownMenuSeparator />}
+                <DropdownMenuItem onClick={() => handleReview('ACCEPTED')} disabled={item.status === 'ACCEPTED'}>
+                  <Check className="size-3.5" aria-hidden /> Έγκριση
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleReview('REJECTED')} disabled={item.status === 'REJECTED'} style={{ color: 'var(--destructive)' }}>
+                  <X className="size-3.5" aria-hidden /> Απόρριψη
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       <FileViewerModal open={!!viewer} onOpenChange={o => { if (!o) setViewer(null) }} file={viewer} />

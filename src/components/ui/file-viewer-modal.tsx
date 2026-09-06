@@ -81,7 +81,7 @@ export function FileViewerModal({ open, onOpenChange, file }: { open: boolean; o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass flex h-[85vh] w-[calc(100%-2rem)] max-w-[64rem] flex-col overflow-hidden">
+      <DialogContent className="glass flex h-[88vh] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-[72rem]">
         <DialogHeader className="flex-row items-center justify-between gap-2">
           <DialogTitle className="truncate">{file?.name ?? 'Προβολή αρχείου'}</DialogTitle>
           {file && (
