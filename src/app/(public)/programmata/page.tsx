@@ -51,8 +51,8 @@ export default async function ProgrammataPage() {
                   image={p.image}
                   title={p.title}
                   description={p.summary}
-                  amount={p.amount}
-                  amountNote={p.amountNote}
+                  budget={p.budget}
+                  rate={p.rate}
                   deadline={p.deadline ?? undefined}
                   deadlineOpen={p.deadlineOpen}
                   region={p.region ?? undefined}

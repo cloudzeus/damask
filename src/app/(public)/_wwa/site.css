@@ -37,13 +37,17 @@ section { padding: clamp(56px, 6vw, 88px) 0; }
 .topbar .login svg { width: 18px; height: 18px; stroke-width: 1.75; }
 .topbar .login:hover { color: var(--brand); background: var(--navy-50); }
 .burger { display: none; }
-@media (max-width: 1024px) { .topbar nav:not(.wwa-mobile-nav), .util { display: none; } .burger { display: inline-flex; margin-left: auto; } }
+@media (max-width: 1024px) { .topbar nav:not(.wwa-mobile-nav), .util, .topbar .hide-mobile { display: none; } .burger { display: inline-flex; margin-left: auto; } }
 /* mobile dropdown nav (client burger) */
 .wwa-mobile-nav { display: none; }
 @media (max-width: 1024px) {
-  .wwa-mobile-nav { display: flex; flex-direction: column; gap: 4px; padding: 12px var(--gutter) 20px; border-top: 1px solid var(--border-subtle); background: #fff; }
-  .wwa-mobile-nav a:not(.btn) { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 15px; color: var(--fg-1); text-decoration: none; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); }
-  .wwa-mobile-nav .btn { margin-top: 12px; align-self: flex-start; }
+  .wwa-mobile-nav { display: flex; flex-direction: column; gap: 2px; padding: 8px var(--gutter) 18px; border-top: 1px solid var(--border-subtle); background: #fff; box-shadow: 0 12px 24px rgba(0,0,34,.10); }
+  .wwa-mobile-nav > a { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 15px; color: var(--fg-1); text-decoration: none; padding: 13px 4px; border-bottom: 1px solid var(--border-subtle); }
+  .wwa-mobile-nav > a[aria-current] { color: var(--brand); }
+  .mnav-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+  .mnav-login { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 500; color: var(--brand); text-decoration: none; padding: 12px; border: 1px solid var(--brand); border-radius: var(--radius-pill); }
+  .mnav-login svg { width: 18px; height: 18px; stroke-width: 1.75; }
+  .mnav-actions .btn { width: 100%; }
 }
 
 /* hero banner (nova: full-width photo, μήνυμα αριστερά, pill CTA)
@@ -254,22 +258,32 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .r.pre { transform: translateY(16px); opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .r, .r.pre { transform: none; opacity: 1; transition: none; } }
 
-/* ── Σύντομες ετικέτες (tags) σε λευκό φόντο: κάρτες + summary ── */
-.tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: var(--radius-pill); line-height: 1; white-space: nowrap; }
-.tag-date { background: var(--navy-50); color: var(--brand); }
-.tag-region { background: var(--bg-muted); color: var(--fg-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.tag-open { background: var(--success-100); color: var(--success-500); }
-.tag-open::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: wwaPulseDot 1.8s ease-in-out infinite; }
+/* ── Σύντομες ετικέτες (badges) σε λευκό φόντο: κάρτες + summary (ΟΧΙ .tag — συγκρούεται με hero/pkg/client) ── */
+.ptag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: var(--radius-pill); line-height: 1; white-space: nowrap; }
+.ptag-date { background: var(--navy-50); color: var(--brand); }
+.ptag-region { background: var(--bg-muted); color: var(--fg-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.ptag-open { background: var(--success-100); color: var(--success-500); }
+.ptag-open::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: wwaPulseDot 1.8s ease-in-out infinite; }
 @keyframes wwaPulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.68); } }
 
-/* Κάρτα προγράμματος: meta σε ετικέτες που αναδιπλώνονται· τιμή σε μία γραμμή */
+/* Strip κάτω από το hero: fluid μέγεθος χαρακτήρων (ίδια λογική με το μενού) ώστε
+   να προσαρμόζεται αντί να αναδιπλώνεται άσχημα μέχρι το mobile breakpoint. */
+.strip .item { gap: clamp(8px, 1vw, 14px); padding: clamp(16px, 2vw, 22px) clamp(12px, 1.4vw, 20px); }
+.strip svg { width: clamp(22px, 1.6vw, 28px); height: clamp(22px, 1.6vw, 28px); }
+.strip b { font-size: clamp(13px, 0.4vw + 11px, 15px); line-height: 1.25; }
+.strip span { font-size: clamp(11.5px, 0.3vw + 10px, 13px); line-height: 1.3; }
+
+/* Κάρτα προγράμματος: meta σε ετικέτες που αναδιπλώνονται */
 .pcard .meta { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
-.pcard .price { flex-wrap: wrap; }
-.pcard .price b { white-space: nowrap; }
+/* Τιμή: μέγιστος προϋπολογισμός (€) πράσινο & μεγάλο πάνω, ποσοστό μπλε & μικρότερο κάτω */
+.pcard .price { display: block; margin-top: 4px; }
+.pcard .price .budget { display: block; font-family: var(--font-display); font-weight: 700; font-size: 30px; letter-spacing: -.02em; line-height: 1.05; color: var(--success-500); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pcard .price .rate { display: block; margin-top: 3px; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .01em; color: var(--brand); }
+.pcard .price .budget-rate { color: var(--brand); } /* fallback: μόνο ποσοστό → μπλε */
 
 /* Summary: αριστερή στοίχιση τιμών (label → value), bold νούμερα */
 .prog-summary dd { text-align: left; }
-.prog-summary dd .tag { font-size: 11.5px; padding: 3px 8px; }
+.prog-summary dd .ptag { font-size: 11.5px; padding: 3px 8px; }
 .prog-summary .fig, .prog-body .fig { color: var(--brand); font-weight: 700; font-variant-numeric: tabular-nums; }
 .sum-note { margin: 10px 0 0; font-size: 12.5px; color: var(--fg-3); text-align: center; }
 .btn-block { width: 100%; }

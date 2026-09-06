@@ -19,17 +19,17 @@ const FALLBACK_PROGRAMS: ProgramCardData[] = [
   {
     image: wwaPhoto('startup'), title: 'Ξεκινώ Επιχειρηματικά 2026',
     description: 'Για πτυχιούχους που ιδρύουν επιχείρηση στο αντικείμενο των σπουδών τους. Εξοπλισμός, λειτουργικά, μισθολογικό κόστος.',
-    amount: 'έως 100%', amountNote: 'επιδότηση €36.000', deadline: '31/10/2026', region: 'Όλη η Ελλάδα', status: 'active', isNew: true,
+    budget: 'έως €36.000', rate: 'έως 100%', deadline: '31/10/2026', region: 'Όλη η Ελλάδα', status: 'active', isNew: true,
   },
   {
     image: wwaPhoto('manufacturing'), title: 'Παράγουμε στην Ελλάδα',
     description: 'Ενίσχυση της παραγωγικής βάσης και της διεθνούς ανταγωνιστικότητας μεταποιητικών ΜμΕ.',
-    amount: '45–60%', amountNote: 'επί των επιλέξιμων δαπανών', deadline: '15/12/2026', region: 'Όλη η Ελλάδα', status: 'active',
+    budget: 'έως €1.000.000', rate: '45–60%', deadline: '15/12/2026', region: 'Όλη η Ελλάδα', status: 'active',
   },
   {
     image: wwaPhoto('hotel'), title: 'Κοινωνική Επιχειρηματικότητα — Ιόνια Νησιά',
     description: 'Ενίσχυση φορέων κοινωνικής και αλληλέγγυας οικονομίας στην Περιφέρεια Ιονίων Νήσων.',
-    amount: 'έως 100%', amountNote: 'περιφερειακή δράση', deadline: '30/11/2026', region: 'Ιόνια Νησιά', status: 'active',
+    budget: null, rate: 'έως 100%', deadline: '30/11/2026', region: 'Ιόνια Νησιά', status: 'active',
   },
 ]
 
@@ -49,7 +49,7 @@ export default async function HomePage() {
   const active = await listPublicPrograms()
   const programCards: ProgramCardData[] = active.length
     ? active.slice(0, 3).map((p, i) => ({
-        image: p.image, title: p.title, description: p.summary, amount: p.amount, amountNote: p.amountNote,
+        image: p.image, title: p.title, description: p.summary, budget: p.budget, rate: p.rate,
         deadline: p.deadline ?? undefined, deadlineOpen: p.deadlineOpen, region: p.region ?? undefined,
         status: 'active' as const, isNew: i === 0, href: `/programmata/${p.slug}`,
       }))
@@ -67,7 +67,7 @@ export default async function HomePage() {
           {featured ? (
             <div className="wrap"><div className="content">
               <span className="tag">Πιο πρόσφατο πρόγραμμα · {heroDeadline}</span>
-              <h1 data-typewrite>{featured.heroTitle} <span style={{ color: 'var(--wwa-cyan-400)' }}>{featured.amount}</span></h1>
+              <h1 data-typewrite>{featured.heroTitle} <span style={{ color: 'var(--wwa-cyan-400)' }}>{featured.heroAmount}</span></h1>
               <p>{featured.heroSubtitle}</p>
               <div className="actions">
                 <EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>

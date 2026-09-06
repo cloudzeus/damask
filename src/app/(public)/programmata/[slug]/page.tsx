@@ -73,7 +73,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
               <div className="body">
                 <dl>
                   <dt>Προθεσμία</dt>
-                  <dd>{p.deadline ? p.deadline : <span className="tag tag-open">Ανοιχτή πρόσκληση</span>}</dd>
+                  <dd>{p.deadline ? p.deadline : <span className="ptag ptag-open">Ανοιχτή πρόσκληση</span>}</dd>
                   {p.region && <><dt>Περιοχή</dt><dd>{p.region}</dd></>}
                   {p.durationMonths != null && <><dt>Διάρκεια</dt><dd>{p.durationMonths} μήνες</dd></>}
                 </dl>
