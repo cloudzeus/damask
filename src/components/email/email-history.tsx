@@ -229,7 +229,7 @@ function MessageCard({ message }: { message: MessageRow }) {
           {message.attachments.map((att, i) => (
             <a
               key={i}
-              href={att.url}
+              href={att.downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 text-xs font-semibold transition-colors hover:bg-muted"

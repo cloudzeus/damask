@@ -89,8 +89,10 @@ export function ComposeEmailDialog({
   async function uploadAttachment(file: File, onProgress: (pct: number) => void, signal: AbortSignal): Promise<ComposeAttachment> {
     const fd = new FormData()
     fd.append('file', file)
-    const res = await xhrUpload<{ url: string; name: string; size?: number; mime?: string }>('/api/attachments/upload', fd, onProgress, signal)
-    return { url: res.url, name: res.name, size: res.size, mime: res.mime }
+    if (trdrId) fd.append('trdrId', trdrId)
+    if (programId) fd.append('programId', programId)
+    const res = await xhrUpload<{ key: string; name: string; size?: number; mime?: string }>('/api/attachments/upload', fd, onProgress, signal)
+    return { key: res.key, name: res.name, size: res.size, mime: res.mime }
   }
 
   function addItem() {

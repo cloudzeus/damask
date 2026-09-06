@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
 import { sendMail, isMailerConfigured, renderEmailShell } from '@/lib/mailer'
+import { bunnyDownload } from '@/lib/bunny-storage'
 import { getIntegration } from '@/lib/settings'
 import { logActivity } from '@/lib/activity/log'
 import { newToken } from '@/lib/pm/portal-token'
@@ -23,7 +24,7 @@ import {
 
 const APP_URL = process.env.AUTH_URL ?? 'http://localhost:3000'
 
-export type ComposeAttachment = { name: string; url: string; size?: number; mime?: string }
+export type ComposeAttachment = { name: string; key: string; size?: number; mime?: string }
 
 export type SendCustomerEmailInput = {
   threadId?: string // reply σε υπάρχον νήμα
@@ -55,6 +56,20 @@ export type SendCustomerEmailResult = {
 async function mailConfig(): Promise<{ domain: string; fromEmail: string }> {
   const cfg = await getIntegration<{ domain?: string; fromEmail?: string }>('mailgun')
   return { domain: cfg.domain?.trim() || 'wwa.gr', fromEmail: cfg.fromEmail?.trim() || 'system' }
+}
+
+/** Κατεβάζει τα συνημμένα από το private storage (key) ώστε να σταλούν ως πραγματικά attachments. */
+async function resolveAttachments(attachments: ComposeAttachment[]): Promise<{ filename: string; content: Buffer; contentType?: string }[]> {
+  const out: { filename: string; content: Buffer; contentType?: string }[] = []
+  for (const a of attachments) {
+    try {
+      const content = await bunnyDownload(a.key)
+      out.push({ filename: a.name, content, contentType: a.mime })
+    } catch (err) {
+      console.error(`resolveAttachments: αποτυχία λήψης ${a.name} (${a.key})`, err)
+    }
+  }
+  return out
 }
 
 export async function sendCustomerEmail(input: SendCustomerEmailInput): Promise<SendCustomerEmailResult> {
@@ -146,7 +161,7 @@ export async function sendCustomerEmail(input: SendCustomerEmailInput): Promise<
       ...(references ? { References: references.split(' ').map(r => `<${r.replace(/^<|>$/g, '')}>`).join(' ') } : {}),
     },
     variables: { threadId: thread.id, ...(input.trdrId ? { trdrId: input.trdrId } : {}) },
-    attachments: (input.attachments ?? []).map(a => ({ filename: a.name, url: a.url, contentType: a.mime })),
+    attachments: await resolveAttachments(input.attachments ?? []),
     userId: session.user.id,
     refType: 'customer-email',
     refId: thread.id,
@@ -227,6 +242,8 @@ export async function listThreadsForApplication(applicationId: string) {
   return listThreads({ applicationId })
 }
 
+export type MessageAttachment = { name: string; size?: number; mime?: string; downloadUrl: string }
+
 export type MessageRow = {
   id: string
   direction: string
@@ -237,22 +254,25 @@ export type MessageRow = {
   snippet: string | null
   status: string
   createdAt: string
-  attachments: ComposeAttachment[]
+  attachments: MessageAttachment[]
 }
 
 export async function listThreadMessages(threadId: string): Promise<MessageRow[]> {
   await requirePermission('customer.view')
   const rows = await prisma.emailMessage.findMany({ where: { threadId }, orderBy: { createdAt: 'asc' } })
-  return rows.map(m => ({
-    id: m.id,
-    direction: m.direction,
-    fromEmail: m.fromEmail,
-    toEmails: m.toEmails,
-    subject: m.subject,
-    bodyHtml: m.bodyHtml,
-    snippet: m.snippet,
-    status: m.status,
-    createdAt: m.createdAt.toISOString(),
-    attachments: Array.isArray(m.attachments) ? (m.attachments as unknown as ComposeAttachment[]) : [],
-  }))
+  return rows.map(m => {
+    const raw = Array.isArray(m.attachments) ? (m.attachments as unknown as { name: string; size?: number; mime?: string }[]) : []
+    return {
+      id: m.id,
+      direction: m.direction,
+      fromEmail: m.fromEmail,
+      toEmails: m.toEmails,
+      subject: m.subject,
+      bodyHtml: m.bodyHtml,
+      snippet: m.snippet,
+      status: m.status,
+      createdAt: m.createdAt.toISOString(),
+      attachments: raw.map((a, i) => ({ name: a.name, size: a.size, mime: a.mime, downloadUrl: `/api/email/attachments/${m.id}/${i}/download` })),
+    }
+  })
 }

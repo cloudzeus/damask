@@ -54,7 +54,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
       label: i.label,
       description: i.description,
       required: i.required,
-      uploaded: Boolean(i.fileUrl),
+      uploaded: i.uploaded,
       fileName: i.fileName,
     })),
   )

@@ -87,7 +87,7 @@ async function listFileRequests(where: { trdrId?: string; programId?: string; ap
   const rows = await prisma.fileRequest.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    include: { items: { select: { fileUrl: true } } },
+    include: { items: { select: { fileKey: true, fileUrl: true } } },
     take: 100,
   })
   return rows.map(r => ({
@@ -95,7 +95,7 @@ async function listFileRequests(where: { trdrId?: string; programId?: string; ap
     title: r.title,
     status: r.status,
     itemCount: r.items.length,
-    uploadedCount: r.items.filter(i => i.fileUrl).length,
+    uploadedCount: r.items.filter(i => i.fileKey || i.fileUrl).length,
     expiresAt: r.expiresAt.toISOString(),
     createdAt: r.createdAt.toISOString(),
     completedAt: r.completedAt ? r.completedAt.toISOString() : null,
@@ -115,7 +115,7 @@ export type FileRequestDetail = {
   message: string | null
   status: string
   expiresAt: string
-  items: { id: string; label: string; description: string | null; required: boolean; status: string; fileName: string | null; fileUrl: string | null; uploadedAt: string | null }[]
+  items: { id: string; label: string; description: string | null; required: boolean; status: string; fileName: string | null; downloadUrl: string | null; uploadedAt: string | null }[]
 }
 
 export async function getFileRequestDetail(id: string): Promise<FileRequestDetail | null> {
@@ -128,7 +128,7 @@ export async function getFileRequestDetail(id: string): Promise<FileRequestDetai
     message: fr.message,
     status: fr.status,
     expiresAt: fr.expiresAt.toISOString(),
-    items: fr.items.map(i => ({ id: i.id, label: i.label, description: i.description, required: i.required, status: i.status, fileName: i.fileName, fileUrl: i.fileUrl, uploadedAt: i.uploadedAt ? i.uploadedAt.toISOString() : null })),
+    items: fr.items.map(i => ({ id: i.id, label: i.label, description: i.description, required: i.required, status: i.status, fileName: i.fileName, downloadUrl: (i.fileKey || i.fileUrl) ? `/api/file-requests/items/${i.id}/download` : null, uploadedAt: i.uploadedAt ? i.uploadedAt.toISOString() : null })),
   }
 }
 

@@ -23,12 +23,13 @@ export async function recomputeFileRequestStatus(fileRequestId: string): Promise
   })
   if (!fr || fr.status === 'CANCELLED' || fr.status === 'EXPIRED') return
 
+  const hasFile = (i: { fileKey: string | null; fileUrl: string | null }) => Boolean(i.fileKey || i.fileUrl)
   const required = fr.items.filter(i => i.required)
-  const uploaded = fr.items.filter(i => i.fileUrl)
-  const requiredDone = required.every(i => i.fileUrl)
+  const uploaded = fr.items.filter(hasFile)
+  const requiredDone = required.length > 0 && required.every(hasFile)
   const anyUploaded = uploaded.length > 0
 
-  const nextStatus = requiredDone && required.length > 0 ? 'COMPLETED' : anyUploaded ? 'PARTIAL' : 'PENDING'
+  const nextStatus = requiredDone ? 'COMPLETED' : anyUploaded ? 'PARTIAL' : 'PENDING'
   const justCompleted = nextStatus === 'COMPLETED' && fr.status !== 'COMPLETED'
 
   await prisma.fileRequest.update({
@@ -53,7 +54,7 @@ async function notifyCompletion(fileRequestId: string): Promise<void> {
   await createNotification({
     type: 'GENERIC',
     title: `Ολοκληρώθηκαν δικαιολογητικά — ${customerName ?? fr.title}`,
-    body: `${fr.items.filter(i => i.fileUrl).length} αρχεία για «${fr.title}»`,
+    body: `${fr.items.filter(i => i.fileKey || i.fileUrl).length} αρχεία για «${fr.title}»`,
     entityType: 'FileRequest',
     entityId: fr.id,
     meta: { trdrId: fr.trdrId, programId: fr.programId, applicationId: fr.applicationId },
@@ -78,7 +79,7 @@ async function notifyCompletion(fileRequestId: string): Promise<void> {
       const adminUrl = fr.applicationId
         ? `${APP_URL}/programs/${fr.programId ?? ''}/applications/${fr.applicationId}`
         : `${APP_URL}/partners/${fr.trdrId}`
-      const mail = fileRequestCompletedStaffEmail({ title: fr.title, customerName, adminUrl, itemCount: fr.items.filter(i => i.fileUrl).length })
+      const mail = fileRequestCompletedStaffEmail({ title: fr.title, customerName, adminUrl, itemCount: fr.items.filter(i => i.fileKey || i.fileUrl).length })
       await sendMail({ to: recipients.join(','), subject: mail.subject, html: mail.html, tracking: false, refType: 'file-request-done-staff', refId: fr.id }).catch(() => {})
     }
   }

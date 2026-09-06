@@ -98,6 +98,27 @@ export async function trdrGemiFolder(trdrId: string): Promise<string | null> {
   return root ? gemiFolderPath(root) : null
 }
 
+/** Ο κοινός φάκελος «λοιπών εγγράφων υπηρεσιών» του πελάτη. */
+export async function trdrServicesFolder(trdrId: string): Promise<string | null> {
+  const root = await customerRoot(trdrId)
+  return root ? servicesFolderPath(root) : null
+}
+
+/**
+ * Ο σωστός φάκελος για upload που σχετίζεται με πελάτη: αν δοθεί programId → ο
+ * φάκελος του προγράμματος (EuPrograms/<code>/)· αλλιώς ο κοινός documents/services/.
+ * Επιστρέφει path (με trailing slash) ή null.
+ */
+export async function trdrUploadFolder(trdrId: string, programId?: string | null): Promise<string | null> {
+  const root = await customerRoot(trdrId)
+  if (!root) return null
+  if (programId) {
+    const program = await prisma.program.findUnique({ where: { id: programId }, select: { id: true, title: true, referenceCode: true } })
+    if (program) return programFolderPath(root, programFolderSegment(program))
+  }
+  return servicesFolderPath(root)
+}
+
 /**
  * Δημιουργεί (idempotent) τον φάκελο ενός προγράμματος μέσα στο EuPrograms/ του
  * πελάτη — καλείται κάθε φορά που συνδέεται πελάτης με πρόγραμμα (δυνητικό ή ενεργό).

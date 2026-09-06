@@ -2305,8 +2305,10 @@ model FileRequestItem {
   required      Boolean               @default(true)
   order         Int                   @default(0)
   status        FileRequestItemStatus @default(PENDING)
-  // ανεβασμένο αρχείο (Bunny public cdnUrl)
+  // ανεβασμένο αρχείο — fileKey = Bunny PRIVATE storage key (νέα λογική), fileUrl =
+  // legacy public cdnUrl (παλιές εγγραφές). «Ανέβηκε» = fileKey || fileUrl.
   fileName      String?
+  fileKey       String?
   fileUrl       String?
   mimeType      String?
   sizeBytes     Int?

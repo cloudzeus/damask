@@ -15,7 +15,7 @@ export type PublicFileRequestItem = {
   required: boolean
   status: string
   fileName: string | null
-  fileUrl: string | null
+  uploaded: boolean
   uploadedAt: string | null
 }
 
@@ -58,7 +58,7 @@ export async function resolveFileRequestByToken(rawToken: string): Promise<Publi
       required: i.required,
       status: i.status,
       fileName: i.fileName,
-      fileUrl: i.fileUrl,
+      uploaded: Boolean(i.fileKey || i.fileUrl),
       uploadedAt: i.uploadedAt ? i.uploadedAt.toISOString() : null,
     })),
   }
@@ -73,10 +73,9 @@ export async function attachUploadedFileToItem(input: {
   rawToken: string
   itemId: string
   fileName: string
-  fileUrl: string
+  fileKey: string
   mimeType?: string | null
   sizeBytes?: number | null
-  mediaAssetId?: string | null
 }): Promise<{ ok: boolean; error?: string }> {
   const fr = await prisma.fileRequest.findUnique({ where: { tokenHash: hashToken(input.rawToken) }, select: { id: true, status: true, expiresAt: true } })
   if (!fr) return { ok: false, error: 'Το αίτημα δεν βρέθηκε.' }
@@ -90,10 +89,9 @@ export async function attachUploadedFileToItem(input: {
     where: { id: item.id },
     data: {
       fileName: input.fileName,
-      fileUrl: input.fileUrl,
+      fileKey: input.fileKey,
       mimeType: input.mimeType ?? null,
       sizeBytes: input.sizeBytes ?? null,
-      mediaAssetId: input.mediaAssetId ?? null,
       status: 'UPLOADED',
       uploadedAt: new Date(),
     },
