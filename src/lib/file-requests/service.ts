@@ -107,8 +107,11 @@ async function stampNotified(id: string, customer: boolean, staff: boolean): Pro
 }
 
 /**
- * Παραλήπτες ειδοποίησης ομάδας: δημιουργός + manager του έργου + ανατεθειμένοι
- * εκτελεστές. Αν δεν βρεθεί κανείς (π.χ. αίτημα χωρίς έργο), fallback σε admins/managers.
+ * Παραλήπτες ειδοποίησης: ΜΟΝΟ οι υπεύθυνοι του έργου — δημιουργός του αιτήματος +
+ * τρέχων διαχειριστής (managerId) + τρέχων διεκπεραιωτής (processorId). Οι
+ * ανατεθειμένοι υπάλληλοι (ApplicationAssignment) ΔΕΝ ειδοποιούνται αυτόματα, ώστε
+ * αλλάζοντας διαχειριστή/διεκπεραιωτή να αλλάζει και ο παραλήπτης (επιλογή χρήστη).
+ * Αν δεν βρεθεί κανείς (π.χ. αίτημα χωρίς έργο), fallback σε admins/managers.
  */
 async function staffRecipients(createdById?: string | null, applicationId?: string | null): Promise<string[]> {
   const ids = new Set<string>()
@@ -116,9 +119,7 @@ async function staffRecipients(createdById?: string | null, applicationId?: stri
   if (applicationId) {
     const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { managerId: true, processorId: true } })
     if (app?.managerId) ids.add(app.managerId)
-    if (app?.processorId) ids.add(app.processorId) // ο διεκπεραιωτής είναι primary owner — έλειπε
-    const assigns = await prisma.applicationAssignment.findMany({ where: { applicationId }, select: { userId: true } })
-    for (const a of assigns) ids.add(a.userId)
+    if (app?.processorId) ids.add(app.processorId)
   }
 
   let emails: string[] = []

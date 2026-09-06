@@ -7,6 +7,7 @@ import { newToken } from '@/lib/pm/portal-token'
 import { logActivity } from '@/lib/activity/log'
 import { sendMail, isMailerConfigured } from '@/lib/mailer'
 import { fileRequestInviteEmail } from '@/lib/file-requests/emails'
+import { deliverCustomerEmail } from '@/lib/email/deliver'
 
 /**
  * Staff-side αιτήματα δικαιολογητικών (gated customer.edit/view). Δημιουργία με
@@ -51,39 +52,32 @@ export async function requestDocsFromContact(input: {
   const expiresAt = new Date(input.expiresAt.length <= 10 ? `${input.expiresAt}T23:59:59` : input.expiresAt)
   if (Number.isNaN(expiresAt.getTime())) return { ok: false, error: 'Μη έγκυρη ημερομηνία λήξης.' }
 
-  const { raw, hash } = newToken()
-  const fr = await prisma.fileRequest.create({
-    data: {
-      tokenHash: hash,
-      title: input.title.trim(),
-      message: input.message?.trim() || null,
-      email: contact.email.trim(),
-      expiresAt,
+  const greeting = contact.name?.trim() ? `Γεια σας ${contact.name.trim()},` : 'Γεια σας,'
+  const body = `<p>${greeting}</p>${input.message?.trim() ? `<p>${input.message.trim()}</p>` : ''}<p>Παρακαλούμε ανεβάστε τα παρακάτω δικαιολογητικά μέσω του ασφαλούς συνδέσμου.</p>`
+
+  // Μέσω deliverCustomerEmail → tags συσχέτισης + νήμα «Επικοινωνία» + FileRequest.
+  const res = await deliverCustomerEmail(
+    { id: session.user.id, name: session.user.name },
+    {
       trdrId: app.trdrId,
       programId: app.programId,
       applicationId: app.id,
-      createdById: session.user.id,
-      items: { create: items.map((it, i) => ({ label: it.label.trim(), description: it.description?.trim() || null, required: it.required ?? true, order: i })) },
+      to: contact.email.trim(),
+      subject: input.title.trim(),
+      bodyHtml: body,
+      fileRequest: {
+        title: input.title.trim(),
+        message: input.message?.trim() || undefined,
+        expiresAt: expiresAt.toISOString(),
+        items: items.map(it => ({ label: it.label.trim(), description: it.description?.trim() || undefined, required: it.required ?? true })),
+      },
     },
-  })
-  const url = `${APP_URL}/r/${raw}`
+  )
+  if (!res.ok) return { ok: false, error: res.error ?? 'Η αποστολή απέτυχε.' }
 
-  if (await isMailerConfigured()) {
-    const trdr = await prisma.trdr.findUnique({ where: { id: app.trdrId }, select: { NAME: true } })
-    const mail = fileRequestInviteEmail({
-      customerName: contact.name ?? trdr?.NAME ?? null,
-      title: input.title.trim(),
-      message: input.message,
-      items: items.map(i => ({ label: i.label.trim(), required: i.required ?? true })),
-      url,
-      expiresAt,
-    })
-    await sendMail({ to: contact.email.trim(), subject: mail.subject, html: mail.html, tracking: false, refType: 'file-request-invite', refId: fr.id }).catch(() => {})
-  }
-
-  await logActivity('file_request.create', { entityType: 'FileRequest', entityId: fr.id, summary: input.title, meta: { items: items.length, contactId: input.contactId } })
+  await logActivity('file_request.create', { entityType: 'ProgramApplication', entityId: app.id, summary: input.title, meta: { items: items.length, contactId: input.contactId } })
   revalidatePath(`/partners/${app.trdrId}`)
-  return { ok: true, url }
+  return { ok: true, url: res.fileRequestUrl }
 }
 
 export type CreateFileRequestInput = {

@@ -18,6 +18,7 @@ import {
 import { getProgramFileTemplateOptions, type PhaseFileRow } from '@/lib/programs/phase-files'
 import { requestDocsFromContact } from '@/lib/file-requests/actions'
 import { deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/deliverable-phases'
+import { ComposeEmailDialog } from '@/components/email/compose-email-dialog'
 
 /**
  * «Επαφές» tab του έργου (ProgramApplication hub) — συνδέει μία ή περισσότερες
@@ -27,7 +28,7 @@ import { deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/delive
  * customer.view· η διαχείριση (Dialog με checkbox list) gated programs.manage
  * και εμφανίζεται μόνο όταν canManage.
  */
-export function ApplicationContactsTab({ applicationId, canManage, programId }: { applicationId: string; canManage: boolean; programId?: string }) {
+export function ApplicationContactsTab({ applicationId, canManage, programId, trdrId }: { applicationId: string; canManage: boolean; programId?: string; trdrId?: string }) {
   const [options, setOptions] = React.useState<AppContactOption[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -36,6 +37,7 @@ export function ApplicationContactsTab({ applicationId, canManage, programId }: 
   const [editing, setEditing] = React.useState<AppContactOption | null>(null)
   const [confirm, setConfirm] = React.useState<{ mode: 'unlink' | 'delete'; contact: AppContactOption } | null>(null)
   const [requesting, setRequesting] = React.useState<AppContactOption | null>(null)
+  const [emailing, setEmailing] = React.useState<AppContactOption | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [acting, startActing] = React.useTransition()
 
@@ -140,6 +142,7 @@ export function ApplicationContactsTab({ applicationId, canManage, programId }: 
               busy={acting && busyId === c.contactId}
               onEdit={openEdit}
               onRequestDocs={c => setRequesting(c)}
+              onEmail={c => setEmailing(c)}
               onUnlink={c => setConfirm({ mode: 'unlink', contact: c })}
               onDelete={c => setConfirm({ mode: 'delete', contact: c })}
             />
@@ -177,6 +180,20 @@ export function ApplicationContactsTab({ applicationId, canManage, programId }: 
             onOpenChange={next => { if (!next) setRequesting(null) }}
             onSent={() => setRequesting(null)}
           />
+          {emailing && (
+            <ComposeEmailDialog
+              key={emailing.contactId}
+              trdrId={trdrId}
+              programId={programId}
+              applicationId={applicationId}
+              defaultTo={emailing.email ?? ''}
+              defaultSubject=""
+              showTrigger={false}
+              open
+              onOpenChange={next => { if (!next) setEmailing(null) }}
+              onSent={() => setEmailing(null)}
+            />
+          )}
         </>
       )}
     </section>
@@ -323,13 +340,14 @@ function ContactFormDialog({
 }
 
 function ContactCard({
-  contact, canManage, busy, onEdit, onRequestDocs, onUnlink, onDelete,
+  contact, canManage, busy, onEdit, onRequestDocs, onEmail, onUnlink, onDelete,
 }: {
   contact: AppContactOption
   canManage: boolean
   busy: boolean
   onEdit: (contact: AppContactOption) => void
   onRequestDocs: (contact: AppContactOption) => void
+  onEmail: (contact: AppContactOption) => void
   onUnlink: (contact: AppContactOption) => void
   onDelete: (contact: AppContactOption) => void
 }) {
@@ -371,6 +389,13 @@ function ContactCard({
                 }
               />
               <DropdownMenuContent align="end" className="w-max min-w-52">
+                <DropdownMenuItem
+                  onClick={() => onEmail(contact)}
+                  disabled={!contact.email}
+                  title={contact.email ? undefined : 'Η επαφή δεν έχει email'}
+                >
+                  <Mail className="size-3.5" aria-hidden /> Αποστολή email
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => onRequestDocs(contact)}
                   disabled={!contact.email}

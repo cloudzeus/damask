@@ -2,13 +2,25 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { FileCheck2, Check, X, Download, Eye, MoreVertical } from 'lucide-react'
-import { listMyPendingReviews, reviewFileRequestItem, type PendingReviewRow } from '@/lib/file-requests/review'
+import { FileCheck2, Check, X, Download, Eye, MoreVertical, LoaderCircle } from 'lucide-react'
+import { listMyPendingReviews, reviewFileRequestItem, rejectAndResendFileRequestItem, type PendingReviewRow } from '@/lib/file-requests/review'
 import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { relativeTime } from '@/lib/relative-time'
+
+/** Προεπιλεγμένη λήξη επανυποβολής: +14 ημέρες (YYYY-MM-DD). */
+function defaultReuploadExpiry(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 14)
+  return d.toISOString().slice(0, 10)
+}
 
 const inlineUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}disp=inline`
 
@@ -24,6 +36,7 @@ export function PendingReviews() {
   const [loading, setLoading] = React.useState(true)
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [viewer, setViewer] = React.useState<ViewerFile | null>(null)
+  const [rejecting, setRejecting] = React.useState<PendingReviewRow | null>(null)
   const [pending, startTransition] = React.useTransition()
 
   // await-first: κανένα setState δεν τρέχει σύγχρονα στο σώμα του effect.
@@ -143,8 +156,8 @@ export function PendingReviews() {
                     <DropdownMenuItem onClick={() => handleReview(r.itemId, 'ACCEPTED')}>
                       <Check className="size-3.5" aria-hidden /> Έγκριση
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleReview(r.itemId, 'REJECTED')} style={{ color: 'var(--destructive)' }}>
-                      <X className="size-3.5" aria-hidden /> Απόρριψη
+                    <DropdownMenuItem onClick={() => setRejecting(r)} style={{ color: 'var(--destructive)' }}>
+                      <X className="size-3.5" aria-hidden /> Απόρριψη…
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -155,6 +168,94 @@ export function PendingReviews() {
       </ul>
 
       <FileViewerModal open={!!viewer} onOpenChange={o => { if (!o) setViewer(null) }} file={viewer} />
+      <RejectReasonDialog
+        row={rejecting}
+        open={!!rejecting}
+        onOpenChange={next => { if (!next) setRejecting(null) }}
+        onDone={itemId => setRows(prev => prev.filter(r => r.itemId !== itemId))}
+      />
     </section>
+  )
+}
+
+/** Modal απόρριψης (dashboard): αιτιολογία + προαιρετική επαναποστολή upload στον πελάτη. */
+function RejectReasonDialog({
+  row, open, onOpenChange, onDone,
+}: {
+  row: PendingReviewRow | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onDone: (itemId: string) => void
+}) {
+  const [note, setNote] = React.useState('')
+  const [resend, setResend] = React.useState(true)
+  const [expires, setExpires] = React.useState(defaultReuploadExpiry())
+  const [saving, startSaving] = React.useTransition()
+
+  const [prevOpen, setPrevOpen] = React.useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) { setNote(''); setResend(true); setExpires(defaultReuploadExpiry()) }
+  }
+
+  function handleSubmit() {
+    if (!row) return
+    if (!note.trim()) { toast.error('Γράψε τον λόγο απόρριψης.'); return }
+    const itemId = row.itemId
+    startSaving(async () => {
+      try {
+        const res = await rejectAndResendFileRequestItem(itemId, { note: note.trim(), resend, expiresAt: resend ? expires : undefined })
+        if (!res.ok) throw new Error(res.error)
+        toast.success(res.resent ? 'Απορρίφθηκε — στάλθηκε νέο αίτημα upload στον πελάτη.' : 'Το δικαιολογητικό απορρίφθηκε.')
+        onOpenChange(false)
+        onDone(itemId)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Η απόρριψη απέτυχε.')
+      }
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={next => { if (!saving) onOpenChange(next) }}>
+      <DialogContent className="w-full max-w-[calc(100%-2rem)] bg-popover sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Απόρριψη δικαιολογητικού</DialogTitle>
+          <DialogDescription>«{row?.label}» — εξήγησε γιατί δεν έγινε δεκτό. Η αιτιολογία καταγράφεται και (αν επιλεγεί) στέλνεται στον πελάτη με νέο αίτημα upload.</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-3">
+          <div className="field !mb-0">
+            <label htmlFor="pr-rej-note">Λόγος απόρριψης*</label>
+            <textarea
+              id="pr-rej-note"
+              className="cms-textarea"
+              rows={3}
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="π.χ. Το αρχείο δεν είναι ευανάγνωστο / λάθος έγγραφο / λείπει σελίδα…"
+              autoFocus
+            />
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-[0.8125rem] font-semibold">
+            <input type="checkbox" checked={resend} onChange={e => setResend(e.target.checked)} className="size-4" />
+            Επαναποστολή αιτήματος upload στον πελάτη
+          </label>
+          {resend && (
+            <div className="field !mb-0">
+              <label htmlFor="pr-rej-expires">Ημ/νία λήξης νέου αιτήματος</label>
+              <Input id="pr-rej-expires" type="date" value={expires} onChange={e => setExpires(e.target.value)} />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" disabled={saving}>Άκυρο</Button>} />
+          <Button type="button" variant="destructive" onClick={handleSubmit} disabled={saving || !note.trim()}>
+            {saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <X className="size-3.5" aria-hidden />}
+            {resend ? 'Απόρριψη & αποστολή' : 'Απόρριψη'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

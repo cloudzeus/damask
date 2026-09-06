@@ -5,6 +5,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
 import { logActivity } from '@/lib/activity/log'
 import { createNotification } from '@/lib/notifications/service'
+import { deliverCustomerEmail } from '@/lib/email/deliver'
 
 /**
  * Επιβεβαίωση (accept/reject) ανεβασμένων δικαιολογητικών από τον manager ή τους
@@ -159,4 +160,85 @@ export async function reviewFileRequestItem(itemId: string, decision: 'ACCEPTED'
   revalidatePath('/dashboard')
   if (applicationId) revalidatePath(`/partners/${item.fileRequest.trdrId}`)
   return { ok: true }
+}
+
+/**
+ * Απόρριψη δικαιολογητικού με αιτιολογία + (προαιρετικά) εκ νέου αποστολή αιτήματος
+ * upload στον πελάτη για το ΙΔΙΟ δικαιολογητικό. Ο πελάτης έστειλε λάθος αρχείο →
+ * ο χρήστης εξηγεί γιατί δεν έγινε δεκτό και ζητά επανυποβολή (νέο one-time link).
+ */
+export async function rejectAndResendFileRequestItem(
+  itemId: string,
+  input: { note: string; resend: boolean; expiresAt?: string },
+): Promise<{ ok: boolean; error?: string; url?: string; resent?: boolean }> {
+  const session = await requirePermission('pm.work')
+  const note = input.note?.trim()
+  if (!note) return { ok: false, error: 'Γράψε τον λόγο απόρριψης.' }
+
+  const item = await prisma.fileRequestItem.findUnique({
+    where: { id: itemId },
+    include: { fileRequest: { select: { id: true, applicationId: true, trdrId: true, programId: true, email: true, title: true } } },
+  })
+  if (!item) return { ok: false, error: 'Το δικαιολογητικό δεν βρέθηκε.' }
+  const fr = item.fileRequest
+  const applicationId = fr.applicationId
+  if (!applicationId) return { ok: false, error: 'Το αίτημα δεν συνδέεται με έργο.' }
+  if (!(await canReview(session.user.id, session.user.permissions ?? [], applicationId))) {
+    return { ok: false, error: 'Δεν έχεις δικαίωμα επιβεβαίωσης για αυτό το έργο.' }
+  }
+
+  // 1) Απόρριψη με αιτιολογία.
+  await prisma.fileRequestItem.update({
+    where: { id: itemId },
+    data: { status: 'REJECTED', reviewedById: session.user.id, reviewedAt: new Date(), reviewNote: note },
+  })
+
+  await createNotification({
+    type: 'GENERIC',
+    title: `Απορρίφθηκε δικαιολογητικό — ${item.label}`,
+    body: `${session.user.name ?? 'Χρήστης'}: ${note}`,
+    entityType: 'FileRequestItem',
+    entityId: itemId,
+    meta: { applicationId, decision: 'REJECTED', reviewerId: session.user.id },
+  })
+  await logActivity('file_request.create', {
+    userId: session.user.id, entityType: 'FileRequestItem', entityId: itemId, summary: `REJECTED: ${item.label}`,
+  })
+
+  // 2) Επαναποστολή αιτήματος upload για το ίδιο δικαιολογητικό (νέο FileRequest)
+  //    μέσω deliverCustomerEmail → tags συσχέτισης + νήμα «Επικοινωνία».
+  let url: string | undefined
+  let resent = false
+  if (input.resend && fr.email) {
+    const expiresAt = input.expiresAt
+      ? new Date(input.expiresAt.length <= 10 ? `${input.expiresAt}T23:59:59` : input.expiresAt)
+      : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    if (Number.isNaN(expiresAt.getTime())) return { ok: false, error: 'Μη έγκυρη ημερομηνία λήξης.' }
+
+    const title = `Επανυποβολή — ${item.label}`
+    const message = `Το δικαιολογητικό «${item.label}» δεν έγινε δεκτό. Αιτιολογία: ${note}. Παρακαλούμε ανεβάστε το εκ νέου.`
+    const res = await deliverCustomerEmail(
+      { id: session.user.id, name: session.user.name },
+      {
+        trdrId: fr.trdrId,
+        programId: fr.programId ?? undefined,
+        applicationId: fr.applicationId ?? undefined,
+        to: fr.email,
+        subject: title,
+        bodyHtml: `<p>${message}</p>`,
+        fileRequest: {
+          title,
+          message,
+          expiresAt: expiresAt.toISOString(),
+          items: [{ label: item.label, description: item.description ?? undefined, required: item.required }],
+        },
+      },
+    )
+    url = res.fileRequestUrl
+    resent = res.ok
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath(`/partners/${fr.trdrId}`)
+  return { ok: true, url, resent }
 }

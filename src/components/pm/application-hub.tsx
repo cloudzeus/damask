@@ -173,7 +173,7 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
       {activeTab === 'gantt' && <GanttView applicationId={app.id} programId={app.programId} />}
       {activeTab === 'docrequests' && <DocumentRequestsTab applicationId={app.id} />}
       {activeTab === 'filereq' && <FileRequestsReviewTab applicationId={app.id} />}
-      {activeTab === 'contacts' && <ApplicationContactsTab applicationId={app.id} canManage={app.canManage} programId={app.programId} />}
+      {activeTab === 'contacts' && <ApplicationContactsTab applicationId={app.id} canManage={app.canManage} programId={app.programId} trdrId={app.trdrId} />}
       {activeTab === 'payments' && <PaymentsTab applicationId={app.id} />}
       {activeTab === 'comm' && (
         <EmailHistory
