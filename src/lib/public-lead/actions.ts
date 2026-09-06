@@ -12,6 +12,7 @@ import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { sendMail, isMailerConfigured } from '@/lib/mailer'
 import { logActivity } from '@/lib/activity/log'
 import { createNotification } from '@/lib/notifications/service'
+import { upsertEligibilityLead, upsertNewsletterLead } from '@/lib/leads/service'
 import { otpEmail, teamNewLeadEmail } from '@/lib/public-lead/emails'
 import { NEWSLETTER_CONSENT_TEXT, NEWSLETTER_CONSENT_VERSION } from '@/lib/public-lead/consent'
 import {
@@ -342,7 +343,18 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
     data: { status: 'VERIFIED', verifiedAt: now, trdrId, eligibleProgramIds: eligible.map(e => e.id) },
   })
 
-  // 8) Ειδοποίηση ομάδας — dashboard + email.
+  // 8) Lead στο pipeline follow-up (idempotent ανά αίτημα).
+  const leadId = await upsertEligibilityLead({
+    publicLeadRequestId: request.id,
+    trdrId,
+    companyName: request.companyName,
+    afm: request.afm,
+    email: request.email,
+    phone: request.phone,
+    eligibleProgramIds: eligible.map(e => e.id),
+  })
+
+  // 9) Ειδοποίηση ομάδας — dashboard + email (δείχνει στο lead).
   await notifyTeam({
     companyName: request.companyName,
     afm: request.afm,
@@ -350,7 +362,7 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
     phone: request.phone,
     newsletterOptIn: request.newsletterOptIn,
     eligible,
-    requestId: request.id,
+    leadId,
   })
 
   await logActivity('public_lead.verified', {
@@ -412,6 +424,11 @@ async function subscribeWithConsent(input: {
       },
     })
     await logActivity('newsletter.subscribe', { userId: null, entityType: 'NewsletterSubscription', entityId: input.email, summary: input.name ?? input.email })
+    // Lead newsletter ΜΟΝΟ για standalone εγγραφές (όχι eligibility opt-in — εκεί
+    // υπάρχει ήδη eligibility lead) και μόνο για μη-πελάτες.
+    if (!input.publicLeadRequestId) {
+      await upsertNewsletterLead({ email: input.email, name: input.name, afm: input.afm, trdrId: input.trdrId }).catch(() => {})
+    }
   } catch (err) {
     console.error('subscribeWithConsent failed', err)
   }
@@ -424,16 +441,18 @@ async function notifyTeam(input: {
   phone: string
   newsletterOptIn: boolean
   eligible: EligibleProgram[]
-  requestId: string
+  leadId: string
 }): Promise<void> {
   const name = input.companyName || `ΑΦΜ ${input.afm}`
   await createNotification({
     type: 'PUBLIC_LEAD',
-    title: `Νέο αίτημα επιλεξιμότητας — ${name}`,
+    title: `Νέος ενδιαφερόμενος (επιλεξιμότητα) — ${name}`,
     body: `${input.eligible.length} επιλέξιμα προγράμματα · ${input.email} · ${input.phone}`,
-    entityType: 'PublicLeadRequest',
-    entityId: input.requestId,
+    entityType: 'Lead',
+    entityId: input.leadId,
     meta: {
+      leadId: input.leadId,
+      source: 'ELIGIBILITY',
       afm: input.afm,
       email: input.email,
       phone: input.phone,
@@ -459,9 +478,9 @@ async function notifyTeam(input: {
       eligibleCount: input.eligible.length,
       eligibleTitles: input.eligible.map(e => e.title),
       newsletterOptIn: input.newsletterOptIn,
-      adminUrl: `${APP_URL}/newsletter`,
+      adminUrl: `${APP_URL}/leads`,
     })
-    await sendMail({ to: recipients.join(','), subject: mail.subject, html: mail.html, tracking: false, refType: 'public-lead-team', refId: input.requestId })
+    await sendMail({ to: recipients.join(','), subject: mail.subject, html: mail.html, tracking: false, refType: 'public-lead-team', refId: input.leadId })
   } catch (err) {
     console.error('notifyTeam email failed', err)
   }

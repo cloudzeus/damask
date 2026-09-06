@@ -18,14 +18,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <MobileNavProvider>
       <div className="app-canvas">
-        <div className="flex">
+        {/* Fixed-height shell: το ΠΕΡΙΕΧΟΜΕΝΟ κάνει scroll, όχι όλη η σελίδα —
+            έτσι το scrollbar δεν εκτείνεται σε όλο το ύψος (και στο sidebar). */}
+        <div className="flex h-dvh overflow-hidden">
           <Sidebar
             enabledKeys={[...enabled]}
             permissions={session.user.permissions}
             userName={session.user.name ?? ''}
             userRole={session.user.role}
           />
-          <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
             <Topbar />
             <main className="flex-1 px-3.5 pb-16">
               <PageTransition>{children}</PageTransition>

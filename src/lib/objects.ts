@@ -4,6 +4,7 @@ import {
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
   Cookie, CreditCard, ScanText, Coins, FileText, Landmark, FolderKanban,
   MapPin, Tags, MailCheck, UserPlus, Activity, Mails, UsersRound, Gauge,
+  Sparkles,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -84,6 +85,10 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     { key: 'pm', href: '/pm', label: 'Έργα', icon: FolderKanban, menuPermission: 'pm.work', permissions: [
       { key: 'pm.manage', description: 'Διαχείριση & αναθέσεις έργων' },
       { key: 'pm.work', description: 'Εργασία σε ανατεθειμένα έργα' },
+    ] },
+    { key: 'leads', href: '/leads', label: 'Leads', icon: Sparkles, menuPermission: 'lead.view', core: true, permissions: [
+      { key: 'lead.view', description: 'Προβολή/διαχείριση leads (ενδιαφέρον) — καταγραφή επικοινωνίας & αναγωγή' },
+      { key: 'lead.assign', description: 'Ανάθεση leads σε υπάλληλο/manager (admin/super-admin)' },
     ] },
     { key: 'assignments', href: '/assignments', label: 'Αναθέσεις', icon: UsersRound, menuPermission: 'application.assign', permissions: [
       { key: 'application.assign', description: 'Ανάθεση έργων σε manager & υπαλλήλους (admin/super-admin)' },

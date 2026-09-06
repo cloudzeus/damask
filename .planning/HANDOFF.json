@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-06T14:44:16.888Z",
+  "timestamp": "2026-09-06T15:08:16.270Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,7 +15,52 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [],
+  "uncommitted_files": [
+    {
+      "status": "M",
+      "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "prisma/schema.prisma"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/dashboard/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/layout.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/shell/notifications-bell.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/objects.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/permissions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/public-lead/actions.ts"
+    },
+    {
+      "status": "??",
+      "path": "prisma/migrations/20260906145629_lead_followup_pipeline/"
+    },
+    {
+      "status": "??",
+      "path": "src/app/(app)/leads/"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/leads/"
+    }
+  ],
   "next_action": null,
-  "context_notes": "Recent commits:\na6b67f8 feat(portal): πρόσβαση portal σε επαφή έργου + email ορισμού κωδικού\n7766d62 feat(pm): reject-with-reason + επαναποστολή upload, email action επαφής, tags σε όλα τα emails\n0134520 feat(pm): αίτημα δικαιολογητικών από επαφή έργου + πληρέστερες ειδοποιήσεις\na6efbdb fix(pm): απενεργοποίηση browser autofill στη φόρμα επαφής έργου\nd31fd79 feat(pm): edit/unlink/delete επαφών in-place από την καρτέλα έργου"
+  "context_notes": "Recent commits:\n7ca7bf3 fix(email): μη re-export type σε 'use server' αρχείο (ComposeAttachment ReferenceError)\na6b67f8 feat(portal): πρόσβαση portal σε επαφή έργου + email ορισμού κωδικού\n7766d62 feat(pm): reject-with-reason + επαναποστολή upload, email action επαφής, tags σε όλα τα emails\n0134520 feat(pm): αίτημα δικαιολογητικών από επαφή έργου + πληρέστερες ειδοποιήσεις\na6efbdb fix(pm): απενεργοποίηση browser autofill στη φόρμα επαφής έργου"
 }

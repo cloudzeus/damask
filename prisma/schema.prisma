@@ -69,6 +69,8 @@ model User {
   reminders              ReminderLog[]                 @relation("UserReminders")
   activityLogs           ActivityLog[]
   notificationReads      NotificationRead[]
+  assignedLeads          Lead[]                        @relation("LeadAssignee")
+  leadCommunications     LeadCommunication[]           @relation("LeadCommBy")
 
   @@index([roleId])
   @@index([trdrId])
@@ -382,6 +384,7 @@ model Trdr {
   referrerLinks        Referrer[]               @relation("ReferrerTrdr") // Referrer records που δείχνουν σε αυτόν τον Trdr
   publicLeadRequests   PublicLeadRequest[] // αιτήματα από τη δημόσια φόρμα επιλεξιμότητας
   newsletterSubs       NewsletterSubscription[]
+  leads                Lead[]                   @relation("TrdrLeads")
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
@@ -2090,6 +2093,80 @@ model PublicLeadRequest {
   @@index([status])
   @@index([createdAt])
   @@index([ipHash])
+}
+
+/// Πηγή ενός Lead (ενδιαφερόμενου) στο pipeline follow-up.
+enum LeadSource {
+  ELIGIBILITY // δημόσια φόρμα επιλεξιμότητας (PublicLeadRequest VERIFIED)
+  NEWSLETTER // εγγραφή/ενδιαφέρον μέσω newsletter (μη-πελάτης)
+  MANUAL // καταχώριση από το διαχειριστικό
+}
+
+/// Κατάσταση follow-up ενός Lead.
+enum LeadStatus {
+  NEW // μόλις ήρθε — δεν έχει ανατεθεί
+  ASSIGNED // ανατέθηκε σε υπάλληλο/manager
+  IN_PROGRESS // γίνεται επικοινωνία
+  CONVERTED // αναγωγή σε δυνητικό πελάτη (δημιουργήθηκε έργο POTENTIAL)
+  NOT_INTERESTED // δεν ενδιαφέρθηκε / κλειστό
+}
+
+/// Μέσο επικοινωνίας μιας καταγραφής follow-up.
+enum LeadCommMedium {
+  PHONE
+  EMAIL
+  SMS
+  MEETING
+  VIDEO_CALL
+  OTHER
+}
+
+/// Ενδιαφερόμενος (lead) προς follow-up — ενοποιεί αιτήματα επιλεξιμότητας &
+/// εγγραφές newsletter μη-πελατών. Ο admin/super-admin αναθέτει σε υπάλληλο/manager,
+/// ο ανατεθειμένος καταγράφει την επικοινωνία (LeadCommunication) και μπορεί να τον
+/// αναγάγει σε δυνητικό πελάτη (→ ProgramApplication POTENTIAL για τα επιλέξιμα).
+model Lead {
+  id                  String              @id @default(cuid())
+  source              LeadSource
+  status              LeadStatus          @default(NEW)
+  companyName         String?
+  afm                 String?
+  email               String
+  phone               String?
+  eligibleProgramIds  String[] // από την αξιολόγηση (για την αναγωγή)
+  trdrId              String?
+  trdr                Trdr?               @relation("TrdrLeads", fields: [trdrId], references: [id], onDelete: SetNull)
+  publicLeadRequestId String?             @unique // idempotent link για source=ELIGIBILITY
+  assignedToId        String?
+  assignedTo          User?               @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedById        String?
+  assignedAt          DateTime?
+  convertedAt         DateTime?
+  notes               String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  communications      LeadCommunication[]
+
+  @@index([status])
+  @@index([assignedToId])
+  @@index([source])
+  @@index([email])
+  @@index([createdAt])
+}
+
+/// Καταγραφή επικοινωνίας follow-up ενός Lead (ποιος, πότε, με ποιο μέσο).
+model LeadCommunication {
+  id         String         @id @default(cuid())
+  leadId     String
+  lead       Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  medium     LeadCommMedium
+  note       String
+  occurredAt DateTime       @default(now())
+  byUserId   String
+  by         User           @relation("LeadCommBy", fields: [byUserId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@index([leadId])
 }
 
 enum NewsletterSource {
