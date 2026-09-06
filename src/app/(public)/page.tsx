@@ -2,12 +2,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Button } from './_components/button'
-import { Badge } from './_components/badge'
 import { ProgramCard, type ProgramCardData } from './_components/program-card'
 import { Faq, type FaqItem } from './_components/faq'
 import { EligibilityCta } from './_components/eligibility-cta'
 import { wwaPhoto, wwaPageImage } from './_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
+import { PostMeta } from './_components/post-meta'
 import { listPublishedPosts } from '@/lib/cms/public-posts'
 
 export const metadata: Metadata = {
@@ -181,7 +181,7 @@ export default async function HomePage() {
                 <article key={post.slug} className="card card-hover ncard r">
                   <div className="media"><img src={post.image || wwaPhoto(['ecommerce', 'cosmetics', 'hotel'][i % 3] as 'ecommerce')} alt="" /></div>
                   <div className="body">
-                    <div className="date">{post.category && <Badge variant="active">{post.category}</Badge>}{post.date}</div>
+                    <PostMeta category={post.category} date={post.date} />
                     <h3><Link href={`/nea/${post.slug}`}>{post.title}</Link></h3>
                     {post.excerpt && <p>{post.excerpt}</p>}
                   </div>

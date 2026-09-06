@@ -33,6 +33,29 @@ export function WwaMotion() {
       belowFold.forEach(el => io.observe(el))
       cleanups.push(() => io.disconnect())
 
+      // 2b) Parallax σε hero/sub-banner εικόνες (transform-only, subtle)
+      const heroImgs = [...document.querySelectorAll<HTMLElement>('.banner > img, .sub-banner > img')]
+      if (heroImgs.length) {
+        let ticking = false
+        const applyParallax = () => {
+          for (const img of heroImgs) {
+            const box = img.parentElement
+            if (!box) continue
+            const rect = box.getBoundingClientRect()
+            if (rect.bottom < 0 || rect.top > window.innerHeight) continue
+            const rel = (rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight
+            const shift = Math.max(-1, Math.min(1, rel)) * 22
+            img.style.transform = `scale(1.16) translate3d(0, ${shift.toFixed(1)}px, 0)`
+          }
+          ticking = false
+        }
+        const onScrollP = () => { if (!ticking) { ticking = true; requestAnimationFrame(applyParallax) } }
+        applyParallax()
+        window.addEventListener('scroll', onScrollP, { passive: true })
+        window.addEventListener('resize', onScrollP, { passive: true })
+        cleanups.push(() => { window.removeEventListener('scroll', onScrollP); window.removeEventListener('resize', onScrollP) })
+      }
+
       // 3) Counters
       const counters = [...document.querySelectorAll<HTMLElement>('[data-count]')]
       const cio = new IntersectionObserver((entries) => {

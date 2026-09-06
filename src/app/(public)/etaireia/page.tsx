@@ -55,8 +55,8 @@ export default function CompanyPage() {
             <p>Οικονομολόγοι, μηχανικοί και νομικοί με εμπειρία σε τρεις προγραμματικές περιόδους ΕΣΠΑ.</p>
             <div className="team">
               <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-ceo')} alt="" /></div><div className="b"><h3>Α. Στάμος</h3><div className="role">Διευθύνων Σύμβουλος · Οικονομολόγος</div><p>20+ χρόνια σε επενδυτικά σχέδια ΕΣΠΑ και Αναπτυξιακού Νόμου.</p></div></article>
-              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-submissions')} alt="" /></div><div className="b"><h3>Ομάδα υποβολών</h3><div className="role">Σύνταξη &amp; υποβολή φακέλων</div><p>Τεχνική και οικονομική τεκμηρίωση, ΟΠΣΚΕ, διευκρινίσεις αξιολογητών.</p></div></article>
-              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-implementation')} alt="" /></div><div className="b"><h3>Ομάδα υλοποίησης</h3><div className="role">Διαχείριση έργων &amp; πιστοποιήσεις</div><p>Επιτόπιες επαληθεύσεις, τροποποιήσεις, εκταμιεύσεις.</p></div></article>
+              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-team-submit')} alt="" /></div><div className="b"><h3>Ομάδα υποβολών</h3><div className="role">Σύνταξη &amp; υποβολή φακέλων</div><p>Τεχνική και οικονομική τεκμηρίωση, ΟΠΣΚΕ, διευκρινίσεις αξιολογητών.</p></div></article>
+              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-team-implement')} alt="" /></div><div className="b"><h3>Ομάδα υλοποίησης</h3><div className="role">Διαχείριση έργων &amp; πιστοποιήσεις</div><p>Επιτόπιες επαληθεύσεις, τροποποιήσεις, εκταμιεύσεις.</p></div></article>
             </div>
 
             <h2 id="foreis">Φορείς &amp; συνεργασίες</h2>

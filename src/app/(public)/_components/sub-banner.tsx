@@ -9,7 +9,7 @@ import Link from 'next/link'
 export type Crumb = { label: string; href?: string }
 
 export function SubBanner({
-  image, crumbs, title, sub, lead, meta,
+  image, crumbs, title, sub, lead, meta, typewrite, badges,
 }: {
   image: string
   crumbs: Crumb[]
@@ -17,6 +17,8 @@ export function SubBanner({
   sub?: ReactNode
   lead?: ReactNode
   meta?: ReactNode
+  badges?: ReactNode
+  typewrite?: boolean
 }) {
   return (
     <section className="sub-banner" lang="el">
@@ -31,7 +33,8 @@ export function SubBanner({
             </span>
           ))}
         </div>
-        <h1>{title}</h1>
+        {badges && <div className="hero-badges">{badges}</div>}
+        <h1 {...(typewrite ? { 'data-typewrite': true } : {})}>{title}</h1>
         {sub && <p className="sub" style={{ marginTop: 8, fontSize: 20, color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 900, textTransform: 'uppercase' }}>{sub}</p>}
         {lead && <p style={{ marginTop: 14, fontSize: 17, color: 'rgba(255,255,255,.85)', maxWidth: '58ch' }}>{lead}</p>}
         {meta && <div className="meta">{meta}</div>}

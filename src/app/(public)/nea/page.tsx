@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { SubBanner } from '../_components/sub-banner'
 import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
+import { PostMeta } from '../_components/post-meta'
 import { wwaPhoto } from '../_wwa/assets'
 import { listPublishedPosts, type PublicPostCard } from '@/lib/cms/public-posts'
 
@@ -26,7 +27,7 @@ function NCard({ post, i }: { post: PublicPostCard; i: number }) {
     <article className="card card-hover ncard r">
       <div className="media"><img src={post.image || FALLBACK[i % FALLBACK.length]} alt="" /></div>
       <div className="body">
-        <div className="date">{post.category && <span className="badge badge-active">{post.category}</span>}{post.date}</div>
+        <PostMeta category={post.category} date={post.date} />
         <h3><Link href={`/nea/${post.slug}`}>{post.title}</Link></h3>
         {post.excerpt && <p>{post.excerpt}</p>}
       </div>
@@ -58,9 +59,7 @@ export default async function NewsPage() {
                 <article className="feat-post">
                   <div className="photo square"><img src={featured.image || FALLBACK[0]} alt="" /></div>
                   <div className="b">
-                    <div className="date" style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13, color: 'var(--fg-3)' }}>
-                      {featured.category && <span className="badge badge-active">{featured.category}</span>}{featured.date}
-                    </div>
+                    <PostMeta category={featured.category} date={featured.date} />
                     <h2>{featured.title}</h2>
                     {featured.excerpt && <p>{featured.excerpt}</p>}
                     <div><Button href={`/nea/${featured.slug}`}>Διαβάστε το άρθρο</Button></div>

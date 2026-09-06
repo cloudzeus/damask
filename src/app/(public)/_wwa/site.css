@@ -263,6 +263,10 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .ptag-date { background: var(--navy-50); color: var(--brand); }
 .ptag-region { background: var(--bg-muted); color: var(--fg-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .ptag-open { background: var(--success-100); color: var(--success-500); }
+.ptag-cat { background: var(--success-100); color: var(--success-500); }
+.ptag-date svg { width: 13px; height: 13px; stroke-width: 2; flex: none; }
+.ptag-date.on-dark { background: rgba(255,255,255,.16); color: #fff; }
+.pmeta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ptag-open::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: wwaPulseDot 1.8s ease-in-out infinite; }
 @keyframes wwaPulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.68); } }
 
@@ -314,7 +318,9 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .note { background: var(--navy-50); border-radius: var(--radius-md); padding: 16px 18px; font-size: 14px; color: var(--fg-1); margin: 16px 0; display: flex; gap: 12px; }
 .note svg { width: 20px; height: 20px; color: var(--brand); flex: none; stroke-width: 1.75; }
 .page-tabs { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
-.cards3.cards-2rows { margin-bottom: var(--sp-8); }
+/* Νέα: flex ώστε η τελευταία (μη πλήρης) σειρά να γεμίζει το 100% του πλάτους */
+.cards3.cards-2rows { display: flex; flex-wrap: wrap; gap: var(--sp-6); margin-bottom: var(--sp-8); }
+.cards3.cards-2rows > * { flex: 1 1 calc((100% - 2 * var(--sp-6)) / 3); min-width: 260px; }
 .pager-wrap { display: flex; justify-content: center; margin-top: var(--sp-8); }
 
 /* packages (services) */
@@ -377,7 +383,8 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .quote-card .who b { display: block; color: var(--fg-1); font-weight: 500; }
 
 /* news featured + article */
-.feat-post { display: grid; grid-template-columns: 1.2fr 1fr; border-radius: var(--radius-xl); overflow: hidden; background: #fff; box-shadow: var(--elev-2); margin-bottom: var(--sp-8); }
+.feat-post { display: grid; grid-template-columns: 1.2fr 1fr; border-radius: var(--radius-xl); overflow: hidden; background: #fff; box-shadow: var(--elev-2); margin-bottom: var(--sp-10); }
+.feat-post .b { gap: 14px; }
 .feat-post .photo { border-radius: 0; min-height: 360px; }
 .feat-post .b { padding: clamp(28px, 4vw, 44px); display: flex; flex-direction: column; justify-content: center; gap: 12px; }
 .feat-post h2 { font-size: 26px; text-align: left; } .feat-post p { font-size: 15px; color: var(--fg-2); }
@@ -414,17 +421,81 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .map .grid { position: absolute; inset: 0; background-image: linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px); background-size: 40px 40px; }
 @media (max-width: 900px) { .contact-grid { grid-template-columns: 1fr; } }
 
-/* article body (react-markdown) + gallery */
-.article .post-body h2 { font-size: 22px; margin: 32px 0 10px; text-align: left; }
-.article .post-body h3 { font-size: 18px; margin: 24px 0 8px; }
-.article .post-body p { font-size: 16px; line-height: 1.7; color: var(--fg-2); margin: 0 0 14px; }
-.article .post-body ul, .article .post-body ol { font-size: 16px; color: var(--fg-2); line-height: 1.7; margin: 0 0 14px; padding-left: 20px; }
-.article .post-body a { color: var(--brand); text-decoration: underline; }
-.article .post-body img { border-radius: var(--radius-lg); margin: 20px 0; }
-.article .post-body blockquote { margin: 16px 0; padding: 8px 16px; border-left: 3px solid var(--brand); color: var(--fg-1); background: var(--navy-50); border-radius: 0 var(--radius-md) var(--radius-md) 0; }
-.post-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 24px 0; }
-.post-gallery img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: var(--radius-lg); }
+/* ── Άρθρο (news detail) — premium editorial ── */
+/* Χρωματιστά badges στο hero (πάνω σε navy) */
+.hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.hbadge { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-pill); line-height: 1; }
+.hbadge svg { width: 14px; height: 14px; stroke-width: 2; flex: none; }
+.hbadge-cat { background: var(--wwa-cyan-400); color: var(--navy-950); }
+.hbadge-date { background: rgba(255,255,255,.14); color: #fff; }
+.hbadge-read { background: rgba(52,200,246,.18); color: var(--wwa-cyan-400); }
+.hbadge-author { background: var(--accent-text); color: #fff; } /* magenta — μία φορά/σελίδα */
+
+/* Σώμα άρθρου (react-markdown) */
+.article .post-body h2 { position: relative; font-size: 22px; margin: 34px 0 12px; text-align: left; padding-left: 14px; }
+.article .post-body h2::before { content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 4px; border-radius: 2px; background: var(--brand); }
+.article .post-body h3 { font-size: 18px; margin: 26px 0 8px; }
+.article .post-body p { font-size: 16.5px; line-height: 1.75; color: var(--fg-1); margin: 0 0 16px; }
+.article .post-body ul, .article .post-body ol { font-size: 16.5px; color: var(--fg-1); line-height: 1.75; margin: 0 0 16px; padding-left: 22px; }
+.article .post-body li { margin-bottom: 6px; }
+.article .post-body a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+.article .post-body strong { color: var(--fg-1); font-weight: 700; }
+.article .post-body img { border-radius: var(--radius-lg); margin: 22px 0; box-shadow: var(--elev-1); }
+.article .post-body blockquote { margin: 20px 0; padding: 14px 20px; border-left: 4px solid var(--wwa-cyan-400); color: var(--fg-1); background: var(--navy-50); border-radius: 0 var(--radius-md) var(--radius-md) 0; font-size: 17px; }
+/* Drop-cap στην πρώτη παράγραφο */
+.post-body.dropcap > p:first-of-type::first-letter { font-family: var(--font-display); font-weight: 900; font-size: 3.4em; line-height: .78; float: left; margin: 6px 12px 0 0; color: var(--brand); }
+
+/* Gallery */
+.post-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 26px 0; }
+.post-gallery img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: var(--radius-lg); box-shadow: var(--elev-1); }
 @media (max-width: 560px) { .post-gallery { grid-template-columns: 1fr; } }
+
+/* Inline CTA box + share */
+.post-cta { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin: 48px 0 0; padding: 28px 30px; background: var(--navy-50); border-radius: var(--radius-xl); border-left: 4px solid var(--brand); }
+.post-cta h3 { font-size: 20px; margin: 0; } .post-cta p { margin: 6px 0 0; color: var(--fg-2); font-size: 14px; }
+.post-share { display: flex; align-items: center; gap: 14px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-subtle); }
+.post-share > span { font-size: 13px; font-weight: 600; color: var(--fg-3); }
+
+/* Sidebar εμφατικά boxes */
+.aside-box.aside-cta { background: var(--navy-950); color: #fff; }
+.aside-cta h4 { color: #fff; } .aside-cta p { color: rgba(255,255,255,.82); font-size: 14px; margin-bottom: 14px; }
+.aside-box.aside-news { background: var(--navy-50); box-shadow: none; }
+.aside-news p { font-size: 14px; color: var(--fg-2); margin-bottom: 12px; }
+.aside-news .nl { display: grid; gap: 8px; }
+/* Χρωματιστά accents στα headings του sidebar */
+.aside-box h4 { position: relative; padding-left: 12px; }
+.aside-box h4::before { content: ""; position: absolute; left: 0; top: 1px; bottom: 1px; width: 3px; border-radius: 2px; background: var(--brand); }
+.aside-cta h4::before { background: var(--wwa-cyan-400); }
+.aside-news h4::before { background: var(--accent-text); }
+/* Related list με thumbnails + χρωματιστά badges */
+.aside-related ul { display: grid; gap: 16px; }
+.aside-related li { display: flex; gap: 10px; align-items: flex-start; }
+.aside-related .thumb { flex: none; width: 66px; height: 50px; border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--elev-1); }
+.aside-related .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.aside-related .rl-body { min-width: 0; }
+.aside-related .rl-body > a { display: block; font-weight: 500; color: var(--fg-1); text-decoration: none; line-height: 1.35; }
+.aside-related .rl-body > a:hover { color: var(--brand); }
+.aside-box .pmeta { margin-top: 7px; }
+.aside-box .ptag { display: inline-flex; font-size: 11px; padding: 3px 8px; }
+.aside-box .ptag-date svg { width: 11px; height: 11px; }
+
+/* legal pages */
+
+/* Fix: το admin globals.css διαρρέει a:hover{color} και έκρυβε το λευκό κείμενο
+   των κουμπιών (a.btn) στο hover — επιβάλλουμε το χρώμα της κάθε παραλλαγής. */
+a.btn, a.btn:hover, a.btn:focus, a.btn:visited, a.btn:active { color: var(--_fg); }
+
+/* Στατιστικά «σε αριθμούς» — κάρτες με διαφορετικό χρώμα η καθεμία */
+.stats .stat { background: #fff; border-radius: var(--radius-lg); box-shadow: var(--elev-1); padding: 26px 18px 24px; border-top: 3px solid var(--brand); transition: transform var(--dur-hover) var(--ease-standard), box-shadow var(--dur-hover) var(--ease-standard); }
+.stats .stat:hover { transform: translateY(-3px); box-shadow: var(--elev-2); }
+.stats .stat:nth-child(1) { border-top-color: var(--brand); }
+.stats .stat:nth-child(1) .value { color: var(--brand); }
+.stats .stat:nth-child(2) { border-top-color: var(--accent-text); }
+.stats .stat:nth-child(2) .value { color: var(--accent-text); }
+.stats .stat:nth-child(3) { border-top-color: var(--accent-3); }
+.stats .stat:nth-child(3) .value { color: var(--accent-3); }
+.stats .stat:nth-child(4) { border-top-color: var(--success-500); }
+.stats .stat:nth-child(4) .value { color: var(--success-500); }
 
 /* legal pages */
 .legal-doc { max-width: 760px; margin: 0 auto; }
