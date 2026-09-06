@@ -48,6 +48,10 @@ export const ACTIONS = {
   'email.send': { category: 'COMMUNICATION', label: 'Αποστολή email σε πελάτη', weight: 2 },
   'file_request.create': { category: 'COMMUNICATION', label: 'Αίτημα δικαιολογητικών', weight: 2 },
   'file_request.completed': { category: 'COMMUNICATION', label: 'Ολοκλήρωση δικαιολογητικών', weight: 2 },
+  // Leads (ενδιαφέρον) — follow-up
+  'lead.assign': { category: 'COMMUNICATION', label: 'Ανάθεση lead', weight: 1 },
+  'lead.communicate': { category: 'COMMUNICATION', label: 'Καταγραφή επικοινωνίας lead', weight: 2 },
+  'lead.convert': { category: 'PROSPECT', label: 'Αναγωγή σε δυνητικό πελάτη', weight: 3 },
   // Συμμετοχές / Έργα
   'application.associate': { category: 'APPLICATION', label: 'Σύνδεση πελάτη με πρόγραμμα', weight: 2 },
   'application.evaluate': { category: 'APPLICATION', label: 'Αξιολόγηση εταιρίας σε πρόγραμμα', weight: 1 },

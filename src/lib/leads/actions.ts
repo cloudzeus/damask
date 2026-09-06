@@ -143,7 +143,7 @@ export async function assignLead(leadId: string, userId: string | null): Promise
       meta: { leadId, assignedToId: userId },
     }).catch(() => {})
   }
-  await logActivity('application.associate', { userId: session.user.id, entityType: 'Lead', entityId: leadId, summary: 'Ανάθεση lead', meta: { assignedToId: userId } })
+  await logActivity('lead.assign', { userId: session.user.id, entityType: 'Lead', entityId: leadId, summary: 'Ανάθεση lead', meta: { assignedToId: userId } })
   revalidatePath('/leads')
   return { ok: true }
 }
@@ -168,7 +168,7 @@ export async function logLeadCommunication(
   if (scoped.lead.status === 'NEW' || scoped.lead.status === 'ASSIGNED') {
     await prisma.lead.update({ where: { id: leadId }, data: { status: 'IN_PROGRESS' } })
   }
-  await logActivity('application.associate', { userId: session.user.id, entityType: 'Lead', entityId: leadId, summary: `Επικοινωνία (${input.medium})` })
+  await logActivity('lead.communicate', { userId: session.user.id, entityType: 'Lead', entityId: leadId, summary: `Επικοινωνία (${input.medium})` })
   revalidatePath('/leads')
   return { ok: true }
 }
@@ -228,7 +228,7 @@ export async function promoteLead(leadId: string): Promise<{ ok: boolean; error?
 
   // 3) Μαρκάρισμα CONVERTED.
   await prisma.lead.update({ where: { id: leadId }, data: { status: 'CONVERTED', convertedAt: new Date() } })
-  await logActivity('application.associate', { userId: session.user.id, entityType: 'Lead', entityId: leadId, summary: 'Αναγωγή σε δυνητικό πελάτη', meta: { trdrId, linked } })
+  await logActivity('lead.convert', { userId: session.user.id, entityType: 'Lead', entityId: leadId, summary: 'Αναγωγή σε δυνητικό πελάτη', meta: { trdrId, linked } })
   revalidatePath('/leads')
   revalidatePath(`/partners/${trdrId}`)
   return { ok: true, trdrId, linked }

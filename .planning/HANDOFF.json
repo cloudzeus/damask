@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-06T15:17:52.917Z",
+  "timestamp": "2026-09-06T15:22:03.290Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,29 +22,25 @@
     },
     {
       "status": "M",
-      "path": "prisma/schema.prisma"
+      "path": "src/app/(app)/partners/[id]/page.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/(app)/programs/[id]/page.tsx"
+      "path": "src/lib/activity/registry.ts"
     },
     {
       "status": "M",
-      "path": "src/components/programs/program-editor.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/programs/required-forms-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/programs/actions.ts"
+      "path": "src/lib/leads/actions.ts"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20260906151228_program_image_and_form_phase/"
+      "path": "src/components/communications/"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/communications/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n5feab4b feat(leads): pipeline follow-up ενδιαφερομένων (eligibility + newsletter)\n7ca7bf3 fix(email): μη re-export type σε 'use server' αρχείο (ComposeAttachment ReferenceError)\na6b67f8 feat(portal): πρόσβαση portal σε επαφή έργου + email ορισμού κωδικού\n7766d62 feat(pm): reject-with-reason + επαναποστολή upload, email action επαφής, tags σε όλα τα emails\n0134520 feat(pm): αίτημα δικαιολογητικών από επαφή έργου + πληρέστερες ειδοποιήσεις"
+  "context_notes": "Recent commits:\n85fd852 feat(programs): εικόνα προγράμματος (front-end) + Έντυπα ανά φάση & επαναχρησιμοποιήσιμα\n5feab4b feat(leads): pipeline follow-up ενδιαφερομένων (eligibility + newsletter)\n7ca7bf3 fix(email): μη re-export type σε 'use server' αρχείο (ComposeAttachment ReferenceError)\na6b67f8 feat(portal): πρόσβαση portal σε επαφή έργου + email ορισμού κωδικού\n7766d62 feat(pm): reject-with-reason + επαναποστολή upload, email action επαφής, tags σε όλα τα emails"
 }
