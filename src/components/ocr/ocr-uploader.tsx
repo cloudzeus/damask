@@ -184,8 +184,8 @@ export function OcrUploader({ onConfirm, docTypeHint, title = 'Ανάγνωση 
           <LuScanText className="size-4" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h2 className="text-[15px] font-bold">{title}</h2>
-          <p className="text-[12px] text-muted-foreground">Φωτογραφία ή PDF τιμολογίου, απόδειξης ή δελτίου αποστολής.</p>
+          <h2 className="text-[0.9375rem] font-bold">{title}</h2>
+          <p className="text-[0.75rem] text-muted-foreground">Φωτογραφία ή PDF τιμολογίου, απόδειξης ή δελτίου αποστολής.</p>
         </div>
       </div>
 
@@ -219,7 +219,7 @@ export function OcrUploader({ onConfirm, docTypeHint, title = 'Ανάγνωση 
             {processingFiles ? (
               <>
                 <LuLoaderCircle className="size-8 animate-spin" style={{ color: 'var(--info)' }} aria-hidden />
-                <p className="text-[13px] font-medium text-muted-foreground">Επεξεργασία αρχείων…</p>
+                <p className="text-[0.8125rem] font-medium text-muted-foreground">Επεξεργασία αρχείων…</p>
               </>
             ) : (
               <>
@@ -227,14 +227,14 @@ export function OcrUploader({ onConfirm, docTypeHint, title = 'Ανάγνωση 
                   <LuCloudUpload className="size-6" style={{ color: dragging ? '#fff' : 'var(--muted-foreground)' }} aria-hidden />
                 </span>
                 <div>
-                  <p className="text-[14px] font-semibold">{dragging ? 'Άφησέ το εδώ' : 'Σύρε φωτογραφίες ή PDF εδώ'}</p>
-                  <p className="mt-1 text-[12px] text-muted-foreground">
+                  <p className="text-[0.875rem] font-semibold">{dragging ? 'Άφησέ το εδώ' : 'Σύρε φωτογραφίες ή PDF εδώ'}</p>
+                  <p className="mt-1 text-[0.75rem] text-muted-foreground">
                     ή <span className="font-semibold" style={{ color: 'var(--info)' }}>κάνε κλικ για επιλογή</span>
                   </p>
                 </div>
                 <div className="flex gap-1.5">
                   {ACCEPTED_LABELS.map(ext => (
-                    <span key={ext} className="rounded bg-border px-1.5 py-0.5 font-mono text-[10.5px] text-muted-foreground">{ext}</span>
+                    <span key={ext} className="rounded bg-border px-1.5 py-0.5 font-mono text-[0.65625rem] text-muted-foreground">{ext}</span>
                   ))}
                 </div>
               </>
@@ -268,7 +268,7 @@ export function OcrUploader({ onConfirm, docTypeHint, title = 'Ανάγνωση 
               <button
                 type="button"
                 onClick={resetAll}
-                className="flex size-20 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border text-[10.5px] font-medium text-muted-foreground transition-colors hover:border-(--destructive) hover:text-(--destructive)"
+                className="flex size-20 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border text-[0.65625rem] font-medium text-muted-foreground transition-colors hover:border-(--destructive) hover:text-(--destructive)"
               >
                 <LuX className="size-4" aria-hidden />
                 Καθαρισμός
@@ -278,7 +278,7 @@ export function OcrUploader({ onConfirm, docTypeHint, title = 'Ανάγνωση 
 
           <div className="flex flex-wrap items-center gap-3">
             <Select value={docType} onValueChange={v => setDocType(v as OcrDocTypeHint)}>
-              <SelectTrigger aria-label="Τύπος εγγράφου" className="h-9 min-w-[190px] rounded-full border-border bg-card px-3.5 text-[12.5px]">
+              <SelectTrigger aria-label="Τύπος εγγράφου" className="h-9 min-w-[190px] rounded-full border-border bg-card px-3.5 text-[0.78125rem]">
                 <SelectValue>{(v: string) => DOC_TYPE_HINT_LABEL[v as OcrDocTypeHint]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -295,8 +295,8 @@ export function OcrUploader({ onConfirm, docTypeHint, title = 'Ανάγνωση 
       {phase === 'processing' && (
         <div className="flex flex-col items-center justify-center gap-3 py-14 text-center" role="status">
           <LuLoaderCircle className="size-9 animate-spin" style={{ color: 'var(--info)' }} aria-hidden />
-          <p className="text-[14px] font-semibold">{PROCESSING_STEPS[stepIndex]}</p>
-          <p className="text-[12px] text-muted-foreground">Συνήθως ~10-25 δευτερόλεπτα — μην κλείσεις αυτό το παράθυρο.</p>
+          <p className="text-[0.875rem] font-semibold">{PROCESSING_STEPS[stepIndex]}</p>
+          <p className="text-[0.75rem] text-muted-foreground">Συνήθως ~10-25 δευτερόλεπτα — μην κλείσεις αυτό το παράθυρο.</p>
         </div>
       )}
 

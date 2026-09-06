@@ -195,8 +195,8 @@ function AssignDialog({
         </DialogHeader>
 
         <div className="rounded-lg bg-muted/50 px-3 py-2 ring-1 ring-foreground/10">
-          <div className="text-[13px] font-bold text-foreground">{row.programTitle}</div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
+          <div className="text-[0.8125rem] font-bold text-foreground">{row.programTitle}</div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.75rem] text-muted-foreground">
             <span>{row.trdrName}</span>
             <span aria-hidden>·</span>
             <LifecycleBadge lifecycle={row.lifecycle} />
@@ -234,7 +234,7 @@ function AssignDialog({
           </div>
           <div className="mt-2 max-h-64 overflow-y-auto rounded-lg ring-1 ring-foreground/10">
             {filtered.length === 0 && (
-              <div className="px-3 py-6 text-center text-[12.5px] text-muted-foreground">Δεν βρέθηκαν υπάλληλοι.</div>
+              <div className="px-3 py-6 text-center text-[0.78125rem] text-muted-foreground">Δεν βρέθηκαν υπάλληλοι.</div>
             )}
             {filtered.map(e => {
               const checked = selected.has(e.id)
@@ -256,8 +256,8 @@ function AssignDialog({
                     onChange={() => toggle(e.id)}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-foreground">{e.name}</span>
-                    <span className="block truncate text-[11.5px] text-muted-foreground">{e.email}</span>
+                    <span className="block truncate text-[0.8125rem] font-semibold text-foreground">{e.name}</span>
+                    <span className="block truncate text-[0.71875rem] text-muted-foreground">{e.email}</span>
                   </span>
                   <span className="badge-pill muted shrink-0">{e.role}</span>
                 </label>

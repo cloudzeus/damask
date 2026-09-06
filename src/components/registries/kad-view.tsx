@@ -91,8 +91,8 @@ export function KadView({
         <div className="glass flex items-center gap-3 rounded-[22px] p-4">
           <span className="icon-pill"><ClipboardList className="size-4" aria-hidden /></span>
           <div>
-            <div className="text-[19px] font-semibold tabular-nums">{total.toLocaleString('el-GR')}</div>
-            <div className="text-[11.5px] text-muted-foreground">Σύνολο κωδικών ΚΑΔ</div>
+            <div className="text-[1.1875rem] font-semibold tabular-nums">{total.toLocaleString('el-GR')}</div>
+            <div className="text-[0.71875rem] text-muted-foreground">Σύνολο κωδικών ΚΑΔ</div>
           </div>
         </div>
         <div className="glass flex items-center gap-3 rounded-[22px] p-4">
@@ -100,15 +100,15 @@ export function KadView({
           <div>
             {lastImport ? (
               <>
-                <div className="text-[13px] font-semibold">
+                <div className="text-[0.8125rem] font-semibold">
                   {new Date(lastImport.importedAt).toLocaleDateString('el-GR')} · v{lastImport.sourceVersion}
                 </div>
-                <div className="text-[11.5px] text-muted-foreground">
+                <div className="text-[0.71875rem] text-muted-foreground">
                   Τελευταία εισαγωγή — {lastImport.totalCodes.toLocaleString('el-GR')} κωδικοί
                 </div>
               </>
             ) : (
-              <div className="text-[12.5px] text-muted-foreground">Δεν έχει καταγραφεί εισαγωγή</div>
+              <div className="text-[0.78125rem] text-muted-foreground">Δεν έχει καταγραφεί εισαγωγή</div>
             )}
           </div>
         </div>
@@ -119,7 +119,7 @@ export function KadView({
 
       <section className="glass rounded-[22px] p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+          <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
             Ιεραρχικό δέντρο
           </div>
           {canManage && (
@@ -129,16 +129,16 @@ export function KadView({
           )}
         </div>
 
-        {rootsError && <p className="py-4 text-center text-[12.5px] text-destructive">{rootsError}</p>}
+        {rootsError && <p className="py-4 text-center text-[0.78125rem] text-destructive">{rootsError}</p>}
 
         {!rootsError && roots === null && (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <Loader2 className="size-4 animate-spin" /> Φόρτωση…
           </div>
         )}
 
         {!rootsError && roots !== null && roots.length === 0 && (
-          <p className="py-8 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν δεδομένα.</p>
+          <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν δεδομένα.</p>
         )}
 
         {roots !== null && roots.length > 0 && (
@@ -187,7 +187,7 @@ function KadSearch() {
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Αναζήτηση ΚΑΔ
       </div>
 
@@ -202,15 +202,15 @@ function KadSearch() {
       </div>
 
       {!tooShort && loading && (
-        <div className="flex items-center gap-2 py-4 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center gap-2 py-4 text-[0.78125rem] text-muted-foreground">
           <Loader2 className="size-4 animate-spin" /> Αναζήτηση…
         </div>
       )}
-      {!tooShort && error && <p className="py-4 text-[12.5px] text-destructive">{error}</p>}
+      {!tooShort && error && <p className="py-4 text-[0.78125rem] text-destructive">{error}</p>}
 
       {!tooShort && !loading && !error && results !== null && (
         results.length === 0 ? (
-          <p className="py-4 text-[12.5px] text-muted-foreground">Δεν βρέθηκαν αποτελέσματα.</p>
+          <p className="py-4 text-[0.78125rem] text-muted-foreground">Δεν βρέθηκαν αποτελέσματα.</p>
         ) : (
           <div className="mt-3">
             <Table>
@@ -225,8 +225,8 @@ function KadSearch() {
               <TableBody>
                 {results.map(r => (
                   <TableRow key={r.code}>
-                    <TableCell className="font-mono text-[11.5px]">{r.code}</TableCell>
-                    <TableCell className="text-[12.5px]">{r.title ?? r.description}</TableCell>
+                    <TableCell className="font-mono text-[0.71875rem]">{r.code}</TableCell>
+                    <TableCell className="text-[0.78125rem]">{r.title ?? r.description}</TableCell>
                     <TableCell><LevelBadge level={r.level} /></TableCell>
                     <TableCell>{r.requiresLicense && <LicenseBadge />}</TableCell>
                   </TableRow>
@@ -234,7 +234,7 @@ function KadSearch() {
               </TableBody>
             </Table>
             {total > results.length && (
-              <p className="mt-2 text-[11.5px] text-muted-foreground">Εμφανίζονται {results.length} από {total.toLocaleString('el-GR')} αποτελέσματα.</p>
+              <p className="mt-2 text-[0.71875rem] text-muted-foreground">Εμφανίζονται {results.length} από {total.toLocaleString('el-GR')} αποτελέσματα.</p>
             )}
           </div>
         )
@@ -269,7 +269,7 @@ function KadDecoder() {
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Αποκωδικοποίηση ΚΑΔ
       </div>
 
@@ -288,20 +288,20 @@ function KadDecoder() {
         </Button>
       </div>
 
-      {error && <p className="mt-3 text-[12.5px] text-destructive">{error}</p>}
-      {searched && !error && !result && <p className="mt-3 text-[12.5px] text-muted-foreground">Δεν βρέθηκε ΚΑΔ με αυτόν τον κωδικό.</p>}
+      {error && <p className="mt-3 text-[0.78125rem] text-destructive">{error}</p>}
+      {searched && !error && !result && <p className="mt-3 text-[0.78125rem] text-muted-foreground">Δεν βρέθηκε ΚΑΔ με αυτόν τον κωδικό.</p>}
 
       {result && (
         <div className="mt-4 flex flex-col gap-3 border-t border-border pt-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[13px] font-semibold">{result.code}</span>
-            <span className="text-[13px]">{result.title}</span>
+            <span className="font-mono text-[0.8125rem] font-semibold">{result.code}</span>
+            <span className="text-[0.8125rem]">{result.title}</span>
             <LevelBadge level={result.level} />
             {result.sector && <span className="badge-pill info">Τομέας {result.sector}</span>}
           </div>
 
           {result.hierarchy.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-1.5 text-[0.75rem] text-muted-foreground">
               {result.hierarchy.map((it, i) => (
                 <React.Fragment key={it.code}>
                   {i > 0 && <ChevronRight className="size-3" aria-hidden />}
@@ -313,11 +313,11 @@ function KadDecoder() {
 
           {result.children.length > 0 && (
             <div>
-              <div className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Παιδιά ({result.children.length})</div>
+              <div className="mb-1.5 text-[0.6875rem] font-semibold text-muted-foreground">Παιδιά ({result.children.length})</div>
               <ul className="flex max-h-56 flex-col overflow-auto">
                 {result.children.map(c => (
-                  <li key={c.code} className="dotted-row-bottom flex items-center gap-2 py-1.5 text-[12.5px]">
-                    <span className="w-24 shrink-0 font-mono text-[11px] text-muted-foreground">{c.code}</span>
+                  <li key={c.code} className="dotted-row-bottom flex items-center gap-2 py-1.5 text-[0.78125rem]">
+                    <span className="w-24 shrink-0 font-mono text-[0.6875rem] text-muted-foreground">{c.code}</span>
                     <span>{c.title}</span>
                   </li>
                 ))}
@@ -407,8 +407,8 @@ function KadNode({
           )}
         </button>
 
-        <span className="w-24 shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">{node.code}</span>
-        <span className="truncate text-[12.5px] font-medium">{node.title}</span>
+        <span className="w-24 shrink-0 font-mono text-[0.6875rem] tabular-nums text-muted-foreground">{node.code}</span>
+        <span className="truncate text-[0.78125rem] font-medium">{node.title}</span>
         {!node.isActive && <span className="badge-pill warn shrink-0">Ανενεργός</span>}
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -436,7 +436,7 @@ function KadNode({
         </div>
       </div>
 
-      {error && <p className="mt-1 ml-7 text-[11.5px] text-destructive">{error}</p>}
+      {error && <p className="mt-1 ml-7 text-[0.71875rem] text-destructive">{error}</p>}
 
       {expanded && children && children.length > 0 && (
         <ul className="mt-1.5 flex flex-col gap-1.5" style={{ paddingLeft: (depth + 1) * 20 }}>
@@ -566,7 +566,7 @@ function KadFormDialog({
           </div>
           {mode === 'edit' && (
             <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card px-3 py-2">
-              <Label htmlFor="kad-active" className="text-[12.5px]">Ενεργός ΚΑΔ</Label>
+              <Label htmlFor="kad-active" className="text-[0.78125rem]">Ενεργός ΚΑΔ</Label>
               <Switch id="kad-active" checked={isActive} onCheckedChange={setIsActive} />
             </div>
           )}

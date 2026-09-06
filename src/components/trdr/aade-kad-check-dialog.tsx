@@ -76,7 +76,7 @@ export function AadeKadCheckDialog({
         </DialogHeader>
 
         {state.status === 'loading' && (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" aria-hidden /> Έλεγχος στο μητρώο ΑΑΔΕ…
           </div>
         )}
@@ -94,12 +94,12 @@ export function AadeKadCheckDialog({
 
             {state.data.added.length > 0 && (
               <div>
-                <div className="dotted-leader mb-1.5 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+                <div className="dotted-leader mb-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
                   Νέοι ΚΑΔ ({state.data.added.length})
                 </div>
                 <ul className="flex flex-col gap-1.5">
                   {state.data.added.map((a, i) => (
-                    <li key={`${a.code}-${i}`} className="flex items-center gap-2 text-[12.5px]">
+                    <li key={`${a.code}-${i}`} className="flex items-center gap-2 text-[0.78125rem]">
                       <span className="badge-pill ok shrink-0"><Plus className="size-3" aria-hidden /> Νέος</span>
                       {a.kind === 'PRIMARY' && <span className="badge-pill muted shrink-0">Πρωτεύων</span>}
                       <span className="font-semibold tabular-nums">{a.code}</span>
@@ -112,12 +112,12 @@ export function AadeKadCheckDialog({
 
             {state.data.removed.length > 0 && (
               <div>
-                <div className="dotted-leader mb-1.5 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+                <div className="dotted-leader mb-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
                   Δεν υπάρχουν πλέον στην ΑΑΔΕ ({state.data.removed.length})
                 </div>
                 <ul className="flex flex-col gap-1.5">
                   {state.data.removed.map((r, i) => (
-                    <li key={`${r.code}-${i}`} className="flex items-center gap-2 text-[12.5px]">
+                    <li key={`${r.code}-${i}`} className="flex items-center gap-2 text-[0.78125rem]">
                       <span className="badge-pill warn shrink-0"><Minus className="size-3" aria-hidden /> Αφαίρεση</span>
                       <span className="font-semibold tabular-nums">{r.code}</span>
                       <span className="truncate text-muted-foreground">{r.description}</span>
@@ -128,7 +128,7 @@ export function AadeKadCheckDialog({
             )}
 
             {hasChanges && (
-              <p className="text-[11.5px] text-muted-foreground">
+              <p className="text-[0.71875rem] text-muted-foreground">
                 Η «Εφαρμογή» αντικαθιστά όλους τους ΚΑΔ του συναλλασσόμενου με τους τρέχοντες της ΑΑΔΕ.
                 {!canEdit && ' Δεν έχεις δικαίωμα επεξεργασίας — μόνο προβολή.'}
               </p>

@@ -40,8 +40,8 @@ export async function BackupsTab() {
             <LuDatabaseBackup className="size-4" strokeWidth={1.8} aria-hidden />
           </div>
           <div>
-            <h3 className="text-[14.5px] font-bold">Αντίγραφα ασφαλείας βάσης δεδομένων</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground">
+            <h3 className="text-[0.90625rem] font-bold">Αντίγραφα ασφαλείας βάσης δεδομένων</h3>
+            <p className="mt-0.5 text-[0.75rem] text-muted-foreground">
               Αυτόματο καθημερινό backup στις 03:30 (Ελλάδα) → BunnyCDN, διατήρηση {settings.retentionDays} πιο πρόσφατων. Μπορείς και να τρέξεις ένα χειροκίνητα.
             </p>
           </div>

@@ -55,7 +55,7 @@ export function NewsletterTabs({
             aria-selected={active === t.key}
             onClick={() => setActive(t.key)}
             className={cn(
-              'rounded-full px-4 py-2 text-[12.5px] font-semibold whitespace-nowrap transition-colors',
+              'rounded-full px-4 py-2 text-[0.78125rem] font-semibold whitespace-nowrap transition-colors',
               active === t.key
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -391,7 +391,7 @@ function ConsentsTab({ rows }: { rows: ConsentRow[] }) {
       header: 'Μέθοδος',
       width: 180,
       sortValue: r => r.method,
-      cell: r => <span className="font-mono text-[11px]">{r.method}</span>,
+      cell: r => <span className="font-mono text-[0.6875rem]">{r.method}</span>,
     },
     {
       id: 'consentVersion',
@@ -405,7 +405,7 @@ function ConsentsTab({ rows }: { rows: ConsentRow[] }) {
       header: 'IP',
       width: 130,
       sortValue: r => r.ip,
-      cell: r => <span className="font-mono text-[11px]">{r.ip ?? '—'}</span>,
+      cell: r => <span className="font-mono text-[0.6875rem]">{r.ip ?? '—'}</span>,
     },
     {
       id: 'createdAt',
@@ -418,7 +418,7 @@ function ConsentsTab({ rows }: { rows: ConsentRow[] }) {
 
   return (
     <>
-      <div className="mb-2 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+      <div className="mb-2 flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
         <ShieldCheck className="size-3.5" aria-hidden />
         Αμετάβλητο αρχείο συναινέσεων (GDPR) — μόνο ανάγνωση. Πατήστε μια γραμμή για το πλήρες κείμενο.
       </div>
@@ -442,7 +442,7 @@ function ConsentsTab({ rows }: { rows: ConsentRow[] }) {
           </DialogHeader>
 
           {selected && (
-            <div className="flex flex-col gap-3 text-[12.5px]">
+            <div className="flex flex-col gap-3 text-[0.78125rem]">
               <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5">
                 <dt className="font-semibold text-muted-foreground">Email</dt>
                 <dd className="break-all">{selected.email}</dd>
@@ -451,15 +451,15 @@ function ConsentsTab({ rows }: { rows: ConsentRow[] }) {
                   <dd className="tabular-nums">{selected.afm}</dd>
                 </>)}
                 <dt className="font-semibold text-muted-foreground">Μέθοδος</dt>
-                <dd className="font-mono text-[11px]">{selected.method}</dd>
+                <dd className="font-mono text-[0.6875rem]">{selected.method}</dd>
                 <dt className="font-semibold text-muted-foreground">Έκδοση</dt>
                 <dd>{selected.consentVersion ?? '—'}</dd>
                 <dt className="font-semibold text-muted-foreground">Πηγή</dt>
                 <dd>{selected.source ?? '—'}</dd>
                 <dt className="font-semibold text-muted-foreground">IP</dt>
-                <dd className="font-mono text-[11px]">{selected.ip ?? '—'}</dd>
+                <dd className="font-mono text-[0.6875rem]">{selected.ip ?? '—'}</dd>
                 <dt className="font-semibold text-muted-foreground">User agent</dt>
-                <dd className="font-mono text-[11px] break-all">{selected.userAgent ?? '—'}</dd>
+                <dd className="font-mono text-[0.6875rem] break-all">{selected.userAgent ?? '—'}</dd>
               </dl>
 
               <div>

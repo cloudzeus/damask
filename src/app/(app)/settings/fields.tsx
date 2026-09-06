@@ -189,10 +189,10 @@ export function CardHeader({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h3 className="text-[14.5px] font-bold">{title}</h3>
+          <h3 className="text-[0.90625rem] font-bold">{title}</h3>
           <ConfiguredBadge configured={configured} />
         </div>
-        <p className="mt-0.5 text-[12px] text-muted-foreground">{description}</p>
+        <p className="mt-0.5 text-[0.75rem] text-muted-foreground">{description}</p>
         <LastCheckBadge lastCheck={lastCheck} className="mt-1.5" />
       </div>
     </div>

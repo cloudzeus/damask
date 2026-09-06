@@ -149,8 +149,8 @@ export function VivaCard({
           disabled={saving || testing}
         />
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-bold">Ενεργό περιβάλλον</div>
-          <p className="text-[11.5px] text-muted-foreground">
+          <div className="text-[0.8125rem] font-bold">Ενεργό περιβάλλον</div>
+          <p className="text-[0.71875rem] text-muted-foreground">
             Καθορίζει ποιο σετ στοιχείων χρησιμοποιεί η σελίδα «Πληρωμές» και η «Δοκιμή σύνδεσης» παρακάτω.
           </p>
         </div>
@@ -164,7 +164,7 @@ export function VivaCard({
         <div className="rounded-2xl border p-3.5" style={{ borderColor: 'var(--border)' }}>
           <div className="mb-2.5 flex flex-wrap items-center gap-2">
             <span className="badge-pill info"><LuFlaskConical className="size-3" aria-hidden /> Demo</span>
-            <span className="text-[11px] text-muted-foreground">demo-accounts / demo-api.vivapayments.com</span>
+            <span className="text-[0.6875rem] text-muted-foreground">demo-accounts / demo-api.vivapayments.com</span>
           </div>
           <TextField id="viva-demo-clientId" label="Client ID" icon={Fingerprint} value={demoValues.clientId} onChange={v => setDemoField('clientId', v)} error={fieldErrors['demo.clientId']} />
           <SecretField id="viva-demo-clientSecret" label="Client Secret" icon={KeyRound} value={demoValues.clientSecret} onChange={v => setDemoField('clientSecret', v)} maskedHint={demoMaskedSecret} error={fieldErrors['demo.clientSecret']} />
@@ -181,7 +181,7 @@ export function VivaCard({
         <div className="rounded-2xl border p-3.5" style={{ borderColor: 'var(--border)' }}>
           <div className="mb-2.5 flex flex-wrap items-center gap-2">
             <span className="badge-pill ok"><LuRocket className="size-3" aria-hidden /> Παραγωγή</span>
-            <span className="text-[11px] text-muted-foreground">accounts / api.vivapayments.com</span>
+            <span className="text-[0.6875rem] text-muted-foreground">accounts / api.vivapayments.com</span>
           </div>
           <TextField id="viva-prod-clientId" label="Client ID" icon={Fingerprint} value={prodValues.clientId} onChange={v => setProdField('clientId', v)} error={fieldErrors['production.clientId']} />
           <SecretField id="viva-prod-clientSecret" label="Client Secret" icon={KeyRound} value={prodValues.clientSecret} onChange={v => setProdField('clientSecret', v)} maskedHint={prodMaskedSecret} error={fieldErrors['production.clientSecret']} />

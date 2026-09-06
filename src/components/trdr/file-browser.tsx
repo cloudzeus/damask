@@ -131,7 +131,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
   return (
     <div className="glass flex flex-col gap-3 rounded-[22px] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-[15px] font-bold">
+        <h3 className="flex items-center gap-2 text-[0.9375rem] font-bold">
           <Folder className="size-4 text-muted-foreground" aria-hidden /> Αρχεία
         </h3>
         {canEdit && (

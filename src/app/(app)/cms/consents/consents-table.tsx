@@ -81,7 +81,7 @@ export function ConsentsTable({ rows, range }: { rows: ConsentRow[]; range: '7' 
       width: 150,
       sortValue: row => row.visitorId,
       cell: row => (
-        <span className="font-mono text-[11.5px] text-muted-foreground" title={row.visitorId}>
+        <span className="font-mono text-[0.71875rem] text-muted-foreground" title={row.visitorId}>
           {truncateId(row.visitorId)}
         </span>
       ),
@@ -98,7 +98,7 @@ export function ConsentsTable({ rows, range }: { rows: ConsentRow[]; range: '7' 
       header: 'IP',
       width: 130,
       sortValue: row => row.ip,
-      cell: row => <span className="font-mono text-[12px]">{row.ip}</span>,
+      cell: row => <span className="font-mono text-[0.75rem]">{row.ip}</span>,
     },
     {
       id: 'osBrowser',

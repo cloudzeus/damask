@@ -73,7 +73,7 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Φορολογικά ({records.length})
         </div>
         <Button type="button" onClick={() => setScanOpen(true)}>
@@ -82,14 +82,14 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       ) : records.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-[12.5px] text-muted-foreground">Δεν έχει καταχωριστεί κανένα φορολογικό έντυπο για τον συναλλασσόμενο αυτόν.</p>
+          <p className="text-[0.78125rem] text-muted-foreground">Δεν έχει καταχωριστεί κανένα φορολογικό έντυπο για τον συναλλασσόμενο αυτόν.</p>
           <Button type="button" onClick={() => setScanOpen(true)}>
             <LuScanText className="size-3.5" aria-hidden /> Νέα σάρωση
           </Button>
@@ -99,16 +99,16 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
           <div className="flex flex-col">
             {records.map(r => (
               <div key={r.id} className="dotted-row-bottom flex flex-wrap items-center gap-3 py-2.5">
-                <span className="avatar-ring size-8 shrink-0 text-[11px]">
+                <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">
                   <LuFileText className="size-3.5" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <b className="text-[13px]">{r.name}</b>
-                    <span className="text-[11.5px] text-muted-foreground">— {r.templateName}</span>
+                    <b className="text-[0.8125rem]">{r.name}</b>
+                    <span className="text-[0.71875rem] text-muted-foreground">— {r.templateName}</span>
                     {statusBadge(r.status)}
                   </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11.5px] text-muted-foreground">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.71875rem] text-muted-foreground">
                     <span>Έτος {r.year}</span>
                     {r.usage && <span>{r.usage}</span>}
                     <span>{new Date(r.createdAt).toLocaleDateString('el-GR')}</span>
@@ -132,7 +132,7 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
                 <TableBody>
                   {fieldKeys.map(fk => (
                     <TableRow key={fk}>
-                      <TableCell className="font-mono text-[11.5px]">{fk}</TableCell>
+                      <TableCell className="font-mono text-[0.71875rem]">{fk}</TableCell>
                       {years.map(y => (
                         <TableCell key={y} className="text-right">{formatCell(valueMap.get(`${fk}:${y}`))}</TableCell>
                       ))}

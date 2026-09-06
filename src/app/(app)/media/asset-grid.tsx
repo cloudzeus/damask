@@ -65,7 +65,7 @@ export function AssetGrid({
         {hasActiveFilter ? (
           <>
             <X className="size-8 text-muted-foreground" strokeWidth={1.5} />
-            <p className="text-[13.5px] font-medium">Δεν βρέθηκαν αρχεία με αυτά τα κριτήρια.</p>
+            <p className="text-[0.84375rem] font-medium">Δεν βρέθηκαν αρχεία με αυτά τα κριτήρια.</p>
             <button type="button" className="btn-pill btn-glass" onClick={onClearFilters}>
               Καθαρισμός φίλτρων
             </button>
@@ -73,7 +73,7 @@ export function AssetGrid({
         ) : (
           <>
             <ImageOff className="size-8 text-muted-foreground" strokeWidth={1.5} />
-            <p className="text-[13.5px] font-medium">Αυτός ο φάκελος είναι άδειος.</p>
+            <p className="text-[0.84375rem] font-medium">Αυτός ο φάκελος είναι άδειος.</p>
             <button type="button" className="btn-pill btn-navy" onClick={onUploadClick}>
               <UploadCloud className="size-3.5" strokeWidth={1.8} aria-hidden /> Μεταφόρτωση αρχείων
             </button>

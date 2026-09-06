@@ -11,7 +11,7 @@ export async function SiteFooter() {
 
   return (
     <footer className="site-footer glass stagger">
-      <span className="wordmark text-[13px]">World Wide Associates</span>
+      <span className="wordmark text-[0.8125rem]">World Wide Associates</span>
       <span>© {new Date().getFullYear()} World Wide Associates</span>
       {pages.length > 0 && (
         <nav className="links">

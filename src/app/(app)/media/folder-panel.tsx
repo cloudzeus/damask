@@ -39,7 +39,7 @@ export function FolderPanel({
   return (
     <div className="glass flex w-64 shrink-0 flex-col gap-2 p-3">
       <div className="flex items-center justify-between gap-2 px-1">
-        <span className="text-[11px] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">Φάκελοι</span>
+        <span className="text-[0.6875rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">Φάκελοι</span>
         <Button type="button" size="icon-sm" variant="ghost" aria-label="Νέος φάκελος" onClick={() => setCreateOpen(true)}>
           <FolderPlus className="size-4" strokeWidth={1.75} />
         </Button>
@@ -50,7 +50,7 @@ export function FolderPanel({
           type="button"
           onClick={() => onSelect(null)}
           className={cn(
-            'flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] font-medium transition-colors',
+            'flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[0.8125rem] font-medium transition-colors',
             selectedFolderId === null
               ? 'bg-primary text-primary-foreground'
               : 'text-foreground hover:bg-[var(--glass-strong)]',
@@ -61,7 +61,7 @@ export function FolderPanel({
         </button>
 
         {tree.length === 0 ? (
-          <p className="px-2.5 py-3 text-[12px] text-muted-foreground">
+          <p className="px-2.5 py-3 text-[0.75rem] text-muted-foreground">
             Δεν υπάρχουν φάκελοι ακόμα. Δημιούργησε τον πρώτο με το{' '}
             <FolderPlus className="inline size-3" strokeWidth={2} aria-hidden /> πάνω δεξιά.
           </p>
@@ -155,7 +155,7 @@ function FolderRow({
     <div>
       <div
         className={cn(
-          'group flex min-w-0 items-center gap-1 rounded-lg pr-1 text-[13px] font-medium transition-colors',
+          'group flex min-w-0 items-center gap-1 rounded-lg pr-1 text-[0.8125rem] font-medium transition-colors',
           selectedFolderId === node.id ? 'bg-primary text-primary-foreground' : 'hover:bg-[var(--glass-strong)]',
         )}
         style={{ paddingLeft: 10 + depth * 14 }}
@@ -166,7 +166,7 @@ function FolderRow({
           {node.assetCount > 0 && (
             <span
               className={cn(
-                'shrink-0 rounded-full px-1.5 py-0 text-[10.5px] font-bold tabular-nums',
+                'shrink-0 rounded-full px-1.5 py-0 text-[0.65625rem] font-bold tabular-nums',
                 selectedFolderId === node.id ? 'bg-white/20' : 'bg-muted text-muted-foreground',
               )}
             >

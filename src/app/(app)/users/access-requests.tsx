@@ -38,17 +38,17 @@ export function AccessRequestsPanel({ requests }: { requests: AccessRequestRow[]
 
   return (
     <div className="glass stagger mt-4 p-4">
-      <div className="dotted-leader mb-2.5 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-2.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Αιτήματα B2B σε αναμονή
       </div>
       <div className="flex flex-col">
         {requests.map(request => (
           <div key={request.id} className="dotted-row-bottom flex flex-wrap items-center gap-3 py-3">
             <div className="min-w-0 flex-1">
-              <b className="text-[13px]">
+              <b className="text-[0.8125rem]">
                 {request.name} <span className="font-normal text-muted-foreground">— {request.company}</span>
               </b>
-              <small className="block text-[11px] text-muted-foreground">
+              <small className="block text-[0.6875rem] text-muted-foreground">
                 ΑΦΜ {request.afm} · {request.email} ·{' '}
                 {request.type === 'ARCHITECT' ? 'Αρχιτέκτονας' : request.type === 'SUPPLIER' ? 'Προμηθευτής' : 'Πελάτης'}
                 {request.fromContact ? ' · Από επαφή συναλλασσόμενου' : ''}
@@ -57,7 +57,7 @@ export function AccessRequestsPanel({ requests }: { requests: AccessRequestRow[]
             <div className="flex shrink-0 gap-2">
               <button
                 type="button"
-                className="btn-pill btn-navy h-8 px-4 text-[12px]"
+                className="btn-pill btn-navy h-8 px-4 text-[0.75rem]"
                 disabled={pending}
                 onClick={() => approve(request.id)}
               >
@@ -65,7 +65,7 @@ export function AccessRequestsPanel({ requests }: { requests: AccessRequestRow[]
               </button>
               <button
                 type="button"
-                className="btn-pill btn-glass h-8 px-4 text-[12px]"
+                className="btn-pill btn-glass h-8 px-4 text-[0.75rem]"
                 disabled={pending}
                 onClick={() => reject(request.id)}
               >

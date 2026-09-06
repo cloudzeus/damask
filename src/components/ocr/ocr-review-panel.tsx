@@ -96,7 +96,7 @@ function TextCell({
 
 function FieldLabel({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
-    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+    <label className="mb-1 flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
       <Icon className="size-3" aria-hidden />
       {children}
     </label>
@@ -115,7 +115,7 @@ function PartyFields({
   return (
     <div className="rounded-2xl border border-border p-3.5">
       <div className="mb-2.5 flex items-center justify-between">
-        <span className="text-[12.5px] font-bold">{title}</span>
+        <span className="text-[0.78125rem] font-bold">{title}</span>
         {onRemove && (
           <button type="button" className="rowmenu-btn" onClick={onRemove} aria-label={`Αφαίρεση ${title.toLowerCase()}`}>
             <LuTrash2 className="size-3.5" />
@@ -131,7 +131,7 @@ function PartyFields({
           <FieldLabel icon={LuHash}>ΑΦΜ</FieldLabel>
           <TextCell ariaLabel={`${title} — ΑΦΜ`} value={party.afm ?? ''} onChange={v => onChange({ afm: v || null })} placeholder="9 ψηφία" />
           {afmFlag && (
-            <p className="mt-1 flex items-center gap-1 text-[11px]" style={{ color: 'var(--warning)' }}>
+            <p className="mt-1 flex items-center gap-1 text-[0.6875rem]" style={{ color: 'var(--warning)' }}>
               <LuTriangleAlert className="size-3 shrink-0" /> Μη έγκυρο ΑΦΜ
             </p>
           )}
@@ -148,7 +148,7 @@ function PartyFields({
 function MismatchList({ flags }: { flags: MismatchFlag[] }) {
   if (flags.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px]" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>
+      <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[0.75rem]" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>
         <LuCheck className="size-3.5 shrink-0" />
         Δεν εντοπίστηκαν ασυμφωνίες.
       </div>
@@ -159,7 +159,7 @@ function MismatchList({ flags }: { flags: MismatchFlag[] }) {
       {flags.map(f => (
         <div
           key={f.code}
-          className="flex items-start gap-2 rounded-xl px-3 py-2 text-[12px]"
+          className="flex items-start gap-2 rounded-xl px-3 py-2 text-[0.75rem]"
           style={{
             background: f.severity === 'error' ? 'color-mix(in srgb, var(--destructive) 10%, transparent)' : 'var(--warning-soft)',
             color: f.severity === 'error' ? 'var(--destructive)' : 'var(--warning)',
@@ -233,7 +233,7 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
             <span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/35 group-hover:opacity-100">
               <LuZoomIn className="size-5 text-white" />
             </span>
-            <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1.5 py-1 text-left text-[10px] text-white">
+            <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1.5 py-1 text-left text-[0.625rem] text-white">
               {p.label}
             </span>
           </button>
@@ -247,12 +247,12 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
           <span className={cn('badge-pill', confidenceOk ? 'ok' : 'warn')}>
             <LuBadgeCheck className="size-3" /> {confidencePct}% εμπιστοσύνη
           </span>
-          <span className="text-[11.5px] text-muted-foreground">
+          <span className="text-[0.71875rem] text-muted-foreground">
             {usedFallback ? 'DeepSeek (χωρίς Gemini, μόνο κείμενο)' : `Gemini · ${model}`}
           </span>
           <div className="ml-auto">
             <Select value={data.docType} onValueChange={v => patch({ docType: v as OcrDocType })}>
-              <SelectTrigger aria-label="Τύπος εγγράφου" className="h-8 rounded-full border-border bg-card px-3.5 text-[12.5px]">
+              <SelectTrigger aria-label="Τύπος εγγράφου" className="h-8 rounded-full border-border bg-card px-3.5 text-[0.78125rem]">
                 <SelectValue>{(v: string) => DOC_TYPE_LABEL[v as OcrDocType]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -280,7 +280,7 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
           <button
             type="button"
             onClick={() => patch({ counterparty: { name: null, afm: null, address: null, phones: [], emails: [], website: null } })}
-            className="flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2.5 text-[12.5px] font-semibold text-muted-foreground transition-colors hover:border-(--info) hover:text-(--info)"
+            className="flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2.5 text-[0.78125rem] font-semibold text-muted-foreground transition-colors hover:border-(--info) hover:text-(--info)"
           >
             <LuPlus className="size-3.5" /> Προσθήκη παραλήπτη
           </button>
@@ -303,7 +303,7 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="dotted-leader text-[11px] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">Γραμμές</span>
+            <span className="dotted-leader text-[0.6875rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">Γραμμές</span>
           </div>
           <div className="table-wrap overflow-hidden rounded-xl border border-border">
             <table className="data-table">
@@ -320,7 +320,7 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
               <tbody>
                 {data.lines.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν γραμμές ακόμα.</td>
+                    <td colSpan={6} className="py-6 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν γραμμές ακόμα.</td>
                   </tr>
                 )}
                 {data.lines.map((line, i) => (
@@ -353,14 +353,14 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
           <button
             type="button"
             onClick={addLine}
-            className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-(--info) hover:underline"
+            className="mt-2 flex items-center gap-1.5 text-[0.75rem] font-semibold text-(--info) hover:underline"
           >
             <LuPlus className="size-3.5" /> Προσθήκη γραμμής
           </button>
         </div>
 
         <div className="rounded-2xl border border-border p-3.5">
-          <span className="mb-2.5 block text-[12.5px] font-bold">Σύνολα</span>
+          <span className="mb-2.5 block text-[0.78125rem] font-bold">Σύνολα</span>
           <div className="grid grid-cols-3 gap-2.5">
             <div>
               <FieldLabel icon={LuCoins}>Καθαρή αξία</FieldLabel>
@@ -375,7 +375,7 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
               <NumericCell ariaLabel="Σύνολο" value={data.totals.gross} onCommit={n => patch({ totals: { ...data.totals, gross: n } })} />
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <p className="mt-2 text-[0.6875rem] text-muted-foreground">
             Άθροισμα γραμμών: <b className="tabular-nums text-foreground">{fmtMoney(data.lines.reduce((s, l) => s + (l.total ?? ((l.quantity ?? 0) * (l.unitPrice ?? 0))), 0))}</b>
           </p>
         </div>

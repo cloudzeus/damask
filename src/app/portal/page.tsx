@@ -9,10 +9,10 @@ export default async function PortalPage() {
   return (
     <div className="app-canvas flex min-h-screen flex-col items-center justify-center px-6">
       <div className="glass stagger w-full max-w-md p-8 text-center">
-        <Link href="/" className="wordmark mb-6 inline-flex text-[18px] text-foreground">
+        <Link href="/" className="wordmark mb-6 inline-flex text-[1.125rem] text-foreground">
           World Wide Associates
         </Link>
-        <h1 className="mb-2 text-[22px]">B2B Portal — έρχεται στη Φάση 8</h1>
+        <h1 className="mb-2 text-[1.375rem]">B2B Portal — έρχεται στη Φάση 8</h1>
         <p className="mb-6 text-sm text-muted-foreground">
           Καλωσόρισες, {session.user.name}. Ο χώρος παραγγελιών, τιμών και containers για πελάτες &amp;
           αρχιτέκτονες θα είναι εδώ σύντομα.

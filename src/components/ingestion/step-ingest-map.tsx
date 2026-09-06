@@ -36,8 +36,8 @@ export function StepIngestMap({ target, state, patch }: StepProps) {
   return (
     <div className="space-y-4 py-4">
       <div>
-        <h2 className="text-[16px] font-semibold">Αντιστοίχιση πεδίων</h2>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
+        <h2 className="text-[1rem] font-semibold">Αντιστοίχιση πεδίων</h2>
+        <p className="mt-1 text-[0.78125rem] text-muted-foreground">
           Πες ποιο πεδίο της πηγής αντιστοιχεί σε ποιο πεδίο του «{target.label}».
         </p>
       </div>
@@ -64,7 +64,7 @@ export function StepIngestMap({ target, state, patch }: StepProps) {
 
       {missingRequired.length > 0 && (
         <div
-          className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-[12px]"
+          className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-[0.75rem]"
           style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}
         >
           <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
@@ -74,7 +74,7 @@ export function StepIngestMap({ target, state, patch }: StepProps) {
 
       <div className="overflow-hidden rounded-xl border border-border">
         <div
-          className="grid gap-3 px-4 py-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase"
+          className="grid gap-3 px-4 py-2 text-[0.625rem] font-bold tracking-widest text-muted-foreground uppercase"
           style={{ gridTemplateColumns: '1fr 1fr', background: 'var(--muted)' }}
         >
           <span>Πεδίο πηγής</span>
@@ -90,8 +90,8 @@ export function StepIngestMap({ target, state, patch }: StepProps) {
               style={{ gridTemplateColumns: '1fr 1fr', background: idx % 2 === 0 ? 'var(--card)' : 'var(--muted)' }}
             >
               <div className="min-w-0">
-                <p className="truncate text-[12.5px] font-semibold">{sk.key}</p>
-                {sk.sample && <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">π.χ. {sk.sample}</p>}
+                <p className="truncate text-[0.78125rem] font-semibold">{sk.key}</p>
+                {sk.sample && <p className="mt-0.5 truncate text-[0.65625rem] text-muted-foreground">π.χ. {sk.sample}</p>}
               </div>
               <Select value={fieldKey || '__skip__'} onValueChange={v => setMapping(sk.key, !v || v === '__skip__' ? '' : v)}>
                 <SelectTrigger size="sm" className="w-full" aria-label={`Πεδίο για ${sk.key}`}>
@@ -112,7 +112,7 @@ export function StepIngestMap({ target, state, patch }: StepProps) {
       {target.fields.some(f => f.fixedChoices?.length) && (
         <div className="overflow-hidden rounded-xl border border-border">
           <div
-            className="px-4 py-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase"
+            className="px-4 py-2 text-[0.625rem] font-bold tracking-widest text-muted-foreground uppercase"
             style={{ background: 'var(--muted)' }}
           >
             Σταθερές τιμές για όλες τις γραμμές
@@ -124,8 +124,8 @@ export function StepIngestMap({ target, state, patch }: StepProps) {
               style={{ gridTemplateColumns: '1fr 1fr', background: 'var(--card)' }}
             >
               <div className="min-w-0">
-                <p className="truncate text-[12.5px] font-semibold">{f.label}</p>
-                <p className="mt-0.5 text-[10.5px] text-muted-foreground">Υπερισχύει τυχόν αντιστοιχισμένης στήλης.</p>
+                <p className="truncate text-[0.78125rem] font-semibold">{f.label}</p>
+                <p className="mt-0.5 text-[0.65625rem] text-muted-foreground">Υπερισχύει τυχόν αντιστοιχισμένης στήλης.</p>
               </div>
               <Select
                 value={state.fixedValues[f.key] || '__none__'}
@@ -146,7 +146,7 @@ export function StepIngestMap({ target, state, patch }: StepProps) {
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[0.6875rem] text-muted-foreground">
         Τα πεδία με <strong>*</strong> είναι υποχρεωτικά. Πεδία πηγής χωρίς αντιστοίχιση αγνοούνται στην καταχώριση.
       </p>
     </div>

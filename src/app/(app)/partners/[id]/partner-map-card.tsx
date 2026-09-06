@@ -36,11 +36,11 @@ export function PartnerMapCard({
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Χάρτης
         </div>
         {editable && (
-          <button type="button" className="btn-pill btn-glass h-8 px-3.5 text-[12px]" onClick={handleRefresh} disabled={refreshing}>
+          <button type="button" className="btn-pill btn-glass h-8 px-3.5 text-[0.75rem]" onClick={handleRefresh} disabled={refreshing}>
             {refreshing ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <RefreshCw className="size-3.5" aria-hidden />}
             Ενημέρωση από διεύθυνση
           </button>
@@ -50,11 +50,11 @@ export function PartnerMapCard({
       <PartnerMapInner id={id} lat={lat} lng={lng} maptilerApiKey={maptilerApiKey} editable={editable} />
 
       {lat == null || lng == null ? (
-        <p className="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+        <p className="mt-2 flex items-center gap-1.5 text-[0.71875rem] text-muted-foreground">
           <MapPinned className="size-3.5 shrink-0" aria-hidden /> Χωρίς συντεταγμένες ακόμα — κάνε κλικ στον χάρτη ή πάτησε «Ενημέρωση από διεύθυνση».
         </p>
       ) : (
-        <p className="mt-2 text-[11.5px] text-muted-foreground">Συντεταγμένες: {lat.toFixed(5)}, {lng.toFixed(5)}</p>
+        <p className="mt-2 text-[0.71875rem] text-muted-foreground">Συντεταγμένες: {lat.toFixed(5)}, {lng.toFixed(5)}</p>
       )}
     </div>
   )

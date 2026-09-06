@@ -219,7 +219,7 @@ export function TemplateEditor({ template, fields: initialFields }: { template: 
           <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
             <LuUpload className="size-3.5" aria-hidden /> {uploading ? 'Μεταφόρτωση…' : 'Ανέβασμα δείγματος'}
           </Button>
-          <span className="text-[12px] text-muted-foreground">
+          <span className="text-[0.75rem] text-muted-foreground">
             {pagesLoading
               ? 'Φόρτωση δείγματος…'
               : pages.length > 0
@@ -233,7 +233,7 @@ export function TemplateEditor({ template, fields: initialFields }: { template: 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.35fr)_400px]">
         <div>
           {pagesLoading ? (
-            <div className="glass flex min-h-[360px] items-center justify-center rounded-[22px] p-10 text-center text-[13px] text-muted-foreground">
+            <div className="glass flex min-h-[360px] items-center justify-center rounded-[22px] p-10 text-center text-[0.8125rem] text-muted-foreground">
               Φόρτωση δείγματος…
             </div>
           ) : (

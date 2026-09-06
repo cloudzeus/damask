@@ -72,7 +72,7 @@ export function RegionsView({ total, canManage }: { total: number; canManage: bo
 
       <section className="glass rounded-[22px] p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+          <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
             Ιεραρχικό δέντρο
           </div>
           {canManage && (
@@ -82,16 +82,16 @@ export function RegionsView({ total, canManage }: { total: number; canManage: bo
           )}
         </div>
 
-        {rootsError && <p className="py-4 text-center text-[12.5px] text-destructive">{rootsError}</p>}
+        {rootsError && <p className="py-4 text-center text-[0.78125rem] text-destructive">{rootsError}</p>}
 
         {!rootsError && roots === null && (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <Loader2 className="size-4 animate-spin" /> Φόρτωση…
           </div>
         )}
 
         {!rootsError && roots !== null && roots.length === 0 && (
-          <p className="py-8 text-center text-[12.5px] text-muted-foreground">
+          <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">
             Δεν υπάρχουν δεδομένα ({total.toLocaleString('el-GR')} εγγραφές συνολικά).
           </p>
         )}
@@ -148,7 +148,7 @@ function RegionDecoder() {
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Αναζήτηση περιοχής
       </div>
 
@@ -166,23 +166,23 @@ function RegionDecoder() {
         </Button>
       </div>
 
-      {error && <p className="mt-3 text-[12.5px] text-destructive">{error}</p>}
-      {searched && !error && !result && <p className="mt-3 text-[12.5px] text-muted-foreground">Δεν βρέθηκε περιοχή με αυτόν τον κωδικό/όνομα.</p>}
+      {error && <p className="mt-3 text-[0.78125rem] text-destructive">{error}</p>}
+      {searched && !error && !result && <p className="mt-3 text-[0.78125rem] text-muted-foreground">Δεν βρέθηκε περιοχή με αυτόν τον κωδικό/όνομα.</p>}
 
       {result && (
         <div className="mt-4 flex flex-col gap-3 border-t border-border pt-3">
           <div className="flex flex-wrap items-center gap-2">
             <MapPin className="size-4 text-muted-foreground" aria-hidden />
-            <span className="font-mono text-[13px] font-semibold">{result.code}</span>
-            <span className="text-[13px]">{result.nameEL}</span>
+            <span className="font-mono text-[0.8125rem] font-semibold">{result.code}</span>
+            <span className="text-[0.8125rem]">{result.nameEL}</span>
             <LevelBadge level={result.level} />
             {formatCoords(result.latitude, result.longitude) && (
-              <span className="text-[11px] text-muted-foreground">{formatCoords(result.latitude, result.longitude)}</span>
+              <span className="text-[0.6875rem] text-muted-foreground">{formatCoords(result.latitude, result.longitude)}</span>
             )}
           </div>
 
           {chain.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-1.5 text-[0.75rem] text-muted-foreground">
               {chain.map((c, i) => (
                 <React.Fragment key={c.code}>
                   {i > 0 && <ChevronRight className="size-3" aria-hidden />}
@@ -194,11 +194,11 @@ function RegionDecoder() {
 
           {result.children.length > 0 && (
             <div>
-              <div className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Υποδιαιρέσεις ({result.children.length})</div>
+              <div className="mb-1.5 text-[0.6875rem] font-semibold text-muted-foreground">Υποδιαιρέσεις ({result.children.length})</div>
               <ul className="flex max-h-56 flex-col overflow-auto">
                 {result.children.map(c => (
-                  <li key={c.code} className="dotted-row-bottom flex items-center gap-2 py-1.5 text-[12.5px]">
-                    <span className="w-24 shrink-0 font-mono text-[11px] text-muted-foreground">{c.code}</span>
+                  <li key={c.code} className="dotted-row-bottom flex items-center gap-2 py-1.5 text-[0.78125rem]">
+                    <span className="w-24 shrink-0 font-mono text-[0.6875rem] text-muted-foreground">{c.code}</span>
                     <span>{c.nameEL}</span>
                   </li>
                 ))}
@@ -289,12 +289,12 @@ function RegionNode({
           )}
         </button>
 
-        <span className="w-24 shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">{node.code}</span>
-        <span className="truncate text-[12.5px] font-medium">{node.nameEL}</span>
+        <span className="w-24 shrink-0 font-mono text-[0.6875rem] tabular-nums text-muted-foreground">{node.code}</span>
+        <span className="truncate text-[0.78125rem] font-medium">{node.nameEL}</span>
         {!node.isActive && <span className="badge-pill warn shrink-0">Ανενεργό</span>}
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          {coords && <span className="text-[10.5px] text-muted-foreground">{coords}</span>}
+          {coords && <span className="text-[0.65625rem] text-muted-foreground">{coords}</span>}
           {node.descendants > 0 && (
             <span className="badge-pill muted">{node.directChildren.toLocaleString('el-GR')} άμεσα · {node.descendants.toLocaleString('el-GR')} συνολικά</span>
           )}
@@ -318,7 +318,7 @@ function RegionNode({
         </div>
       </div>
 
-      {error && <p className="mt-1 ml-7 text-[11.5px] text-destructive">{error}</p>}
+      {error && <p className="mt-1 ml-7 text-[0.71875rem] text-destructive">{error}</p>}
 
       {expanded && children && children.length > 0 && (
         <ul className="mt-1.5 flex flex-col gap-1.5" style={{ paddingLeft: (depth + 1) * 20 }}>
@@ -497,7 +497,7 @@ function RegionFormDialog({
           </div>
           {mode === 'edit' && (
             <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card px-3 py-2">
-              <Label htmlFor="region-active" className="text-[12.5px]">Ενεργή περιοχή</Label>
+              <Label htmlFor="region-active" className="text-[0.78125rem]">Ενεργή περιοχή</Label>
               <Switch id="region-active" checked={isActive} onCheckedChange={setIsActive} />
             </div>
           )}

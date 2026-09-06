@@ -87,10 +87,10 @@ export default async function PaymentsPage() {
             <div className="absolute top-[13px] right-[13px] flex size-[30px] items-center justify-center rounded-[11px]" style={{ background: k.bg, color: k.color }}>
               <k.icon className="size-[15px]" aria-hidden />
             </div>
-            <div className="text-[11.5px] font-bold text-muted-foreground">{k.title}</div>
-            <div className="mt-[3px] text-[33px] leading-none font-[250] tracking-[-0.015em] tabular-nums">{k.value}</div>
+            <div className="text-[0.71875rem] font-bold text-muted-foreground">{k.title}</div>
+            <div className="mt-[3px] text-[2.0625rem] leading-none font-[250] tracking-[-0.015em] tabular-nums">{k.value}</div>
             <div className="mt-1 flex items-center justify-between gap-2">
-              <span className="rounded-full px-2 py-0.5 text-[10.5px] font-extrabold" style={{ color: k.color, background: k.bg }}>{k.hint}</span>
+              <span className="rounded-full px-2 py-0.5 text-[0.65625rem] font-extrabold" style={{ color: k.color, background: k.bg }}>{k.hint}</span>
             </div>
           </div>
         ))}

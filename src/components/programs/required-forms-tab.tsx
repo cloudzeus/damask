@@ -103,20 +103,20 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Έντυπα ({forms.length})
         </div>
         <AddRequiredFormDialog programId={programId} onCreated={load} />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       ) : forms.length === 0 ? (
-        <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+        <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
           Δεν έχουν οριστεί απαιτούμενα έντυπα. Η αποδελτίωση τα προτείνει, ή πρόσθεσέ τα εδώ.
         </p>
       ) : (
@@ -140,7 +140,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       <input
                         defaultValue={form.name}
                         onBlur={e => handleNameBlur(form, e.target.value)}
-                        className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
+                        className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[0.8125rem] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
                       />
                     </div>
                   </td>
@@ -156,7 +156,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       value={form.templateId ?? NONE_TEMPLATE}
                       onValueChange={v => handleTemplateChange(form, v)}
                     >
-                      <SelectTrigger aria-label={`Οδηγός Εντύπου — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[12.5px]">
+                      <SelectTrigger aria-label={`Οδηγός Εντύπου — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -174,7 +174,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       defaultValue={form.notes ?? ''}
                       onBlur={e => handleNotesBlur(form, e.target.value)}
                       placeholder="—"
-                      className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[12.5px] text-muted-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+                      className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[0.78125rem] text-muted-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
                     />
                   </td>
                   <td className="ctr">
@@ -260,7 +260,7 @@ function AddRequiredFormDialog({ programId, onCreated }: { programId: string; on
 
           <div className="flex items-center gap-2.5">
             <Switch checked={mandatory} onCheckedChange={setMandatory} disabled={saving} id="rf-mandatory" />
-            <label htmlFor="rf-mandatory" className="text-[12.5px] font-semibold">Υποχρεωτικό</label>
+            <label htmlFor="rf-mandatory" className="text-[0.78125rem] font-semibold">Υποχρεωτικό</label>
           </div>
 
           <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] bg-transparent p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>

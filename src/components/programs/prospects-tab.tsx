@@ -315,19 +315,19 @@ export function ProspectsTab({ programId }: { programId: string }) {
     <>
       {/* Κριτήρια + αναζήτηση δυνητικών πελατών */}
       <section className="glass rounded-[22px] p-4">
-        <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Κριτήρια αναζήτησης
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
+          <label className="flex cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold">
             <input type="checkbox" checked={critKad} onChange={e => setCritKad(e.target.checked)} disabled={searching} className="size-3.5" />
             Επιλέξιμοι ΚΑΔ
           </label>
-          <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
+          <label className="flex cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold">
             <input type="checkbox" checked={critRegion} onChange={e => setCritRegion(e.target.checked)} disabled={searching} className="size-3.5" />
             Περιφέρεια
           </label>
-          <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
+          <label className="flex cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold">
             <input type="checkbox" checked={critLegalForm} onChange={e => setCritLegalForm(e.target.checked)} disabled={searching} className="size-3.5" />
             Νομική μορφή
           </label>
@@ -337,12 +337,12 @@ export function ProspectsTab({ programId }: { programId: string }) {
           </Button>
         </div>
 
-        {searchError && <p className="mt-3 text-[12.5px] text-coral">{searchError}</p>}
+        {searchError && <p className="mt-3 text-[0.78125rem] text-coral">{searchError}</p>}
 
         {results && (
           <div className="mt-4">
             {failSummary && (
-              <p className="mb-2.5 rounded-xl px-3 py-2 text-[12px]" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>
+              <p className="mb-2.5 rounded-xl px-3 py-2 text-[0.75rem]" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>
                 Καμία εταιρεία δεν πληροί ΟΛΑ τα επιλεγμένα κριτήρια. Αποτυχίες ανά κριτήριο (στις {results.length}): {failSummary}.
                 Δοκίμασε λιγότερα κριτήρια, ή απενεργοποίησε το «Μόνο επιλέξιμοι» για να δεις αναλυτικά ποιο κριτήριο αποτυγχάνει ανά εταιρεία.
               </p>
@@ -357,10 +357,10 @@ export function ProspectsTab({ programId }: { programId: string }) {
               emptyMessage="Κανένα αποτέλεσμα."
               toolbarExtras={
                 <>
-                  <div className="text-[12.5px] font-semibold text-muted-foreground">
+                  <div className="text-[0.78125rem] font-semibold text-muted-foreground">
                     {displayedRows.length} από {results.length} {results.length === 1 ? 'εταιρεία' : 'εταιρείες'}
                   </div>
-                  <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
+                  <label className="flex cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold">
                     Μόνο επιλέξιμοι
                     <Switch checked={onlyEligible} onCheckedChange={setOnlyEligible} size="sm" />
                   </label>
@@ -382,7 +382,7 @@ export function ProspectsTab({ programId }: { programId: string }) {
 
         {/* Δοκιμαστική αποστολή (preview) — ίδιο template με την κανονική, [ΔΟΚΙΜΗ] στο θέμα */}
         <div className="mt-4 flex flex-wrap items-center gap-2 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
-          <span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+          <span className="flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
             <LuFlaskConical className="size-3.5" aria-hidden /> Δοκιμαστικό preview email:
           </span>
           <Input
@@ -391,13 +391,13 @@ export function ProspectsTab({ programId }: { programId: string }) {
             onChange={e => setTestEmail(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !sendingTest) handleTestSend() }}
             placeholder="π.χ. gkozyris@i4ria.com"
-            className="h-8 w-64 text-[12.5px]"
+            className="h-8 w-64 text-[0.78125rem]"
             disabled={sendingTest}
           />
           <Button type="button" size="sm" variant="outline" onClick={handleTestSend} disabled={sendingTest || !testEmail.trim()}>
             {sendingTest ? (<><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Αποστολή…</>) : (<><LuSend className="size-3.5" aria-hidden /> Αποστολή δοκιμής</>)}
           </Button>
-          <span className="text-[10.5px] text-muted-foreground">
+          <span className="text-[0.65625rem] text-muted-foreground">
             Στέλνει το ακριβές email του προγράμματος με δείγμα επωνυμίας — χωρίς καταγραφή lead, ο σύνδεσμος δεν είναι ενεργός.
           </span>
         </div>
@@ -405,18 +405,18 @@ export function ProspectsTab({ programId }: { programId: string }) {
 
       {/* «Ευκαιρίες & Αποστολές» */}
       <section className="glass rounded-[22px] p-4">
-        <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Ευκαιρίες &amp; Αποστολές ({leads.length})
         </div>
 
         {leadsLoading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
           </div>
         ) : leadsError ? (
-          <p className="py-4 text-center text-[12.5px] text-coral">{leadsError}</p>
+          <p className="py-4 text-center text-[0.78125rem] text-coral">{leadsError}</p>
         ) : leads.length === 0 ? (
-          <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+          <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
             Δεν έχει σταλεί ακόμη καμία ενημέρωση για αυτό το πρόγραμμα.
           </p>
         ) : (
@@ -446,7 +446,7 @@ export function ProspectsTab({ programId }: { programId: string }) {
                       <td className="ctr">
                         {lead.status === 'CLICKED' && (
                           appId ? (
-                            <Link href={`/programs/${programId}/applications/${appId}`} className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary hover:underline">
+                            <Link href={`/programs/${programId}/applications/${appId}`} className="inline-flex items-center gap-1.5 text-[0.78125rem] font-semibold text-primary hover:underline">
                               <LuExternalLink className="size-3.5" aria-hidden /> Άνοιγμα έργου
                             </Link>
                           ) : (

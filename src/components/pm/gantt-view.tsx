@@ -128,7 +128,7 @@ export function GanttView({ applicationId, programId }: { applicationId: string;
   if (loading) {
     return (
       <section className="glass rounded-[22px] p-4">
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       </section>
@@ -138,7 +138,7 @@ export function GanttView({ applicationId, programId }: { applicationId: string;
   if (error) {
     return (
       <section className="glass rounded-[22px] p-4">
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       </section>
     )
   }
@@ -148,7 +148,7 @@ export function GanttView({ applicationId, programId }: { applicationId: string;
       <section className="glass rounded-[22px] p-4">
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <LuFolderOpen className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[12.5px] text-muted-foreground">
+          <p className="text-[0.78125rem] text-muted-foreground">
             Δεν υπάρχουν παραδοτέα — πάτησε «Ανανέωση παραδοτέων» στο tab «Φάκελος &amp; Πιστοποίηση».
           </p>
         </div>
@@ -159,7 +159,7 @@ export function GanttView({ applicationId, programId }: { applicationId: string;
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Gantt — συνδεδεμένες εργασίες ({ganttTasks.length})
         </div>
       </div>
@@ -172,7 +172,7 @@ export function GanttView({ applicationId, programId }: { applicationId: string;
             {layout.laneBands.map(band => (
               <div
                 key={band.key}
-                className="flex items-center border-b border-border px-2.5 text-[12px] font-semibold"
+                className="flex items-center border-b border-border px-2.5 text-[0.75rem] font-semibold"
                 style={{ height: band.rowCount * ROW_H }}
                 title={band.label}
               >
@@ -300,7 +300,7 @@ export function GanttView({ applicationId, programId }: { applicationId: string;
       </div>
 
       {/* Legend */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[0.6875rem] text-muted-foreground">
         <LegendSwatch fill="var(--muted)" stroke="var(--dotted)" label="Εκκρεμεί" />
         <LegendSwatch fill="var(--info-soft)" stroke="var(--info)" label="Ανέβηκε" />
         <LegendSwatch fill="var(--success-soft)" stroke="var(--success)" label="Εγκρίθηκε" />
@@ -365,8 +365,8 @@ function TaskDetailPanel({
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xs flex-col gap-3 overflow-y-auto border-l border-border bg-card p-4 shadow-2xl sm:top-20 sm:bottom-4 sm:right-4 sm:rounded-2xl sm:border">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold text-muted-foreground">{groupName}</div>
-          <div className="text-[14px] font-bold">{task.name}</div>
+          <div className="text-[0.6875rem] font-semibold text-muted-foreground">{groupName}</div>
+          <div className="text-[0.875rem] font-bold">{task.name}</div>
         </div>
         <button
           type="button"
@@ -391,17 +391,17 @@ function TaskDetailPanel({
       </div>
 
       {task.blocked && task.blockingNames.length > 0 && (
-        <p className="text-[12px] text-muted-foreground">Περιμένει: {task.blockingNames.join(', ')}</p>
+        <p className="text-[0.75rem] text-muted-foreground">Περιμένει: {task.blockingNames.join(', ')}</p>
       )}
 
       <div>
-        <div className="text-[11px] font-semibold text-muted-foreground">Αρχεία ({task.files.length})</div>
+        <div className="text-[0.6875rem] font-semibold text-muted-foreground">Αρχεία ({task.files.length})</div>
         {task.files.length === 0 ? (
-          <p className="mt-1 text-[12px] text-muted-foreground">—</p>
+          <p className="mt-1 text-[0.75rem] text-muted-foreground">—</p>
         ) : (
           <ul className="mt-1 flex flex-col gap-1">
             {task.files.map(f => (
-              <li key={f.id} className="flex min-w-0 items-center gap-1.5 text-[12px]">
+              <li key={f.id} className="flex min-w-0 items-center gap-1.5 text-[0.75rem]">
                 <span className="min-w-0 truncate" title={f.name}>{f.name}</span>
                 <a
                   href={`/programs/${programId}/applications/${applicationId}/deliverables/${f.id}`}
@@ -419,12 +419,12 @@ function TaskDetailPanel({
 
       {task.notes && (
         <div>
-          <div className="text-[11px] font-semibold text-muted-foreground">Σημείωση</div>
-          <p className="mt-1 text-[12px] text-muted-foreground">{task.notes}</p>
+          <div className="text-[0.6875rem] font-semibold text-muted-foreground">Σημείωση</div>
+          <p className="mt-1 text-[0.75rem] text-muted-foreground">{task.notes}</p>
         </div>
       )}
 
-      <p className="mt-auto border-t border-dashed border-border pt-2 text-[11px] text-muted-foreground">
+      <p className="mt-auto border-t border-dashed border-border pt-2 text-[0.6875rem] text-muted-foreground">
         Διαχείριση στο tab «Φάκελος &amp; Πιστοποίηση».
       </p>
     </div>

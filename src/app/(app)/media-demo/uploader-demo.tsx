@@ -34,10 +34,10 @@ export function MassUploaderDemo() {
 
       {imageOrder.length >= 2 && (
         <div>
-          <h2 className="mb-3 text-[14px] font-semibold">Συλλογή εικόνων (δοκιμή drag &amp; drop)</h2>
+          <h2 className="mb-3 text-[0.875rem] font-semibold">Συλλογή εικόνων (δοκιμή drag &amp; drop)</h2>
           <div className="flex flex-wrap items-start gap-6">
             <ProductImageCollection images={imageOrder} onReorder={setImageOrder} size={56} />
-            <ol className="flex flex-col gap-1 text-[12.5px] text-muted-foreground">
+            <ol className="flex flex-col gap-1 text-[0.78125rem] text-muted-foreground">
               {imageOrder.map((img, index) => (
                 <li key={img.id} className="truncate">
                   {index + 1}. {img.alt}
@@ -50,7 +50,7 @@ export function MassUploaderDemo() {
 
       {assets.length > 0 && (
         <div>
-          <h2 className="mb-3 text-[14px] font-semibold">Μεταφορτωμένα αρχεία ({assets.length})</h2>
+          <h2 className="mb-3 text-[0.875rem] font-semibold">Μεταφορτωμένα αρχεία ({assets.length})</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {assets.map(asset => (
               <Card key={asset.path} size="sm">
@@ -59,7 +59,7 @@ export function MassUploaderDemo() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={asset.url} alt={asset.name} className="aspect-square w-full rounded-md object-cover" />
                   ) : (
-                    <div className="flex aspect-square w-full items-center justify-center rounded-md bg-muted text-[11px] text-muted-foreground">
+                    <div className="flex aspect-square w-full items-center justify-center rounded-md bg-muted text-[0.6875rem] text-muted-foreground">
                       {asset.type}
                     </div>
                   )}
@@ -67,7 +67,7 @@ export function MassUploaderDemo() {
                     href={asset.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="truncate text-[11.5px] text-(--brass) hover:underline"
+                    className="truncate text-[0.71875rem] text-(--brass) hover:underline"
                   >
                     {asset.name}
                   </a>

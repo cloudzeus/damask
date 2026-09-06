@@ -226,7 +226,7 @@ export function MediaGallery({
 
       {pickedImages.length > 0 && (
         <div className="glass p-4">
-          <h2 className="mb-3 text-[14px] font-semibold">Επιλεγμένα από το MediaPicker ({pickedImages.length})</h2>
+          <h2 className="mb-3 text-[0.875rem] font-semibold">Επιλεγμένα από το MediaPicker ({pickedImages.length})</h2>
           <ProductImageCollection images={pickedImages} onReorder={setPickedImages} size={56} />
         </div>
       )}

@@ -158,8 +158,8 @@ function StageColumn({
     <section className="glass flex w-[300px] shrink-0 flex-col rounded-[22px] p-3.5">
       <div className="mb-2.5 flex items-center justify-between gap-2 px-0.5">
         <div className="min-w-0">
-          <div className="text-[13px] font-extrabold">{stageLabel(stage)}</div>
-          <div className="text-[11px] text-muted-foreground">{items.length} {items.length === 1 ? 'βήμα' : 'βήματα'}</div>
+          <div className="text-[0.8125rem] font-extrabold">{stageLabel(stage)}</div>
+          <div className="text-[0.6875rem] text-muted-foreground">{items.length} {items.length === 1 ? 'βήμα' : 'βήματα'}</div>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={onAdd} aria-label={`Νέο βήμα — ${stageLabel(stage)}`}>
           <LuPlus className="size-3.5" aria-hidden /> Βήμα
@@ -167,13 +167,13 @@ function StageColumn({
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.75rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.75rem] text-coral">{error}</p>
       ) : items.length === 0 ? (
-        <p className="py-6 text-center text-[12px] text-muted-foreground">
+        <p className="py-6 text-center text-[0.75rem] text-muted-foreground">
           Δεν έχουν οριστεί βήματα για αυτό το στάδιο.
         </p>
       ) : (
@@ -222,14 +222,14 @@ function TaskRow({ item, onEdit, onDelete }: { item: TaskTemplateItem; onEdit: (
         </button>
 
         <div className="min-w-0 flex-1">
-          <div className="text-[12.5px] font-semibold break-words">{item.title}</div>
+          <div className="text-[0.78125rem] font-semibold break-words">{item.title}</div>
           <div className="mt-1 flex flex-wrap items-center gap-1">
             <span className="badge-pill info">{taskAssignToLabel(item.assignTo)}</span>
             {item.mandatory && <span className="badge-pill warn">Υποχρεωτικό</span>}
             {!item.active && <span className="badge-pill muted">Ανενεργό</span>}
           </div>
           {item.dueOffsetDays != null && (
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <div className="mt-1 flex items-center gap-1 text-[0.6875rem] text-muted-foreground">
               <LuClock3 className="size-3 shrink-0" aria-hidden /> προθεσμία +{item.dueOffsetDays} ημ.
             </div>
           )}
@@ -365,7 +365,7 @@ function TaskTemplateDialog({
           <div className="field !mb-0">
             <label htmlFor="tt-assign">Ανατίθεται σε</label>
             <Select value={assignTo} onValueChange={v => setAssignTo(v as TaskAssignToStr)}>
-              <SelectTrigger id="tt-assign" aria-label="Ανατίθεται σε" className="h-9 w-full rounded-full border-border bg-card px-3 text-[12.5px]" disabled={saving}>
+              <SelectTrigger id="tt-assign" aria-label="Ανατίθεται σε" className="h-9 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]" disabled={saving}>
                 <SelectValue>{(v: string) => taskAssignToLabel(v as TaskAssignToStr)}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -395,7 +395,7 @@ function TaskTemplateDialog({
 
         <div className="flex items-center gap-2.5">
           <Switch checked={mandatory} onCheckedChange={setMandatory} disabled={saving} id="tt-mandatory" />
-          <label htmlFor="tt-mandatory" className="text-[12.5px] font-semibold">Υποχρεωτικό</label>
+          <label htmlFor="tt-mandatory" className="text-[0.78125rem] font-semibold">Υποχρεωτικό</label>
         </div>
 
         <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] bg-transparent p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>

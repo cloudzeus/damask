@@ -101,20 +101,20 @@ export function CertificationTab({ applicationId, programId }: { applicationId: 
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="mb-3 dotted-leader text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="mb-3 dotted-leader text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Πιστοποίηση φυσικού αντικειμένου ({items.length})
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <LuBox className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[12.5px] text-muted-foreground">Δεν υπάρχουν ενεργές δαπάνες προς πιστοποίηση.</p>
+          <p className="text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν ενεργές δαπάνες προς πιστοποίηση.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -181,8 +181,8 @@ function CertificationCard({
     <div className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <span className="text-[13px] font-semibold">{item.expenseDescription}</span>{' '}
-          <span className="text-[11.5px] text-muted-foreground">{formatEUR(item.amount)}</span>
+          <span className="text-[0.8125rem] font-semibold">{item.expenseDescription}</span>{' '}
+          <span className="text-[0.71875rem] text-muted-foreground">{formatEUR(item.amount)}</span>
         </div>
         {item.complete ? (
           <span className="badge-pill ok shrink-0"><LuBadgeCheck className="size-3" aria-hidden /> Πιστοποιημένο</span>
@@ -201,7 +201,7 @@ function CertificationCard({
             defaultValue={item.serialNumber ?? ''}
             placeholder="—"
             onBlur={e => handleTextBlur('serialNumber', e.target.value)}
-            className="h-8 text-[12.5px]"
+            className="h-8 text-[0.78125rem]"
           />
         </div>
         <div className="field !mb-0">
@@ -211,7 +211,7 @@ function CertificationCard({
             defaultValue={item.location ?? ''}
             placeholder="—"
             onBlur={e => handleTextBlur('location', e.target.value)}
-            className="h-8 text-[12.5px]"
+            className="h-8 text-[0.78125rem]"
           />
         </div>
         <div className="field !mb-0">
@@ -221,7 +221,7 @@ function CertificationCard({
             defaultValue={item.assetRegistryRef ?? ''}
             placeholder="—"
             onBlur={e => handleTextBlur('assetRegistryRef', e.target.value)}
-            className="h-8 text-[12.5px]"
+            className="h-8 text-[0.78125rem]"
           />
         </div>
         <div className="field !mb-0">
@@ -231,7 +231,7 @@ function CertificationCard({
             type="date"
             defaultValue={item.assetRegistryDate ? item.assetRegistryDate.slice(0, 10) : ''}
             onBlur={e => handleDateBlur(e.target.value)}
-            className="h-8 w-full rounded-full border border-border bg-card px-3 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-8 w-full rounded-full border border-border bg-card px-3 text-[0.78125rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           />
         </div>
       </div>
@@ -239,7 +239,7 @@ function CertificationCard({
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <Switch checked={item.paid} onCheckedChange={handlePaidChange} id={`cert-paid-${item.expenseId}`} />
-          <label htmlFor={`cert-paid-${item.expenseId}`} className="text-[12.5px] font-semibold">Πληρώθηκε</label>
+          <label htmlFor={`cert-paid-${item.expenseId}`} className="text-[0.78125rem] font-semibold">Πληρώθηκε</label>
         </div>
         <div className="flex items-center gap-2">
           <Switch
@@ -248,10 +248,10 @@ function CertificationCard({
             disabled={!item.complete && !item.verified}
             id={`cert-verified-${item.expenseId}`}
           />
-          <label htmlFor={`cert-verified-${item.expenseId}`} className="text-[12.5px] font-semibold">Επαληθεύτηκε</label>
+          <label htmlFor={`cert-verified-${item.expenseId}`} className="text-[0.78125rem] font-semibold">Επαληθεύτηκε</label>
         </div>
         {!item.complete && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-[0.6875rem] text-muted-foreground">
             Λείπουν: {missing.join(', ')}
           </span>
         )}
@@ -330,14 +330,14 @@ function CertFileSlot({
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[11.5px] font-semibold text-muted-foreground">{slot.label}</span>
+      <span className="text-[0.71875rem] font-semibold text-muted-foreground">{slot.label}</span>
       <div className="flex flex-wrap items-center gap-1.5">
         <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[0.6875rem] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
           {uploading ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />}
           {uploading ? 'Ανέβασμα…' : key ? 'Αντικατάσταση' : 'Ανέβασμα'}
@@ -346,7 +346,7 @@ function CertFileSlot({
           <a
             href={`/programs/${programId}/applications/${applicationId}/certifications/${item.expenseId}/${slot.kind}`}
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors hover:bg-muted',
+              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold transition-colors hover:bg-muted',
             )}
             style={{ color: 'var(--success)' }}
             title="Λήψη"

@@ -442,7 +442,7 @@ function FallbackAddressAutocomplete({
               type="button"
               role="option"
               aria-selected={i === highlighted}
-              className={cn('dotted-row-bottom', 'w-full cursor-pointer rounded-lg px-3 py-2 text-left text-[13px]', i === highlighted ? 'bg-accent text-accent-foreground' : 'hover:bg-accent hover:text-accent-foreground')}
+              className={cn('dotted-row-bottom', 'w-full cursor-pointer rounded-lg px-3 py-2 text-left text-[0.8125rem]', i === highlighted ? 'bg-accent text-accent-foreground' : 'hover:bg-accent hover:text-accent-foreground')}
               onMouseDown={e => { e.preventDefault(); selectResult(s) }}
               onMouseEnter={() => setHighlighted(i)}
             >

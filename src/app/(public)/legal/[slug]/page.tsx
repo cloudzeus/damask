@@ -52,7 +52,7 @@ export default async function LegalPageRoute({
   return (
     <div className="mx-auto max-w-[820px] px-4 py-12 sm:py-16">
       <div className="mb-5 flex items-center justify-between gap-3">
-        <Link href="/" className="text-[12.5px] font-semibold hover:underline" style={{ color: 'var(--hero-muted)' }}>
+        <Link href="/" className="text-[0.78125rem] font-semibold hover:underline" style={{ color: 'var(--hero-muted)' }}>
           ← Αρχική
         </Link>
         {hasEn && (
@@ -64,7 +64,7 @@ export default async function LegalPageRoute({
       </div>
 
       <article className="glass stagger p-6 sm:p-10">
-        <h1 className="mb-6 text-[24px] sm:text-[28px]">{translation.title}</h1>
+        <h1 className="mb-6 text-[1.5rem] sm:text-[1.75rem]">{translation.title}</h1>
         <div className="markdown-body">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{translation.body}</ReactMarkdown>
         </div>

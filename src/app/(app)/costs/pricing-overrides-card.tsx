@@ -74,8 +74,8 @@ export function PricingOverridesCard({ initial }: { initial: PricingOverrides })
           <Tag className="size-4" strokeWidth={1.8} aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[14.5px] font-bold">Overrides τιμολόγησης μοντέλων</h3>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">
+          <h3 className="text-[0.90625rem] font-bold">Overrides τιμολόγησης μοντέλων</h3>
+          <p className="mt-0.5 text-[0.75rem] text-muted-foreground">
             Διορθώνει $/1M tokens για ένα μοντέλο χωρίς deploy — υπερισχύει του ενσωματωμένου pricing table.
           </p>
         </div>
@@ -95,7 +95,7 @@ export function PricingOverridesCard({ initial }: { initial: PricingOverrides })
             <tbody>
               {entries.map(([model, entry]) => (
                 <tr key={model} className="dotted-row-bottom">
-                  <td className="font-mono text-[12px]">{model}</td>
+                  <td className="font-mono text-[0.75rem]">{model}</td>
                   <td className="num tabular-nums">${entry.inputPerMTokens}</td>
                   <td className="num tabular-nums">${entry.outputPerMTokens}</td>
                   <td className="ctr">

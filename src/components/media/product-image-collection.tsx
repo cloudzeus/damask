@@ -114,7 +114,7 @@ export function ProductImageCollection({ images, onReorder, size = 44, max = 8 }
           ))}
           {showOverflowChip && (
             <li
-              className="thumb-ring flex shrink-0 list-none items-center justify-center rounded-full bg-muted text-[12px] font-semibold text-muted-foreground"
+              className="thumb-ring flex shrink-0 list-none items-center justify-center rounded-full bg-muted text-[0.75rem] font-semibold text-muted-foreground"
               style={{ width: size, height: size, marginLeft: -Math.round(size * OVERLAP_RATIO), zIndex: 0 }}
             >
               +{overflowCount}
@@ -342,7 +342,7 @@ function HoverPreview({
         className="rounded-[6px] object-contain"
         style={{ width: imageSize, height: imageSize }}
       />
-      {image.alt && <span className="text-center text-[12px] text-muted-foreground">{image.alt}</span>}
+      {image.alt && <span className="text-center text-[0.75rem] text-muted-foreground">{image.alt}</span>}
     </div>,
     document.body,
   )

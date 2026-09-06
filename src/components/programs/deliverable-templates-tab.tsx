@@ -87,7 +87,7 @@ export function DeliverableTemplatesTab({ programId }: { programId: string }) {
     <>
       <section className="glass rounded-[22px] p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+          <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
             Παραδοτέα ({items.length})
           </div>
           {items.length > 0 && (
@@ -102,13 +102,13 @@ export function DeliverableTemplatesTab({ programId }: { programId: string }) {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
           </div>
         ) : error ? (
-          <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+          <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
         ) : items.length === 0 ? (
-          <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+          <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
             Δεν έχουν οριστεί παραδοτέα — ξεκίνησε με τον οδηγό ή τη Βιβλιοθήκη.
           </p>
         ) : (
@@ -160,13 +160,13 @@ function TemplateCard({
         <LuFileStack className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <b className="text-[13.5px]">{item.name}</b>
+            <b className="text-[0.84375rem]">{item.name}</b>
             <span className="badge-pill info">{item.appliesTo === 'EXPENSE' ? 'Ανά δαπάνη' : 'Ανά έργο'}</span>
             <span className="badge-pill muted">{item.tasks.length} {item.tasks.length === 1 ? 'task' : 'tasks'}</span>
             {item.fromExtraction && <span className="badge-pill muted">Από αποδελτίωση</span>}
             {!item.active && <span className="badge-pill muted">Ανενεργό</span>}
           </div>
-          {item.description && <p className="mt-0.5 text-[12px] text-muted-foreground">{item.description}</p>}
+          {item.description && <p className="mt-0.5 text-[0.75rem] text-muted-foreground">{item.description}</p>}
           {phases.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {phases.map(p => (
@@ -212,7 +212,7 @@ function TemplateCard({
           <button
             type="button"
             onClick={() => setExpanded(v => !v)}
-            className="mt-2 flex items-center gap-1 text-[11.5px] font-semibold text-muted-foreground hover:text-foreground"
+            className="mt-2 flex items-center gap-1 text-[0.71875rem] font-semibold text-muted-foreground hover:text-foreground"
           >
             {expanded ? <LuChevronUp className="size-3.5" aria-hidden /> : <LuChevronDown className="size-3.5" aria-hidden />}
             {expanded ? 'Απόκρυψη tasks' : 'Προβολή tasks'}
@@ -221,7 +221,7 @@ function TemplateCard({
           {expanded && (
             <ul className="mt-2 flex flex-col gap-1.5 border-t border-dashed border-border pt-2">
               {item.tasks.map(t => (
-                <li key={t.id} className="flex flex-wrap items-center gap-1.5 text-[12px]">
+                <li key={t.id} className="flex flex-wrap items-center gap-1.5 text-[0.75rem]">
                   <span className="badge-pill muted">{deliverablePhaseLabel(t.phase)}</span>
                   <span className="min-w-0 flex-1 font-semibold">{t.name}</span>
                   {t.mandatory && <span className="badge-pill warn">Υποχρεωτικό</span>}
@@ -298,20 +298,20 @@ function LibraryDialog({
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
           </div>
         ) : error ? (
-          <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+          <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
         ) : groups.length === 0 ? (
-          <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+          <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
             Δεν υπάρχουν παραδοτέα σε άλλα προγράμματα ακόμη.
           </p>
         ) : (
           <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto">
             {groups.map(group => (
               <div key={group.programId}>
-                <div className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted-foreground">
+                <div className="mb-1.5 text-[0.6875rem] font-extrabold uppercase tracking-[0.08em] text-muted-foreground">
                   {group.programTitle}
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -329,11 +329,11 @@ function LibraryDialog({
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <b className="text-[12.5px]">{t.name}</b>
+                          <b className="text-[0.78125rem]">{t.name}</b>
                           <span className="badge-pill info">{t.appliesTo === 'EXPENSE' ? 'Ανά δαπάνη' : 'Ανά έργο'}</span>
                           <span className="badge-pill muted">{t.tasks.length} {t.tasks.length === 1 ? 'task' : 'tasks'}</span>
                         </div>
-                        {t.description && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{t.description}</p>}
+                        {t.description && <p className="mt-0.5 text-[0.71875rem] text-muted-foreground">{t.description}</p>}
                       </div>
                     </label>
                   ))}
@@ -419,13 +419,13 @@ function MatchDialog({
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
           </div>
         ) : error ? (
-          <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+          <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
         ) : visible.length === 0 ? (
-          <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+          <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
             {groups.length === 0 ? 'Δεν υπάρχουν παραδοτέα προς αντιστοίχιση.' : 'Όλα τα παραδοτέα έχουν εξεταστεί.'}
           </p>
         ) : (
@@ -435,25 +435,25 @@ function MatchDialog({
               return (
                 <div key={g.extracted.templateId} className="rounded-[14px] border border-border bg-card p-3">
                   <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <b className="text-[12.5px]">{g.extracted.name}</b>
+                    <b className="text-[0.78125rem]">{g.extracted.name}</b>
                     <button
                       type="button"
                       onClick={() => setDismissed(prev => new Set(prev).add(g.extracted.templateId))}
                       disabled={busy}
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
                     >
                       <LuX className="size-3" aria-hidden /> Παράβλεψη
                     </button>
                   </div>
 
                   {g.suggestions.length === 0 ? (
-                    <p className="text-[11.5px] text-muted-foreground">Καμία πρόταση αντιστοίχισης.</p>
+                    <p className="text-[0.71875rem] text-muted-foreground">Καμία πρόταση αντιστοίχισης.</p>
                   ) : (
                     <div className="flex flex-col gap-1.5">
                       {g.suggestions.map(s => (
                         <div key={`${s.source}:${s.key}`} className="flex flex-wrap items-center gap-1.5 rounded-[10px] border border-dashed border-border p-2">
                           <span className="badge-pill info">{s.source === 'catalog' ? 'Κατάλογος' : 'Βιβλιοθήκη'}</span>
-                          <span className="min-w-0 flex-1 text-[12px] font-semibold">{s.name}</span>
+                          <span className="min-w-0 flex-1 text-[0.75rem] font-semibold">{s.name}</span>
                           <span className="badge-pill muted">{Math.round(s.score * 100)}%</span>
                           <Button
                             type="button"

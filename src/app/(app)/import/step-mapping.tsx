@@ -102,8 +102,8 @@ export function StepMapping({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[16px] font-semibold">Αντιστοίχιση στηλών</h2>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">Πες στον οδηγό ποια στήλη Excel αντιστοιχεί σε ποιο πεδίο προϊόντος.</p>
+          <h2 className="text-[1rem] font-semibold">Αντιστοίχιση στηλών</h2>
+          <p className="mt-1 text-[0.78125rem] text-muted-foreground">Πες στον οδηγό ποια στήλη Excel αντιστοιχεί σε ποιο πεδίο προϊόντος.</p>
         </div>
         <div className="flex items-center gap-2">
           {templates.length > 0 && (
@@ -169,7 +169,7 @@ export function StepMapping({
       </div>
 
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-[12px]">
+        <div className="flex items-center justify-between text-[0.75rem]">
           <span><b>{stats.mapped}</b> από {stats.total} στήλες αντιστοιχισμένες</span>
           <span style={{ color: pct === 100 ? 'var(--success)' : 'var(--muted-foreground)' }}>{pct}%</span>
         </div>
@@ -179,7 +179,7 @@ export function StepMapping({
       </div>
 
       {stats.missingRequired.length > 0 && (
-        <div className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-[12px]" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
+        <div className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-[0.75rem]" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
           <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
           <span>
             Υποχρεωτικά πεδία χωρίς αντιστοίχιση: {stats.missingRequired.map(f => <strong key={f.key}>{f.label}</strong>).reduce<React.ReactNode[]>((acc, el, i) => (i === 0 ? [el] : [...acc, ', ', el]), [])}
@@ -188,7 +188,7 @@ export function StepMapping({
       )}
 
       <div className="overflow-hidden rounded-xl border border-border">
-        <div className="grid gap-3 px-4 py-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase" style={{ gridTemplateColumns: '1fr 28px 1fr 24px', background: 'var(--muted)' }}>
+        <div className="grid gap-3 px-4 py-2 text-[0.625rem] font-bold tracking-widest text-muted-foreground uppercase" style={{ gridTemplateColumns: '1fr 28px 1fr 24px', background: 'var(--muted)' }}>
           <span>Στήλη Excel</span><span /><span>Πεδίο προϊόντος</span><span />
         </div>
         {config.mappings.map((m, idx) => {
@@ -209,11 +209,11 @@ export function StepMapping({
               style={{ gridTemplateColumns: '1fr 28px 1fr 24px', background: idx % 2 === 0 ? 'var(--card)' : 'var(--muted)' }}
             >
               <div className="min-w-0">
-                <p className="truncate text-[12.5px] font-semibold">
-                  <span className="mr-1.5 font-mono text-[10px] text-muted-foreground">{col.colLetter}</span>
+                <p className="truncate text-[0.78125rem] font-semibold">
+                  <span className="mr-1.5 font-mono text-[0.625rem] text-muted-foreground">{col.colLetter}</span>
                   {col.header}
                 </p>
-                {sample.length > 0 && <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">π.χ. {sample.join(' · ')}</p>}
+                {sample.length > 0 && <p className="mt-0.5 truncate text-[0.65625rem] text-muted-foreground">π.χ. {sample.join(' · ')}</p>}
               </div>
               <LuArrowRight className="mx-auto size-4" style={{ color: isMapped ? 'var(--info)' : 'var(--border)' }} />
               <Select value={m.fieldKey || '__skip__'} onValueChange={v => setMapping(m.colIndex, !v || v === '__skip__' ? '' : v)}>
@@ -246,7 +246,7 @@ export function StepMapping({
         })}
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[0.6875rem] text-muted-foreground">
         Τα πεδία με <strong>*</strong> είναι υποχρεωτικά. Στήλες χωρίς αντιστοίχιση αγνοούνται στην εισαγωγή.
       </p>
     </div>

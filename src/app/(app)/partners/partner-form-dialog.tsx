@@ -276,7 +276,7 @@ export function PartnerFormDialog({
           <div role="tablist" className="mb-3 flex flex-wrap gap-1 rounded-full bg-muted/60 p-1">
             {FORM_TABS.map(t => (
               <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
-                className={cn('rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
+                className={cn('rounded-full px-3.5 py-1.5 text-[0.75rem] font-semibold transition-colors',
                   tab === t.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
                 {t.label}
               </button>
@@ -421,7 +421,7 @@ export function PartnerFormDialog({
                 {geocoding ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Compass className="size-3.5" aria-hidden />}
                 Γεωκωδικοποίηση
               </Button>
-              <span className="text-[11.5px] text-muted-foreground">
+              <span className="text-[0.71875rem] text-muted-foreground">
                 {coordsHint ? `Συντεταγμένες: ${coordsHint}` : 'Χωρίς συντεταγμένες ακόμα — επίλεξε πρόταση Google Places ή πάτησε «Γεωκωδικοποίηση».'}
               </span>
             </div>

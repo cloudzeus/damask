@@ -34,7 +34,7 @@ export function DeadlinesView({ obligations }: { obligations: BoardObligation[] 
           <button
             type="button"
             onClick={() => setNoDateOpen(o => !o)}
-            className="flex items-center gap-1.5 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase"
+            className="flex items-center gap-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase"
           >
             {noDateOpen ? <LuChevronDown className="size-3.5" aria-hidden /> : <LuChevronRight className="size-3.5" aria-hidden />}
             Χωρίς προθεσμία ({buckets.noDate.length})
@@ -49,7 +49,7 @@ export function DeadlinesView({ obligations }: { obligations: BoardObligation[] 
 
       {buckets.overdue.length === 0 && buckets.today.length === 0 && buckets.thisWeek.length === 0
         && buckets.later.length === 0 && buckets.noDate.length === 0 && (
-        <p className="py-8 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν εκκρεμείς υποχρεώσεις με προθεσμία.</p>
+        <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν εκκρεμείς υποχρεώσεις με προθεσμία.</p>
       )}
     </div>
   )
@@ -60,7 +60,7 @@ function DeadlineSection({ title, items, coral = false }: { title: string; items
   return (
     <section className="glass rounded-[22px] p-4">
       <div
-        className="dotted-leader mb-2 text-[10.5px] font-extrabold tracking-[0.1em] uppercase"
+        className="dotted-leader mb-2 text-[0.65625rem] font-extrabold tracking-[0.1em] uppercase"
         style={coral ? { color: 'var(--coral)' } : undefined}
       >
         {title} ({items.length})
@@ -79,13 +79,13 @@ function DeadlineRow({ obligation: o }: { obligation: BoardObligation }) {
       href={`/programs/${o.programId}/applications/${o.applicationId}`}
       className="dotted-row-bottom flex flex-wrap items-center gap-2.5 py-2.5 hover:bg-muted/40"
     >
-      <span className={cn('w-[86px] shrink-0 text-[12px] font-semibold', o.dueDate ? '' : 'text-muted-foreground')}>{dueLabel}</span>
+      <span className={cn('w-[86px] shrink-0 text-[0.75rem] font-semibold', o.dueDate ? '' : 'text-muted-foreground')}>{dueLabel}</span>
       <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-semibold">{o.name}</div>
-        <div className="text-[11.5px] text-muted-foreground">{o.customerName} · {o.programTitle}</div>
+        <div className="text-[0.8125rem] font-semibold">{o.name}</div>
+        <div className="text-[0.71875rem] text-muted-foreground">{o.customerName} · {o.programTitle}</div>
       </div>
       <span className="badge-pill info shrink-0">{stageLabel(o.stage)}</span>
-      <span className="w-[130px] shrink-0 truncate text-[11.5px] text-muted-foreground">{o.assigneeName ?? 'Χωρίς ανάθεση'}</span>
+      <span className="w-[130px] shrink-0 truncate text-[0.71875rem] text-muted-foreground">{o.assigneeName ?? 'Χωρίς ανάθεση'}</span>
       <span className="badge-pill muted shrink-0">{obligationStatusLabel(o.status)}</span>
     </Link>
   )

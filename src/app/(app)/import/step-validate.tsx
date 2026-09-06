@@ -82,8 +82,8 @@ export function StepValidate({ config, onChange }: { config: ImportConfig; onCha
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[16px] font-semibold">Έλεγχος</h2>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">
+          <h2 className="text-[1rem] font-semibold">Έλεγχος</h2>
+          <p className="mt-1 text-[0.78125rem] text-muted-foreground">
             Δοκιμαστικός έλεγχος πριν την οριστική εισαγωγή — καμία αλλαγή δεν γίνεται ακόμα στη βάση δεδομένων.
           </p>
         </div>
@@ -99,27 +99,27 @@ export function StepValidate({ config, onChange }: { config: ImportConfig; onCha
         <>
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-border p-4 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-[24px] font-bold tabular-nums" style={{ color: 'var(--success)' }}>
+              <p className="flex items-center justify-center gap-1.5 text-[1.5rem] font-bold tabular-nums" style={{ color: 'var(--success)' }}>
                 <LuPlus className="size-4" />{v.toCreate.toLocaleString('el-GR')}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Θα δημιουργηθούν</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Θα δημιουργηθούν</p>
             </div>
             <div className="rounded-xl border border-border p-4 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-[24px] font-bold tabular-nums" style={{ color: 'var(--info)' }}>
+              <p className="flex items-center justify-center gap-1.5 text-[1.5rem] font-bold tabular-nums" style={{ color: 'var(--info)' }}>
                 <LuPencil className="size-4" />{v.toUpdate.toLocaleString('el-GR')}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Θα ενημερωθούν</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Θα ενημερωθούν</p>
             </div>
             <div className="rounded-xl border border-border p-4 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-[24px] font-bold tabular-nums" style={{ color: v.errors.length > 0 ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
+              <p className="flex items-center justify-center gap-1.5 text-[1.5rem] font-bold tabular-nums" style={{ color: v.errors.length > 0 ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
                 <LuTriangleAlert className="size-4" />{v.errors.length.toLocaleString('el-GR')}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Σφάλματα</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Σφάλματα</p>
             </div>
           </div>
 
           {v.toCreate + v.toUpdate === 0 && (
-            <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px]" style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', color: 'var(--destructive)' }}>
+            <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[0.75rem]" style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', color: 'var(--destructive)' }}>
               <LuTriangleAlert className="size-3.5 shrink-0" />
               Καμία γραμμή δεν είναι έγκυρη προς εισαγωγή — έλεγξε την αντιστοίχιση στηλών στο προηγούμενο βήμα.
             </div>
@@ -130,7 +130,7 @@ export function StepValidate({ config, onChange }: { config: ImportConfig; onCha
               <button
                 type="button"
                 onClick={() => setShowErrors(s => !s)}
-                className="flex w-full items-center justify-between px-4 py-2.5 text-[12px] font-semibold"
+                className="flex w-full items-center justify-between px-4 py-2.5 text-[0.75rem] font-semibold"
                 style={{ background: 'color-mix(in srgb, var(--destructive) 8%, transparent)', color: 'var(--destructive)' }}
               >
                 <span>
@@ -142,7 +142,7 @@ export function StepValidate({ config, onChange }: { config: ImportConfig; onCha
               {showErrors && (
                 <div className="max-h-52 divide-y divide-border overflow-y-auto">
                   {shownErrors.map((e, i) => (
-                    <div key={i} className="flex gap-3 px-4 py-2 text-[11.5px]">
+                    <div key={i} className="flex gap-3 px-4 py-2 text-[0.71875rem]">
                       <span className="shrink-0 font-mono font-semibold text-muted-foreground">Γραμμή {e.row}</span>
                       <span className="shrink-0 font-semibold">{e.column}</span>
                       <span className="text-muted-foreground">{e.message}</span>

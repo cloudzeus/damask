@@ -27,30 +27,30 @@ export function ContactsPanel({ trdrId, contacts }: { trdrId: string; contacts: 
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Επαφές ({contacts.length})
         </div>
-        <button type="button" className="btn-pill btn-navy h-8 px-3.5 text-[12px]" onClick={() => setAddOpen(true)}>
+        <button type="button" className="btn-pill btn-navy h-8 px-3.5 text-[0.75rem]" onClick={() => setAddOpen(true)}>
           <Plus className="size-3.5" aria-hidden /> Επαφή
         </button>
       </div>
 
       {contacts.length === 0 ? (
-        <p className="py-4 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν επαφές ακόμα.</p>
+        <p className="py-4 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν επαφές ακόμα.</p>
       ) : (
         <div className="flex flex-col">
           {contacts.map(c => (
             <div key={c.id} className="dotted-row-bottom flex flex-wrap items-center gap-3 py-2.5">
-              <span className="avatar-ring size-8 shrink-0 text-[11px]">{initialsOf(c.name)}</span>
+              <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">{initialsOf(c.name)}</span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <b className="text-[13px]">{c.name}</b>
-                  {c.position && <span className="text-[11.5px] text-muted-foreground">— {c.position}</span>}
+                  <b className="text-[0.8125rem]">{c.name}</b>
+                  {c.position && <span className="text-[0.71875rem] text-muted-foreground">— {c.position}</span>}
                   {c.isPrimary && <span className="badge-pill ok">Κύρια</span>}
                   {c.hasUser && <span className="badge-pill info">User ✓</span>}
                   {!c.hasUser && c.hasPendingRequest && <span className="badge-pill warn">Αίτημα σε αναμονή</span>}
                 </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11.5px] text-muted-foreground">
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.71875rem] text-muted-foreground">
                   {c.email && <span className="inline-flex items-center gap-1"><Mail className="size-3" aria-hidden /> {c.email}</span>}
                   {c.phone && <span className="inline-flex items-center gap-1"><Phone className="size-3" aria-hidden /> {c.phone}</span>}
                   {c.mobile && <span className="inline-flex items-center gap-1"><Smartphone className="size-3" aria-hidden /> {c.mobile}</span>}

@@ -170,7 +170,7 @@ export function ExpenseList({ applicationId, categories }: { applicationId: stri
   return (
     <div className="flex flex-col gap-2.5 border-t border-dashed border-border pt-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[11.5px] text-muted-foreground">
+        <span className="text-[0.71875rem] text-muted-foreground">
           {expenses.length} δαπάνες{pendingCount > 0 ? ` — ${pendingCount} προς επιβεβαίωση` : ''}
         </span>
         <div className="flex items-center gap-2">
@@ -186,18 +186,18 @@ export function ExpenseList({ applicationId, categories }: { applicationId: stri
       {suggestingAll && (
         <div className="flex flex-col gap-1">
           <Progress value={suggestAllProgress} />
-          <p className="text-center text-[11px] text-muted-foreground">Πρόταση κατηγοριών με DeepSeek…</p>
+          <p className="text-center text-[0.6875rem] text-muted-foreground">Πρόταση κατηγοριών με DeepSeek…</p>
         </div>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-6 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-6 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       ) : expenses.length === 0 ? (
-        <p className="py-4 text-center text-[12.5px] text-muted-foreground">Δεν έχουν καταχωριστεί δαπάνες ακόμη.</p>
+        <p className="py-4 text-center text-[0.78125rem] text-muted-foreground">Δεν έχουν καταχωριστεί δαπάνες ακόμη.</p>
       ) : (
         <div className="rounded-lg ring-1 ring-foreground/10">
           <Table>
@@ -251,7 +251,7 @@ export function ExpenseList({ applicationId, categories }: { applicationId: stri
                           </Tooltip>
                         ) : (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11.5px] text-muted-foreground">Χωρίς πρόταση</span>
+                            <span className="text-[0.71875rem] text-muted-foreground">Χωρίς πρόταση</span>
                             <Button type="button" variant="ghost" size="icon-sm" title="Ξανά πρόταση" onClick={() => handleRetrySuggestion(e.id)}>
                               <LuRotateCw className="size-3.5" aria-hidden />
                             </Button>

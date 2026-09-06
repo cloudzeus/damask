@@ -49,7 +49,7 @@ export default async function CmsLegalPage() {
 
 function ReadOnlyConsentNotice() {
   return (
-    <div className="glass p-4 text-[12.5px] text-muted-foreground">
+    <div className="glass p-4 text-[0.78125rem] text-muted-foreground">
       Χρειάζεται δικαίωμα επεξεργασίας CMS για να δεις/αλλάξεις τις ρυθμίσεις του consent modal.
     </div>
   )

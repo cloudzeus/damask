@@ -107,7 +107,7 @@ export function S1SearchableSelect({
           >
             {emptyLabel}
           </button>
-          {filtered.length === 0 && <div className="px-3 py-2 text-[12px] text-muted-foreground">Δεν βρέθηκαν αποτελέσματα.</div>}
+          {filtered.length === 0 && <div className="px-3 py-2 text-[0.75rem] text-muted-foreground">Δεν βρέθηκαν αποτελέσματα.</div>}
           {filtered.map(o => (
             <button
               key={o.value}

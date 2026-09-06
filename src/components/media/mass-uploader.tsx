@@ -274,8 +274,8 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
         )}
       >
         <UploadCloud className="size-8 text-muted-foreground" strokeWidth={1.75} />
-        <p className="text-[14px] font-medium">Σύρε αρχεία εδώ ή πάτησε για επιλογή</p>
-        <p className="text-[12.5px] text-muted-foreground">Οι εικόνες μετατρέπονται αυτόματα σε WebP 1920×1920</p>
+        <p className="text-[0.875rem] font-medium">Σύρε αρχεία εδώ ή πάτησε για επιλογή</p>
+        <p className="text-[0.78125rem] text-muted-foreground">Οι εικόνες μετατρέπονται αυτόματα σε WebP 1920×1920</p>
         <Button
           type="button"
           variant="outline"
@@ -299,7 +299,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <Progress value={overallProgress} className="flex-1" />
-            <span className="shrink-0 text-[12.5px] tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-[0.78125rem] tabular-nums text-muted-foreground">
               {doneCount}/{total} ολοκληρώθηκαν{errorCount > 0 ? ` · ${errorCount} σφάλματα` : ''}
             </span>
           </div>
@@ -322,10 +322,10 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[13px] font-medium">{item.name}</span>
+                    <span className="truncate text-[0.8125rem] font-medium">{item.name}</span>
                     <StatusBadge status={item.status} />
                   </div>
-                  <div className="flex items-center justify-between gap-2 text-[12px] text-muted-foreground">
+                  <div className="flex items-center justify-between gap-2 text-[0.75rem] text-muted-foreground">
                     <span>
                       {formatBytes(item.originalSize)}
                       {item.convertedSize != null && <> → {formatBytes(item.convertedSize)}</>}

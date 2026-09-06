@@ -31,13 +31,13 @@ export function ObjectsTab({ enabled }: { enabled: string[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[12.5px] text-muted-foreground">
+      <p className="text-[0.78125rem] text-muted-foreground">
         Επίλεξε ποιες οντότητες είναι διαθέσιμες σε αυτή την εγκατάσταση. Οι απενεργοποιημένες
         κρύβονται από το μενού και τα δικαιώματά τους από τους ρόλους. Τα βασικά (🔒) είναι πάντα ενεργά.
       </p>
       {OBJECT_REGISTRY.map(module => (
         <div key={module.key} className="rounded-2xl border border-[var(--glass-border)] p-3">
-          <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+          <div className="mb-2 text-[0.6875rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
             {module.label}
           </div>
           <div className="flex flex-col gap-1.5">
@@ -47,7 +47,7 @@ export function ObjectsTab({ enabled }: { enabled: string[] }) {
               return (
                 <label
                   key={item.key}
-                  className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-[13px] hover:bg-[var(--glass-strong)]"
+                  className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-[0.8125rem] hover:bg-[var(--glass-strong)]"
                 >
                   <input
                     type="checkbox"
@@ -58,7 +58,7 @@ export function ObjectsTab({ enabled }: { enabled: string[] }) {
                   <item.icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
                   <span className="font-semibold">{item.label}</span>
                   {item.softone && (
-                    <span className="rounded-full bg-[var(--glass-strong)] px-2 py-0.5 text-[10px] text-muted-foreground">
+                    <span className="rounded-full bg-[var(--glass-strong)] px-2 py-0.5 text-[0.625rem] text-muted-foreground">
                       SoftOne {item.softone.object}
                     </span>
                   )}

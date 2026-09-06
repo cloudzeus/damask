@@ -121,11 +121,11 @@ function LinkApplicationDialogContent({
 
         <div className="max-h-64 overflow-y-auto rounded-lg ring-1 ring-foreground/10">
           {searching ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-[12.5px] text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 py-6 text-[0.78125rem] text-muted-foreground">
               <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Αναζήτηση…
             </div>
           ) : options.length === 0 ? (
-            <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+            <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
               {query.trim() ? 'Δεν βρέθηκαν συναλλασσόμενοι.' : 'Πληκτρολόγησε για αναζήτηση.'}
             </p>
           ) : (
@@ -137,7 +137,7 @@ function LinkApplicationDialogContent({
                     onClick={() => setSelected(o)}
                     disabled={linking}
                     className={cn(
-                      'flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-muted',
+                      'flex w-full items-center gap-2 px-3 py-2 text-left text-[0.78125rem] transition-colors hover:bg-muted',
                       selected?.id === o.id && 'bg-muted',
                     )}
                   >

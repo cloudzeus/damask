@@ -65,7 +65,7 @@ export function PaymentsTable({ payments, canManage }: { payments: PaymentRow[];
       sortValue: p => p.orderCode,
       cell: p => (
         <div className="flex items-center gap-1.5">
-          <span className="font-mono text-[12px]">{p.orderCode}</span>
+          <span className="font-mono text-[0.75rem]">{p.orderCode}</span>
           <button
             type="button"
             className="rowmenu-btn"

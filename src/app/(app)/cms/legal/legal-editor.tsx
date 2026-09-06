@@ -89,7 +89,7 @@ export function LegalEditor({
         actions={
           <>
             {mode === 'edit' && values.published && (
-              <a href={`/legal/${values.slug}`} target="_blank" rel="noopener noreferrer" className="btn-pill btn-glass h-9 px-4 text-[12.5px]">
+              <a href={`/legal/${values.slug}`} target="_blank" rel="noopener noreferrer" className="btn-pill btn-glass h-9 px-4 text-[0.78125rem]">
                 <ExternalLink className="size-3.5" strokeWidth={1.8} aria-hidden /> Προβολή
               </a>
             )}
@@ -164,7 +164,7 @@ export function LegalEditor({
                     checked={values.published}
                     onCheckedChange={checked => setValues(v => ({ ...v, published: checked }))}
                   />
-                  <span className="text-[12.5px] text-muted-foreground">
+                  <span className="text-[0.78125rem] text-muted-foreground">
                     {values.published ? 'Ορατή στο κοινό στο /legal/' + (values.slug || '…') : 'Πρόχειρο — μη ορατή στο κοινό'}
                   </span>
                 </div>

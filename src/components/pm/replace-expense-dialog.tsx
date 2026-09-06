@@ -115,7 +115,7 @@ export function ReplaceExpenseDialog({ expense, onReplaced }: { expense: Replace
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mb-1 flex items-start gap-1.5 rounded-lg p-2.5 text-[11.5px]" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>
+          <div className="mb-1 flex items-start gap-1.5 rounded-lg p-2.5 text-[0.71875rem]" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>
             <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             Η τρέχουσα δαπάνη «{expense.description}» θα μαρκαριστεί ως αντικατασταθείσα και δεν θα προσμετράται πλέον στο πλάνο δαπανών.
           </div>

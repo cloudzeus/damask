@@ -27,13 +27,13 @@ export default async function PortalAccessPage({ params }: { params: Promise<{ t
     <div className="app-canvas flex min-h-screen flex-col items-center px-6 py-12">
       <div className="w-full max-w-2xl">
         <div className="stagger mb-6 text-center">
-          <Link href="/" className="wordmark mb-6 inline-flex text-[18px] text-foreground">
+          <Link href="/" className="wordmark mb-6 inline-flex text-[1.125rem] text-foreground">
             World Wide Associates
           </Link>
-          <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="mb-1 text-[0.71875rem] font-semibold uppercase tracking-wide text-muted-foreground">
             {d.customerName}
           </p>
-          <h1 className="text-[22px]">Πρόοδος έργων</h1>
+          <h1 className="text-[1.375rem]">Πρόοδος έργων</h1>
         </div>
 
         {d.applications.length === 0 && d.fileRequests.length === 0 ? (
@@ -48,20 +48,20 @@ export default async function PortalAccessPage({ params }: { params: Promise<{ t
                 Πλήρες in-portal upload = follow-up. */}
             {d.fileRequests.length > 0 && (
               <div className="glass stagger p-5">
-                <p className="mb-2 text-[13px] font-semibold text-foreground">Δικαιολογητικά που εκκρεμούν</p>
-                <p className="mb-3 text-[11.5px] text-muted-foreground">
+                <p className="mb-2 text-[0.8125rem] font-semibold text-foreground">Δικαιολογητικά που εκκρεμούν</p>
+                <p className="mb-3 text-[0.71875rem] text-muted-foreground">
                   Θα λάβεις (ή έχεις λάβει) ξεχωριστό σύνδεσμο μέσω email για το ανέβασμα των παρακάτω δικαιολογητικών.
                 </p>
                 <ul className="flex flex-col gap-3">
                   {d.fileRequests.map(fr => (
                     <li key={fr.id} className="rounded-lg border border-border p-3">
                       <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                        <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">{fr.title}</span>
+                        <span className="min-w-0 truncate text-[0.8125rem] font-semibold text-foreground">{fr.title}</span>
                         <span className="badge-pill muted shrink-0" lang="el">{fr.itemsUploaded}/{fr.itemsTotal} ανέβηκαν</span>
                       </div>
                       <ul className="flex flex-col gap-1">
                         {fr.items.map(it => (
-                          <li key={it.id} className="flex items-center justify-between gap-2 text-[12.5px]">
+                          <li key={it.id} className="flex items-center justify-between gap-2 text-[0.78125rem]">
                             <span className="min-w-0 truncate">
                               {it.label}
                               {!it.required && <span className="text-muted-foreground"> · προαιρετικό</span>}
@@ -81,11 +81,11 @@ export default async function PortalAccessPage({ params }: { params: Promise<{ t
             {d.applications.map((app, i) => (
               <div key={i} className="glass stagger p-5">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-[15px] font-semibold text-foreground">{app.programTitle}</h2>
+                  <h2 className="text-[0.9375rem] font-semibold text-foreground">{app.programTitle}</h2>
                   <span className="badge-pill info shrink-0">{app.stage}</span>
                 </div>
                 <p
-                  className="mb-2 text-[12.5px] font-semibold"
+                  className="mb-2 text-[0.78125rem] font-semibold"
                   style={app.overdueObligations > 0 ? { color: 'var(--coral)' } : undefined}
                 >
                   {app.openObligations} ανοιχτές / {app.overdueObligations} εκπρόθεσμες
@@ -93,12 +93,12 @@ export default async function PortalAccessPage({ params }: { params: Promise<{ t
 
                 {app.openRequests.length > 0 && (
                   <div className="mt-3 border-t border-border pt-3">
-                    <p className="mb-1.5 text-[11.5px] font-semibold text-muted-foreground">
+                    <p className="mb-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
                       Εκκρεμή αιτήματα εγγράφων:
                     </p>
                     <ul className="flex flex-col gap-1">
                       {app.openRequests.map((r, j) => (
-                        <li key={j} className="flex items-center justify-between gap-2 text-[12.5px]">
+                        <li key={j} className="flex items-center justify-between gap-2 text-[0.78125rem]">
                           <span className="min-w-0 truncate">{r.title}</span>
                           <span className="badge-pill muted shrink-0">{requestStatusLabel(r.status)}</span>
                         </li>

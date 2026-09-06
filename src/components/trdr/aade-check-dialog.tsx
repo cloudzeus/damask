@@ -84,7 +84,7 @@ export function AadeCheckDialog({
         </DialogHeader>
 
         {state.status === 'loading' && (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" aria-hidden /> Αναζήτηση στο μητρώο ΑΑΔΕ…
           </div>
         )}
@@ -107,22 +107,22 @@ export function AadeCheckDialog({
                 ['Νομική μορφή', state.mapped.appLegalForm],
               ] as const).map(([label, value]) => (
                 <div key={label} className="min-w-0">
-                  <dt className="mb-0.5 text-[11px] font-semibold text-muted-foreground">{label}</dt>
-                  <dd className="truncate text-[13px]">{value || '—'}</dd>
+                  <dt className="mb-0.5 text-[0.6875rem] font-semibold text-muted-foreground">{label}</dt>
+                  <dd className="truncate text-[0.8125rem]">{value || '—'}</dd>
                 </div>
               ))}
             </dl>
 
             <div>
-              <div className="dotted-leader mb-1.5 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+              <div className="dotted-leader mb-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
                 ΚΑΔ ({state.activities.length})
               </div>
               {state.activities.length === 0 ? (
-                <p className="text-[12.5px] text-muted-foreground">Δεν βρέθηκαν δραστηριότητες.</p>
+                <p className="text-[0.78125rem] text-muted-foreground">Δεν βρέθηκαν δραστηριότητες.</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
                   {state.activities.map((a, i) => (
-                    <li key={`${a.code ?? 'x'}-${i}`} className="flex items-center gap-2 text-[12.5px]">
+                    <li key={`${a.code ?? 'x'}-${i}`} className="flex items-center gap-2 text-[0.78125rem]">
                       {a.kind === 'PRIMARY' && <span className="badge-pill ok shrink-0">Πρωτεύων</span>}
                       <span className="font-semibold">{a.code ?? '—'}</span>
                       <span className="truncate text-muted-foreground">{a.description}</span>

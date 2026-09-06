@@ -82,7 +82,7 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Ευρωπαϊκά Προγράμματα ({cards.length})
         </div>
         {canManage && (
@@ -93,11 +93,11 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : cards.length === 0 ? (
-        <p className="py-6 text-center text-[12.5px] text-muted-foreground">
+        <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
           Ο πελάτης δεν έχει συνδεθεί με κάποιο πρόγραμμα ακόμη.
         </p>
       ) : (
@@ -159,7 +159,7 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
                     </span>
                     <span className="badge-pill" style={{ color: c.fg, background: 'var(--card)' }}>{lifecycleLabel(card.lifecycle)}</span>
                   </div>
-                  <div className="line-clamp-2 text-[12.5px] font-semibold text-foreground">{card.programTitle}</div>
+                  <div className="line-clamp-2 text-[0.78125rem] font-semibold text-foreground">{card.programTitle}</div>
                   <div className="mt-1.5">
                     {card.snapshot ? (
                       card.snapshot.eligible ? (
@@ -203,7 +203,7 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
 }
 
 function CriteriaBadges({ snapshot }: { snapshot: SinglePairEligibility | null }) {
-  if (!snapshot) return <p className="text-[12.5px] text-muted-foreground">Δεν υπάρχει αποθηκευμένη αξιολόγηση.</p>
+  if (!snapshot) return <p className="text-[0.78125rem] text-muted-foreground">Δεν υπάρχει αποθηκευμένη αξιολόγηση.</p>
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap gap-1">
@@ -218,7 +218,7 @@ function CriteriaBadges({ snapshot }: { snapshot: SinglePairEligibility | null }
       </div>
       {snapshot.matchedKads.length > 0 && (
         <div>
-          <div className="mb-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">ΚΑΔ που ταιριάζουν</div>
+          <div className="mb-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">ΚΑΔ που ταιριάζουν</div>
           <div className="flex flex-wrap gap-1">
             {snapshot.matchedKads.map(code => <span key={code} className="badge-pill ok tabular-nums">{code}</span>)}
           </div>
@@ -281,7 +281,7 @@ function EvaluationDialog({
 
         {canManage && (
           <div className="mt-2 flex flex-col gap-1.5">
-            <label htmlFor="lifecycle-select" className="text-[11px] font-semibold text-muted-foreground">Κατάσταση συμμετοχής</label>
+            <label htmlFor="lifecycle-select" className="text-[0.6875rem] font-semibold text-muted-foreground">Κατάσταση συμμετοχής</label>
             <Select value={card.lifecycle} onValueChange={v => changeLifecycle(v as LifecycleStr)} disabled={busy}>
               <SelectTrigger id="lifecycle-select" className="h-10 w-full rounded-full border-border bg-card px-4">
                 <SelectValue>{(v: string) => lifecycleLabel(v as LifecycleStr)}</SelectValue>
@@ -300,7 +300,7 @@ function EvaluationDialog({
             </Button>
           )}
           <div className="flex-1" />
-          <Link href={`/programs/${card.programId}/applications/${card.id}`} className="btn-pill btn-glass h-9 px-4 text-[12.5px]">
+          <Link href={`/programs/${card.programId}/applications/${card.id}`} className="btn-pill btn-glass h-9 px-4 text-[0.78125rem]">
             <ExternalLink className="size-3.5" aria-hidden /> Άνοιγμα έργου
           </Link>
           <DialogClose render={<Button variant="outline">Κλείσιμο</Button>} />
@@ -379,27 +379,27 @@ function AddProgramDialog({
             <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
             <input
               type="text" value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Αναζήτηση προγράμματος…" className="w-full bg-transparent text-[13px] outline-none"
+              placeholder="Αναζήτηση προγράμματος…" className="w-full bg-transparent text-[0.8125rem] outline-none"
               aria-label="Αναζήτηση προγράμματος"
             />
           </label>
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[12.5px] font-semibold whitespace-nowrap">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold whitespace-nowrap">
             <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} disabled={filtered.length === 0} className="size-4" />
             Επιλογή όλων
           </label>
-          <span className="text-[12px] text-muted-foreground">{selected.size} επιλεγμένα</span>
+          <span className="text-[0.75rem] text-muted-foreground">{selected.size} επιλεγμένα</span>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
           {filtered.length === 0 ? (
-            <p className="py-8 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν ενεργά προγράμματα.</p>
+            <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν ενεργά προγράμματα.</p>
           ) : (
             <ul className="flex flex-col">
               {filtered.map(o => (
                 <li key={o.value} className="dotted-row-bottom">
                   <label className="flex min-h-[44px] cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted">
                     <input type="checkbox" checked={selected.has(o.value)} onChange={() => toggle(o.value)} className="size-4 shrink-0" />
-                    <span className="text-[13px]">{o.label}</span>
+                    <span className="text-[0.8125rem]">{o.label}</span>
                   </label>
                 </li>
               ))}

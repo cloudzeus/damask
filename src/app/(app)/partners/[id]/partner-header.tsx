@@ -50,7 +50,7 @@ export function PartnerHeader({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt="" className="thumb-ring size-16 rounded-full object-cover" width={64} height={64} />
         ) : (
-          <span className="avatar-ring size-16 text-[18px]">{initialsOf(partner.name)}</span>
+          <span className="avatar-ring size-16 text-[1.125rem]">{initialsOf(partner.name)}</span>
         )}
         <button
           type="button"
@@ -64,13 +64,13 @@ export function PartnerHeader({
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-[20px]">{partner.name}</h1>
+          <h1 className="text-[1.25rem]">{partner.name}</h1>
           <span className="badge-pill info">{partner.sodtype === 12 ? 'Προμηθευτής' : 'Πελάτης'}</span>
           {partner.sodtype === 13 && partner.isProsp && (
             <span className="badge-pill warn">Υποψήφιος</span>
           )}
         </div>
-        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+        <p className="mt-0.5 text-[0.78125rem] text-muted-foreground">
           {[partner.afm ? `ΑΦΜ ${partner.afm}` : null, [partner.city, partner.address].filter(Boolean).join(', ') || null]
             .filter(Boolean).join(' · ') || 'Χωρίς επιπλέον στοιχεία'}
         </p>

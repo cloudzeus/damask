@@ -117,7 +117,7 @@ export function Sidebar({
                   onClick={() => toggleGroup(section.group)}
                   aria-expanded={groupOpen}
                   className={cn(
-                    'flex w-full items-center justify-between gap-2 rounded-lg px-3 pt-3 pb-1.5 text-[10px] font-extrabold tracking-[0.11em] text-muted-foreground uppercase transition-colors hover:text-foreground',
+                    'flex w-full items-center justify-between gap-2 rounded-lg px-3 pt-3 pb-1.5 text-[0.625rem] font-extrabold tracking-[0.11em] text-muted-foreground uppercase transition-colors hover:text-foreground',
                     railHide,
                   )}
                 >
@@ -132,7 +132,7 @@ export function Sidebar({
                       href={item.href}
                       title={item.label}
                       className={cn(
-                        'flex items-center gap-2.5 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors',
+                        'flex items-center gap-2.5 rounded-full px-3 py-2 text-[0.8125rem] font-semibold transition-colors',
                         rail && 'lg:justify-center lg:px-0',
                         active
                           ? 'bg-primary text-primary-foreground shadow-[0_6px_18px_rgb(22_50_63_/_25%)]'
@@ -155,10 +155,10 @@ export function Sidebar({
             rail && 'lg:justify-center lg:px-2',
           )}
         >
-          <span className="avatar-ring size-8 shrink-0 text-[11px]">{initials}</span>
+          <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">{initials}</span>
           <span className={cn('min-w-0', railHide)}>
-            <b className="block truncate text-[12.5px] leading-tight">{userName}</b>
-            <small className="block text-[10.5px] text-muted-foreground">{userRole}</small>
+            <b className="block truncate text-[0.78125rem] leading-tight">{userName}</b>
+            <small className="block text-[0.65625rem] text-muted-foreground">{userRole}</small>
           </span>
           <span
             className={cn('status-dot pulse ml-auto', railHide)}

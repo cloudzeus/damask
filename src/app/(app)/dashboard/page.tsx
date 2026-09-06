@@ -29,13 +29,13 @@ export default async function DashboardPage() {
             >
               <c.icon className="size-[15px]" strokeWidth={1.8} />
             </div>
-            <div className="text-[11.5px] font-bold text-muted-foreground">{c.title}</div>
-            <div className="mt-[3px] text-[33px] leading-none font-[250] tracking-[-0.015em] tabular-nums">
+            <div className="text-[0.71875rem] font-bold text-muted-foreground">{c.title}</div>
+            <div className="mt-[3px] text-[2.0625rem] leading-none font-[250] tracking-[-0.015em] tabular-nums">
               {c.value}
             </div>
             <div className="mt-1 flex items-center justify-between gap-2">
               <span
-                className="rounded-full px-2 py-0.5 text-[10.5px] font-extrabold"
+                className="rounded-full px-2 py-0.5 text-[0.65625rem] font-extrabold"
                 style={{ color: 'var(--muted-foreground)', background: 'var(--info-soft)' }}
               >
                 {c.hint}

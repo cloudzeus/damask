@@ -86,7 +86,7 @@ export function PortalUploadForm({
   return (
     <div className="flex flex-col items-center gap-3 text-center">
       {alreadyUploaded && state === 'idle' && (
-        <p className="text-[12.5px] text-muted-foreground">
+        <p className="text-[0.78125rem] text-muted-foreground">
           Έχει ήδη ανέβει αρχείο — μπορείτε να το αντικαταστήσετε.
         </p>
       )}
@@ -94,15 +94,15 @@ export function PortalUploadForm({
       {state === 'success' ? (
         <div className="flex flex-col items-center gap-1.5 text-[var(--success)]">
           <LuCircleCheck className="size-6" aria-hidden />
-          <p className="text-[13.5px] font-semibold text-foreground">Το αρχείο παραλήφθηκε. Ευχαριστούμε.</p>
-          {uploadedName && <p className="text-[11.5px] text-muted-foreground">{uploadedName}</p>}
+          <p className="text-[0.84375rem] font-semibold text-foreground">Το αρχείο παραλήφθηκε. Ευχαριστούμε.</p>
+          {uploadedName && <p className="text-[0.71875rem] text-muted-foreground">{uploadedName}</p>}
         </div>
       ) : null}
 
       {state === 'error' && (
         <div className="flex flex-col items-center gap-1.5">
           <LuCircleAlert className="size-6" style={{ color: 'var(--coral)' }} aria-hidden />
-          <p className="text-[13.5px] font-semibold text-foreground">{errorMessage}</p>
+          <p className="text-[0.84375rem] font-semibold text-foreground">{errorMessage}</p>
         </div>
       )}
 

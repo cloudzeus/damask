@@ -26,7 +26,7 @@ function pct(numerator: number, denominator: number): string {
 export function MailFunnelTable({ rows }: { rows: ProgramFunnelRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="py-4 text-[13px] text-muted-foreground">
+      <div className="py-4 text-[0.8125rem] text-muted-foreground">
         Δεν υπάρχουν ακόμα newsletters — στείλε το πρώτο από την καρτέλα «Δυνητικοί» ενός προγράμματος.
       </div>
     )
@@ -34,9 +34,9 @@ export function MailFunnelTable({ rows }: { rows: ProgramFunnelRow[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[13px]">
+      <table className="w-full text-[0.8125rem]">
         <thead>
-          <tr className="border-b text-left text-[11.5px] font-bold text-muted-foreground">
+          <tr className="border-b text-left text-[0.71875rem] font-bold text-muted-foreground">
             <th className="py-1.5 pr-3 font-bold">Πρόγραμμα</th>
             <th className="px-2 py-1.5 text-right font-bold">Υποψήφιοι</th>
             <th className="px-2 py-1.5 text-right font-bold">Εστάλησαν</th>

@@ -87,8 +87,8 @@ export function ConsentBanner({
     >
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-[220px] flex-1">
-          <h2 className="mb-1 text-[14.5px] font-bold">{title}</h2>
-          <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+          <h2 className="mb-1 text-[0.90625rem] font-bold">{title}</h2>
+          <p className="text-[0.78125rem] leading-relaxed text-muted-foreground">
             {text}{' '}
             <Link href={cookiesHref} className="font-semibold underline" target="_blank" rel="noopener noreferrer">
               {locale === 'en' ? 'Cookie Policy' : 'Πολιτική Cookies'}

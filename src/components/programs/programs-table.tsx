@@ -62,7 +62,7 @@ export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
       sortValue: r => r.title,
       cell: r => (
         <span className="user-cell">
-          <span className="avatar-ring size-8 shrink-0 text-[11px]">
+          <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">
             <LuLandmark className="size-3.5" aria-hidden />
           </span>
           <span>
@@ -76,7 +76,7 @@ export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
       header: 'Κωδικός',
       width: 150,
       sortValue: r => r.referenceCode,
-      cell: r => <span className="font-mono text-[12.5px]">{r.referenceCode ?? '—'}</span>,
+      cell: r => <span className="font-mono text-[0.78125rem]">{r.referenceCode ?? '—'}</span>,
     },
     { id: 'budget', header: 'Π/Υ', align: 'right', width: 130, sortValue: r => r.totalBudget, cell: r => formatBudget(r.totalBudget) },
     { id: 'rate', header: 'Επιχορήγηση', align: 'right', width: 130, sortValue: r => r.fundingRate, cell: r => formatRate(r.fundingRate) },
@@ -131,7 +131,7 @@ export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
       onRowClick={r => router.push(`/programs/${r.id}`)}
       emptyMessage={
         <div>
-          <div className="mb-3 text-[13px] text-muted-foreground">
+          <div className="mb-3 text-[0.8125rem] text-muted-foreground">
             Δεν υπάρχουν ακόμη προγράμματα — δημιούργησε το πρώτο ανεβάζοντας την προκήρυξή του.
           </div>
           <NewProgramDialog />

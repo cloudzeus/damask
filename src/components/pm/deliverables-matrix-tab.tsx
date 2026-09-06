@@ -167,7 +167,7 @@ export function DeliverablesMatrixTab({ applicationId, programId }: { applicatio
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Φάκελος &amp; Πιστοποίηση ({matrix.length})
         </div>
         <Button type="button" variant="outline" onClick={handleGenerate} disabled={generating}>
@@ -177,15 +177,15 @@ export function DeliverablesMatrixTab({ applicationId, programId }: { applicatio
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       ) : matrix.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <LuFolderOpen className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[12.5px] text-muted-foreground">
+          <p className="text-[0.78125rem] text-muted-foreground">
             Δεν υπάρχουν παραδοτέα ακόμα — πάτησε «Ανανέωση παραδοτέων» για να τα δημιουργήσεις από το πρόγραμμα.
           </p>
         </div>
@@ -220,13 +220,13 @@ export function DeliverablesMatrixTab({ applicationId, programId }: { applicatio
                         <div className="flex items-start gap-1.5">
                           {expanded ? <LuChevronUp className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden /> : <LuChevronDown className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
                           <div className="min-w-0">
-                            <div className="text-[13px] font-semibold">{g.name}</div>
+                            <div className="text-[0.8125rem] font-semibold">{g.name}</div>
                             {g.expenseId == null ? (
                               <span className="badge-pill muted mt-0.5">Έργο</span>
                             ) : cert ? (
-                              <div className="text-[11.5px] text-muted-foreground">{cert.expenseDescription} · {formatEUR(cert.amount)}</div>
+                              <div className="text-[0.71875rem] text-muted-foreground">{cert.expenseDescription} · {formatEUR(cert.amount)}</div>
                             ) : (
-                              <div className="text-[11.5px] text-muted-foreground">—</div>
+                              <div className="text-[0.71875rem] text-muted-foreground">—</div>
                             )}
                           </div>
                         </div>
@@ -324,7 +324,7 @@ function ExpandedGroup({
 
       {phasesInGroup.map(phase => (
         <div key={phase}>
-          <div className="dotted-leader mb-1.5 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+          <div className="dotted-leader mb-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
             {deliverablePhaseLabel(phase)}
           </div>
           <div className="flex flex-col gap-2">
@@ -470,7 +470,7 @@ function TaskRow({
     <div className={cn('rounded-2xl border border-border bg-card/60 p-3 transition-opacity', task.blocked && 'opacity-60')}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <span className="text-[13px] font-semibold">{task.name}</span>
+          <span className="text-[0.8125rem] font-semibold">{task.name}</span>
           {task.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>}
           {task.onSiteVerification && <span className="badge-pill info shrink-0">Επιτόπια επαλήθευση</span>}
           {task.minFiles > 0 && <span className="badge-pill muted shrink-0">{task.minFiles} αρχεία</span>}
@@ -541,7 +541,7 @@ function TaskRow({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[0.6875rem] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
           {uploading ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />}
           {uploading ? 'Ανέβασμα…' : 'Ανέβασμα αρχείων'}
@@ -551,9 +551,9 @@ function TaskRow({
       {task.files.length > 0 && (
         <ul className="mt-1.5 flex flex-col gap-1">
           {task.files.map(f => (
-            <li key={f.id} className="flex min-w-0 items-center gap-1.5 text-[12px]">
+            <li key={f.id} className="flex min-w-0 items-center gap-1.5 text-[0.75rem]">
               <span className="min-w-0 truncate font-semibold" title={f.name}>{f.name}</span>
-              <span className="shrink-0 text-[11px] text-muted-foreground">{formatSize(f.size)}</span>
+              <span className="shrink-0 text-[0.6875rem] text-muted-foreground">{formatSize(f.size)}</span>
               <a
                 href={`/programs/${programId}/applications/${applicationId}/deliverables/${f.id}`}
                 className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -577,7 +577,7 @@ function TaskRow({
       )}
 
       {task.notes && (
-        <p className="mt-1.5 text-[11.5px] text-muted-foreground">Σημείωση: {task.notes}</p>
+        <p className="mt-1.5 text-[0.71875rem] text-muted-foreground">Σημείωση: {task.notes}</p>
       )}
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5 pt-2" style={{ borderTop: '1px dotted var(--dotted)' }}>
@@ -606,7 +606,7 @@ function TaskRow({
             value={pendingPrereqId}
             onValueChange={v => { setPendingPrereqId(v ?? undefined); if (v) void handleAddDependency(v) }}
           >
-            <SelectTrigger size="sm" className="h-6 w-fit rounded-full border-dashed bg-transparent px-2 text-[11px]">
+            <SelectTrigger size="sm" className="h-6 w-fit rounded-full border-dashed bg-transparent px-2 text-[0.6875rem]">
               <SelectValue placeholder="+ εξάρτηση" />
             </SelectTrigger>
             <SelectContent>
@@ -667,7 +667,7 @@ function CertScalarsMiniForm({
   return (
     <div className="rounded-2xl border border-border bg-card/40 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[11.5px] font-extrabold tracking-[0.06em] text-muted-foreground uppercase">Πιστοποίηση φυσικού αντικειμένου</span>
+        <span className="text-[0.71875rem] font-extrabold tracking-[0.06em] text-muted-foreground uppercase">Πιστοποίηση φυσικού αντικειμένου</span>
         {item.complete ? (
           <span className="badge-pill ok">Πιστοποιήσιμο</span>
         ) : (
@@ -683,7 +683,7 @@ function CertScalarsMiniForm({
             defaultValue={item.serialNumber ?? ''}
             placeholder="—"
             onBlur={e => handleTextBlur('serialNumber', e.target.value)}
-            className="h-8 text-[12.5px]"
+            className="h-8 text-[0.78125rem]"
           />
         </div>
         <div className="field !mb-0">
@@ -693,7 +693,7 @@ function CertScalarsMiniForm({
             defaultValue={item.location ?? ''}
             placeholder="—"
             onBlur={e => handleTextBlur('location', e.target.value)}
-            className="h-8 text-[12.5px]"
+            className="h-8 text-[0.78125rem]"
           />
         </div>
         <div className="field !mb-0">
@@ -703,7 +703,7 @@ function CertScalarsMiniForm({
             defaultValue={item.assetRegistryRef ?? ''}
             placeholder="—"
             onBlur={e => handleTextBlur('assetRegistryRef', e.target.value)}
-            className="h-8 text-[12.5px]"
+            className="h-8 text-[0.78125rem]"
           />
         </div>
         <div className="field !mb-0">
@@ -713,7 +713,7 @@ function CertScalarsMiniForm({
             type="date"
             defaultValue={item.assetRegistryDate ? item.assetRegistryDate.slice(0, 10) : ''}
             onBlur={e => handleDateBlur(e.target.value)}
-            className="h-8 w-full rounded-full border border-border bg-card px-3 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-8 w-full rounded-full border border-border bg-card px-3 text-[0.78125rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           />
         </div>
       </div>
@@ -721,7 +721,7 @@ function CertScalarsMiniForm({
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <Switch checked={item.paid} onCheckedChange={handlePaidChange} id={`dm-cert-paid-${item.expenseId}`} />
-          <label htmlFor={`dm-cert-paid-${item.expenseId}`} className="text-[12.5px] font-semibold">Πληρώθηκε</label>
+          <label htmlFor={`dm-cert-paid-${item.expenseId}`} className="text-[0.78125rem] font-semibold">Πληρώθηκε</label>
         </div>
         <div className="flex items-center gap-2">
           <Switch
@@ -730,10 +730,10 @@ function CertScalarsMiniForm({
             disabled={!item.complete && !item.verified}
             id={`dm-cert-verified-${item.expenseId}`}
           />
-          <label htmlFor={`dm-cert-verified-${item.expenseId}`} className="text-[12.5px] font-semibold">Επαληθεύτηκε</label>
+          <label htmlFor={`dm-cert-verified-${item.expenseId}`} className="text-[0.78125rem] font-semibold">Επαληθεύτηκε</label>
         </div>
         {!item.complete && (
-          <span className="text-[11px] text-muted-foreground">Λείπουν: {missing.length > 0 ? missing.join(', ') : 'δικαιολογητικά φακέλου (βλ. εργασίες πιστοποίησης παρακάτω)'}</span>
+          <span className="text-[0.6875rem] text-muted-foreground">Λείπουν: {missing.length > 0 ? missing.join(', ') : 'δικαιολογητικά φακέλου (βλ. εργασίες πιστοποίησης παρακάτω)'}</span>
         )}
       </div>
     </div>

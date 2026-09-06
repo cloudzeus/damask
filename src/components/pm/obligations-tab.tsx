@@ -203,7 +203,7 @@ export function ObligationsTab({
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           {title} ({visibleObligations.length})
         </div>
         <div className="flex items-center gap-1.5">
@@ -222,28 +222,28 @@ export function ObligationsTab({
 
       {viewMode === 'board' ? (
         boardLoading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
           </div>
         ) : (
           <ObligationsBoard obligations={boardObligations} swimlaneBy="assignee" onStatusChange={handleBoardStatusChange} />
         )
       ) : loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       ) : visibleObligations.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <LuListChecks className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[12.5px] text-muted-foreground">{emptyMessage}</p>
+          <p className="text-[0.78125rem] text-muted-foreground">{emptyMessage}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
           {grouped.map(g => (
             <div key={g.stage}>
-              <div className="dotted-leader mb-2 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+              <div className="dotted-leader mb-2 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
                 {stageLabel(g.stage)} ({g.items.length})
               </div>
               <div className="flex flex-col gap-2">
@@ -290,7 +290,7 @@ function ListBoardToggle({ active, onChange }: { active: 'list' | 'board'; onCha
           aria-selected={active === o.key}
           onClick={() => onChange(o.key)}
           className={cn(
-            'rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors',
+            'rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold whitespace-nowrap transition-colors',
             active === o.key
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -328,7 +328,7 @@ function ObligationRow({
     <div className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <span className="text-[13px] font-semibold">{o.name}</span>
+          <span className="text-[0.8125rem] font-semibold">{o.name}</span>
           <span className="badge-pill muted shrink-0">{obligationKindLabel(o.kind)}</span>
           <span className={cn('badge-pill shrink-0', o.templateId ? 'ok' : 'muted')}>
             {o.templateId ? 'Βήμα' : 'Πρόγραμμα'}
@@ -373,7 +373,7 @@ function ObligationRow({
         <div className="field !mb-0">
           <label htmlFor={`ob-status-${o.id}`}>Κατάσταση</label>
           <Select value={o.status} onValueChange={v => onStatusChange(v as ObligationStatusStr)}>
-            <SelectTrigger id={`ob-status-${o.id}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[12.5px]">
+            <SelectTrigger id={`ob-status-${o.id}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -393,13 +393,13 @@ function ObligationRow({
             type="date"
             defaultValue={o.dueDate ? o.dueDate.slice(0, 10) : ''}
             onBlur={e => onDueDateBlur(e.target.value)}
-            className="h-8 w-full rounded-full border border-border bg-card px-3 text-[12.5px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-8 w-full rounded-full border border-border bg-card px-3 text-[0.78125rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           />
         </div>
         <div className="field !mb-0">
           <label htmlFor={`ob-assignee-${o.id}`}>Ανάθεση</label>
           <Select value={o.assigneeId ?? NONE_ASSIGNEE} onValueChange={v => onAssigneeChange(v ?? NONE_ASSIGNEE)} disabled={!canManage}>
-            <SelectTrigger id={`ob-assignee-${o.id}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[12.5px]">
+            <SelectTrigger id={`ob-assignee-${o.id}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -422,7 +422,7 @@ function ObligationRow({
           defaultValue={o.notes ?? ''}
           placeholder="—"
           onBlur={e => onNotesBlur(e.target.value)}
-          className="h-8 text-[12.5px]"
+          className="h-8 text-[0.78125rem]"
         />
       </div>
 
@@ -506,7 +506,7 @@ function AddObligationDialog({ applicationId, onCreated }: { applicationId: stri
 
           <div className={cn('flex items-center gap-2.5')}>
             <Switch checked={mandatory} onCheckedChange={setMandatory} disabled={saving} id="ob-new-mandatory" />
-            <label htmlFor="ob-new-mandatory" className="text-[12.5px] font-semibold">Υποχρεωτικό</label>
+            <label htmlFor="ob-new-mandatory" className="text-[0.78125rem] font-semibold">Υποχρεωτικό</label>
           </div>
 
           <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] bg-transparent p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>

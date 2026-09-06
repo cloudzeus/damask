@@ -126,7 +126,7 @@ export function ContactFormDialog({
               <label>Κύρια επαφή</label>
               <div className="flex h-11 items-center gap-2.5">
                 <Switch aria-label="Κύρια επαφή" checked={values.isPrimary} onCheckedChange={checked => set('isPrimary', checked)} />
-                <span className="text-[12.5px] text-muted-foreground">
+                <span className="text-[0.78125rem] text-muted-foreground">
                   {values.isPrimary ? 'Ναι — θα αντικαταστήσει την τρέχουσα κύρια επαφή' : 'Όχι'}
                 </span>
               </div>

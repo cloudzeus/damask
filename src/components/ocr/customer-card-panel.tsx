@@ -60,7 +60,7 @@ function initialCardFields(issuer: OcrParty): CardFields {
 
 function FieldLabel({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
-    <label className="mb-1 flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+    <label className="mb-1 flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
       <Icon className="size-3" aria-hidden />
       {children}
     </label>
@@ -120,7 +120,7 @@ function ChipsField({
         {values.map((v, i) => (
           <span
             key={`${v}-${i}`}
-            className="inline-flex items-center gap-1 rounded-full py-0.5 pr-1 pl-2.5 text-[11.5px] font-medium"
+            className="inline-flex items-center gap-1 rounded-full py-0.5 pr-1 pl-2.5 text-[0.71875rem] font-medium"
             style={{ background: 'var(--muted)' }}
           >
             {v}
@@ -136,7 +136,7 @@ function ChipsField({
         ))}
         <input
           type="text"
-          className="min-w-[110px] flex-1 border-none bg-transparent text-[12.5px] outline-none"
+          className="min-w-[110px] flex-1 border-none bg-transparent text-[0.78125rem] outline-none"
           aria-label={ariaLabel}
           value={draft}
           placeholder={values.length === 0 ? placeholder : undefined}
@@ -247,7 +247,7 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
       {/* ── Κάρτα «Επαλήθευση ΑΑΔΕ» ─────────────────────────────────── */}
       <div className="rounded-2xl border border-border p-3.5">
         <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-[12.5px] font-bold">
+          <span className="flex items-center gap-1.5 text-[0.78125rem] font-bold">
             <LuLandmark className="size-3.5" aria-hidden /> Επαλήθευση ΑΑΔΕ
           </span>
           {aade.status === 'loading' && (
@@ -268,7 +268,7 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
         </div>
 
         {aade.status === 'found' && (
-          <div className="flex flex-col gap-1 text-[12px]">
+          <div className="flex flex-col gap-1 text-[0.75rem]">
             <div><b>Επωνυμία:</b> {aade.company.name}{aade.company.shortName ? ` (${aade.company.shortName})` : ''}</div>
             {aade.company.doy && <div><b>ΔΟΥ:</b> {aade.company.doy}</div>}
             {(aade.company.address || aade.company.city) && (
@@ -283,7 +283,7 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
               {aade.company.aadeStatus ? ` — ${aade.company.aadeStatus}` : ''}
             </div>
             {nameMismatch && (
-              <div className="mt-1.5 flex items-center gap-1.5 text-[11.5px]" style={{ color: 'var(--warning)' }}>
+              <div className="mt-1.5 flex items-center gap-1.5 text-[0.71875rem]" style={{ color: 'var(--warning)' }}>
                 <LuTriangleAlert className="size-3.5 shrink-0" aria-hidden />
                 Διαφορά επωνυμίας από το παραστατικό — προτείνεται η επίσημη «{aade.company.name}».
               </div>
@@ -291,22 +291,22 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
           </div>
         )}
         {aade.status === 'not_found' && (
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-[0.75rem] text-muted-foreground">
             Δεν βρέθηκαν στοιχεία για το ΑΦΜ {cleanAfm} στο μητρώο της ΑΑΔΕ — έλεγξε το ΑΦΜ ή συμπλήρωσε τα στοιχεία χειροκίνητα παρακάτω.
           </p>
         )}
         {aade.status === 'error' && (
-          <p className="text-[12px]" style={{ color: 'var(--warning)' }}>{aade.message}</p>
+          <p className="text-[0.75rem]" style={{ color: 'var(--warning)' }}>{aade.message}</p>
         )}
         {aade.status === 'idle' && !afmLooksValid && (
-          <p className="text-[12px] text-muted-foreground">Το ΑΦΜ εκδότη δεν είναι 9 ψηφία — συμπλήρωσέ το στα στοιχεία εκδότη παραπάνω για αυτόματο έλεγχο ΑΑΔΕ.</p>
+          <p className="text-[0.75rem] text-muted-foreground">Το ΑΦΜ εκδότη δεν είναι 9 ψηφία — συμπλήρωσέ το στα στοιχεία εκδότη παραπάνω για αυτόματο έλεγχο ΑΑΔΕ.</p>
         )}
       </div>
 
       {/* ── Section «Στοιχεία καρτέλας» ─────────────────────────────── */}
       <div className="rounded-2xl border border-border p-3.5">
         <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-[12.5px] font-bold">
+          <span className="flex items-center gap-1.5 text-[0.78125rem] font-bold">
             <LuUserPlus className="size-3.5" aria-hidden /> Στοιχεία καρτέλας
           </span>
           <div className="flex gap-1.5">
@@ -386,7 +386,7 @@ export function CustomerCardPanel({ issuer }: CustomerCardPanelProps) {
           {created && (
             <a
               href={`/partners/${created.customerId}`}
-              className="inline-flex items-center gap-1 text-[12px] font-semibold text-(--info) hover:underline"
+              className="inline-flex items-center gap-1 text-[0.75rem] font-semibold text-(--info) hover:underline"
             >
               Άνοιγμα καρτέλας <LuExternalLink className="size-3" aria-hidden />
             </a>

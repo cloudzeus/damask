@@ -40,8 +40,8 @@ export function StepIngestValidate({ target, state, patch }: StepProps) {
     <div className="space-y-4 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[16px] font-semibold">Έλεγχος δεδομένων</h2>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">
+          <h2 className="text-[1rem] font-semibold">Έλεγχος δεδομένων</h2>
+          <p className="mt-1 text-[0.78125rem] text-muted-foreground">
             Δοκιμαστικός έλεγχος πριν την καταχώριση — καμία αλλαγή δεν γίνεται ακόμα στη βάση.
           </p>
         </div>
@@ -52,7 +52,7 @@ export function StepIngestValidate({ target, state, patch }: StepProps) {
       </div>
 
       {loading && !v && (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-border py-10 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-border py-10 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" style={{ color: 'var(--info)' }} />
           Έλεγχος δεδομένων…
         </div>
@@ -60,7 +60,7 @@ export function StepIngestValidate({ target, state, patch }: StepProps) {
 
       {v && (
         <>
-          <div className="flex items-center gap-2 text-[13px] font-semibold">
+          <div className="flex items-center gap-2 text-[0.8125rem] font-semibold">
             <span style={{ color: 'var(--success)' }}>{v.validRows.toLocaleString('el-GR')} έγκυρες</span>
             <span className="text-muted-foreground">·</span>
             <span style={{ color: v.errors.length > 0 ? 'var(--destructive)' : 'var(--muted-foreground)' }}>
@@ -73,7 +73,7 @@ export function StepIngestValidate({ target, state, patch }: StepProps) {
               {mismatches.map((m, i) => (
                 <div
                   key={`${m.code}-${i}`}
-                  className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-[12px]"
+                  className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-[0.75rem]"
                   style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}
                 >
                   <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
@@ -85,7 +85,7 @@ export function StepIngestValidate({ target, state, patch }: StepProps) {
 
           {v.errors.length === 0 ? (
             <div
-              className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12.5px] font-semibold"
+              className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[0.78125rem] font-semibold"
               style={{ background: 'var(--success-soft)', color: 'var(--success)' }}
             >
               <LuCircleCheck className="size-4 shrink-0" />
@@ -105,9 +105,9 @@ export function StepIngestValidate({ target, state, patch }: StepProps) {
                   <TableBody>
                     {v.errors.map((e, i) => (
                       <TableRow key={i}>
-                        <TableCell className="font-mono text-[11.5px] text-muted-foreground">{e.row}</TableCell>
-                        <TableCell className="text-[11.5px] font-semibold">{e.column}</TableCell>
-                        <TableCell className="text-[11.5px] whitespace-normal text-muted-foreground">{e.message}</TableCell>
+                        <TableCell className="font-mono text-[0.71875rem] text-muted-foreground">{e.row}</TableCell>
+                        <TableCell className="text-[0.71875rem] font-semibold">{e.column}</TableCell>
+                        <TableCell className="text-[0.71875rem] whitespace-normal text-muted-foreground">{e.message}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

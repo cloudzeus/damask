@@ -16,7 +16,7 @@ export function SyncTab({ configs }: { configs: Record<string, ObjectSyncConfig>
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[12.5px] text-muted-foreground">
+      <p className="text-[0.78125rem] text-muted-foreground">
         Ανά αντικείμενο SoftOne: κατεύθυνση, πλευρά-πηγή (για αμφίδρομο) και συχνότητα. Τρέχει
         αυτόματα κάθε 5′ όσα είναι due. Αντικείμενα χωρίς μηχανισμό εμφανίζονται ως «σε εκκρεμότητα».
       </p>
@@ -61,12 +61,12 @@ function TargetRow({
   return (
     <div className="rounded-2xl border border-[var(--glass-border)] p-3">
       <div className="mb-2 flex items-center gap-2">
-        <b className="text-[13px]">{target.label}</b>
-        {target.s1Object && <span className="rounded-full bg-[var(--glass-strong)] px-2 py-0.5 text-[10px] text-muted-foreground">SoftOne {target.s1Object}</span>}
-        {!target.hasEngine && <span className="rounded-full bg-[var(--glass-strong)] px-2 py-0.5 text-[10px] text-muted-foreground">σε εκκρεμότητα</span>}
-        {local.lastRunAt && <span className="ml-auto text-[10.5px] text-muted-foreground">Τελευταίο: {new Date(local.lastRunAt).toLocaleString('el-GR')}</span>}
+        <b className="text-[0.8125rem]">{target.label}</b>
+        {target.s1Object && <span className="rounded-full bg-[var(--glass-strong)] px-2 py-0.5 text-[0.625rem] text-muted-foreground">SoftOne {target.s1Object}</span>}
+        {!target.hasEngine && <span className="rounded-full bg-[var(--glass-strong)] px-2 py-0.5 text-[0.625rem] text-muted-foreground">σε εκκρεμότητα</span>}
+        {local.lastRunAt && <span className="ml-auto text-[0.65625rem] text-muted-foreground">Τελευταίο: {new Date(local.lastRunAt).toLocaleString('el-GR')}</span>}
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-[12.5px]">
+      <div className="flex flex-wrap items-center gap-3 text-[0.78125rem]">
         <label className="flex items-center gap-1.5">
           <input type="checkbox" checked={local.syncEnabled} disabled={pending} onChange={e => patch({ syncEnabled: e.target.checked })} />
           Ενεργό

@@ -71,13 +71,13 @@ export function GemiDocsDialog({
         </DialogHeader>
 
         {items === null && !error && (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση εγγράφων ΓΕΜΗ…
           </div>
         )}
         {error && <div className="notice"><span>{error}</span></div>}
         {items !== null && items.length === 0 && (
-          <p className="py-6 text-center text-[12.5px] text-muted-foreground">Δεν βρέθηκαν έγγραφα στο ΓΕΜΗ.</p>
+          <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">Δεν βρέθηκαν έγγραφα στο ΓΕΜΗ.</p>
         )}
         {items !== null && items.length > 0 && (
           <div className="flex flex-col">
@@ -86,10 +86,10 @@ export function GemiDocsDialog({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="badge-pill muted shrink-0">{DOC_KIND_LABEL[item.docKind]}</span>
-                    <b className="truncate text-[13px]">{item.title}</b>
+                    <b className="truncate text-[0.8125rem]">{item.title}</b>
                   </div>
                   {item.dates.dateAnnounced && (
-                    <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                    <div className="mt-0.5 text-[0.71875rem] text-muted-foreground">
                       Ανακοίνωση: {new Date(item.dates.dateAnnounced).toLocaleDateString('el-GR')}
                     </div>
                   )}

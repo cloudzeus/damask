@@ -77,20 +77,20 @@ export function BudgetCompliancePanel({ applicationId, refreshKey }: { applicati
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Πλάνο δαπανών
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       ) : !data ? null : (
         <>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-3 text-[12.5px]">
+            <div className="flex flex-wrap items-center gap-3 text-[0.78125rem]">
               <span className="text-muted-foreground">
                 Προϋπολογισμός <strong className="text-foreground">{data.totalBudget != null ? formatEUR(data.totalBudget) : '—'}</strong>
               </span>
@@ -108,7 +108,7 @@ export function BudgetCompliancePanel({ applicationId, refreshKey }: { applicati
           </div>
 
           {data.categories.length === 0 ? (
-            <p className="py-4 text-center text-[12.5px] text-muted-foreground">Δεν έχουν οριστεί κατηγορίες δαπανών για το πρόγραμμα.</p>
+            <p className="py-4 text-center text-[0.78125rem] text-muted-foreground">Δεν έχουν οριστεί κατηγορίες δαπανών για το πρόγραμμα.</p>
           ) : (
             <div className="rounded-lg ring-1 ring-foreground/10">
               <Table>
@@ -141,7 +141,7 @@ export function BudgetCompliancePanel({ applicationId, refreshKey }: { applicati
             </div>
           )}
 
-          <p className="mt-2.5 text-[11.5px] text-muted-foreground">
+          <p className="mt-2.5 text-[0.71875rem] text-muted-foreground">
             Εκτός κατηγορίας: <strong className="text-foreground">{formatEUR(data.uncategorized)}</strong>
           </p>
         </>

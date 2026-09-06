@@ -68,8 +68,8 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
           <LuBuilding2 className="size-4" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h2 className="text-[15px] font-bold">Καταχώριση Εταιρίας (ΕΛΠ)</h2>
-          <p className="text-[12px] text-muted-foreground">
+          <h2 className="text-[0.9375rem] font-bold">Καταχώριση Εταιρίας (ΕΛΠ)</h2>
+          <p className="text-[0.75rem] text-muted-foreground">
             Συναλλασσόμενος (Trdr) + γραμμές είδη — προαιρετικό push στο SoftOne αν υπάρχει ενεργή σύνδεση.
           </p>
         </div>
@@ -78,7 +78,7 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
       <div className="flex flex-col gap-3.5">
         <div className="flex flex-wrap items-center gap-3">
           <Select value={docKind} onValueChange={v => setDocKind(v as InvoiceDocKind)}>
-            <SelectTrigger aria-label="Είδος παραστατικού" className="h-9 min-w-[280px] rounded-full border-border bg-card px-3.5 text-[12.5px]">
+            <SelectTrigger aria-label="Είδος παραστατικού" className="h-9 min-w-[280px] rounded-full border-border bg-card px-3.5 text-[0.78125rem]">
               <SelectValue>{(v: string) => DOC_KIND_LABEL[v as InvoiceDocKind]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -87,7 +87,7 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
             </SelectContent>
           </Select>
 
-          <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
+          <label className="flex cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold">
             <input
               type="checkbox"
               checked={enrichAade}
@@ -100,21 +100,21 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
         </div>
 
         <div className="rounded-2xl border border-border p-3.5">
-          <span className="mb-2 flex items-center gap-1.5 text-[12.5px] font-bold">
+          <span className="mb-2 flex items-center gap-1.5 text-[0.78125rem] font-bold">
             <LuHash className="size-3.5" aria-hidden /> Αντισυμβαλλόμενος
           </span>
           {party?.name || afm ? (
-            <div className="flex flex-col gap-0.5 text-[12.5px]">
+            <div className="flex flex-col gap-0.5 text-[0.78125rem]">
               <div><b>Επωνυμία:</b> {party?.name || '—'}</div>
               <div><b>ΑΦΜ:</b> {afm || '—'}</div>
             </div>
           ) : (
-            <p className="text-[12.5px] text-muted-foreground">
+            <p className="text-[0.78125rem] text-muted-foreground">
               Δεν εντοπίστηκε {docKind === 'purchase' ? 'εκδότης' : 'παραλήπτης'} σε αυτό το παραστατικό.
             </p>
           )}
           {!afmValid && (
-            <p className="mt-1.5 flex items-center gap-1.5 text-[11.5px]" style={{ color: 'var(--warning)' }}>
+            <p className="mt-1.5 flex items-center gap-1.5 text-[0.71875rem]" style={{ color: 'var(--warning)' }}>
               <LuTriangleAlert className="size-3.5 shrink-0" aria-hidden />
               Χρειάζεται έγκυρο ΑΦΜ (9 ψηφία) — δεν μπορεί να ξεκινήσει η καταχώριση.
             </p>
@@ -122,13 +122,13 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
         </div>
 
         <div className="rounded-2xl border border-border p-3.5">
-          <span className="mb-2 block text-[12.5px] font-bold">Γραμμές ({extracted.lines.length})</span>
+          <span className="mb-2 block text-[0.78125rem] font-bold">Γραμμές ({extracted.lines.length})</span>
           {extracted.lines.length === 0 ? (
-            <p className="text-[12.5px] text-muted-foreground">Δεν υπάρχουν γραμμές.</p>
+            <p className="text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν γραμμές.</p>
           ) : (
             <ul className="flex flex-col gap-1">
               {extracted.lines.map((line, i) => (
-                <li key={i} className="flex items-center justify-between gap-2 text-[12.5px]">
+                <li key={i} className="flex items-center justify-between gap-2 text-[0.78125rem]">
                   <span className="min-w-0 truncate">{line.description || '(χωρίς περιγραφή)'}</span>
                   <span className="shrink-0 tabular-nums text-muted-foreground">{fmtMoney(line.total)}</span>
                 </li>
@@ -156,31 +156,31 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
 
         {report && (
           <div className="rounded-2xl border border-border p-3.5" style={{ background: 'var(--success-soft)' }}>
-            <span className="mb-2.5 flex items-center gap-1.5 text-[12.5px] font-bold" style={{ color: 'var(--success)' }}>
+            <span className="mb-2.5 flex items-center gap-1.5 text-[0.78125rem] font-bold" style={{ color: 'var(--success)' }}>
               <LuCheck className="size-3.5" aria-hidden /> Ολοκληρώθηκε
             </span>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <div className="rounded-xl bg-card/70 p-2.5">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase">
+                <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground uppercase">
                   <LuBuilding2 className="size-3" aria-hidden /> Συναλλασσόμενος
                 </div>
-                <div className="mt-1 text-[13px] font-semibold">
+                <div className="mt-1 text-[0.8125rem] font-semibold">
                   {report.trdr.status === 'created' ? 'Δημιουργήθηκε νέος' : 'Βρέθηκε υπάρχων'}
                 </div>
               </div>
               <div className="rounded-xl bg-card/70 p-2.5">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase">
+                <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground uppercase">
                   <LuPackagePlus className="size-3" aria-hidden /> Γραμμές
                 </div>
-                <div className="mt-1 text-[13px] font-semibold">
+                <div className="mt-1 text-[0.8125rem] font-semibold">
                   {report.lines.matched} υπάρχοντα · {report.lines.created} νέα
                 </div>
               </div>
               <div className="rounded-xl bg-card/70 p-2.5">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase">
+                <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground uppercase">
                   <LuCloudUpload className="size-3" aria-hidden /> SoftOne
                 </div>
-                <div className="mt-1 text-[13px] font-semibold">
+                <div className="mt-1 text-[0.8125rem] font-semibold">
                   {report.s1.trdrPushed === undefined && report.s1.itemsPushed === 0 && report.s1.failed === 0 ? (
                     'Χωρίς αλλαγές προς S1'
                   ) : (
@@ -196,7 +196,7 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
                 </div>
               </div>
             </div>
-            <p className="mt-2.5 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <p className="mt-2.5 flex items-center gap-1.5 text-[0.71875rem] text-muted-foreground">
               <LuFileCheck2 className="size-3.5 shrink-0" aria-hidden />
               Trdr #{report.trdr.id}
             </p>

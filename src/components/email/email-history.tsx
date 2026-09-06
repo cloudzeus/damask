@@ -71,7 +71,7 @@ export function EmailHistory({
   return (
     <div className="glass flex flex-col gap-3 rounded-[22px] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-[15px] font-bold">
+        <h3 className="flex items-center gap-2 text-[0.9375rem] font-bold">
           <Mail className="size-4 text-muted-foreground" aria-hidden /> Επικοινωνία
         </h3>
         {canSend && (
@@ -169,7 +169,7 @@ function ThreadItem({
           {thread.lastSnippet && <span className="truncate text-xs text-muted-foreground">{thread.lastSnippet}</span>}
         </span>
         <span className="flex shrink-0 flex-col items-end gap-1 text-right">
-          <span className="text-[11px] whitespace-nowrap text-muted-foreground">{relativeTime(thread.lastMessageAt)}</span>
+          <span className="text-[0.6875rem] whitespace-nowrap text-muted-foreground">{relativeTime(thread.lastMessageAt)}</span>
           <span className="badge-pill muted">{thread.messageCount} {thread.messageCount === 1 ? 'μήνυμα' : 'μηνύματα'}</span>
         </span>
       </button>
@@ -205,7 +205,7 @@ function MessageCard({ message }: { message: MessageRow }) {
           {inbound ? <ArrowDownLeft className="size-3" aria-hidden /> : <ArrowUpRight className="size-3" aria-hidden />}
           {inbound ? 'Εισερχόμενο' : 'Εξερχόμενο'}
         </span>
-        <span className="text-[11px] text-muted-foreground">{relativeTime(message.createdAt)}</span>
+        <span className="text-[0.6875rem] text-muted-foreground">{relativeTime(message.createdAt)}</span>
       </div>
       <div className="mb-2 flex flex-col gap-0.5 text-xs text-muted-foreground">
         <span><b className="font-semibold text-foreground">Από:</b> {message.fromEmail}</span>

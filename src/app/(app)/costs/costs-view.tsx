@@ -103,7 +103,7 @@ export function CostsView({
       </div>
 
       <div id="costs-panel-api" role="tabpanel" aria-labelledby="costs-tab-api" hidden={tab !== 'api'}>
-        <p className="mb-2.5 text-[12px] text-muted-foreground">
+        <p className="mb-2.5 text-[0.75rem] text-muted-foreground">
           Χρήση API υπηρεσιών (Mailgun/BunnyCDN/Viva/ΑΑΔΕ/geocoding) — τρέχων ημερολογιακός μήνας, ανεξάρτητα από το επιλεγμένο εύρος πάνω.
         </p>
         <ApiServicesTable summaries={apiSummaries} isSuperAdmin={isSuperAdmin} />

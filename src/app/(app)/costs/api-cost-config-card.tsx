@@ -11,7 +11,7 @@ type RowState = { basePrice: string; freeQuota: string; markupPercent: string }
 
 /** Συμπαγές input styling μέσα σε table cell — ΟΧΙ το pill-shaped `.inwrap input` (44px, φτιαγμένο για φόρμες), ίδιο πνεύμα με το "compact 14px" UI preference. */
 const COMPACT_INPUT_CLASS =
-  'w-full rounded-[8px] border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-right text-[12.5px] tabular-nums outline-none transition-shadow focus-visible:border-[var(--info)] focus-visible:shadow-[0_0_0_3px_var(--info-soft)]'
+  'w-full rounded-[8px] border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-right text-[0.78125rem] tabular-nums outline-none transition-shadow focus-visible:border-[var(--info)] focus-visible:shadow-[0_0_0_3px_var(--info-soft)]'
 
 function toRowState(cfg: ResolvedApiCostConfig): RowState {
   return { basePrice: String(cfg.basePrice), freeQuota: String(cfg.freeQuota), markupPercent: String(cfg.markupPercent) }
@@ -71,8 +71,8 @@ export function ApiCostConfigCard({ initial }: { initial: Record<string, Resolve
           <Settings2 className="size-4" strokeWidth={1.8} aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[14.5px] font-bold">Ρυθμίσεις API κόστους</h3>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">
+          <h3 className="text-[0.90625rem] font-bold">Ρυθμίσεις API κόστους</h3>
+          <p className="mt-0.5 text-[0.75rem] text-muted-foreground">
             Τιμή/μονάδα (EUR), δωρεάν μονάδες/μήνα, markup % — ανά υπηρεσία. Άδειο σημαίνει τιμή 0.
           </p>
         </div>
@@ -97,7 +97,7 @@ export function ApiCostConfigCard({ initial }: { initial: Record<string, Resolve
                 <tr key={s.service} className="dotted-row-bottom">
                   <td>
                     <div className="font-semibold">{s.displayName}</div>
-                    <div className="text-[11px] text-muted-foreground">{s.unitLabel}</div>
+                    <div className="text-[0.6875rem] text-muted-foreground">{s.unitLabel}</div>
                   </td>
                   <td className="num">
                     <input

@@ -76,7 +76,7 @@ export function ObligationsBoard({
           <BoardLane key={lane.key} lane={lane} />
         ))}
         {lanes.length === 0 && (
-          <p className="py-8 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν υποχρεώσεις.</p>
+          <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν υποχρεώσεις.</p>
         )}
       </div>
     </DndContext>
@@ -90,9 +90,9 @@ function BoardLane({ lane }: { lane: Swimlane<BoardObligation> }) {
   return (
     <section className="glass rounded-[22px] p-3.5">
       {lane.label && (
-        <div className="mb-2.5 flex items-center gap-1.5 px-0.5 text-[12.5px] font-extrabold">
+        <div className="mb-2.5 flex items-center gap-1.5 px-0.5 text-[0.78125rem] font-extrabold">
           {lane.label}
-          <span className="text-[11px] font-normal text-muted-foreground">({lane.items.length})</span>
+          <span className="text-[0.6875rem] font-normal text-muted-foreground">({lane.items.length})</span>
         </div>
       )}
 
@@ -107,7 +107,7 @@ function BoardLane({ lane }: { lane: Swimlane<BoardObligation> }) {
           <button
             type="button"
             onClick={() => setOtherOpen(o => !o)}
-            className="flex items-center gap-1 text-[11.5px] font-semibold text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-1 text-[0.71875rem] font-semibold text-muted-foreground hover:text-foreground"
           >
             {otherOpen ? <LuChevronDown className="size-3.5" aria-hidden /> : <LuChevronRight className="size-3.5" aria-hidden />}
             Άλλες ({grouped.other.length})
@@ -137,11 +137,11 @@ function BoardColumn({ laneKey, status, items }: { laneKey: string; status: Obli
       )}
     >
       <div className="mb-0.5 flex items-center justify-between px-0.5">
-        <span className="text-[12px] font-extrabold">{obligationStatusLabel(status)}</span>
-        <span className="text-[11px] text-muted-foreground">{items.length}</span>
+        <span className="text-[0.75rem] font-extrabold">{obligationStatusLabel(status)}</span>
+        <span className="text-[0.6875rem] text-muted-foreground">{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <p className="py-4 text-center text-[11.5px] text-muted-foreground">—</p>
+        <p className="py-4 text-center text-[0.71875rem] text-muted-foreground">—</p>
       ) : (
         items.map(o => <BoardCard key={o.id} obligation={o} />)
       )}
@@ -161,7 +161,7 @@ function CardBody({ obligation: o, showStatus = false }: { obligation: BoardObli
   return (
     <>
       <div className="flex flex-wrap items-center gap-1">
-        <span className="min-w-0 flex-1 text-[12.5px] font-semibold break-words">{o.name}</span>
+        <span className="min-w-0 flex-1 text-[0.78125rem] font-semibold break-words">{o.name}</span>
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-1">
         <span className={cn('badge-pill shrink-0', o.templateId ? 'ok' : 'muted')}>{o.templateId ? 'Βήμα' : 'Πρόγραμμα'}</span>
@@ -178,7 +178,7 @@ function CardBody({ obligation: o, showStatus = false }: { obligation: BoardObli
       </div>
       <Link
         href={`/programs/${o.programId}/applications/${o.applicationId}`}
-        className="mt-1.5 block truncate text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+        className="mt-1.5 block truncate text-[0.6875rem] text-muted-foreground hover:text-foreground hover:underline"
       >
         {o.customerName} · {o.programTitle}
       </Link>

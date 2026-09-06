@@ -22,17 +22,17 @@ export default async function PortalUploadPage({ params }: { params: Promise<{ t
   return (
     <div className="app-canvas flex min-h-screen flex-col items-center justify-center px-6">
       <div className="glass stagger w-full max-w-md p-8 text-center">
-        <Link href="/" className="wordmark mb-6 inline-flex text-[18px] text-foreground">
+        <Link href="/" className="wordmark mb-6 inline-flex text-[1.125rem] text-foreground">
           World Wide Associates
         </Link>
-        <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="mb-1 text-[0.71875rem] font-semibold uppercase tracking-wide text-muted-foreground">
           Αίτημα εγγράφου
         </p>
-        <h1 className="mb-2 text-[22px]">{request.title}</h1>
+        <h1 className="mb-2 text-[1.375rem]">{request.title}</h1>
         {request.description && (
           <p className="mb-3 text-sm text-muted-foreground">{request.description}</p>
         )}
-        <p className="mb-6 text-[12.5px] font-semibold text-muted-foreground">
+        <p className="mb-6 text-[0.78125rem] font-semibold text-muted-foreground">
           {request.customerName} · {request.programTitle}
         </p>
 

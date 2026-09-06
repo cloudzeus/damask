@@ -73,7 +73,7 @@ export function SheetGrid({
                       >
                         {!excluded && <LuCheck className="size-2.5" style={{ color: 'var(--navy-ink)' }} />}
                       </span>
-                      <span className="font-mono text-[10px] font-black" style={{ color: excluded ? 'var(--muted-foreground)' : 'var(--info)' }}>
+                      <span className="font-mono text-[0.625rem] font-black" style={{ color: excluded ? 'var(--muted-foreground)' : 'var(--info)' }}>
                         {col.colLetter}
                       </span>
                     </button>
@@ -105,13 +105,13 @@ export function SheetGrid({
                     style={{ width: 54 }}
                   >
                     <div className="flex items-center gap-1">
-                      <span className="font-mono text-[10.5px] tabular-nums text-muted-foreground">{row.rowNum}</span>
+                      <span className="font-mono text-[0.65625rem] tabular-nums text-muted-foreground">{row.rowNum}</span>
                       {onSetHeaderRow && (
                         <button
                           type="button"
                           onClick={() => onSetHeaderRow(row.rowNum)}
                           title="Ορισμός ως γραμμή επικεφαλίδων"
-                          className="rounded px-1 text-[9px] font-black leading-none"
+                          className="rounded px-1 text-[0.5625rem] font-black leading-none"
                           style={{
                             background: isHeader ? 'var(--info)' : 'var(--muted)',
                             color: isHeader ? '#fff' : 'var(--muted-foreground)',
@@ -149,7 +149,7 @@ export function SheetGrid({
         </table>
       </div>
       {truncated && (
-        <p className="px-1 text-[11px] text-muted-foreground">
+        <p className="px-1 text-[0.6875rem] text-muted-foreground">
           Εμφανίζονται οι πρώτες {visibleRows.length.toLocaleString('el-GR')} από {rows.length.toLocaleString('el-GR')} γραμμές. Όλες οι γραμμές συμμετέχουν στον Έλεγχο/Εκτέλεση — η προεπισκόπηση απλώς δεν τις σχεδιάζει όλες.
         </p>
       )}

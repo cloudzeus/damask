@@ -31,7 +31,7 @@ function ChartTooltip({ active, payload, label }: {
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="glass px-3 py-2 text-[12px] shadow-md">
+    <div className="glass px-3 py-2 text-[0.75rem] shadow-md">
       <div className="mb-1 font-bold">{formatDay(String(label))}</div>
       {SERIES.map(s => {
         const entry = payload.find(p => p.dataKey === s.key)
@@ -54,7 +54,7 @@ export function MailTimeseriesChart({ series }: { series: MailgunDailyPoint[] })
     <div>
       <div className="mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-1" aria-label="Υπόμνημα σειρών">
         {SERIES.map(s => (
-          <span key={s.key} className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+          <span key={s.key} className="flex items-center gap-1.5 text-[0.71875rem] text-muted-foreground">
             <span className="inline-block h-[3px] w-4 rounded-full" style={{ background: s.cssVar }} />
             {s.label}
           </span>
@@ -96,7 +96,7 @@ export function MailTimeseriesChart({ series }: { series: MailgunDailyPoint[] })
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex h-full items-center justify-center text-[13px] text-muted-foreground">
+          <div className="flex h-full items-center justify-center text-[0.8125rem] text-muted-foreground">
             Καμία δραστηριότητα email στην περίοδο.
           </div>
         )}

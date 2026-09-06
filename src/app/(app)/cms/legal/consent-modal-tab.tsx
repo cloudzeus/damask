@@ -97,7 +97,7 @@ export function ConsentModalTab({ initial }: { initial: ConsentModalConfig }) {
           </div>
         </div>
 
-        <div className="dotted-leader mt-4 mb-3 text-[11px] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+        <div className="dotted-leader mt-4 mb-3 text-[0.6875rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
           Κείμενα κουμπιών
         </div>
         <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
@@ -124,7 +124,7 @@ export function ConsentModalTab({ initial }: { initial: ConsentModalConfig }) {
 
       <div className="flex flex-col gap-3">
         <div className="glass p-4">
-          <div className="mb-1.5 text-[12px] font-bold">Κατηγορίες</div>
+          <div className="mb-1.5 text-[0.75rem] font-bold">Κατηγορίες</div>
           <div className="flex flex-col gap-2.5">
             <div className="consent-category">
               <div>

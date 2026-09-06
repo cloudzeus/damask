@@ -116,7 +116,7 @@ export function ApplicationDocuments({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[0.6875rem] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
           {uploading ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />}
           {uploading ? 'Ανέβασμα…' : 'Ανέβασμα εγγράφου'}
@@ -127,10 +127,10 @@ export function ApplicationDocuments({
       {docs.length > 0 && (
         <ul className="flex flex-col gap-1">
           {docs.map(doc => (
-            <li key={doc.id} className="flex min-w-0 items-center gap-1.5 text-[12px]">
+            <li key={doc.id} className="flex min-w-0 items-center gap-1.5 text-[0.75rem]">
               <LuFile className="size-3 shrink-0 text-muted-foreground" aria-hidden />
               <span className="min-w-0 truncate font-semibold" title={doc.name}>{doc.name}</span>
-              <span className="shrink-0 text-[11px] text-muted-foreground">{formatSize(doc.size)}</span>
+              <span className="shrink-0 text-[0.6875rem] text-muted-foreground">{formatSize(doc.size)}</span>
               <a
                 href={`/programs/${programId}/applications/${appId}/documents/${doc.id}`}
                 className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

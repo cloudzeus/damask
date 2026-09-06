@@ -181,7 +181,7 @@ export function MediaPicker({
                   type="button"
                   onClick={() => setCurrentFolderId(null)}
                   className={cn(
-                    'flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12.5px] font-medium',
+                    'flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[0.78125rem] font-medium',
                     currentFolderId === null ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
                   )}
                 >
@@ -212,7 +212,7 @@ export function MediaPicker({
                 <div className="flex-1 overflow-y-auto">
                   {!loading && assets.length === 0 ? (
                     <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-muted-foreground">
-                      <p className="text-[13px]">Δεν βρέθηκαν αρχεία εδώ.</p>
+                      <p className="text-[0.8125rem]">Δεν βρέθηκαν αρχεία εδώ.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
@@ -242,7 +242,7 @@ export function MediaPicker({
         </div>
 
         <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] bg-transparent p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
-          <span className="mr-auto text-[12.5px] text-muted-foreground">
+          <span className="mr-auto text-[0.78125rem] text-muted-foreground">
             {selected.size > 0 ? `Επιλογή (${selected.size})` : 'Καμία επιλογή'}
           </span>
           <DialogClose render={<Button type="button" variant="outline">Άκυρο</Button>} />
@@ -273,7 +273,7 @@ function PickerFolderRow({
         onClick={() => onSelect(node.id)}
         style={{ paddingLeft: 10 + depth * 14 }}
         className={cn(
-          'flex min-w-0 items-center gap-2 rounded-lg py-1.5 pr-2.5 text-left text-[12.5px] font-medium',
+          'flex min-w-0 items-center gap-2 rounded-lg py-1.5 pr-2.5 text-left text-[0.78125rem] font-medium',
           currentFolderId === node.id ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
         )}
       >
@@ -311,7 +311,7 @@ function PickerAssetCell({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={asset.url} alt={asset.name} className="size-full object-cover" loading="lazy" />
       ) : (
-        <div className="flex size-full items-center justify-center text-center text-[10.5px] text-muted-foreground">
+        <div className="flex size-full items-center justify-center text-center text-[0.65625rem] text-muted-foreground">
           {MEDIA_KIND_LABEL[asset.type]}
         </div>
       )}
@@ -320,7 +320,7 @@ function PickerAssetCell({
           <Check className="size-3" strokeWidth={3} />
         </span>
       )}
-      <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/55 px-1.5 py-1 text-left text-[10.5px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/55 px-1.5 py-1 text-left text-[0.65625rem] text-white opacity-0 transition-opacity group-hover:opacity-100">
         {asset.name}
       </span>
     </button>

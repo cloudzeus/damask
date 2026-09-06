@@ -79,10 +79,10 @@ export function PartnerInfoCard({
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Στοιχεία
         </div>
-        <button type="button" className="btn-pill btn-glass h-8 px-3.5 text-[12px]" onClick={handleVerify} disabled={!afm || pending}>
+        <button type="button" className="btn-pill btn-glass h-8 px-3.5 text-[0.75rem]" onClick={handleVerify} disabled={!afm || pending}>
           {pending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <RefreshCw className="size-3.5" aria-hidden />}
           ΑΑΔΕ re-verify
         </button>
@@ -91,10 +91,10 @@ export function PartnerInfoCard({
       <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         {fields.map(f => (
           <div key={f.label} className="min-w-0">
-            <dt className="mb-0.5 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+            <dt className="mb-0.5 flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground">
               <f.icon className="size-3" aria-hidden /> {f.label}
             </dt>
-            <dd className="truncate text-[13px]">{f.value ?? '—'}</dd>
+            <dd className="truncate text-[0.8125rem]">{f.value ?? '—'}</dd>
           </div>
         ))}
       </dl>

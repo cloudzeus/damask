@@ -19,11 +19,11 @@ function KpiCard({ icon: Icon, label, value, sub }: { icon: LucideIcon; label: s
       >
         <Icon className="size-[15px]" strokeWidth={1.8} />
       </div>
-      <div className="text-[11.5px] font-bold text-muted-foreground">{label}</div>
-      <div className="mt-[3px] text-[33px] leading-none font-[250] tracking-[-0.015em] tabular-nums">
+      <div className="text-[0.71875rem] font-bold text-muted-foreground">{label}</div>
+      <div className="mt-[3px] text-[2.0625rem] leading-none font-[250] tracking-[-0.015em] tabular-nums">
         {NUM.format(value)}
       </div>
-      {sub ? <div className="mt-[5px] text-[11.5px] text-muted-foreground tabular-nums">{sub}</div> : null}
+      {sub ? <div className="mt-[5px] text-[0.71875rem] text-muted-foreground tabular-nums">{sub}</div> : null}
     </div>
   )
 }

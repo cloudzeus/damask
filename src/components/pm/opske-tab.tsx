@@ -67,7 +67,7 @@ export function OpskeTab({
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         ΟΠΣΚΕ
       </div>
 
@@ -106,7 +106,7 @@ export function OpskeTab({
             value={submittedAt}
             onChange={e => setSubmittedAt(e.target.value)}
             disabled={readOnly}
-            className="h-10 w-full rounded-full border border-border bg-card px-4 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60"
+            className="h-10 w-full rounded-full border border-border bg-card px-4 text-[0.8125rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60"
           />
         </div>
       </div>

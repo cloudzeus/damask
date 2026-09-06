@@ -70,13 +70,13 @@ export function LogosField({ value, onChange }: { value: LogoEntry[]; onChange: 
               onChange={e => relabel(i, e.target.value)}
               placeholder="Ετικέτα (π.χ. Λευκό)"
               aria-label="Ετικέτα λογοτύπου"
-              className="w-full rounded-md border border-border bg-transparent px-1.5 py-1 text-[11px]"
+              className="w-full rounded-md border border-border bg-transparent px-1.5 py-1 text-[0.6875rem]"
             />
             {i !== 0 && (
               <button
                 type="button"
                 onClick={() => setPrimary(i)}
-                className="text-left text-[10.5px] font-semibold text-(--info) hover:underline"
+                className="text-left text-[0.65625rem] font-semibold text-(--info) hover:underline"
               >
                 Ορισμός ως κύριο
               </button>
@@ -90,7 +90,7 @@ export function LogosField({ value, onChange }: { value: LogoEntry[]; onChange: 
           style={{ borderColor: 'var(--border)' }}
         >
           <Plus className="size-5" strokeWidth={1.8} aria-hidden />
-          <span className="px-2 text-center text-[11px] font-semibold">Προσθήκη λογοτύπου</span>
+          <span className="px-2 text-center text-[0.6875rem] font-semibold">Προσθήκη λογοτύπου</span>
         </button>
       </div>
       <div className="help">Το πρώτο (με το ✓ Κύριο) χρησιμοποιείται ως προεπιλεγμένο λογότυπο.</div>

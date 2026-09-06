@@ -95,8 +95,8 @@ export function StepSheet({ config, onChange }: { config: ImportConfig; onChange
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-[16px] font-semibold">Φύλλο &amp; Στήλες</h2>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
+        <h2 className="text-[1rem] font-semibold">Φύλλο &amp; Στήλες</h2>
+        <p className="mt-1 text-[0.78125rem] text-muted-foreground">
           Διάλεξε το φύλλο με τα δεδομένα, όρισε ποια γραμμή έχει τις επικεφαλίδες και ποιες στήλες θα εισαχθούν.
         </p>
       </div>
@@ -125,7 +125,7 @@ export function StepSheet({ config, onChange }: { config: ImportConfig; onChange
       )}
 
       {error && (
-        <p className="rounded-xl px-3 py-2 text-[12px]" style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', color: 'var(--destructive)' }}>
+        <p className="rounded-xl px-3 py-2 text-[0.75rem]" style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', color: 'var(--destructive)' }}>
           {error}
         </p>
       )}
@@ -133,26 +133,26 @@ export function StepSheet({ config, onChange }: { config: ImportConfig; onChange
       {loading && rows.length === 0 && (
         <div className="flex items-center justify-center gap-2 rounded-xl border border-border bg-muted py-10">
           <LuLoaderCircle className="size-4 animate-spin" style={{ color: 'var(--info)' }} />
-          <span className="text-[13px] text-muted-foreground">Ανάγνωση φύλλου…</span>
+          <span className="text-[0.8125rem] text-muted-foreground">Ανάγνωση φύλλου…</span>
         </div>
       )}
 
       {rows.length > 0 && !loading && (
         <>
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border px-4 py-3">
-            <span className="text-[12px] font-semibold">Γραμμή επικεφαλίδων</span>
+            <span className="text-[0.75rem] font-semibold">Γραμμή επικεφαλίδων</span>
             <div className="flex items-center overflow-hidden rounded-lg border border-border">
               <button type="button" onClick={() => setHeaderRow(config.headerRow - 1)} disabled={config.headerRow <= 1} className="rowmenu-btn rounded-none disabled:opacity-30">
                 <LuChevronDown className="size-3.5" />
               </button>
-              <span className="w-10 text-center text-[13px] font-bold tabular-nums" style={{ color: 'var(--info)' }}>{config.headerRow}</span>
+              <span className="w-10 text-center text-[0.8125rem] font-bold tabular-nums" style={{ color: 'var(--info)' }}>{config.headerRow}</span>
               <button type="button" onClick={() => setHeaderRow(config.headerRow + 1)} disabled={config.headerRow >= maxHeaderRow} className="rowmenu-btn rounded-none disabled:opacity-30">
                 <LuChevronUp className="size-3.5" />
               </button>
             </div>
-            <span className="text-[11px] text-muted-foreground">Προεπιλογή η 1η γραμμή — άλλαξέ το αν οι επικεφαλίδες είναι π.χ. στη 2η.</span>
+            <span className="text-[0.6875rem] text-muted-foreground">Προεπιλογή η 1η γραμμή — άλλαξέ το αν οι επικεφαλίδες είναι π.χ. στη 2η.</span>
             <div className="ml-auto flex items-center gap-2">
-              <span className="text-[12px]"><b>{includedCount}</b> από {config.columns.length} στήλες επιλεγμένες</span>
+              <span className="text-[0.75rem]"><b>{includedCount}</b> από {config.columns.length} στήλες επιλεγμένες</span>
             </div>
           </div>
 
@@ -179,7 +179,7 @@ export function StepSheet({ config, onChange }: { config: ImportConfig; onChange
             onSetHeaderRow={setHeaderRow}
             hiddenColumnIndexes={hiddenColumnIndexes}
           />
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[0.6875rem] text-muted-foreground">
             Κλικ στο γράμμα ή στο κουτάκι μιας στήλης για συμπερίληψη/εξαίρεση — οι εξαιρεμένες στήλες παραμένουν ορατές, γκριζαρισμένες με διαγράμμιση. Κλικ στο «Κ» δίπλα σε μια γραμμή για να την ορίσεις ως γραμμή επικεφαλίδων.
           </p>
         </>

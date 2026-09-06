@@ -96,12 +96,12 @@ export function ApiServicesTable({ summaries, isSuperAdmin }: { summaries: ApiSe
         return s.freeQuota > 0 && pctClamped != null ? (
           <div className="flex flex-col gap-1">
             <Progress value={pctClamped} className="h-1.5" />
-            <span className={`text-[11px] tabular-nums ${overQuota ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>
+            <span className={`text-[0.6875rem] tabular-nums ${overQuota ? 'font-semibold text-destructive' : 'text-muted-foreground'}`}>
               {formatUnits(s.units, s.unitLabel)} / {formatUnits(s.freeQuota, s.unitLabel)}
             </span>
           </div>
         ) : (
-          <span className="text-[12px] text-muted-foreground">—</span>
+          <span className="text-[0.75rem] text-muted-foreground">—</span>
         )
       },
     },

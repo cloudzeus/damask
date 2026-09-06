@@ -76,11 +76,11 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
       <div className="glass rounded-[22px] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground">
               <LuBuilding2 className="size-3" aria-hidden /> Πελάτης
             </div>
-            <h2 className="text-[19px] font-bold">{app.trdrName}</h2>
-            <Link href={`/programs/${app.programId}`} className="text-[12.5px] text-muted-foreground hover:text-foreground hover:underline">
+            <h2 className="text-[1.1875rem] font-bold">{app.trdrName}</h2>
+            <Link href={`/programs/${app.programId}`} className="text-[0.78125rem] text-muted-foreground hover:text-foreground hover:underline">
               {app.programTitle}
             </Link>
           </div>
@@ -92,11 +92,11 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
 
         {/* Assignment row */}
         <div className="mt-3 flex flex-wrap items-center gap-2.5 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
-          <span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-muted-foreground">
+          <span className="flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
             <LuUserRound className="size-3.5" aria-hidden /> Διαχειριστής
           </span>
           <span className="badge-pill muted">{app.managerName ?? '—'}</span>
-          <span className="text-[11.5px] font-semibold text-muted-foreground">Διεκπεραιωτής</span>
+          <span className="text-[0.71875rem] font-semibold text-muted-foreground">Διεκπεραιωτής</span>
           <span className="badge-pill muted">{app.processorName ?? '—'}</span>
           <div className="ml-auto flex items-center gap-2">
             <PortalAccessDialog applicationId={app.id} />
@@ -203,7 +203,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
           <li key={s} className="flex items-center gap-1.5">
             <div
               className={cn(
-                'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-colors',
+                'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.75rem] font-semibold whitespace-nowrap transition-colors',
                 active && 'bg-primary text-primary-foreground shadow-sm',
                 !active && done && 'text-[color:var(--success)]',
                 !active && !done && 'text-muted-foreground',
@@ -212,7 +212,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
             >
               <span
                 className={cn(
-                  'flex size-4.5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold',
+                  'flex size-4.5 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-extrabold',
                   active && 'bg-primary-foreground/20 text-primary-foreground',
                   !active && done && 'bg-[color:var(--success)] text-white',
                   !active && !done && 'bg-border text-muted-foreground',
@@ -258,7 +258,7 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) 
           aria-selected={active === t.key}
           onClick={() => onChange(t.key)}
           className={cn(
-            'rounded-full px-4 py-2 text-[12.5px] font-semibold whitespace-nowrap transition-colors',
+            'rounded-full px-4 py-2 text-[0.78125rem] font-semibold whitespace-nowrap transition-colors',
             active === t.key
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground',

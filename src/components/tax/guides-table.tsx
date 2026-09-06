@@ -29,7 +29,7 @@ export function GuidesTable({ rows }: { rows: TemplateListItem[] }) {
       sortValue: r => r.name,
       cell: r => (
         <span className="user-cell">
-          <span className="avatar-ring size-8 shrink-0 text-[11px]">
+          <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">
             <LuFileText className="size-3.5" aria-hidden />
           </span>
           <span>
@@ -45,7 +45,7 @@ export function GuidesTable({ rows }: { rows: TemplateListItem[] }) {
       sortValue: r => r.code,
       cell: r => (
         <>
-          <span className="font-mono text-[12.5px]">{r.code}</span>
+          <span className="font-mono text-[0.78125rem]">{r.code}</span>
           {r.year != null && <small className="ml-1.5 text-muted-foreground">{r.year}</small>}
         </>
       ),
@@ -107,7 +107,7 @@ export function GuidesTable({ rows }: { rows: TemplateListItem[] }) {
       onRowClick={r => router.push(`/tax-templates/${r.id}`)}
       emptyMessage={
         <div>
-          <div className="mb-3 text-[13px] text-muted-foreground">
+          <div className="mb-3 text-[0.8125rem] text-muted-foreground">
             Δεν υπάρχουν ακόμη οδηγοί εντύπων — δημιούργησε τον πρώτο για να ξεκινήσεις τη χαρτογράφηση πεδίων.
           </div>
           <NewGuideDialog />

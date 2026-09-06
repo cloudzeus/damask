@@ -187,7 +187,7 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) 
           aria-selected={active === t.key}
           onClick={() => onChange(t.key)}
           className={cn(
-            'rounded-full px-4 py-2 text-[12.5px] font-semibold whitespace-nowrap transition-colors',
+            'rounded-full px-4 py-2 text-[0.78125rem] font-semibold whitespace-nowrap transition-colors',
             active === t.key
               ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -358,7 +358,7 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
             <ExtractIcon className={cn('size-3', program.extractStatus === 'RUNNING' && 'animate-spin')} aria-hidden /> {extract.label}
           </span>
           {program.extractStatus === 'FAILED' && program.errorMessage && (
-            <span className="text-[12px] text-muted-foreground">{program.errorMessage}</span>
+            <span className="text-[0.75rem] text-muted-foreground">{program.errorMessage}</span>
           )}
           <div className="flex-1" />
           <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleReextractFileChange} />
@@ -372,10 +372,10 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
         {reExtracting && (
           <div className="mt-3 flex flex-col gap-1.5">
             <Progress value={reExtractProgress} />
-            <p className="text-center text-[11.5px] text-muted-foreground">{reExtractLabel}</p>
+            <p className="text-center text-[0.71875rem] text-muted-foreground">{reExtractLabel}</p>
           </div>
         )}
-        <p className="mt-2.5 text-[11.5px] text-muted-foreground" style={{ borderTop: '1px dotted var(--dotted)', paddingTop: 10 }}>
+        <p className="mt-2.5 text-[0.71875rem] text-muted-foreground" style={{ borderTop: '1px dotted var(--dotted)', paddingTop: 10 }}>
           Ανέβασε ξανά την προκήρυξη (π.χ. ενημερωμένη έκδοση) για να ξανατρέξει η AI αποδελτίωση — αντικαθιστά όλα τα εξαγμένα στοιχεία (κατηγορίες δαπανών, παραδοτέα, φάσεις, ΚΑΔ κ.λπ.), όχι τα στοιχεία περιγραφής/προϋποθέσεων αν τα έχεις αποθηκεύσει ξανά μετά.
         </p>
       </div>
@@ -508,7 +508,7 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
       {activeTab === 'terms' && (
         <>
           <section className="glass rounded-[22px] p-4">
-            <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Επιλεξιμότητα</div>
+            <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Επιλεξιμότητα</div>
             <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="field">
                 <label htmlFor="pm-fte">Ελάχιστες ΕΜΕ</label>
@@ -593,14 +593,14 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+    <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
       {children}
     </div>
   )
 }
 
 function EmptyNote({ children }: { children: React.ReactNode }) {
-  return <p className="py-4 text-center text-[12.5px] text-muted-foreground">{children}</p>
+  return <p className="py-4 text-center text-[0.78125rem] text-muted-foreground">{children}</p>
 }
 
 function ExpenseCategoriesSection({ categories }: { categories: ProgramExpenseCatData[] }) {
@@ -627,7 +627,7 @@ function ExpenseCategoriesSection({ categories }: { categories: ProgramExpenseCa
                 <tr key={c.id} className="dotted-row-bottom">
                   <td style={{ height: 'auto', whiteSpace: 'normal', padding: '10px' }}>
                     <b>{c.name}</b>
-                    {c.notes && <div className="mt-0.5 text-[11.5px] text-muted-foreground">{c.notes}</div>}
+                    {c.notes && <div className="mt-0.5 text-[0.71875rem] text-muted-foreground">{c.notes}</div>}
                   </td>
                   <td className="num">{formatPct(c.minPercentage)}</td>
                   <td className="num">{formatPct(c.maxPercentage)}</td>
@@ -657,11 +657,11 @@ function DeliverablesSection({ deliverables }: { deliverables: ProgramDeliverabl
               <LuClipboardList className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <b className="text-[13px]">{d.name}</b>
+                  <b className="text-[0.8125rem]">{d.name}</b>
                   {d.phaseName && <span className="badge-pill info">{d.phaseName}</span>}
                   {d.mandatory ? <span className="badge-pill ok">Υποχρεωτικό</span> : <span className="badge-pill muted">Προαιρετικό</span>}
                 </div>
-                {d.description && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{d.description}</p>}
+                {d.description && <p className="mt-0.5 text-[0.71875rem] text-muted-foreground">{d.description}</p>}
               </div>
             </div>
           ))}
@@ -681,8 +681,8 @@ function PhasesSection({ phases }: { phases: { id: string; name: string }[] }) {
         <ol className="flex flex-col">
           {phases.map((p, i) => (
             <li key={p.id} className="dotted-row-bottom flex items-center gap-2.5 py-2.5">
-              <span className="avatar-ring size-6 shrink-0 text-[11px]">{i + 1}</span>
-              <span className="text-[13px]">{p.name}</span>
+              <span className="avatar-ring size-6 shrink-0 text-[0.6875rem]">{i + 1}</span>
+              <span className="text-[0.8125rem]">{p.name}</span>
             </li>
           ))}
         </ol>
@@ -695,7 +695,7 @@ function KadsSection({ kads, kadRule }: { kads: { id: string; code: string; desc
   return (
     <section className="glass rounded-[22px] p-4">
       <SectionHeader>ΚΑΔ ({kads.length})</SectionHeader>
-      <div className="mb-3 flex items-start gap-2 text-[12.5px]">
+      <div className="mb-3 flex items-start gap-2 text-[0.78125rem]">
         <LuInfo className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
         <span>Κανόνας επιλεξιμότητας: <b>{kadRule ? (KAD_RULE_LABELS[kadRule] ?? kadRule) : 'Δεν προσδιορίζεται'}</b></span>
       </div>
@@ -727,12 +727,12 @@ function BonusesSection({ bonuses }: { bonuses: { id: string; kind: string; name
               <LuGift className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <b className="text-[13px]">{b.name}</b>
+                  <b className="text-[0.8125rem]">{b.name}</b>
                   <span className="badge-pill info">{BONUS_KIND_LABELS[b.kind] ?? b.kind}</span>
                   {b.bonusRate != null && <span className="badge-pill ok">+{formatPct(b.bonusRate)}</span>}
                   {b.bonusAmount != null && <span className="badge-pill ok">+{formatEUR(b.bonusAmount)}</span>}
                 </div>
-                {b.condition && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{b.condition}</p>}
+                {b.condition && <p className="mt-0.5 text-[0.71875rem] text-muted-foreground">{b.condition}</p>}
               </div>
             </div>
           ))}
@@ -755,10 +755,10 @@ function CriteriaSection({ criteria }: { criteria: { id: string; name: string; w
               <LuTarget className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <b className="text-[13px]">{c.name}</b>
+                  <b className="text-[0.8125rem]">{c.name}</b>
                   {c.weight != null && <span className="badge-pill info">Βαρύτητα {formatPct(c.weight)}</span>}
                 </div>
-                {c.notes && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{c.notes}</p>}
+                {c.notes && <p className="mt-0.5 text-[0.71875rem] text-muted-foreground">{c.notes}</p>}
               </div>
             </div>
           ))}
@@ -781,10 +781,10 @@ function DeadlinesSection({ deadlines }: { deadlines: { id: string; name: string
               <LuFlag className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <b className="text-[13px]">{d.name}</b>
-                  <span className="text-[11.5px] text-muted-foreground">{formatDate(d.date)}</span>
+                  <b className="text-[0.8125rem]">{d.name}</b>
+                  <span className="text-[0.71875rem] text-muted-foreground">{formatDate(d.date)}</span>
                 </div>
-                {d.notes && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{d.notes}</p>}
+                {d.notes && <p className="mt-0.5 text-[0.71875rem] text-muted-foreground">{d.notes}</p>}
               </div>
             </div>
           ))}

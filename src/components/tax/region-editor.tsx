@@ -127,7 +127,7 @@ export function RegionEditor({
     return (
       <div className="glass flex min-h-[360px] flex-col items-center justify-center gap-2 rounded-[22px] p-10 text-center">
         <LuImageOff className="size-6 text-muted-foreground" aria-hidden />
-        <p className="text-[13px] font-medium text-foreground">
+        <p className="text-[0.8125rem] font-medium text-foreground">
           Ανέβασε δείγμα εντύπου για να ξεκινήσεις τη χαρτογράφηση.
         </p>
       </div>
@@ -148,7 +148,7 @@ export function RegionEditor({
           >
             <LuChevronLeft className="size-4" aria-hidden />
           </button>
-          <span className="min-w-[104px] text-center text-[12px] font-medium tabular-nums text-foreground">
+          <span className="min-w-[104px] text-center text-[0.75rem] font-medium tabular-nums text-foreground">
             Σελίδα {currentPageIndex + 1} / {pageCount}
           </span>
           <button
@@ -171,7 +171,7 @@ export function RegionEditor({
           >
             <LuZoomOut className="size-4" aria-hidden />
           </button>
-          <span className="w-11 text-center text-[11px] tabular-nums text-muted-foreground">
+          <span className="w-11 text-center text-[0.6875rem] tabular-nums text-muted-foreground">
             {Math.round(zoom * 100)}%
           </span>
           <button

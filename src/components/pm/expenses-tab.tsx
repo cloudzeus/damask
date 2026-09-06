@@ -67,7 +67,7 @@ export function ExpensesTab({ applicationId, programId }: { applicationId: strin
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <span className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Δαπάνες & Πλάνο
         </span>
         <ProgramInvoiceDialog applicationId={applicationId} categories={categories} onCreated={refreshExpenses} />
@@ -79,11 +79,11 @@ export function ExpensesTab({ applicationId, programId }: { applicationId: strin
 
       <section className="glass rounded-[22px] p-4">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
             <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
           </div>
         ) : error ? (
-          <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+          <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
         ) : (
           <ExpenseList key={refreshKey} applicationId={applicationId} categories={categories} />
         )}
@@ -119,7 +119,7 @@ function ReplaceExpensesSection({
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Αντικατάσταση δαπανών
       </div>
       <div className="flex flex-col gap-1.5">
@@ -129,8 +129,8 @@ function ReplaceExpensesSection({
             className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/60 px-3 py-2"
           >
             <div className={e.status === 'REPLACED' ? 'text-muted-foreground line-through' : undefined}>
-              <span className="text-[12.5px] font-semibold">{e.description}</span>{' '}
-              <span className="text-[11.5px] text-muted-foreground">{formatEUR(e.amount)}</span>
+              <span className="text-[0.78125rem] font-semibold">{e.description}</span>{' '}
+              <span className="text-[0.71875rem] text-muted-foreground">{formatEUR(e.amount)}</span>
             </div>
             {e.status === 'REPLACED' ? (
               <span className="badge-pill muted shrink-0">Αντικαταστάθηκε</span>

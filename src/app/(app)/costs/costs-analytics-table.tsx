@@ -60,7 +60,7 @@ export function CostsAnalyticsTable({ entries, isSuperAdmin }: { entries: Analyt
       cell: ({ row }) => (
         <>
           <span className="badge-pill info capitalize">{row.provider}</span>{' '}
-          <span className="font-mono text-[11.5px] text-muted-foreground">{row.model}</span>
+          <span className="font-mono text-[0.71875rem] text-muted-foreground">{row.model}</span>
         </>
       ),
     },
@@ -131,7 +131,7 @@ export function CostsAnalyticsTable({ entries, isSuperAdmin }: { entries: Analyt
       cell: ({ row }) => (
         <span className="text-muted-foreground">
           {row.refType ? (
-            <span className="font-mono text-[11px]" title={row.refId ?? undefined}>
+            <span className="font-mono text-[0.6875rem]" title={row.refId ?? undefined}>
               {row.refType}{row.refId ? `:${row.refId.slice(0, 8)}` : ''}
             </span>
           ) : '—'}

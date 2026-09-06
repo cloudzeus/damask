@@ -12,14 +12,14 @@ const EVENT_LABEL: Record<string, string> = {
 
 export function MailFailuresTable({ failures }: { failures: MailFailure[] }) {
   if (failures.length === 0) {
-    return <div className="py-4 text-[13px] text-muted-foreground">Καμία αποτυχία ή παράπονο πρόσφατα. 🎉</div>
+    return <div className="py-4 text-[0.8125rem] text-muted-foreground">Καμία αποτυχία ή παράπονο πρόσφατα. 🎉</div>
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[13px]">
+      <table className="w-full text-[0.8125rem]">
         <thead>
-          <tr className="border-b text-left text-[11.5px] font-bold text-muted-foreground">
+          <tr className="border-b text-left text-[0.71875rem] font-bold text-muted-foreground">
             <th className="py-1.5 pr-3 font-bold">Πότε</th>
             <th className="px-2 py-1.5 font-bold">Παραλήπτης</th>
             <th className="px-2 py-1.5 font-bold">Τύπος</th>
@@ -35,14 +35,14 @@ export function MailFailuresTable({ failures }: { failures: MailFailure[] }) {
               <td className="max-w-[180px] truncate px-2 py-2">{f.recipient || '—'}</td>
               <td className="px-2 py-2 whitespace-nowrap">
                 <span
-                  className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                  className="rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold"
                   style={{ background: 'var(--mr-failed-soft)', color: 'var(--mr-failed)' }}
                 >
                   {EVENT_LABEL[f.event] ?? f.event}
                   {f.severity === 'temporary' ? ' (προσωρινή)' : ''}
                 </span>
               </td>
-              <td className="max-w-[280px] py-2 pl-2 text-[12.5px] text-muted-foreground">{f.reason}</td>
+              <td className="max-w-[280px] py-2 pl-2 text-[0.78125rem] text-muted-foreground">{f.reason}</td>
             </tr>
           ))}
         </tbody>

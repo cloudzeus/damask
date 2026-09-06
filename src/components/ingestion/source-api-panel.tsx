@@ -82,7 +82,7 @@ export function SourceApiPanel({ target, patch }: { target: IngestionTarget; pat
 
       {!presetsLoading && presets.length > 0 && (
         <div>
-          <label className="mb-1.5 block text-[12px] font-semibold" htmlFor="api-preset">Αποθηκευμένο endpoint</label>
+          <label className="mb-1.5 block text-[0.75rem] font-semibold" htmlFor="api-preset">Αποθηκευμένο endpoint</label>
           <Select onValueChange={(v: string | null) => { if (v) applyPreset(v) }}>
             <SelectTrigger id="api-preset" size="sm" className="w-full">
               <SelectValue placeholder="— επίλεξε —" />
@@ -95,21 +95,21 @@ export function SourceApiPanel({ target, patch }: { target: IngestionTarget; pat
       )}
 
       <div>
-        <label className="mb-1.5 block text-[12px] font-semibold" htmlFor="api-url">URL</label>
+        <label className="mb-1.5 block text-[0.75rem] font-semibold" htmlFor="api-url">URL</label>
         <Input id="api-url" placeholder="https://…" value={url} onChange={e => setUrl(e.target.value)} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1.5 block text-[12px] font-semibold" htmlFor="api-header-name">Όνομα header (προαιρετικό)</label>
+          <label className="mb-1.5 block text-[0.75rem] font-semibold" htmlFor="api-header-name">Όνομα header (προαιρετικό)</label>
           <Input id="api-header-name" placeholder="π.χ. Authorization" value={headerName} onChange={e => setHeaderName(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1.5 block text-[12px] font-semibold" htmlFor="api-token">Token (προαιρετικό)</label>
+          <label className="mb-1.5 block text-[0.75rem] font-semibold" htmlFor="api-token">Token (προαιρετικό)</label>
           <Input id="api-token" type="password" placeholder="Bearer …" value={token} onChange={e => setToken(e.target.value)} />
         </div>
       </div>
-      <p className="-mt-2 text-[11px] text-muted-foreground">Το token δεν αποθηκεύεται ποτέ — μόνο το URL και το όνομα του header.</p>
+      <p className="-mt-2 text-[0.6875rem] text-muted-foreground">Το token δεν αποθηκεύεται ποτέ — μόνο το URL και το όνομα του header.</p>
 
       <div className="flex flex-wrap items-center gap-2.5">
         <Button type="button" className="btn-pill btn-navy" disabled={!url.trim() || busy} onClick={fetchData}>
@@ -139,7 +139,7 @@ export function SourceApiPanel({ target, patch }: { target: IngestionTarget; pat
       </div>
 
       {recordCount != null && (
-        <p className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color: 'var(--success)' }}>
+        <p className="flex items-center gap-1.5 text-[0.78125rem] font-medium" style={{ color: 'var(--success)' }}>
           <LuCheck className="size-3.5" aria-hidden /> {recordCount} εγγραφές
         </p>
       )}

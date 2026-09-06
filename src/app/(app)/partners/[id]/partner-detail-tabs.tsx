@@ -76,7 +76,7 @@ export function PartnerDetailTabs({
             aria-selected={active === t.key}
             onClick={() => setActive(t.key)}
             className={cn(
-              'rounded-full px-4 py-2 text-[12.5px] font-semibold whitespace-nowrap transition-colors',
+              'rounded-full px-4 py-2 text-[0.78125rem] font-semibold whitespace-nowrap transition-colors',
               active === t.key
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',

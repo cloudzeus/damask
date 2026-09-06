@@ -80,8 +80,8 @@ export function BackupsSettingsCard({ initial }: { initial: BackupSettingsValues
           <LuFolderCog className="size-4" strokeWidth={1.8} aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[14.5px] font-bold">Ρυθμίσεις</h3>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">Διατήρηση αντιγράφων και προαιρετικές διαδρομές εργαλείων PostgreSQL.</p>
+          <h3 className="text-[0.90625rem] font-bold">Ρυθμίσεις</h3>
+          <p className="mt-0.5 text-[0.75rem] text-muted-foreground">Διατήρηση αντιγράφων και προαιρετικές διαδρομές εργαλείων PostgreSQL.</p>
         </div>
       </div>
 
@@ -109,7 +109,7 @@ export function BackupsSettingsCard({ initial }: { initial: BackupSettingsValues
 
       <button
         type="button"
-        className="mt-3 flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground"
+        className="mt-3 flex items-center gap-1.5 text-[0.78125rem] font-medium text-muted-foreground hover:text-foreground"
         onClick={() => setAdvancedOpen(v => !v)}
         aria-expanded={advancedOpen}
       >

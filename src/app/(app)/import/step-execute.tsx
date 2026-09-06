@@ -112,8 +112,8 @@ export function StepExecute({ config, onChange }: { config: ImportConfig; onChan
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-[16px] font-semibold">Εκτέλεση</h2>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
+        <h2 className="text-[1rem] font-semibold">Εκτέλεση</h2>
+        <p className="mt-1 text-[0.78125rem] text-muted-foreground">
           {mappedRows.length <= 500
             ? 'Λιγότερες από 500 γραμμές — η εισαγωγή τρέχει αμέσως.'
             : 'Πάνω από 500 γραμμές — η εισαγωγή τρέχει στο παρασκήνιο, με ζωντανή πρόοδο εδώ.'}
@@ -126,17 +126,17 @@ export function StepExecute({ config, onChange }: { config: ImportConfig; onChan
             <div className="flex items-center gap-3 rounded-xl border border-border p-3.5">
               <LuFileSpreadsheet className="size-7 shrink-0" style={{ color: 'var(--info)' }} />
               <div className="min-w-0">
-                <p className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">Πηγή</p>
-                <p className="truncate text-[12.5px] font-semibold">{config.fileName}</p>
-                <p className="text-[11px] text-muted-foreground">{config.selectedSheet} · {mappedRows.length.toLocaleString('el-GR')} γραμμές</p>
+                <p className="text-[0.65625rem] font-semibold tracking-wide text-muted-foreground uppercase">Πηγή</p>
+                <p className="truncate text-[0.78125rem] font-semibold">{config.fileName}</p>
+                <p className="text-[0.6875rem] text-muted-foreground">{config.selectedSheet} · {mappedRows.length.toLocaleString('el-GR')} γραμμές</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl border border-border p-3.5">
               <LuLayers className="size-7 shrink-0" style={{ color: 'var(--info)' }} />
               <div className="min-w-0">
-                <p className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">Στόχος</p>
-                <p className="truncate text-[12.5px] font-semibold">Προϊόντα</p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[0.65625rem] font-semibold tracking-wide text-muted-foreground uppercase">Στόχος</p>
+                <p className="truncate text-[0.78125rem] font-semibold">Προϊόντα</p>
+                <p className="text-[0.6875rem] text-muted-foreground">
                   {v ? `${v.toCreate.toLocaleString('el-GR')} νέα · ${v.toUpdate.toLocaleString('el-GR')} ενημερώσεις` : '—'}
                 </p>
               </div>
@@ -165,13 +165,13 @@ export function StepExecute({ config, onChange }: { config: ImportConfig; onChan
                 ? <LuCircleCheck className="mt-0.5 size-6 shrink-0" style={{ color: 'var(--success)' }} />
                 : <LuCircleX className="mt-0.5 size-6 shrink-0" style={{ color: 'var(--destructive)' }} />}
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-bold">
+              <p className="text-[0.875rem] font-bold">
                 {running ? 'Η εισαγωγή εκτελείται…' : exec.status === 'DONE' ? 'Η εισαγωγή ολοκληρώθηκε' : 'Η εισαγωγή απέτυχε'}
               </p>
               {running && (
                 <div className="mt-2 space-y-1">
                   <Progress value={pct} />
-                  <p className="text-[11px] text-muted-foreground">{exec.processed.toLocaleString('el-GR')} από {exec.total.toLocaleString('el-GR')} γραμμές ({pct}%)</p>
+                  <p className="text-[0.6875rem] text-muted-foreground">{exec.processed.toLocaleString('el-GR')} από {exec.total.toLocaleString('el-GR')} γραμμές ({pct}%)</p>
                 </div>
               )}
             </div>
@@ -179,16 +179,16 @@ export function StepExecute({ config, onChange }: { config: ImportConfig; onChan
 
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-border p-4 text-center">
-              <p className="text-[24px] font-bold tabular-nums" style={{ color: 'var(--success)' }}>{exec.created.toLocaleString('el-GR')}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Δημιουργήθηκαν</p>
+              <p className="text-[1.5rem] font-bold tabular-nums" style={{ color: 'var(--success)' }}>{exec.created.toLocaleString('el-GR')}</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Δημιουργήθηκαν</p>
             </div>
             <div className="rounded-xl border border-border p-4 text-center">
-              <p className="text-[24px] font-bold tabular-nums" style={{ color: 'var(--info)' }}>{exec.updated.toLocaleString('el-GR')}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Ενημερώθηκαν</p>
+              <p className="text-[1.5rem] font-bold tabular-nums" style={{ color: 'var(--info)' }}>{exec.updated.toLocaleString('el-GR')}</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Ενημερώθηκαν</p>
             </div>
             <div className="rounded-xl border border-border p-4 text-center">
-              <p className="text-[24px] font-bold tabular-nums" style={{ color: exec.failed > 0 ? 'var(--destructive)' : 'var(--muted-foreground)' }}>{exec.failed.toLocaleString('el-GR')}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Απέτυχαν</p>
+              <p className="text-[1.5rem] font-bold tabular-nums" style={{ color: exec.failed > 0 ? 'var(--destructive)' : 'var(--muted-foreground)' }}>{exec.failed.toLocaleString('el-GR')}</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Απέτυχαν</p>
             </div>
           </div>
 
@@ -197,7 +197,7 @@ export function StepExecute({ config, onChange }: { config: ImportConfig; onChan
               <button
                 type="button"
                 onClick={() => setShowErrors(s => !s)}
-                className="flex w-full items-center justify-between px-4 py-2.5 text-[12px] font-semibold"
+                className="flex w-full items-center justify-between px-4 py-2.5 text-[0.75rem] font-semibold"
                 style={{ background: 'color-mix(in srgb, var(--destructive) 8%, transparent)', color: 'var(--destructive)' }}
               >
                 <span className="flex items-center gap-2"><LuTriangleAlert className="size-3.5" />{exec.errors.length} σφάλματα{exec.failed > exec.errors.length ? ` (εμφανίζονται τα πρώτα ${exec.errors.length})` : ''}</span>
@@ -206,7 +206,7 @@ export function StepExecute({ config, onChange }: { config: ImportConfig; onChan
               {showErrors && (
                 <div className="max-h-52 divide-y divide-border overflow-y-auto">
                   {exec.errors.map((e, i) => (
-                    <div key={i} className="flex gap-3 px-4 py-2 text-[11.5px]">
+                    <div key={i} className="flex gap-3 px-4 py-2 text-[0.71875rem]">
                       <span className="shrink-0 font-mono font-semibold text-muted-foreground">Γραμμή {e.row}</span>
                       <span className="shrink-0 font-semibold">{e.column}</span>
                       <span className="text-muted-foreground">{e.message}</span>

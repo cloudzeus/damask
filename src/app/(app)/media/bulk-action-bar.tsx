@@ -50,7 +50,7 @@ export function BulkActionBar({
         className="glass fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2"
         style={{ boxShadow: 'var(--shadow-float)' }}
       >
-        <span className="pl-1 text-[13px] font-semibold tabular-nums">{selectedIds.length} επιλεγμένα</span>
+        <span className="pl-1 text-[0.8125rem] font-semibold tabular-nums">{selectedIds.length} επιλεγμένα</span>
         <button type="button" className="btn-pill btn-glass" onClick={onClear}>
           <X className="size-3.5" strokeWidth={1.8} aria-hidden /> Άκυρο
         </button>

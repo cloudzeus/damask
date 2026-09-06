@@ -163,8 +163,8 @@ export function AssetCard({
         )}
       </div>
       <div className="flex flex-col gap-0.5 p-2.5">
-        <span className="truncate text-[12.5px] font-medium" title={asset.name}>{asset.name}</span>
-        <span className="text-[11px] text-muted-foreground">{formatMediaBytes(asset.size)}</span>
+        <span className="truncate text-[0.78125rem] font-medium" title={asset.name}>{asset.name}</span>
+        <span className="text-[0.6875rem] text-muted-foreground">{formatMediaBytes(asset.size)}</span>
       </div>
 
       <RenameAssetDialog

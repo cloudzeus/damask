@@ -13,7 +13,7 @@ import { saveCompanyProfile, lookupCompanyAfm, type CompanyProfileValues } from 
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dotted-leader col-span-full mt-1 mb-1.5 text-[11px] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+    <div className="dotted-leader col-span-full mt-1 mb-1.5 text-[0.6875rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
       {children}
     </div>
   )
@@ -77,8 +77,8 @@ export function CompanyForm({ initial }: { initial: CompanyProfileValues }) {
     <div className="glass p-4">
       <div className="mb-1 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-[15px] font-bold">Στοιχεία εταιρείας</h3>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">Θα εμφανίζονται σε παραστατικά, email και το δημόσιο site.</p>
+          <h3 className="text-[0.9375rem] font-bold">Στοιχεία εταιρείας</h3>
+          <p className="mt-0.5 text-[0.75rem] text-muted-foreground">Θα εμφανίζονται σε παραστατικά, email και το δημόσιο site.</p>
         </div>
         <Button type="button" onClick={handleSave} disabled={saving} className="shrink-0">
           {saving ? 'Αποθήκευση…' : 'Αποθήκευση'}

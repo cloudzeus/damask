@@ -193,7 +193,7 @@ function NewProgramDialogContent({ open, onOpenChange }: { open: boolean; onOpen
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={busy}
-              className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-left text-[12.5px] transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-left text-[0.78125rem] transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               {file ? <LuFile className="size-3.5 shrink-0" aria-hidden /> : <LuUpload className="size-3.5 shrink-0" aria-hidden />}
               <span className="truncate">{file ? file.name : 'Επίλεξε το PDF της προκήρυξης…'}</span>
@@ -204,7 +204,7 @@ function NewProgramDialogContent({ open, onOpenChange }: { open: boolean; onOpen
           {phase === 'processing' && (
             <div className="flex flex-col gap-1.5 pt-1">
               <Progress value={progress} />
-              <p className="text-center text-[11.5px] text-muted-foreground">{progressLabel || 'Επεξεργασία…'}</p>
+              <p className="text-center text-[0.71875rem] text-muted-foreground">{progressLabel || 'Επεξεργασία…'}</p>
             </div>
           )}
 
@@ -216,11 +216,11 @@ function NewProgramDialogContent({ open, onOpenChange }: { open: boolean; onOpen
 
           {phase === 'failed' && (
             <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3" style={{ borderColor: 'var(--destructive)' }}>
-              <div className="flex items-start gap-1.5 text-[12.5px]" style={{ color: 'var(--destructive)' }}>
+              <div className="flex items-start gap-1.5 text-[0.78125rem]" style={{ color: 'var(--destructive)' }}>
                 <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                 <span>Το πρόγραμμα δημιουργήθηκε, αλλά η αυτόματη αποδελτίωση απέτυχε: {error}</span>
               </div>
-              <p className="text-[11.5px] text-muted-foreground">
+              <p className="text-[0.71875rem] text-muted-foreground">
                 Μπορείς να ανοίξεις το πρόγραμμα και να συμπληρώσεις τα στοιχεία χειροκίνητα, ή να ξαναδοκιμάσεις την αποδελτίωση από εκεί.
               </p>
             </div>

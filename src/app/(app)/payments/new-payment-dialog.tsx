@@ -218,8 +218,8 @@ function NewPaymentDialog({
               className="rounded-2xl border p-4 text-center"
               style={{ borderColor: 'var(--border)', background: 'var(--muted)' }}
             >
-              <div className="mb-1.5 text-[11px] font-bold tracking-[0.08em] text-muted-foreground uppercase">Μοναδικός κωδικός πληρωμής</div>
-              <div className="mb-2.5 font-mono text-[26px] leading-none font-bold tracking-wide tabular-nums">{result.orderCode}</div>
+              <div className="mb-1.5 text-[0.6875rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">Μοναδικός κωδικός πληρωμής</div>
+              <div className="mb-2.5 font-mono text-[1.625rem] leading-none font-bold tracking-wide tabular-nums">{result.orderCode}</div>
               <Button type="button" variant="outline" size="sm" onClick={() => copyText(result.orderCode, 'Ο κωδικός πληρωμής αντιγράφηκε.')}>
                 <LuCopy className="size-3.5" aria-hidden /> Αντιγραφή κωδικού
               </Button>

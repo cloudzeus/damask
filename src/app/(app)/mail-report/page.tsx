@@ -87,8 +87,8 @@ export default async function MailReportPage({
     <div className="mail-report">
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-[19px] font-bold tracking-tight">Αναφορά Email</h1>
-          <p className="text-[12.5px] text-muted-foreground">
+          <h1 className="text-[1.1875rem] font-bold tracking-tight">Αναφορά Email</h1>
+          <p className="text-[0.78125rem] text-muted-foreground">
             Mailgun analytics περιόδου + funnel newsletters ανά πρόγραμμα · {monthSends} αποστολές από την εφαρμογή τον τρέχοντα μήνα
           </p>
         </div>
@@ -106,7 +106,7 @@ export default async function MailReportPage({
       </div>
 
       {notConfigured ? (
-        <div className="glass mb-3.5 flex items-center gap-2.5 px-[17px] py-3 text-[13px]">
+        <div className="glass mb-3.5 flex items-center gap-2.5 px-[17px] py-3 text-[0.8125rem]">
           <AlertTriangle className="size-4 shrink-0" style={{ color: 'var(--warning, #b45309)' }} strokeWidth={1.8} />
           <span>
             Το Mailgun δεν έχει ρυθμιστεί — τα στατιστικά παράδοσης δεν είναι διαθέσιμα.{' '}
@@ -119,27 +119,27 @@ export default async function MailReportPage({
         <>
           <MailKpiCards kpis={stats.kpis} />
           <div className="glass mb-3.5 px-[17px] pt-[15px] pb-[9px]">
-            <div className="mb-1 text-[11.5px] font-bold text-muted-foreground">Ημερήσια εξέλιξη ({range} ημέρες)</div>
+            <div className="mb-1 text-[0.71875rem] font-bold text-muted-foreground">Ημερήσια εξέλιξη ({range} ημέρες)</div>
             <MailTimeseriesChart series={stats.series} />
           </div>
         </>
       ) : !notConfigured ? (
-        <div className="glass mb-3.5 px-[17px] py-3 text-[13px] text-muted-foreground">
+        <div className="glass mb-3.5 px-[17px] py-3 text-[0.8125rem] text-muted-foreground">
           Σφάλμα ανάγνωσης στατιστικών Mailgun: {stats.error}
         </div>
       ) : null}
 
       <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-2">
         <div className="glass px-[17px] pt-[15px] pb-[13px]">
-          <div className="mb-2 text-[11.5px] font-bold text-muted-foreground">Funnel newsletters ανά πρόγραμμα</div>
+          <div className="mb-2 text-[0.71875rem] font-bold text-muted-foreground">Funnel newsletters ανά πρόγραμμα</div>
           <MailFunnelTable rows={funnel} />
         </div>
         <div className="glass px-[17px] pt-[15px] pb-[13px]">
-          <div className="mb-2 text-[11.5px] font-bold text-muted-foreground">Πρόσφατες αποτυχίες & παράπονα</div>
+          <div className="mb-2 text-[0.71875rem] font-bold text-muted-foreground">Πρόσφατες αποτυχίες & παράπονα</div>
           {failures.ok ? (
             <MailFailuresTable failures={failures.failures} />
           ) : (
-            <div className="py-4 text-[13px] text-muted-foreground">
+            <div className="py-4 text-[0.8125rem] text-muted-foreground">
               {failures.configured ? `Σφάλμα ανάγνωσης events: ${failures.error}` : 'Μη διαθέσιμο — το Mailgun δεν έχει ρυθμιστεί.'}
             </div>
           )}

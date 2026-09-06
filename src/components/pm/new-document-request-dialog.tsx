@@ -107,11 +107,11 @@ export function NewDocumentRequestDialog({
 
           {result ? (
             <div className="flex flex-col gap-2.5">
-              <p className="text-[12.5px] text-muted-foreground">
+              <p className="text-[0.78125rem] text-muted-foreground">
                 Ο σύνδεσμος στάλθηκε στο email (εφόσον έχει ρυθμιστεί αποστολή) — μπορείτε επίσης να τον αντιγράψετε:
               </p>
               <div className="flex items-center gap-1.5">
-                <Input value={result.url} readOnly className="h-9 text-[12px]" onFocus={e => e.target.select()} />
+                <Input value={result.url} readOnly className="h-9 text-[0.75rem]" onFocus={e => e.target.select()} />
                 <Button type="button" variant="outline" onClick={handleCopy}>
                   <LuCopy className="size-3.5" aria-hidden /> Αντιγραφή
                 </Button>

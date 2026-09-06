@@ -55,22 +55,22 @@ export function DocumentRequestsTab({ applicationId }: { applicationId: string }
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Αιτήματα εγγράφων ({items.length})
         </div>
         <NewDocumentRequestDialog applicationId={applicationId} onCreated={load} />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <LuMailX className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[12.5px] text-muted-foreground">Δεν υπάρχουν αιτήματα εγγράφων.</p>
+          <p className="text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν αιτήματα εγγράφων.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -145,7 +145,7 @@ function DocumentRequestRow({ item, onReload }: { item: DocumentRequestItem; onR
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[13px] font-semibold">{item.title}</span>
+            <span className="text-[0.8125rem] font-semibold">{item.title}</span>
             {statusBadge(item.status)}
             {item.uploadedAt && (
               <span className="badge-pill ok shrink-0">
@@ -153,8 +153,8 @@ function DocumentRequestRow({ item, onReload }: { item: DocumentRequestItem; onR
               </span>
             )}
           </div>
-          {item.description && <p className="mt-1 text-[12px] text-muted-foreground">{item.description}</p>}
-          <p className="mt-1 text-[11.5px] text-muted-foreground">
+          {item.description && <p className="mt-1 text-[0.75rem] text-muted-foreground">{item.description}</p>}
+          <p className="mt-1 text-[0.71875rem] text-muted-foreground">
             Παραλήπτης: {item.email} · Λήξη: {new Date(item.expiresAt).toLocaleDateString('el-GR')}
           </p>
         </div>
@@ -192,7 +192,7 @@ function DocumentRequestRow({ item, onReload }: { item: DocumentRequestItem; onR
 
       {resendUrl && (
         <div className="mt-2.5 flex items-center gap-1.5 pt-2.5" style={{ borderTop: '1px dotted var(--dotted)' }}>
-          <Input value={resendUrl} readOnly className="h-8 text-[11.5px]" onFocus={e => e.target.select()} />
+          <Input value={resendUrl} readOnly className="h-8 text-[0.71875rem]" onFocus={e => e.target.select()} />
           <Button type="button" size="sm" variant="outline" onClick={handleCopy}>
             <LuCopy className="size-3.5" aria-hidden /> Αντιγραφή
           </Button>

@@ -49,7 +49,7 @@ export function AuthorsTab({ authors, users, canEdit }: { authors: AuthorRow[]; 
           // eslint-disable-next-line @next/next/no-img-element
           <img src={author.avatarUrl} alt={author.name} className="size-7 rounded-full object-cover" />
         ) : (
-          <span className="avatar-ring size-7 text-[10.5px]">
+          <span className="avatar-ring size-7 text-[0.65625rem]">
             {author.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
           </span>
         )
@@ -249,7 +249,7 @@ function AuthorFormDialog({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={values.avatarUrl} alt="" className="size-14 rounded-full object-cover" />
             ) : (
-              <span className="avatar-ring size-14 text-[15px]">
+              <span className="avatar-ring size-14 text-[0.9375rem]">
                 <UserIcon className="size-5" strokeWidth={1.6} aria-hidden />
               </span>
             )}
@@ -258,7 +258,7 @@ function AuthorFormDialog({
                 {values.avatarUrl ? 'Αλλαγή φωτογραφίας' : 'Επιλογή φωτογραφίας'}
               </Button>
               {values.avatarUrl && (
-                <button type="button" onClick={() => set('avatarUrl', null)} className="text-[11px] text-muted-foreground hover:text-destructive">
+                <button type="button" onClick={() => set('avatarUrl', null)} className="text-[0.6875rem] text-muted-foreground hover:text-destructive">
                   Αφαίρεση
                 </button>
               )}

@@ -123,8 +123,8 @@ export function MediaLightbox({
     >
       <div className="lightbox-header flex shrink-0 items-center gap-2 px-4 py-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold" title={asset.name}>{asset.name}</p>
-          <p className="truncate text-[12px] opacity-70">
+          <p className="truncate text-[0.875rem] font-semibold" title={asset.name}>{asset.name}</p>
+          <p className="truncate text-[0.75rem] opacity-70">
             {MEDIA_KIND_LABEL[asset.type]} · {formatMediaBytes(asset.size)}
             {asset.mimeType ? ` · ${asset.mimeType}` : ''}
           </p>
@@ -259,7 +259,7 @@ function LightboxBody({
           {asset.type === 'MODEL_3D'
             ? <Box className="size-14 opacity-70" strokeWidth={1.3} />
             : <FileIcon className="size-14 opacity-70" strokeWidth={1.3} />}
-          <p className="text-[13px] opacity-70">Δεν υπάρχει προεπισκόπηση για αυτόν τον τύπο αρχείου.</p>
+          <p className="text-[0.8125rem] opacity-70">Δεν υπάρχει προεπισκόπηση για αυτόν τον τύπο αρχείου.</p>
         </div>
       )}
       <a href={asset.url} target="_blank" rel="noopener noreferrer" className="btn-pill btn-navy shrink-0">

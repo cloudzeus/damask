@@ -35,7 +35,7 @@ function LogoAvatar({ name, logoUrl }: { name: string; logoUrl: string | null })
       <img src={logoUrl} alt="" className="thumb-ring size-8 shrink-0 rounded-full object-cover" width={32} height={32} loading="lazy" />
     )
   }
-  return <span className="avatar-ring size-8 shrink-0 text-[11px]">{initialsOf(name)}</span>
+  return <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">{initialsOf(name)}</span>
 }
 
 export function PartnersTable({ partners }: { partners: PartnerRow[] }) {

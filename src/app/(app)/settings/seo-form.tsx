@@ -38,7 +38,7 @@ function OgImageField({ value, onChange }: { value: OgImageValue; onChange: (v: 
             {value ? 'Αλλαγή εικόνας' : 'Επιλογή εικόνας'}
           </Button>
           {value && (
-            <button type="button" onClick={() => onChange(null)} className="text-[11px] text-muted-foreground hover:text-destructive">
+            <button type="button" onClick={() => onChange(null)} className="text-[0.6875rem] text-muted-foreground hover:text-destructive">
               Αφαίρεση
             </button>
           )}
@@ -90,8 +90,8 @@ export function SeoForm({ initial }: { initial: SeoDefaultsValues }) {
     <div className="glass p-4">
       <div className="mb-1 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-[15px] font-bold">SEO &amp; Analytics προεπιλογές</h3>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">Θα καταναλωθούν από το δημόσιο site/CMS αργότερα.</p>
+          <h3 className="text-[0.9375rem] font-bold">SEO &amp; Analytics προεπιλογές</h3>
+          <p className="mt-0.5 text-[0.75rem] text-muted-foreground">Θα καταναλωθούν από το δημόσιο site/CMS αργότερα.</p>
         </div>
         <Button type="button" onClick={handleSave} disabled={saving} className="shrink-0">
           {saving ? 'Αποθήκευση…' : 'Αποθήκευση'}
@@ -110,7 +110,7 @@ export function SeoForm({ initial }: { initial: SeoDefaultsValues }) {
           <OgImageField value={values.ogImage} onChange={v => set('ogImage', v)} />
         </div>
 
-        <div className="dotted-leader col-span-full mt-1 mb-1.5 text-[11px] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+        <div className="dotted-leader col-span-full mt-1 mb-1.5 text-[0.6875rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
           Κοινωνικά δίκτυα
         </div>
         <TextField id="seo-fb" label="Facebook" icon={Globe} value={values.socialFacebook} onChange={v => set('socialFacebook', v)} error={fieldErrors.socialFacebook} placeholder="https://facebook.com/…" />

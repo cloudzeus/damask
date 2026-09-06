@@ -294,7 +294,7 @@ export function DeliverableWizard({
             <div className="flex flex-col gap-3.5 lg:flex-row">
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className="text-[12.5px] font-semibold text-muted-foreground">
+                  <div className="text-[0.78125rem] font-semibold text-muted-foreground">
                     {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -308,7 +308,7 @@ export function DeliverableWizard({
                 </div>
 
                 {tasks.length === 0 ? (
-                  <p className="rounded-[16px] border border-dashed border-border py-8 text-center text-[12.5px] text-muted-foreground">
+                  <p className="rounded-[16px] border border-dashed border-border py-8 text-center text-[0.78125rem] text-muted-foreground">
                     Δεν έχεις προσθέσει tasks ακόμη — πρόσθεσε χειροκίνητα ή εισήγαγε από ένα πρότυπο δεξιά.
                   </p>
                 ) : (
@@ -331,7 +331,7 @@ export function DeliverableWizard({
                               <Select value={t.phase} onValueChange={v => updateTask(t.key, { phase: v as DeliverablePhaseStr })}>
                                 <SelectTrigger
                                   aria-label={`Φάση — ${t.name || 'task'}`}
-                                  className="h-8 w-full rounded-full border-border bg-card px-2.5 text-[12px]"
+                                  className="h-8 w-full rounded-full border-border bg-card px-2.5 text-[0.75rem]"
                                   disabled={saving}
                                 >
                                   <SelectValue>{(v: string) => phaseOptionLabel(v as DeliverablePhaseStr)}</SelectValue>
@@ -349,7 +349,7 @@ export function DeliverableWizard({
                                 onChange={e => updateTask(t.key, { name: e.target.value })}
                                 placeholder="π.χ. Τιμολόγιο αγοράς"
                                 disabled={saving}
-                                className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[12.5px] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
+                                className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[0.78125rem] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
                               />
                             </td>
                             <td className="ctr">
@@ -375,7 +375,7 @@ export function DeliverableWizard({
                                 value={t.minFiles}
                                 onChange={e => updateTask(t.key, { minFiles: Math.max(1, Math.trunc(Number(e.target.value)) || 1) })}
                                 disabled={saving}
-                                className="w-14 min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-center text-[12.5px] outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
+                                className="w-14 min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-center text-[0.78125rem] outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
                               />
                             </td>
                             <td className="ctr">
@@ -400,17 +400,17 @@ export function DeliverableWizard({
 
               {helpOpen && (
                 <aside className="w-full shrink-0 rounded-[18px] border border-border bg-card/60 p-3 lg:w-[280px]">
-                  <div className="mb-2 flex items-center gap-1.5 text-[12px] font-extrabold text-muted-foreground uppercase tracking-[0.08em]">
+                  <div className="mb-2 flex items-center gap-1.5 text-[0.75rem] font-extrabold text-muted-foreground uppercase tracking-[0.08em]">
                     <LuBookOpen className="size-3.5" aria-hidden /> Βοήθεια — Πρότυπα
                   </div>
-                  <p className="mb-2.5 text-[11.5px] text-muted-foreground">
+                  <p className="mb-2.5 text-[0.71875rem] text-muted-foreground">
                     Έτοιμα σύνολα tasks για συχνές κατηγορίες δαπανών — πρόσθεσε ένα και προσάρμοσέ το.
                   </p>
                   <div className="flex max-h-[320px] flex-col gap-1.5 overflow-y-auto">
                     {DELIVERABLE_CATALOG.map(entry => (
                       <div key={entry.key} className="rounded-[12px] border border-border bg-card p-2.5">
-                        <div className="text-[12px] font-bold">{entry.name}</div>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">{entry.description}</p>
+                        <div className="text-[0.75rem] font-bold">{entry.name}</div>
+                        <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">{entry.description}</p>
                         <div className="mt-1.5 flex items-center justify-between gap-2">
                           <span className="badge-pill muted">{entry.tasks.length} tasks</span>
                           <Button type="button" variant="outline" size="sm" onClick={() => importCatalogEntry(entry)} disabled={saving}>
@@ -429,21 +429,21 @@ export function DeliverableWizard({
             <div className="flex flex-col gap-3">
               <div className="rounded-[16px] border border-border bg-card p-3.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <b className="text-[14px]">{name || '—'}</b>
+                  <b className="text-[0.875rem]">{name || '—'}</b>
                   <span className="badge-pill info">{appliesTo === 'EXPENSE' ? 'Ανά δαπάνη' : 'Ανά έργο'}</span>
                 </div>
-                {description.trim() && <p className="mt-1 text-[12.5px] text-muted-foreground">{description}</p>}
+                {description.trim() && <p className="mt-1 text-[0.78125rem] text-muted-foreground">{description}</p>}
               </div>
 
               <div className="flex max-h-[360px] flex-col gap-2.5 overflow-y-auto">
                 {DELIVERABLE_PHASE_ORDER.filter(p => (tasksByPhase.get(p)?.length ?? 0) > 0).map(phase => (
                   <div key={phase} className="rounded-[14px] border border-border p-2.5">
-                    <div className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted-foreground">
+                    <div className="mb-1.5 text-[0.6875rem] font-extrabold uppercase tracking-[0.08em] text-muted-foreground">
                       {phaseOptionLabel(phase)}
                     </div>
                     <ul className="flex flex-col gap-1.5">
                       {(tasksByPhase.get(phase) ?? []).map(t => (
-                        <li key={t.key} className="flex flex-wrap items-center gap-1.5 text-[12.5px]">
+                        <li key={t.key} className="flex flex-wrap items-center gap-1.5 text-[0.78125rem]">
                           <span className="min-w-0 flex-1 font-semibold">{t.name}</span>
                           {t.mandatory && <span className="badge-pill warn">Υποχρεωτικό</span>}
                           {t.onSiteVerification && <span className="badge-pill info">Επιτόπια</span>}
@@ -490,7 +490,7 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
           role="tab"
           aria-selected={step === s}
           className={cn(
-            'flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-semibold whitespace-nowrap transition-colors',
+            'flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[0.75rem] font-semibold whitespace-nowrap transition-colors',
             step === s
               ? 'bg-primary text-primary-foreground shadow-sm'
               : step > s
@@ -498,7 +498,7 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
                 : 'text-muted-foreground',
           )}
         >
-          {step > s ? <LuCircleCheck className="size-3.5" aria-hidden /> : <span className="avatar-ring size-5 text-[10.5px]">{s}</span>}
+          {step > s ? <LuCircleCheck className="size-3.5" aria-hidden /> : <span className="avatar-ring size-5 text-[0.65625rem]">{s}</span>}
           <span className="hidden sm:inline">{STEP_LABELS[s]}</span>
         </div>
       ))}
@@ -529,11 +529,11 @@ function ScopeOption({
           : 'border-border bg-card hover:bg-muted',
       )}
     >
-      <span className="flex items-center gap-1.5 text-[13px] font-bold">
+      <span className="flex items-center gap-1.5 text-[0.8125rem] font-bold">
         {active && <LuCircleCheck className="size-3.5 text-primary" aria-hidden />}
         {title}
       </span>
-      <span className="text-[11.5px] text-muted-foreground">{hint}</span>
+      <span className="text-[0.71875rem] text-muted-foreground">{hint}</span>
     </button>
   )
 }

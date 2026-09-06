@@ -31,14 +31,14 @@ export function OcrDemoClient() {
               <LuCheck className="size-4" aria-hidden />
             </span>
             <div className="min-w-0">
-              <h2 className="text-[14px] font-bold">Επιβεβαιωμένο JSON</h2>
-              <p className="text-[11.5px] text-muted-foreground">
+              <h2 className="text-[0.875rem] font-bold">Επιβεβαιωμένο JSON</h2>
+              <p className="text-[0.71875rem] text-muted-foreground">
                 {confirmedAt} — αυτό είναι ό,τι θα σταλεί στο findocs pipeline αργότερα (proof-of-concept).
               </p>
             </div>
           </div>
           <pre
-            className="overflow-auto rounded-2xl border border-border p-4 text-[12px] leading-relaxed"
+            className="overflow-auto rounded-2xl border border-border p-4 text-[0.75rem] leading-relaxed"
             style={{ background: 'var(--muted)', fontFamily: 'ui-monospace, "SF Mono", monospace', maxHeight: 480 }}
           >
             {JSON.stringify(confirmed, null, 2)}

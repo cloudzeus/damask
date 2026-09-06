@@ -93,7 +93,7 @@ export function UsersTable({
             <TooltipTrigger
               render={
                 <div className="user-cell cursor-default">
-                  <span className="avatar-ring size-8 text-[11px]">{initialsOf(user.name)}</span>
+                  <span className="avatar-ring size-8 text-[0.6875rem]">{initialsOf(user.name)}</span>
                   <span>
                     <b>{user.name}</b>
                     <small>{user.email}</small>

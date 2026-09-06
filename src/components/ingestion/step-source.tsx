@@ -24,8 +24,8 @@ export function StepSource({ target, state, patch }: StepProps) {
   return (
     <div className="flex flex-col gap-5 py-4">
       <div>
-        <h2 className="text-[16px] font-semibold">Πηγή δεδομένων</h2>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
+        <h2 className="text-[1rem] font-semibold">Πηγή δεδομένων</h2>
+        <p className="mt-1 text-[0.78125rem] text-muted-foreground">
           Διάλεξε από πού θα φορτωθούν οι εγγραφές για «{target.label}».
         </p>
       </div>
@@ -48,7 +48,7 @@ export function StepSource({ target, state, patch }: StepProps) {
               aria-pressed={selected}
             >
               <Icon className="size-6" style={{ color: selected ? 'var(--navy-ink)' : 'var(--muted-foreground)' }} aria-hidden />
-              <span className="text-[13px] font-semibold" style={{ color: selected ? 'var(--navy-ink)' : 'var(--foreground)' }}>
+              <span className="text-[0.8125rem] font-semibold" style={{ color: selected ? 'var(--navy-ink)' : 'var(--foreground)' }}>
                 {c.label}
               </span>
             </button>
@@ -57,7 +57,7 @@ export function StepSource({ target, state, patch }: StepProps) {
       </div>
 
       {state.batch && state.source && (
-        <p className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color: 'var(--success)' }}>
+        <p className="flex items-center gap-1.5 text-[0.78125rem] font-medium" style={{ color: 'var(--success)' }}>
           <LuCheck className="size-3.5" aria-hidden /> {state.batch.records.length} εγγραφές έτοιμες
         </p>
       )}
@@ -127,22 +127,22 @@ function SourceExcelPanel({ patch }: Pick<StepProps, 'patch'>) {
       )}
 
       <div>
-        <label className="mb-1.5 block text-[12px] font-semibold" htmlFor="excel-file">Αρχείο</label>
+        <label className="mb-1.5 block text-[0.75rem] font-semibold" htmlFor="excel-file">Αρχείο</label>
         <input
           ref={inputRef}
           id="excel-file"
           type="file"
           accept=".xlsx,.xls,.csv"
-          className="block w-full text-[12.5px] text-muted-foreground file:mr-3 file:h-8 file:cursor-pointer file:rounded-lg file:border-0 file:bg-muted file:px-3 file:text-[12.5px] file:font-semibold file:text-foreground"
+          className="block w-full text-[0.78125rem] text-muted-foreground file:mr-3 file:h-8 file:cursor-pointer file:rounded-lg file:border-0 file:bg-muted file:px-3 file:text-[0.78125rem] file:font-semibold file:text-foreground"
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
         />
-        {file && <p className="mt-1.5 text-[11.5px] text-muted-foreground">{file.name}</p>}
+        {file && <p className="mt-1.5 text-[0.71875rem] text-muted-foreground">{file.name}</p>}
       </div>
 
       {sheetNames.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1.5 block text-[12px] font-semibold" htmlFor="excel-sheet">Φύλλο</label>
+            <label className="mb-1.5 block text-[0.75rem] font-semibold" htmlFor="excel-sheet">Φύλλο</label>
             <Select value={sheet} onValueChange={v => v && setSheet(v)}>
               <SelectTrigger id="excel-sheet" size="sm" className="w-full">
                 <SelectValue />
@@ -153,7 +153,7 @@ function SourceExcelPanel({ patch }: Pick<StepProps, 'patch'>) {
             </Select>
           </div>
           <div>
-            <label className="mb-1.5 block text-[12px] font-semibold" htmlFor="excel-header-row">Γραμμή επικεφαλίδων</label>
+            <label className="mb-1.5 block text-[0.75rem] font-semibold" htmlFor="excel-header-row">Γραμμή επικεφαλίδων</label>
             <Input
               id="excel-header-row"
               type="number"
@@ -173,7 +173,7 @@ function SourceExcelPanel({ patch }: Pick<StepProps, 'patch'>) {
       )}
 
       {recordCount != null && (
-        <p className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color: 'var(--success)' }}>
+        <p className="flex items-center gap-1.5 text-[0.78125rem] font-medium" style={{ color: 'var(--success)' }}>
           <LuCheck className="size-3.5" aria-hidden /> {recordCount} γραμμές
         </p>
       )}

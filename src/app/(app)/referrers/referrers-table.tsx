@@ -56,7 +56,7 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
       sortValue: r => r.name,
       cell: r => (
         <span className="user-cell">
-          <span className="avatar-ring size-8 shrink-0 text-[11px]">
+          <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">
             {r.type === 'COMPANY' ? <Building2 className="size-3.5" aria-hidden /> : <User className="size-3.5" aria-hidden />}
           </span>
           <span><b>{r.name}</b></span>
@@ -255,7 +255,7 @@ function ReferrerFormDialog({
             <Input id="referrer-notes" className="w-full" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Προαιρετικό" />
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold sm:col-span-2">
+          <label className="flex cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold sm:col-span-2">
             <Switch checked={active} onCheckedChange={setActive} size="sm" />
             Ενεργός (εμφανίζεται στο combobox των πελατών)
           </label>

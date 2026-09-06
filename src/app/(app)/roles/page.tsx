@@ -48,7 +48,7 @@ export default async function RolesPage() {
 
       <RolesMatrix roles={rolesData} groups={groups} isSuperAdmin={isSuperAdmin} />
 
-      <p className="mt-3 text-center text-[11.5px] text-muted-foreground">
+      <p className="mt-3 text-center text-[0.71875rem] text-muted-foreground">
         Οι αλλαγές ισχύουν στο επόμενο login κάθε χρήστη.
       </p>
     </div>

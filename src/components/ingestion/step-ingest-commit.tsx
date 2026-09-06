@@ -43,8 +43,8 @@ export function StepIngestCommit({ target, state, patch, onDone }: StepProps & {
   return (
     <div className="space-y-4 py-4">
       <div>
-        <h2 className="text-[16px] font-semibold">Καταχώριση</h2>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
+        <h2 className="text-[1rem] font-semibold">Καταχώριση</h2>
+        <p className="mt-1 text-[0.78125rem] text-muted-foreground">
           {state.validation
             ? `${state.validation.validRows.toLocaleString('el-GR')} έγκυρες γραμμές έτοιμες προς καταχώριση στο «${target.label}».`
             : `Καταχώριση στο «${target.label}».`}
@@ -53,15 +53,15 @@ export function StepIngestCommit({ target, state, patch, onDone }: StepProps & {
 
       {!totals && target.enrich && (
         <div className="overflow-hidden rounded-xl border border-border">
-          <div className="px-4 py-2 text-[10px] font-bold tracking-widest text-muted-foreground uppercase" style={{ background: 'var(--muted)' }}>
+          <div className="px-4 py-2 text-[0.625rem] font-bold tracking-widest text-muted-foreground uppercase" style={{ background: 'var(--muted)' }}>
             Εμπλουτισμός κατά την καταχώριση
           </div>
           {ENRICH_DEFS.map(d => (
             <div key={d.key} className="dotted-row-bottom flex items-center gap-3 px-4 py-2.5" style={{ background: 'var(--card)' }}>
               <d.icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="text-[12.5px] font-semibold">{d.label}</p>
-                <p className="mt-0.5 text-[10.5px] text-muted-foreground">{d.hint}</p>
+                <p className="text-[0.78125rem] font-semibold">{d.label}</p>
+                <p className="mt-0.5 text-[0.65625rem] text-muted-foreground">{d.hint}</p>
               </div>
               <Switch
                 checked={!!enrich[d.key]}
@@ -71,7 +71,7 @@ export function StepIngestCommit({ target, state, patch, onDone }: StepProps & {
               />
             </div>
           ))}
-          <p className="px-4 py-2 text-[10.5px] text-muted-foreground" style={{ background: 'var(--muted)' }}>
+          <p className="px-4 py-2 text-[0.65625rem] text-muted-foreground" style={{ background: 'var(--muted)' }}>
             Ο εμπλουτισμός κάνει κλήσεις ανά γραμμή (ΑΑΔΕ/ΓΕΜΗ/geocoding) — σε μεγάλα αρχεία η καταχώριση θα διαρκέσει αρκετά. Αποτυχίες ανά γραμμή εμφανίζονται στα σφάλματα χωρίς να ακυρώνουν την εγγραφή.
           </p>
         </div>
@@ -87,7 +87,7 @@ export function StepIngestCommit({ target, state, patch, onDone }: StepProps & {
       {running && (
         <div className="space-y-1.5">
           <Progress value={null} />
-          <p className="text-center text-[11px] text-muted-foreground">
+          <p className="text-center text-[0.6875rem] text-muted-foreground">
             {anyEnrich ? 'Καταχώριση & εμπλουτισμός — μπορεί να διαρκέσει αρκετά…' : 'Καταχώριση…'}
           </p>
         </div>
@@ -101,8 +101,8 @@ export function StepIngestCommit({ target, state, patch, onDone }: StepProps & {
           >
             <LuCircleCheck className="mt-0.5 size-6 shrink-0" style={{ color: 'var(--success)' }} />
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-bold">Η καταχώριση ολοκληρώθηκε</p>
-              <p className="mt-0.5 text-[12px] text-muted-foreground">
+              <p className="text-[0.875rem] font-bold">Η καταχώριση ολοκληρώθηκε</p>
+              <p className="mt-0.5 text-[0.75rem] text-muted-foreground">
                 {totals.created.toLocaleString('el-GR')} δημιουργήθηκαν · {totals.updated.toLocaleString('el-GR')} ενημερώθηκαν · {totals.failed.toLocaleString('el-GR')} απέτυχαν
               </p>
             </div>
@@ -110,36 +110,36 @@ export function StepIngestCommit({ target, state, patch, onDone }: StepProps & {
 
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-border p-4 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-[24px] font-bold tabular-nums" style={{ color: 'var(--success)' }}>
+              <p className="flex items-center justify-center gap-1.5 text-[1.5rem] font-bold tabular-nums" style={{ color: 'var(--success)' }}>
                 <LuPlus className="size-4" />{totals.created.toLocaleString('el-GR')}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Δημιουργήθηκαν</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Δημιουργήθηκαν</p>
             </div>
             <div className="rounded-xl border border-border p-4 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-[24px] font-bold tabular-nums" style={{ color: 'var(--info)' }}>
+              <p className="flex items-center justify-center gap-1.5 text-[1.5rem] font-bold tabular-nums" style={{ color: 'var(--info)' }}>
                 <LuPencil className="size-4" />{totals.updated.toLocaleString('el-GR')}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Ενημερώθηκαν</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Ενημερώθηκαν</p>
             </div>
             <div className="rounded-xl border border-border p-4 text-center">
               <p
-                className="flex items-center justify-center gap-1.5 text-[24px] font-bold tabular-nums"
+                className="flex items-center justify-center gap-1.5 text-[1.5rem] font-bold tabular-nums"
                 style={{ color: totals.failed > 0 ? 'var(--destructive)' : 'var(--muted-foreground)' }}
               >
                 <LuTriangleAlert className="size-4" />{totals.failed.toLocaleString('el-GR')}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Απέτυχαν</p>
+              <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">Απέτυχαν</p>
             </div>
           </div>
 
           {totals.errors.length > 0 && (
             <div className="overflow-hidden rounded-xl" style={{ border: '1px solid color-mix(in srgb, var(--destructive) 30%, transparent)' }}>
-              <div className="px-4 py-2.5 text-[12px] font-semibold" style={{ background: 'color-mix(in srgb, var(--destructive) 8%, transparent)', color: 'var(--destructive)' }}>
+              <div className="px-4 py-2.5 text-[0.75rem] font-semibold" style={{ background: 'color-mix(in srgb, var(--destructive) 8%, transparent)', color: 'var(--destructive)' }}>
                 {totals.errors.length} {totals.errors.length === 1 ? 'σφάλμα' : 'σφάλματα'}
               </div>
               <div className="max-h-52 divide-y divide-border overflow-y-auto">
                 {totals.errors.slice(0, 20).map((e, i) => (
-                  <div key={i} className="flex gap-3 px-4 py-2 text-[11.5px]">
+                  <div key={i} className="flex gap-3 px-4 py-2 text-[0.71875rem]">
                     <span className="shrink-0 font-mono font-semibold text-muted-foreground">Γραμμή {e.row}</span>
                     <span className="shrink-0 font-semibold">{e.column}</span>
                     <span className="text-muted-foreground">{e.message}</span>

@@ -131,13 +131,13 @@ export function CorrectionGrid({
                 <TableRow key={row.fieldKey} style={low ? { background: 'var(--coral-soft)' } : undefined}>
                   <TableCell className="whitespace-normal">
                     <div className="font-medium">{row.label}</div>
-                    <div className="font-mono text-[11px] text-muted-foreground">{row.fieldKey}</div>
+                    <div className="font-mono text-[0.6875rem] text-muted-foreground">{row.fieldKey}</div>
                   </TableCell>
                   <TableCell className="min-w-[220px]">
                     {row.kind === 'TABLE' ? (
                       row.json && row.json.rows.length > 0 ? (
                         <div className="overflow-x-auto rounded-md border border-border">
-                          <table className="w-full text-[11px]">
+                          <table className="w-full text-[0.6875rem]">
                             <thead>
                               <tr className="border-b border-border">
                                 <th className="px-1.5 py-1 text-left font-medium text-muted-foreground">&nbsp;</th>
@@ -159,7 +159,7 @@ export function CorrectionGrid({
                           </table>
                         </div>
                       ) : (
-                        <div className="text-[11px] text-muted-foreground">Δεν βρέθηκαν δεδομένα πίνακα.</div>
+                        <div className="text-[0.6875rem] text-muted-foreground">Δεν βρέθηκαν δεδομένα πίνακα.</div>
                       )
                     ) : row.kind === 'SERIES' ? (
                       <div className="flex flex-col gap-1">
@@ -192,12 +192,12 @@ export function CorrectionGrid({
                           </div>
                         ))}
                         {(row.series ?? []).length === 0 && (
-                          <div className="text-[11px] text-muted-foreground">Δεν βρέθηκαν σημεία σειράς.</div>
+                          <div className="text-[0.6875rem] text-muted-foreground">Δεν βρέθηκαν σημεία σειράς.</div>
                         )}
                         <button
                           type="button"
                           onClick={() => addSeriesPoint(row.fieldKey)}
-                          className="inline-flex w-fit items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                          className="inline-flex w-fit items-center gap-1 text-[0.6875rem] text-muted-foreground hover:text-foreground"
                         >
                           <LuPlus className="size-3" aria-hidden /> Προσθήκη έτους
                         </button>
@@ -210,14 +210,14 @@ export function CorrectionGrid({
                           style={low ? { borderColor: 'var(--coral)' } : undefined}
                         />
                         {row.value != null && row.valueType !== 'DATE' && (
-                          <div className="mt-0.5 text-[11px] text-muted-foreground">→ {row.value.toLocaleString('el-GR')}</div>
+                          <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">→ {row.value.toLocaleString('el-GR')}</div>
                         )}
                       </>
                     )}
                   </TableCell>
                   <TableCell className="whitespace-normal">
                     <span className="badge-pill muted">{VALUE_TYPE_LABELS[row.valueType] ?? row.valueType}</span>{' '}
-                    <span className="text-[11px] text-muted-foreground">{KIND_LABELS[row.kind] ?? row.kind}</span>
+                    <span className="text-[0.6875rem] text-muted-foreground">{KIND_LABELS[row.kind] ?? row.kind}</span>
                   </TableCell>
                   <TableCell className="text-right">
                     {row.confidence != null ? (

@@ -18,8 +18,8 @@ export function CostsKpiCards({ kpis, apiMonthCostEur }: { kpis: CostsKpis; apiM
         >
           <Coins className="size-[15px]" strokeWidth={1.8} />
         </div>
-        <div className="text-[11.5px] font-bold text-muted-foreground">Συνολικό κόστος περιόδου</div>
-        <div className="mt-[3px] text-[33px] leading-none font-[250] tracking-[-0.015em] tabular-nums">
+        <div className="text-[0.71875rem] font-bold text-muted-foreground">Συνολικό κόστος περιόδου</div>
+        <div className="mt-[3px] text-[2.0625rem] leading-none font-[250] tracking-[-0.015em] tabular-nums">
           {formatEur(kpis.finalCostEur)}
         </div>
       </div>
@@ -31,8 +31,8 @@ export function CostsKpiCards({ kpis, apiMonthCostEur }: { kpis: CostsKpis; apiM
         >
           <Phone className="size-[15px]" strokeWidth={1.8} />
         </div>
-        <div className="text-[11.5px] font-bold text-muted-foreground">Κλήσεις</div>
-        <div className="mt-[3px] text-[33px] leading-none font-[250] tracking-[-0.015em] tabular-nums">
+        <div className="text-[0.71875rem] font-bold text-muted-foreground">Κλήσεις</div>
+        <div className="mt-[3px] text-[2.0625rem] leading-none font-[250] tracking-[-0.015em] tabular-nums">
           {formatTokens(kpis.calls)}
         </div>
       </div>
@@ -44,8 +44,8 @@ export function CostsKpiCards({ kpis, apiMonthCostEur }: { kpis: CostsKpis; apiM
         >
           <Cpu className="size-[15px]" strokeWidth={1.8} />
         </div>
-        <div className="text-[11.5px] font-bold text-muted-foreground">Tokens σύνολο</div>
-        <div className="mt-[3px] text-[33px] leading-none font-[250] tracking-[-0.015em] tabular-nums">
+        <div className="text-[0.71875rem] font-bold text-muted-foreground">Tokens σύνολο</div>
+        <div className="mt-[3px] text-[2.0625rem] leading-none font-[250] tracking-[-0.015em] tabular-nums">
           {formatTokens(kpis.totalTokens)}
         </div>
       </div>
@@ -57,13 +57,13 @@ export function CostsKpiCards({ kpis, apiMonthCostEur }: { kpis: CostsKpis; apiM
         >
           <PieChart className="size-[15px]" strokeWidth={1.8} />
         </div>
-        <div className="text-[11.5px] font-bold text-muted-foreground">Ανά provider</div>
+        <div className="text-[0.71875rem] font-bold text-muted-foreground">Ανά provider</div>
         {kpis.byProvider.length === 0 ? (
-          <div className="mt-[3px] text-[20px] leading-none font-[250] text-muted-foreground">—</div>
+          <div className="mt-[3px] text-[1.25rem] leading-none font-[250] text-muted-foreground">—</div>
         ) : (
           <div className="mt-2 flex flex-col gap-1">
             {kpis.byProvider.map(p => (
-              <div key={p.provider} className="flex items-center justify-between gap-2 text-[12px]">
+              <div key={p.provider} className="flex items-center justify-between gap-2 text-[0.75rem]">
                 <span className="badge-pill muted capitalize">{p.provider}</span>
                 <span className="tabular-nums font-semibold">{formatEur(p.finalCostEur)}</span>
               </div>
@@ -79,8 +79,8 @@ export function CostsKpiCards({ kpis, apiMonthCostEur }: { kpis: CostsKpis; apiM
         >
           <Server className="size-[15px]" strokeWidth={1.8} />
         </div>
-        <div className="text-[11.5px] font-bold text-muted-foreground">API κόστος μήνα</div>
-        <div className="mt-[3px] text-[33px] leading-none font-[250] tracking-[-0.015em] tabular-nums">
+        <div className="text-[0.71875rem] font-bold text-muted-foreground">API κόστος μήνα</div>
+        <div className="mt-[3px] text-[2.0625rem] leading-none font-[250] tracking-[-0.015em] tabular-nums">
           {formatEur(apiMonthCostEur)}
         </div>
       </div>

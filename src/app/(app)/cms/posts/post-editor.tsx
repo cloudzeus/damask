@@ -263,7 +263,7 @@ export function PostEditor({
             </div>
 
             <div className="glass p-4">
-              <label className="mb-1.5 block text-[12px] font-bold">Εικόνα εξωφύλλου</label>
+              <label className="mb-1.5 block text-[0.75rem] font-bold">Εικόνα εξωφύλλου</label>
               <div className="flex items-center gap-2.5">
                 <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-[10px]" style={{ background: 'var(--muted)' }}>
                   {values.featuredImage ? (
@@ -281,7 +281,7 @@ export function PostEditor({
                     <button
                       type="button"
                       onClick={() => setValues(v => ({ ...v, featuredImage: null }))}
-                      className="text-[11px] text-muted-foreground hover:text-destructive"
+                      className="text-[0.6875rem] text-muted-foreground hover:text-destructive"
                     >
                       Αφαίρεση
                     </button>

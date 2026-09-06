@@ -96,7 +96,7 @@ export function ExcelImportWizard({ initialTemplates }: { initialTemplates: Mapp
                       ? <LuCheck className="size-4" style={{ color: 'var(--navy-ink)' }} strokeWidth={3} />
                       : <Icon className="size-4" style={{ color: active ? 'var(--navy-ink)' : 'var(--muted-foreground)' }} />}
                   </span>
-                  <span className="hidden text-[11px] font-semibold sm:block" style={{ color: active ? 'var(--info)' : done ? 'var(--foreground)' : 'var(--muted-foreground)' }}>
+                  <span className="hidden text-[0.6875rem] font-semibold sm:block" style={{ color: active ? 'var(--info)' : done ? 'var(--foreground)' : 'var(--muted-foreground)' }}>
                     {s.id}. {s.label}
                   </span>
                 </button>
@@ -123,7 +123,7 @@ export function ExcelImportWizard({ initialTemplates }: { initialTemplates: Mapp
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[12px] text-muted-foreground">Βήμα {step} από {STEPS.length}</span>
+          <span className="text-[0.75rem] text-muted-foreground">Βήμα {step} από {STEPS.length}</span>
           {step < 5 && (
             <Button type="button" disabled={!canNext} onClick={next}>
               {step === 4 ? 'Συνέχεια στην Εκτέλεση →' : 'Επόμενο →'}

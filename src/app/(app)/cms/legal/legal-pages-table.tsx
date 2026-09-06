@@ -111,7 +111,7 @@ export function LegalPagesTable({ pages, canEdit }: { pages: LegalPageRow[]; can
           {canEdit && (
             <>
               <SeedLegalButton />
-              <Link href="/cms/legal/new" className="btn-pill btn-navy h-9 px-4 text-[12.5px]">
+              <Link href="/cms/legal/new" className="btn-pill btn-navy h-9 px-4 text-[0.78125rem]">
                 <Plus className="size-3.5" strokeWidth={2} aria-hidden /> Νέα σελίδα
               </Link>
             </>

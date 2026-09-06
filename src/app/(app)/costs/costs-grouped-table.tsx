@@ -28,7 +28,7 @@ export function CostsGroupedTable({ grouped, isSuperAdmin, fxLatest, fxDay }: {
         </div>
         <div>
           <p className="font-semibold">Καμία κλήση AI σε αυτό το εύρος.</p>
-          <p className="mt-0.5 text-[12.5px] text-muted-foreground">Το κόστος θα εμφανιστεί εδώ μόλις καταγραφεί η πρώτη κλήση.</p>
+          <p className="mt-0.5 text-[0.78125rem] text-muted-foreground">Το κόστος θα εμφανιστεί εδώ μόλις καταγραφεί η πρώτη κλήση.</p>
         </div>
       </div>
     )
@@ -47,7 +47,7 @@ export function CostsGroupedTable({ grouped, isSuperAdmin, fxLatest, fxDay }: {
       header: 'Μοντέλο',
       width: 200,
       sortValue: g => g.model,
-      cell: g => <span className="font-mono text-[12px]">{g.model}</span>,
+      cell: g => <span className="font-mono text-[0.75rem]">{g.model}</span>,
     },
     {
       id: 'scope',

@@ -101,7 +101,7 @@ export function RolesMatrix({ roles, groups, isSuperAdmin }: { roles: RoleData[]
             <Button type="button" variant="outline" onClick={() => setSelectedRole(null)}>
               ‹ Όλοι οι ρόλοι
             </Button>
-            <span className="text-[12.5px] text-muted-foreground">
+            <span className="text-[0.78125rem] text-muted-foreground">
               Διαχείριση: <b className="text-foreground">{selectedRole}</b>
             </span>
           </div>

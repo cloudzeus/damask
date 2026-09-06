@@ -53,7 +53,7 @@ export function GemiAadeCard({
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           ΓΕΜΗ &amp; ΑΑΔΕ
         </div>
         <Button type="button" variant="outline" size="sm" onClick={() => setGemiOpen(true)}>
@@ -67,8 +67,8 @@ export function GemiAadeCard({
       <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         {fields.map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <dt className="mb-0.5 text-[11px] font-semibold text-muted-foreground">{label}</dt>
-            <dd className="truncate text-[13px]">{value ?? '—'}</dd>
+            <dt className="mb-0.5 text-[0.6875rem] font-semibold text-muted-foreground">{label}</dt>
+            <dd className="truncate text-[0.8125rem]">{value ?? '—'}</dd>
           </div>
         ))}
       </dl>
@@ -101,7 +101,7 @@ export function TrdrKadCard({
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           ΚΑΔ ({kads.length})
         </div>
         <Button type="button" variant="outline" size="sm" disabled={!afm} onClick={() => setCheckOpen(true)}>
@@ -109,7 +109,7 @@ export function TrdrKadCard({
         </Button>
       </div>
       {kads.length === 0 ? (
-        <p className="py-4 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν καταχωρημένοι ΚΑΔ.</p>
+        <p className="py-4 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν καταχωρημένοι ΚΑΔ.</p>
       ) : (
         <div className="table-wrap">
           <table className="data-table">
@@ -187,7 +187,7 @@ export function TrdrDocumentsCard({
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Έγγραφα ({documents.length})
         </div>
         <Button type="button" variant="outline" size="sm" disabled={!arGemi} onClick={() => setGemiOpen(true)}>
@@ -196,7 +196,7 @@ export function TrdrDocumentsCard({
       </div>
 
       {documents.length === 0 ? (
-        <p className="py-4 text-center text-[12.5px] text-muted-foreground">Δεν υπάρχουν αποθηκευμένα έγγραφα.</p>
+        <p className="py-4 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν αποθηκευμένα έγγραφα.</p>
       ) : (
         <div className="flex flex-col">
           {documents.map(doc => (
@@ -204,12 +204,12 @@ export function TrdrDocumentsCard({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="badge-pill muted shrink-0">{DOC_KIND_LABEL[doc.docKind]}</span>
-                  <b className="truncate text-[13px]">{doc.title}</b>
+                  <b className="truncate text-[0.8125rem]">{doc.title}</b>
                 </div>
-                <div className="mt-0.5 text-[11.5px] text-muted-foreground">{doc.createdAtLabel}</div>
+                <div className="mt-0.5 text-[0.71875rem] text-muted-foreground">{doc.createdAtLabel}</div>
               </div>
               {doc.downloadable && (
-                <a href={`/partners/${trdrId}/documents/${doc.id}`} className="btn-pill btn-glass h-8 px-3 text-[12px]">
+                <a href={`/partners/${trdrId}/documents/${doc.id}`} className="btn-pill btn-glass h-8 px-3 text-[0.75rem]">
                   <Download className="size-3.5" aria-hidden /> Λήψη
                 </a>
               )}

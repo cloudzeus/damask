@@ -73,8 +73,8 @@ export function StepUpload({ config, onChange }: { config: ImportConfig; onChang
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-[16px] font-semibold">Ανέβασμα αρχείου Excel</h2>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
+        <h2 className="text-[1rem] font-semibold">Ανέβασμα αρχείου Excel</h2>
+        <p className="mt-1 text-[0.78125rem] text-muted-foreground">
           Υποστηρίζονται αρχεία .xlsx, .xls και .csv μέχρι {formatBytes(MAX_FILE_BYTES)}. Η ανάγνωση γίνεται στον browser σου — το αρχείο δεν στέλνεται πουθενά πριν τον Έλεγχο.
         </p>
       </div>
@@ -94,7 +94,7 @@ export function StepUpload({ config, onChange }: { config: ImportConfig; onChang
           {loading ? (
             <>
               <LuFileSpreadsheet className="size-9 animate-pulse" style={{ color: 'var(--info)' }} />
-              <p className="text-[13px] font-medium text-muted-foreground">Ανάγνωση αρχείου…</p>
+              <p className="text-[0.8125rem] font-medium text-muted-foreground">Ανάγνωση αρχείου…</p>
             </>
           ) : (
             <>
@@ -102,14 +102,14 @@ export function StepUpload({ config, onChange }: { config: ImportConfig; onChang
                 <LuUpload className="size-6" style={{ color: dragging ? '#fff' : 'var(--muted-foreground)' }} />
               </span>
               <div>
-                <p className="text-[14px] font-semibold">{dragging ? 'Άφησέ το εδώ' : 'Σύρε το αρχείο Excel εδώ'}</p>
-                <p className="mt-1 text-[12px] text-muted-foreground">
+                <p className="text-[0.875rem] font-semibold">{dragging ? 'Άφησέ το εδώ' : 'Σύρε το αρχείο Excel εδώ'}</p>
+                <p className="mt-1 text-[0.75rem] text-muted-foreground">
                   ή <span className="font-semibold" style={{ color: 'var(--info)' }}>κάνε κλικ για επιλογή</span>
                 </p>
               </div>
               <div className="flex gap-1.5">
                 {ACCEPTED_EXT.map(ext => (
-                  <span key={ext} className="rounded bg-border px-1.5 py-0.5 font-mono text-[10.5px] text-muted-foreground">{ext}</span>
+                  <span key={ext} className="rounded bg-border px-1.5 py-0.5 font-mono text-[0.65625rem] text-muted-foreground">{ext}</span>
                 ))}
               </div>
             </>
@@ -128,8 +128,8 @@ export function StepUpload({ config, onChange }: { config: ImportConfig; onChang
             <LuFileSpreadsheet className="size-5" style={{ color: 'var(--success)' }} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13.5px] font-semibold">{config.fileName}</p>
-            <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+            <p className="truncate text-[0.84375rem] font-semibold">{config.fileName}</p>
+            <p className="mt-0.5 text-[0.71875rem] text-muted-foreground">
               {formatBytes(config.fileSize)} · {config.sheets.length} {config.sheets.length === 1 ? 'φύλλο' : 'φύλλα'}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -155,7 +155,7 @@ export function StepUpload({ config, onChange }: { config: ImportConfig; onChang
       )}
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px]" style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', color: 'var(--destructive)' }}>
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[0.75rem]" style={{ background: 'color-mix(in srgb, var(--destructive) 10%, transparent)', color: 'var(--destructive)' }}>
           <LuTriangleAlert className="size-3.5 shrink-0" />
           {error}
         </div>

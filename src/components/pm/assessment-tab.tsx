@@ -135,7 +135,7 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
   if (loading) {
     return (
       <section className="glass rounded-[22px] p-4">
-        <div className="flex items-center justify-center gap-2 py-8 text-[12.5px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       </section>
@@ -145,7 +145,7 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
   if (error) {
     return (
       <section className="glass rounded-[22px] p-4">
-        <p className="py-4 text-center text-[12.5px] text-coral">{error}</p>
+        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
       </section>
     )
   }
@@ -155,7 +155,7 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
       <section className="glass rounded-[22px] p-4">
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <LuClipboardList className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[12.5px] text-muted-foreground">Δεν υπάρχουν κριτήρια αξιολόγησης.</p>
+          <p className="text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν κριτήρια αξιολόγησης.</p>
           {canManage && (
             <Button type="button" onClick={handleGenerate} disabled={generating}>
               {generating ? 'Δημιουργία…' : (<><LuSparkles className="size-3.5" aria-hidden /> Δημιουργία από κριτήρια προγράμματος</>)}
@@ -168,7 +168,7 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[10.5px] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Κριτήρια αξιολόγησης ({scores.length})
       </div>
 
@@ -186,9 +186,9 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
             {scores.map(row => (
               <tr key={row.id} className="dotted-row-bottom">
                 <td style={{ minWidth: 200 }}>
-                  <span className="text-[13px] font-semibold">{row.name}</span>
+                  <span className="text-[0.8125rem] font-semibold">{row.name}</span>
                 </td>
-                <td className="ctr text-[12.5px] text-muted-foreground">{row.weight}</td>
+                <td className="ctr text-[0.78125rem] text-muted-foreground">{row.weight}</td>
                 <td className="ctr">
                   <div className="inline-flex items-center gap-1">
                     <input
@@ -197,9 +197,9 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
                       max={row.maxScore}
                       defaultValue={row.score ?? ''}
                       onBlur={e => handleScoreBlur(row, e.target.value)}
-                      className="w-16 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-center text-[13px] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
+                      className="w-16 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-center text-[0.8125rem] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
                     />
-                    <span className="text-[11px] text-muted-foreground">/ {row.maxScore}</span>
+                    <span className="text-[0.6875rem] text-muted-foreground">/ {row.maxScore}</span>
                   </div>
                 </td>
                 <td style={{ minWidth: 180 }}>
@@ -207,7 +207,7 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
                     defaultValue={row.note ?? ''}
                     placeholder="—"
                     onBlur={e => handleNoteBlur(row, e.target.value)}
-                    className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[12.5px] text-muted-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+                    className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[0.78125rem] text-muted-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
                   />
                 </td>
               </tr>
@@ -218,9 +218,9 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-[11.5px] font-semibold text-muted-foreground">Κατάσταση ένταξης</span>
+          <span className="text-[0.71875rem] font-semibold text-muted-foreground">Κατάσταση ένταξης</span>
           <Select value={verdict} onValueChange={v => handleVerdictChange(v as VerdictStr)}>
-            <SelectTrigger className="h-8 w-44 rounded-full border-border bg-card px-3 text-[12.5px]">
+            <SelectTrigger className="h-8 w-44 rounded-full border-border bg-card px-3 text-[0.78125rem]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
