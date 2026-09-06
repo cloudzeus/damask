@@ -2,14 +2,18 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search } from 'lucide-react'
+import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search, MoreVertical, Pencil, Unlink, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import {
-  listApplicationContactOptions, setApplicationContacts, createAndLinkContact, type AppContactOption,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  listApplicationContactOptions, setApplicationContacts, createAndLinkContact,
+  updateLinkedContact, unlinkApplicationContact, deleteContactCompletely, type AppContactOption,
 } from '@/lib/pm/application-contacts'
 
 /**
@@ -25,7 +29,11 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [manageOpen, setManageOpen] = React.useState(false)
-  const [newOpen, setNewOpen] = React.useState(false)
+  const [formOpen, setFormOpen] = React.useState(false)
+  const [editing, setEditing] = React.useState<AppContactOption | null>(null)
+  const [confirm, setConfirm] = React.useState<{ mode: 'unlink' | 'delete'; contact: AppContactOption } | null>(null)
+  const [busyId, setBusyId] = React.useState<string | null>(null)
+  const [acting, startActing] = React.useTransition()
 
   // Καθαρή ανάκτηση — δεν αγγίζει state, ώστε να καλείται και μέσα σε effect
   // (μετά το await) και από event handlers.
@@ -58,6 +66,30 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
   const linked = options.filter(o => o.linked)
   const hasContacts = options.length > 0
 
+  const openNew = React.useCallback(() => { setEditing(null); setFormOpen(true) }, [])
+  const openEdit = React.useCallback((c: AppContactOption) => { setEditing(c); setFormOpen(true) }, [])
+
+  function runConfirm() {
+    if (!confirm) return
+    const { mode, contact } = confirm
+    setBusyId(contact.contactId)
+    startActing(async () => {
+      try {
+        const res = mode === 'unlink'
+          ? await unlinkApplicationContact(applicationId, contact.contactId)
+          : await deleteContactCompletely(contact.contactId)
+        if (!res.ok) throw new Error()
+        toast.success(mode === 'unlink' ? 'Η επαφή αφαιρέθηκε από το έργο.' : 'Η επαφή διαγράφηκε.')
+        setConfirm(null)
+        await reload()
+      } catch {
+        toast.error(mode === 'unlink' ? 'Η αφαίρεση απέτυχε.' : 'Η διαγραφή απέτυχε.')
+      } finally {
+        setBusyId(null)
+      }
+    })
+  }
+
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -66,7 +98,7 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
         </div>
         {canManage && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" onClick={() => setNewOpen(true)}>
+            <Button type="button" variant="outline" onClick={openNew}>
               <UserRoundPlus className="size-4" aria-hidden /> Νέα επαφή
             </Button>
             <Button type="button" onClick={() => setManageOpen(true)} disabled={loading || options.length === 0}>
@@ -96,7 +128,17 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {linked.map(c => <ContactCard key={c.contactId} contact={c} />)}
+          {linked.map(c => (
+            <ContactCard
+              key={c.contactId}
+              contact={c}
+              canManage={canManage}
+              busy={acting && busyId === c.contactId}
+              onEdit={openEdit}
+              onUnlink={c => setConfirm({ mode: 'unlink', contact: c })}
+              onDelete={c => setConfirm({ mode: 'delete', contact: c })}
+            />
+          ))}
         </div>
       )}
 
@@ -109,11 +151,18 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
             onOpenChange={setManageOpen}
             onSaved={() => { setManageOpen(false); void reload() }}
           />
-          <NewContactDialog
+          <ContactFormDialog
             applicationId={applicationId}
-            open={newOpen}
-            onOpenChange={setNewOpen}
-            onSaved={() => { setNewOpen(false); void reload() }}
+            contact={editing}
+            open={formOpen}
+            onOpenChange={setFormOpen}
+            onSaved={() => { setFormOpen(false); void reload() }}
+          />
+          <ConfirmActionDialog
+            state={confirm}
+            busy={acting}
+            onCancel={() => { if (!acting) setConfirm(null) }}
+            onConfirm={runConfirm}
           />
         </>
       )}
@@ -121,36 +170,92 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
   )
 }
 
-function NewContactDialog({
-  applicationId, open, onOpenChange, onSaved,
+/** Επιβεβαίωση για αφαίρεση-από-έργο (αναστρέψιμη) ή οριστική διαγραφή επαφής. */
+function ConfirmActionDialog({
+  state, busy, onCancel, onConfirm,
+}: {
+  state: { mode: 'unlink' | 'delete'; contact: AppContactOption } | null
+  busy: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const isDelete = state?.mode === 'delete'
+  return (
+    <Dialog open={!!state} onOpenChange={next => { if (!next) onCancel() }}>
+      <DialogContent className="w-full max-w-[calc(100%-2rem)] bg-popover sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>{isDelete ? 'Διαγραφή επαφής' : 'Αφαίρεση από το έργο'}</DialogTitle>
+          <DialogDescription>
+            {isDelete
+              ? <>Η επαφή «{state?.contact.name}» θα διαγραφεί οριστικά από την εταιρία και θα αποσυνδεθεί από όλα τα έργα. Η ενέργεια δεν αναιρείται.</>
+              : <>Η επαφή «{state?.contact.name}» θα αφαιρεθεί από αυτό το έργο. Παραμένει καταχωρημένη ως επαφή της εταιρίας.</>}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>Άκυρο</Button>
+          <Button
+            type="button"
+            variant={isDelete ? 'destructive' : 'default'}
+            onClick={onConfirm}
+            disabled={busy}
+          >
+            {busy
+              ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+              : isDelete ? <Trash2 className="size-3.5" aria-hidden /> : <Unlink className="size-3.5" aria-hidden />}
+            {isDelete ? 'Διαγραφή' : 'Αφαίρεση'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * Ενιαία φόρμα επαφής για create ΚΑΙ edit (in-place, χωρίς αλλαγή σελίδας —
+ * βλ. κανόνα «manage everything from everywhere»). Όταν δοθεί `contact` →
+ * edit mode (updateLinkedContact, company-wide)· αλλιώς create+link
+ * (createAndLinkContact).
+ */
+function ContactFormDialog({
+  applicationId, contact, open, onOpenChange, onSaved,
 }: {
   applicationId: string
+  contact?: AppContactOption | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaved: () => void
 }) {
+  const isEdit = !!contact
   const [name, setName] = React.useState('')
   const [position, setPosition] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [phone, setPhone] = React.useState('')
   const [saving, startSaving] = React.useTransition()
 
+  // Prefill/reset κατά το άνοιγμα (documented render-time pattern, όχι effect).
   const [prevOpen, setPrevOpen] = React.useState(open)
   if (open !== prevOpen) {
     setPrevOpen(open)
-    if (open) { setName(''); setPosition(''); setEmail(''); setPhone('') }
+    if (open) {
+      setName(contact?.name ?? '')
+      setPosition(contact?.position ?? '')
+      setEmail(contact?.email ?? '')
+      setPhone(contact?.phone ?? '')
+    }
   }
 
   function handleSave() {
     if (!name.trim()) { toast.error('Συμπλήρωσε όνομα.'); return }
     startSaving(async () => {
       try {
-        const res = await createAndLinkContact(applicationId, { name, position, email, phone })
+        const res = isEdit
+          ? await updateLinkedContact(contact!.contactId, { name, position, email, phone })
+          : await createAndLinkContact(applicationId, { name, position, email, phone })
         if (!res.ok) throw new Error(res.error)
-        toast.success('Η επαφή προστέθηκε και συνδέθηκε με το έργο.')
+        toast.success(isEdit ? 'Η επαφή ενημερώθηκε.' : 'Η επαφή προστέθηκε και συνδέθηκε με το έργο.')
         onSaved()
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Η προσθήκη απέτυχε.')
+        toast.error(err instanceof Error ? err.message : isEdit ? 'Η ενημέρωση απέτυχε.' : 'Η προσθήκη απέτυχε.')
       }
     })
   }
@@ -159,8 +264,12 @@ function NewContactDialog({
     <Dialog open={open} onOpenChange={next => { if (!saving) onOpenChange(next) }}>
       <DialogContent className="w-full max-w-[calc(100%-2rem)] bg-popover sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Νέα επαφή</DialogTitle>
-          <DialogDescription>Δημιουργείται στον πελάτη (καταχωρείται ως επαφή της εταιρίας) και συνδέεται με αυτό το έργο.</DialogDescription>
+          <DialogTitle>{isEdit ? 'Επεξεργασία επαφής' : 'Νέα επαφή'}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? 'Οι αλλαγές ενημερώνουν την επαφή σε όλη την εταιρία.'
+              : 'Δημιουργείται στον πελάτη (καταχωρείται ως επαφή της εταιρίας) και συνδέεται με αυτό το έργο.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3">
@@ -187,8 +296,10 @@ function NewContactDialog({
         <DialogFooter>
           <DialogClose render={<Button type="button" variant="outline" disabled={saving}>Άκυρο</Button>} />
           <Button type="button" onClick={handleSave} disabled={saving || !name.trim()}>
-            {saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <UserRoundPlus className="size-3.5" aria-hidden />}
-            Προσθήκη
+            {saving
+              ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+              : isEdit ? <Pencil className="size-3.5" aria-hidden /> : <UserRoundPlus className="size-3.5" aria-hidden />}
+            {isEdit ? 'Αποθήκευση' : 'Προσθήκη'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -196,7 +307,16 @@ function NewContactDialog({
   )
 }
 
-function ContactCard({ contact }: { contact: AppContactOption }) {
+function ContactCard({
+  contact, canManage, busy, onEdit, onUnlink, onDelete,
+}: {
+  contact: AppContactOption
+  canManage: boolean
+  busy: boolean
+  onEdit: (contact: AppContactOption) => void
+  onUnlink: (contact: AppContactOption) => void
+  onDelete: (contact: AppContactOption) => void
+}) {
   return (
     <div className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -207,16 +327,46 @@ function ContactCard({ contact }: { contact: AppContactOption }) {
           </div>
           {contact.position && <p className="mt-1 text-[0.75rem] text-muted-foreground">{contact.position}</p>}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1 text-[0.71875rem] text-muted-foreground">
-          {contact.email && (
-            <a href={`mailto:${contact.email}`} className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline">
-              <Mail className="size-3.5" aria-hidden /> {contact.email}
-            </a>
-          )}
-          {contact.phone && (
-            <a href={`tel:${contact.phone}`} className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline">
-              <Phone className="size-3.5" aria-hidden /> {contact.phone}
-            </a>
+        <div className="flex shrink-0 items-start gap-2">
+          <div className="flex flex-col items-end gap-1 text-[0.71875rem] text-muted-foreground">
+            {contact.email && (
+              <a href={`mailto:${contact.email}`} className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline">
+                <Mail className="size-3.5" aria-hidden /> {contact.email}
+              </a>
+            )}
+            {contact.phone && (
+              <a href={`tel:${contact.phone}`} className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline">
+                <Phone className="size-3.5" aria-hidden /> {contact.phone}
+              </a>
+            )}
+          </div>
+          {canManage && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label="Ενέργειες επαφής"
+                    disabled={busy}
+                    className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                  >
+                    {busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <MoreVertical className="size-4" aria-hidden />}
+                  </button>
+                }
+              />
+              <DropdownMenuContent align="end" className="w-max min-w-52">
+                <DropdownMenuItem onClick={() => onEdit(contact)}>
+                  <Pencil className="size-3.5" aria-hidden /> Επεξεργασία
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onUnlink(contact)}>
+                  <Unlink className="size-3.5" aria-hidden /> Αφαίρεση από έργο
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onDelete(contact)} style={{ color: 'var(--destructive)' }}>
+                  <Trash2 className="size-3.5" aria-hidden /> Διαγραφή επαφής
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

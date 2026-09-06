@@ -86,3 +86,37 @@ export async function createAndLinkContact(
   revalidatePath(`/partners/${app.trdrId}`)
   return { ok: true }
 }
+
+/** Επεξεργασία επαφής (company-wide) από το έργο. */
+export async function updateLinkedContact(
+  contactId: string,
+  input: { name: string; position?: string; email?: string; phone?: string },
+): Promise<{ ok: boolean; error?: string }> {
+  await requirePermission('programs.manage')
+  const name = input.name?.trim()
+  if (!name) return { ok: false, error: 'Το όνομα είναι υποχρεωτικό.' }
+  const contact = await prisma.contact.update({
+    where: { id: contactId },
+    data: { name, position: input.position?.trim() || null, email: input.email?.trim() || null, phone: input.phone?.trim() || null },
+    select: { trdrId: true },
+  })
+  revalidatePath(`/partners/${contact.trdrId}`)
+  return { ok: true }
+}
+
+/** Αφαίρεση της σύνδεσης επαφής↔έργου (η επαφή ΜΕΝΕΙ στην εταιρία). */
+export async function unlinkApplicationContact(applicationId: string, contactId: string): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  await prisma.applicationContact.deleteMany({ where: { applicationId, contactId } })
+  revalidatePath(`/programs`)
+  return { ok: true }
+}
+
+/** Οριστική διαγραφή επαφής από την εταιρία (αφαιρεί και όλες τις συνδέσεις έργων). */
+export async function deleteContactCompletely(contactId: string): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  const contact = await prisma.contact.findUnique({ where: { id: contactId }, select: { trdrId: true } })
+  await prisma.contact.delete({ where: { id: contactId } })
+  if (contact) revalidatePath(`/partners/${contact.trdrId}`)
+  return { ok: true }
+}
