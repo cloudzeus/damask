@@ -6,7 +6,7 @@ import { Badge } from './_components/badge'
 import { ProgramCard, type ProgramCardData } from './_components/program-card'
 import { Faq, type FaqItem } from './_components/faq'
 import { EligibilityCta } from './_components/eligibility-cta'
-import { wwaPhoto } from './_wwa/assets'
+import { wwaPhoto, wwaPageImage } from './_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
 import { listPublishedPosts } from '@/lib/cms/public-posts'
 
@@ -142,7 +142,7 @@ export default async function HomePage() {
       <section lang="el" className="company" id="company">
         <div className="wrap">
           <div className="promo r">
-            <div className="photo square"><img src={wwaPhoto('team')} alt="Η ομάδα σε επιχείρηση-πελάτη" /></div>
+            <div className="photo square"><img src={wwaPageImage('promo-team')} alt="Η ομάδα σε επιχείρηση-πελάτη" /></div>
             <div className="txt">
               <span className="eyebrow" style={{ color: 'rgba(255,255,255,.7)' }}><span className="idx" style={{ color: 'var(--wwa-cyan-400)' }}>03</span>Η εταιρεία</span>
               <h2>Γιατί οι επιχειρήσεις μάς εμπιστεύονται ξανά</h2>

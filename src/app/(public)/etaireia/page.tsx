@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { SubBanner } from '../_components/sub-banner'
 import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck, IconInfo, IconShield, IconChart } from '../_components/icons'
-import { wwaPhoto } from '../_wwa/assets'
+import { wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
   title: 'Η εταιρεία — World Wide Associates, Σύμβουλοι ΕΣΠΑ',
@@ -22,7 +22,7 @@ export default function CompanyPage() {
   return (
     <>
       <SubBanner
-        image={wwaPhoto('team')}
+        image={wwaPageImage('co-banner')}
         crumbs={[{ label: 'Εταιρεία' }]}
         title="Η ΕΤΑΙΡΕΙΑ"
         sub={<>Σύμβουλοι ΕΣΠΑ με <span style={{ color: 'var(--wwa-cyan-400)' }}>2.500+</span> εγκεκριμένα σχέδια</>}
@@ -54,9 +54,9 @@ export default function CompanyPage() {
             <h2 id="team">Η ομάδα</h2>
             <p>Οικονομολόγοι, μηχανικοί και νομικοί με εμπειρία σε τρεις προγραμματικές περιόδους ΕΣΠΑ.</p>
             <div className="team">
-              <article className="person"><div className="photo square ph"><img src={wwaPhoto('consulting')} alt="" /></div><div className="b"><h3>Α. Στάμος</h3><div className="role">Διευθύνων Σύμβουλος · Οικονομολόγος</div><p>20+ χρόνια σε επενδυτικά σχέδια ΕΣΠΑ και Αναπτυξιακού Νόμου.</p></div></article>
-              <article className="person"><div className="photo square ph"><img src={wwaPhoto('team')} alt="" /></div><div className="b"><h3>Ομάδα υποβολών</h3><div className="role">Σύνταξη &amp; υποβολή φακέλων</div><p>Τεχνική και οικονομική τεκμηρίωση, ΟΠΣΚΕ, διευκρινίσεις αξιολογητών.</p></div></article>
-              <article className="person"><div className="photo square ph"><img src={wwaPhoto('manufacturing')} alt="" /></div><div className="b"><h3>Ομάδα υλοποίησης</h3><div className="role">Διαχείριση έργων &amp; πιστοποιήσεις</div><p>Επιτόπιες επαληθεύσεις, τροποποιήσεις, εκταμιεύσεις.</p></div></article>
+              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-ceo')} alt="" /></div><div className="b"><h3>Α. Στάμος</h3><div className="role">Διευθύνων Σύμβουλος · Οικονομολόγος</div><p>20+ χρόνια σε επενδυτικά σχέδια ΕΣΠΑ και Αναπτυξιακού Νόμου.</p></div></article>
+              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-submissions')} alt="" /></div><div className="b"><h3>Ομάδα υποβολών</h3><div className="role">Σύνταξη &amp; υποβολή φακέλων</div><p>Τεχνική και οικονομική τεκμηρίωση, ΟΠΣΚΕ, διευκρινίσεις αξιολογητών.</p></div></article>
+              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-implementation')} alt="" /></div><div className="b"><h3>Ομάδα υλοποίησης</h3><div className="role">Διαχείριση έργων &amp; πιστοποιήσεις</div><p>Επιτόπιες επαληθεύσεις, τροποποιήσεις, εκταμιεύσεις.</p></div></article>
             </div>
 
             <h2 id="foreis">Φορείς &amp; συνεργασίες</h2>

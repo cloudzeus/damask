@@ -5,7 +5,7 @@ import { EligibilityCta } from '../_components/eligibility-cta'
 import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck } from '../_components/icons'
-import { wwaPhoto } from '../_wwa/assets'
+import { wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
   title: 'Υπηρεσίες — Σύμβουλοι ΕΣΠΑ | World Wide Associates',
@@ -45,7 +45,7 @@ export default function ServicesPage() {
   return (
     <>
       <SubBanner
-        image={wwaPhoto('consulting')}
+        image={wwaPageImage('svc-banner')}
         crumbs={[{ label: 'Υπηρεσίες' }]}
         title="ΥΠΗΡΕΣΙΕΣ"
         sub={<>Από την ιδέα μέχρι την <span style={{ color: 'var(--wwa-cyan-400)' }}>εκταμίευση</span> — μία ομάδα</>}
@@ -57,15 +57,15 @@ export default function ServicesPage() {
           <Feature idx="01" stage="Στάδιο 1" title="Σχεδιασμός επενδυτικού σχεδίου"
             text="Ξεκινάμε με δωρεάν έλεγχο επιλεξιμότητας. Αν η επιχείρηση είναι επιλέξιμη, αναλύουμε ανάγκες, προϋπολογισμό και χρονοδιάγραμμα και σχεδιάζουμε πρόταση που μεγιστοποιεί τη βαθμολογία."
             items={['Έλεγχος ΚΑΔ, μεγέθους, περιοχής και προϋποθέσεων', 'Επιλογή κατάλληλου προγράμματος ή συνδυασμού', 'Προϋπολογισμός ανά κατηγορία δαπάνης', 'Εκτίμηση βαθμολογίας πριν την υποβολή']}
-            photo={wwaPhoto('consulting')} primary="Δωρεάν αξιολόγηση" link="Πώς βαθμολογείται ένα σχέδιο" />
+            photo={wwaPageImage('svc-plan')} primary="Δωρεάν αξιολόγηση" link="Πώς βαθμολογείται ένα σχέδιο" />
           <Feature idx="02" stage="Στάδιο 2" title="Σύνταξη και υποβολή φακέλου"
             text="Συλλέγουμε τα δικαιολογητικά, συντάσσουμε το επενδυτικό σχέδιο σύμφωνα με την προκήρυξη και υποβάλλουμε ηλεκτρονικά στο ΟΠΣΚΕ. Απαντάμε εμείς στις διευκρινίσεις των αξιολογητών."
             items={['Checklist δικαιολογητικών με προθεσμίες', 'Τεχνική και οικονομική τεκμηρίωση', 'Ηλεκτρονική υποβολή και παρακολούθηση', 'Ενστάσεις όπου χρειάζεται']}
-            photo={wwaPhoto('team')} primary="Ξεκινήστε τον φάκελο" link="Τι περιλαμβάνει ο φάκελος" />
+            photo={wwaPageImage('svc-submit')} primary="Ξεκινήστε τον φάκελο" link="Τι περιλαμβάνει ο φάκελος" />
           <Feature idx="03" stage="Στάδιο 3" title="Διαχείριση και παρακολούθηση έργου"
             text="Μετά την ένταξη, διαχειριζόμαστε το έργο μέχρι την τελική εκταμίευση: αιτήματα προκαταβολής και τροποποίησης, πιστοποιήσεις δαπανών, επιτόπιες επαληθεύσεις."
             items={['Αίτημα προκαταβολής 40% με εγγυητική', 'Πιστοποίηση δαπανών ανά εξάμηνο', 'Τροποποιήσεις φυσικού και οικονομικού αντικειμένου', 'Τελική επαλήθευση και εκταμίευση']}
-            photo={wwaPhoto('manufacturing')} primary="Ζητήστε προσφορά διαχείρισης" link="Η διαδικασία εκταμίευσης" />
+            photo={wwaPageImage('svc-manage')} primary="Ζητήστε προσφορά διαχείρισης" link="Η διαδικασία εκταμίευσης" />
         </div>
       </section>
 

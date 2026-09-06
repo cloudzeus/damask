@@ -5,7 +5,7 @@ import { EligibilityCta } from '../_components/eligibility-cta'
 import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck } from '../_components/icons'
-import { wwaPhoto } from '../_wwa/assets'
+import { wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
   title: 'Πελάτες — Έργα ΕΣΠΑ ανά κλάδο | World Wide Associates',
@@ -46,7 +46,7 @@ export default function ClientsPage() {
   return (
     <>
       <SubBanner
-        image={wwaPhoto('hotel')}
+        image={wwaPageImage('cl-banner')}
         crumbs={[{ label: 'Εταιρεία', href: '/etaireia' }, { label: 'Πελάτες' }]}
         title="ΠΕΛΑΤΕΣ"
         sub={<>Επιχειρήσεις που <span style={{ color: 'var(--wwa-cyan-400)' }}>εμπιστεύτηκαν</span> τη WWA</>}
@@ -73,7 +73,7 @@ export default function ClientsPage() {
         <div className="wrap">
           <div className="sec-head"><span className="eyebrow"><span className="idx">02</span>Ενδεικτικό έργο</span><h2>Από την αίτηση στην εκταμίευση σε 14 μήνες</h2></div>
           <article className="feature" style={{ paddingTop: 0 }}>
-            <div className="photo"><img src={wwaPhoto('hotel')} alt="" /></div>
+            <div className="photo"><img src={wwaPageImage('cl-hotel')} alt="" /></div>
             <div>
               <span className="badge badge-closed">Ολοκληρωμένο</span>
               <h2 style={{ marginTop: 14 }}>Villa Kerkyra Suites — Ενίσχυση Τουριστικών ΜμΕ</h2>

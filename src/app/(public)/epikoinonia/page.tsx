@@ -3,7 +3,7 @@ import { SubBanner } from '../_components/sub-banner'
 import { EligibilityCta } from '../_components/eligibility-cta'
 import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck, IconPhone, IconMail, IconPin } from '../_components/icons'
-import { wwaPhoto } from '../_wwa/assets'
+import { wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
   title: 'Επικοινωνία — World Wide Associates, Σύμβουλοι ΕΣΠΑ',
@@ -22,7 +22,7 @@ export default function ContactPage() {
   return (
     <>
       <SubBanner
-        image={wwaPhoto('team')}
+        image={wwaPageImage('contact-banner')}
         crumbs={[{ label: 'Επικοινωνία' }]}
         title="ΕΠΙΚΟΙΝΩΝΙΑ"
         sub={<>Απάντηση σε <span style={{ color: 'var(--wwa-cyan-400)' }}>μία εργάσιμη</span></>}

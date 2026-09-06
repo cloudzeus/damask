@@ -12,3 +12,10 @@ export const wwaMark = `${CDN}/wwa-mark.svg`
 
 export type WwaPhoto = 'consulting' | 'cosmetics' | 'ecommerce' | 'hotel' | 'manufacturing' | 'startup' | 'team'
 export const wwaPhoto = (name: WwaPhoto): string => `${CDN}/photo-${name}.webp`
+
+/** Μοναδικές εικόνες ανά σελίδα/ενότητα (δημιουργημένες, φιλοξενία CDN wwa/site/pages/). */
+export type WwaPageImage =
+  | 'svc-banner' | 'svc-plan' | 'svc-submit' | 'svc-manage'
+  | 'co-banner' | 'co-ceo' | 'co-submissions' | 'co-implementation'
+  | 'cl-banner' | 'cl-hotel' | 'contact-banner' | 'promo-team'
+export const wwaPageImage = (name: WwaPageImage): string => `${CDN}/pages/${name}.webp`
