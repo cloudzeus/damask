@@ -15,11 +15,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   listTrdrProgramCards, listActivePrograms, associateTrdrPrograms,
-  setApplicationLifecycle, removeTrdrProgram, reevaluateApplication, type TrdrProgramCard,
+  setApplicationLifecycle, removeTrdrProgram, reevaluateApplication, getApplicationPending,
+  type TrdrProgramCard, type ApplicationPending,
 } from '@/lib/pm/program-link'
 import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import {
-  LIFECYCLE_ORDER, LIFECYCLE_COLORS, lifecycleLabel, stageLabel, verdictLabel, type LifecycleStr,
+  LIFECYCLE_ORDER, LIFECYCLE_COLORS, lifecycleLabel, stageLabel, verdictLabel, obligationStatusLabel, type LifecycleStr,
 } from '@/lib/pm/types'
 import type { ApplicationLifecycle } from '@prisma/client'
 
@@ -238,6 +239,13 @@ function EvaluationDialog({
   onChanged: () => void
 }) {
   const [busy, setBusy] = React.useState(false)
+  const [pending, setPending] = React.useState<ApplicationPending | null>(null)
+
+  React.useEffect(() => {
+    let cancelled = false
+    getApplicationPending(card.id).then(p => { if (!cancelled) setPending(p) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [card.id])
 
   async function changeLifecycle(next: LifecycleStr) {
     setBusy(true)
@@ -278,6 +286,39 @@ function EvaluationDialog({
         </DialogHeader>
 
         <CriteriaBadges snapshot={card.snapshot} />
+
+        {/* Εκκρεμότητες — έμφαση στην τρέχουσα φάση */}
+        <div className="mt-3 border-t border-border pt-3">
+          <div className="mb-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+            Εκκρεμότητες · Τρέχουσα φάση: {stageLabel(card.stage)}
+          </div>
+          {!pending ? (
+            <p className="text-[0.71875rem] text-muted-foreground">Φόρτωση…</p>
+          ) : pending.openCount === 0 ? (
+            <p className="text-[0.71875rem] text-muted-foreground">Καμία εκκρεμότητα.</p>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {pending.obligations.map(o => (
+                <li key={o.id} className="flex flex-wrap items-center gap-1.5 text-[0.78125rem]">
+                  {o.current && <span className="badge-pill info">Τρέχουσα φάση</span>}
+                  <span className="font-medium">{o.name}</span>
+                  <span className="badge-pill muted">{stageLabel(o.stage)}</span>
+                  <span className={`badge-pill ${o.status === 'REJECTED' ? '' : 'warn'}`} style={o.status === 'REJECTED' ? { color: 'var(--card)', background: 'var(--coral)' } : undefined}>
+                    {obligationStatusLabel(o.status)}
+                  </span>
+                  {o.dueDate && <span className="text-[0.6875rem] text-muted-foreground">έως {new Date(o.dueDate).toLocaleDateString('el-GR')}</span>}
+                </li>
+              ))}
+              {pending.fileRequests.map(f => (
+                <li key={f.id} className="flex flex-wrap items-center gap-1.5 text-[0.78125rem]">
+                  <span className="badge-pill violet">Δικαιολογητικά</span>
+                  <span className="font-medium">{f.title}</span>
+                  <span className="badge-pill muted tabular-nums">{f.uploadedCount}/{f.itemCount} ανέβηκαν</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {canManage && (
           <div className="mt-2 flex flex-col gap-1.5">

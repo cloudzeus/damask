@@ -7,7 +7,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { computeSinglePair, type SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { ensureTrdrProgramFolder } from '@/lib/trdr/cdn-folder'
 import { logActivity } from '@/lib/activity/log'
-import type { LifecycleStr, StageStr, VerdictStr } from '@/lib/pm/types'
+import type { LifecycleStr, StageStr, VerdictStr, ObligationStatusStr } from '@/lib/pm/types'
 
 /**
  * Σύνδεση πελάτη ↔ Ευρωπαϊκού προγράμματος με κύκλο ζωής (κάρτες στην καρτέλα
@@ -140,6 +140,45 @@ export async function reevaluateApplication(applicationId: string): Promise<Sing
   await logActivity('application.evaluate', { entityType: 'application', entityId: applicationId, userId: session.user.id, meta: { programId: app.programId, eligible: snapshot.eligible } })
   revalidatePath(`/partners/${app.trdrId}`)
   return snapshot
+}
+
+export type ApplicationPending = {
+  stage: StageStr
+  obligations: { id: string; name: string; stage: StageStr; status: ObligationStatusStr; dueDate: string | null; mandatory: boolean; current: boolean }[]
+  fileRequests: { id: string; title: string; status: string; itemCount: number; uploadedCount: number }[]
+  openCount: number
+}
+
+/**
+ * Εκκρεμότητες ενός έργου (για την καρτέλα πελάτη) — ανοιχτές υποχρεώσεις +
+ * εκκρεμή αιτήματα δικαιολογητικών, με έμφαση σε αυτές της ΤΡΕΧΟΥΣΑΣ φάσης (stage).
+ */
+export async function getApplicationPending(applicationId: string): Promise<ApplicationPending> {
+  await requirePermission('customer.view')
+  const app = await prisma.programApplication.findUniqueOrThrow({ where: { id: applicationId }, select: { stage: true } })
+  const [obligations, frs] = await Promise.all([
+    prisma.applicationObligation.findMany({
+      where: { applicationId, status: { in: ['PENDING', 'IN_PROGRESS', 'REJECTED'] } },
+      orderBy: [{ order: 'asc' }],
+      select: { id: true, name: true, stage: true, status: true, dueDate: true, mandatory: true },
+    }),
+    prisma.fileRequest.findMany({
+      where: { applicationId, status: { in: ['PENDING', 'PARTIAL'] } },
+      include: { items: { select: { fileKey: true, fileUrl: true } } },
+    }),
+  ])
+  const current = app.stage as StageStr
+  return {
+    stage: current,
+    obligations: obligations
+      .map(o => ({
+        id: o.id, name: o.name, stage: o.stage as StageStr, status: o.status as ObligationStatusStr,
+        dueDate: o.dueDate ? o.dueDate.toISOString() : null, mandatory: o.mandatory, current: (o.stage as StageStr) === current,
+      }))
+      .sort((a, b) => Number(b.current) - Number(a.current)),
+    fileRequests: frs.map(f => ({ id: f.id, title: f.title, status: f.status, itemCount: f.items.length, uploadedCount: f.items.filter(i => i.fileKey || i.fileUrl).length })),
+    openCount: obligations.length + frs.length,
+  }
 }
 
 /** Αλλάζει τον κύκλο ζωής μιας συμμετοχής (χρώμα κάρτας). */
