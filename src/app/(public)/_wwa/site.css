@@ -25,10 +25,12 @@ section { padding: clamp(56px, 6vw, 88px) 0; }
 .util a:hover { color: #fff; }
 .util .right { margin-left: auto; display: flex; gap: 24px; }
 .topbar { position: sticky; top: 0; z-index: 60; background: #fff; border-bottom: 1px solid var(--border-subtle); box-shadow: 0 1px 0 rgba(0,0,34,.04); }
-.topbar .wrap { height: 80px; display: flex; align-items: center; gap: var(--sp-10); }
+.topbar .wrap { height: 80px; display: flex; align-items: center; gap: clamp(16px, 2.2vw, 40px); }
 .topbar img { height: 44px; display: block; }
-.topbar nav { display: flex; gap: 28px; margin-left: auto; }
-.topbar nav a { font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-1); text-decoration: none; padding: 8px 0; border-bottom: 2px solid transparent; transition: color var(--dur-hover), border-color var(--dur-hover); }
+/* Fluid μενού (ίδια λογική με το admin fluid root): το nav μικραίνει ομαλά με το
+   viewport ώστε να μένει σε ΜΙΑ γραμμή μέχρι το mobile breakpoint (1024px). */
+.topbar nav { display: flex; gap: clamp(14px, 1.8vw, 28px); margin-left: auto; }
+.topbar nav a { font-family: var(--font-display); font-size: clamp(12px, 0.35vw + 8.6px, 15px); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; color: var(--fg-1); text-decoration: none; padding: 8px 0; border-bottom: 2px solid transparent; transition: color var(--dur-hover), border-color var(--dur-hover); }
 .topbar nav a:hover, .topbar nav a[aria-current] { color: var(--brand); border-color: var(--brand); }
 .topbar .cta { display: flex; gap: 10px; align-items: center; margin-left: 28px; }
 .topbar .login { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--fg-2); text-decoration: none; padding: 8px 12px; border-radius: var(--radius-pill); }
