@@ -26,10 +26,10 @@ export function WwaFooter() {
           <div>
             <h4>Προγράμματα</h4>
             <ul>
-              <li><Link href="/#programs">Ενεργά</Link></li>
-              <li><Link href="/#programs">Σε υλοποίηση</Link></li>
-              <li><Link href="/#programs">Ολοκληρωμένα</Link></li>
-              <li><Link href="/#programs">Αναπτυξιακός Νόμος</Link></li>
+              <li><Link href="/programmata">Ενεργά</Link></li>
+              <li><Link href="/programmata">Σε υλοποίηση</Link></li>
+              <li><Link href="/programmata">Ολοκληρωμένα</Link></li>
+              <li><Link href="/programmata">Αναπτυξιακός Νόμος</Link></li>
             </ul>
           </div>
           <div>

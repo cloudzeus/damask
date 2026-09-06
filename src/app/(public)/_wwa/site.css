@@ -171,6 +171,42 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .topbar.scrolled { box-shadow: 0 4px 16px rgba(0,0,34,.08); }
 .banner > img, .sub-banner > img { will-change: transform; }
 
+/* ---------- Sub-banner (εσωτερικές σελίδες) ---------- */
+.sub-banner { position: relative; min-height: 320px; display: flex; align-items: center; overflow: hidden; background: var(--wwa-navy-950); }
+.sub-banner > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 50%; }
+.sub-banner::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,34,.95) 0%, rgba(0,0,34,.82) 45%, rgba(0,0,34,.45) 100%); z-index: 1; }
+.sub-banner .content { position: relative; z-index: 2; color: #fff; padding: 56px 0; max-width: 760px; }
+.sub-banner .crumbs { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: rgba(255,255,255,.7); margin-bottom: 14px; }
+.sub-banner .crumbs a { color: rgba(255,255,255,.7); text-decoration: none; }
+.sub-banner .crumbs a:hover { color: #fff; }
+.sub-banner h1 { color: #fff; font-size: clamp(1.8rem, 3vw, 2.75rem); line-height: 1.1; }
+.sub-banner .amount { color: var(--wwa-cyan-400); }
+.sub-banner .meta { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+.sub-banner .meta .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 6px 12px; border-radius: var(--radius-pill); background: rgba(255,255,255,.12); color: #fff; }
+
+/* ---------- Program detail layout ---------- */
+.prog-layout { display: grid; grid-template-columns: 1fr 360px; gap: var(--sp-10); align-items: start; }
+@media (max-width: 960px) { .prog-layout { grid-template-columns: 1fr; } }
+.prog-body h2 { text-align: left; font-size: 1.5rem; margin: 28px 0 12px; }
+.prog-body h2:first-child { margin-top: 0; }
+.prog-body p { color: var(--fg-2); font-size: 15px; line-height: 1.7; margin: 0 0 12px; }
+.prog-body ul.ticks { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 10px; }
+.prog-body ul.ticks li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; color: var(--fg-1); }
+.prog-body ul.ticks li svg { width: 20px; height: 20px; color: var(--brand); flex: none; margin-top: 1px; stroke-width: 2; }
+.prog-summary { position: sticky; top: 96px; }
+.prog-summary .head { background: var(--wwa-navy-950); color: #fff; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding: 22px 24px; }
+.prog-summary .head .amt { font-family: var(--font-display); font-weight: 700; font-size: 34px; letter-spacing: -.02em; color: var(--wwa-cyan-400); line-height: 1; }
+.prog-summary .head .amt small { display: block; font-family: var(--font-body); font-size: 13px; font-weight: 400; color: rgba(255,255,255,.7); margin-top: 6px; }
+.prog-summary .body { background: #fff; border: 1px solid var(--border-subtle); border-top: 0; border-radius: 0 0 var(--radius-xl) var(--radius-xl); padding: 22px 24px; }
+.prog-summary dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0 0 18px; font-size: 14px; }
+.prog-summary dt { color: var(--fg-3); } .prog-summary dd { margin: 0; font-weight: 500; text-align: right; }
+.prog-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-6); counter-reset: step; }
+.prog-steps article { padding: 22px; background: #fff; border-radius: var(--radius-lg); box-shadow: var(--elev-1); }
+.prog-steps article::before { counter-increment: step; content: counter(step); width: 34px; height: 34px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; margin-bottom: 14px; }
+.prog-steps h3 { font-size: 17px; margin-bottom: 8px; } .prog-steps p { font-size: 14px; color: var(--fg-2); }
+@media (max-width: 900px) { .prog-steps { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 560px) { .prog-steps { grid-template-columns: 1fr; } }
+
 /* ---------- Eligibility modal + preloader ---------- */
 .wwa-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(0,0,34,.55); backdrop-filter: blur(4px); animation: wwaFade .2s var(--ease-standard); }
 @keyframes wwaFade { from { opacity: 0; } to { opacity: 1; } }
@@ -217,3 +253,42 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .r { transition: transform var(--dur-page) var(--ease-emphasis), opacity var(--dur-page) var(--ease-emphasis); }
 .r.pre { transform: translateY(16px); opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .r, .r.pre { transform: none; opacity: 1; transition: none; } }
+
+/* ── Σύντομες ετικέτες (tags) σε λευκό φόντο: κάρτες + summary ── */
+.tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: var(--radius-pill); line-height: 1; white-space: nowrap; }
+.tag-date { background: var(--navy-50); color: var(--brand); }
+.tag-region { background: var(--bg-muted); color: var(--fg-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.tag-open { background: var(--success-100); color: var(--success-500); }
+.tag-open::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: wwaPulseDot 1.8s ease-in-out infinite; }
+@keyframes wwaPulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.68); } }
+
+/* Κάρτα προγράμματος: meta σε ετικέτες που αναδιπλώνονται· τιμή σε μία γραμμή */
+.pcard .meta { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+.pcard .price { flex-wrap: wrap; }
+.pcard .price b { white-space: nowrap; }
+
+/* Summary: αριστερή στοίχιση τιμών (label → value), bold νούμερα */
+.prog-summary dd { text-align: left; }
+.prog-summary dd .tag { font-size: 11.5px; padding: 3px 8px; }
+.prog-summary .fig, .prog-body .fig { color: var(--brand); font-weight: 700; font-variant-numeric: tabular-nums; }
+.sum-note { margin: 10px 0 0; font-size: 12.5px; color: var(--fg-3); text-align: center; }
+.btn-block { width: 100%; }
+
+/* Sub-banner: χρωματιστά pills πάνω σε navy (cyan μόνο σε navy — επιτρεπτό) */
+.sub-banner .meta .pill-date,
+.sub-banner .meta .pill-open { background: rgba(52, 200, 246, .16); color: var(--wwa-cyan-400); }
+.sub-banner .meta .pill-region { background: rgba(255, 255, 255, .14); color: #fff; }
+.sub-banner .meta .pill-open::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: wwaPulseDot 1.8s ease-in-out infinite; }
+
+/* Sub-banner: entrance liveliness (above-the-fold, χωρίς JS) */
+.sub-banner .content.anim-in > * { animation: wwaRise .6s var(--ease-emphasis) both; }
+.sub-banner .content.anim-in > *:nth-child(1) { animation-delay: .05s; }
+.sub-banner .content.anim-in > *:nth-child(2) { animation-delay: .14s; }
+.sub-banner .content.anim-in > *:nth-child(3) { animation-delay: .24s; }
+.sub-banner .content.anim-in > *:nth-child(4) { animation-delay: .34s; }
+@keyframes wwaRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tag-open::before, .sub-banner .meta .pill-open::before { animation: none; }
+  .sub-banner .content.anim-in > * { animation: none; }
+}

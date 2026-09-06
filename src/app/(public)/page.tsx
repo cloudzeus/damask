@@ -6,6 +6,7 @@ import { Badge } from './_components/badge'
 import { ProgramCard, type ProgramCardData } from './_components/program-card'
 import { Faq, type FaqItem } from './_components/faq'
 import { EligibilityCta } from './_components/eligibility-cta'
+import { listPublicPrograms } from '@/lib/programs/public'
 
 export const metadata: Metadata = {
   title: 'World Wide Associates — Σύμβουλοι ΕΣΠΑ & Ευρωπαϊκών Προγραμμάτων',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     'Δωρεάν έλεγχος επιλεξιμότητας ΕΣΠΑ σε μία εργάσιμη. 2.500+ εγκεκριμένα επενδυτικά σχέδια, εγκρίσεις 98–100%. Σχεδιασμός, υποβολή και διαχείριση φακέλου μέχρι την εκταμίευση.',
 }
 
-const PROGRAMS: ProgramCardData[] = [
+const FALLBACK_PROGRAMS: ProgramCardData[] = [
   {
     image: '/wwa/photo-startup.jpg', title: 'Ξεκινώ Επιχειρηματικά 2026',
     description: 'Για πτυχιούχους που ιδρύουν επιχείρηση στο αντικείμενο των σπουδών τους. Εξοπλισμός, λειτουργικά, μισθολογικό κόστος.',
@@ -43,23 +44,46 @@ const check = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
 )
 
-export default function HomePage() {
+export default async function HomePage() {
+  const active = await listPublicPrograms()
+  const programCards: ProgramCardData[] = active.length
+    ? active.slice(0, 3).map((p, i) => ({
+        image: p.image, title: p.title, description: p.summary, amount: p.amount, amountNote: p.amountNote,
+        deadline: p.deadline ?? undefined, deadlineOpen: p.deadlineOpen, region: p.region ?? undefined,
+        status: 'active' as const, isNew: i === 0, href: `/programmata/${p.slug}`,
+      }))
+    : FALLBACK_PROGRAMS
+  const featured = active[0] ?? null
+  const heroDeadline = featured
+    ? (featured.deadline ? `υποβολές έως ${featured.deadline}` : featured.deadlineOpen ? 'ανοιχτή πρόσκληση' : 'ενεργό πρόγραμμα')
+    : null
   return (
     <>
       {/* HERO */}
       <section lang="el" className="hero" id="top">
         <div className="banner">
-          
-          <img src="/wwa/photo-consulting.jpg" alt="" />
-          <div className="wrap"><div className="content">
-            <span className="tag">Ξεκινώ Επιχειρηματικά 2026 · υποβολές έως 31/10/2026</span>
-            <h1 data-typewrite>Επιδότηση έως <span style={{ color: 'var(--wwa-cyan-400)' }}>€36.000</span> για τη νέα σας επιχείρηση</h1>
-            <p>100% ενίσχυση για πτυχιούχους που ιδρύουν επιχείρηση στο αντικείμενο των σπουδών τους. Ελέγχουμε δωρεάν αν δικαιούστε — απάντηση σε μία εργάσιμη.</p>
-            <div className="actions">
-              <EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>
-              <Button href="/#programs" size="lg" variant="inverse-outline">Όλα τα προγράμματα</Button>
-            </div>
-          </div></div>
+          <img src={featured?.image || '/wwa/photo-consulting.jpg'} alt="" />
+          {featured ? (
+            <div className="wrap"><div className="content">
+              <span className="tag">Πιο πρόσφατο πρόγραμμα · {heroDeadline}</span>
+              <h1 data-typewrite>{featured.heroTitle} <span style={{ color: 'var(--wwa-cyan-400)' }}>{featured.amount}</span></h1>
+              <p>{featured.heroSubtitle}</p>
+              <div className="actions">
+                <EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>
+                <Button href={`/programmata/${featured.slug}`} size="lg" variant="inverse-outline">Δείτε το πρόγραμμα</Button>
+              </div>
+            </div></div>
+          ) : (
+            <div className="wrap"><div className="content">
+              <span className="tag">Ξεκινώ Επιχειρηματικά 2026 · υποβολές έως 31/10/2026</span>
+              <h1 data-typewrite>Επιδότηση έως <span style={{ color: 'var(--wwa-cyan-400)' }}>€36.000</span> για τη νέα σας επιχείρηση</h1>
+              <p>100% ενίσχυση για πτυχιούχους που ιδρύουν επιχείρηση στο αντικείμενο των σπουδών τους. Ελέγχουμε δωρεάν αν δικαιούστε — απάντηση σε μία εργάσιμη.</p>
+              <div className="actions">
+                <EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>
+                <Button href="/programmata" size="lg" variant="inverse-outline">Όλα τα προγράμματα</Button>
+              </div>
+            </div></div>
+          )}
           <div className="dots"><span className="on" /><span /><span /></div>
         </div>
         <div className="strip"><div className="wrap">
@@ -83,9 +107,9 @@ export default function HomePage() {
             <button className="chip">Πράσινη μετάβαση</button>
           </div>
           <div className="cards3">
-            {PROGRAMS.map(p => <ProgramCard key={p.title} {...p} />)}
+            {programCards.map(p => <ProgramCard key={p.href ?? p.title} {...p} />)}
           </div>
-          <div className="sec-foot r"><Button href="/#programs" variant="outline">Όλα τα προγράμματα — ενεργά, σε υλοποίηση, ολοκληρωμένα</Button></div>
+          <div className="sec-foot r"><Button href="/programmata" variant="outline">Όλα τα προγράμματα — ενεργά, σε υλοποίηση, ολοκληρωμένα</Button></div>
         </div>
       </section>
 

@@ -24,6 +24,7 @@ export type ProgramCardData = {
   amount: string
   amountNote?: string
   deadline?: string
+  deadlineOpen?: boolean
   region?: string
   status?: ProgramStatus
   isNew?: boolean
@@ -31,7 +32,7 @@ export type ProgramCardData = {
 }
 
 export function ProgramCard({
-  image, imageAlt = '', title, description, amount, amountNote, deadline, region,
+  image, imageAlt = '', title, description, amount, amountNote, deadline, deadlineOpen = false, region,
   status = 'active', isNew = false, href = '#',
 }: ProgramCardData) {
   return (
@@ -47,8 +48,10 @@ export function ProgramCard({
         <p>{description}</p>
         <div className="price"><b>{amount}</b>{amountNote && <span>{amountNote}</span>}</div>
         <div className="meta">
-          {deadline ? <span>Υποβολές έως <b>{deadline}</b></span> : <span />}
-          {region && <span>{region}</span>}
+          {deadline
+            ? <span className="tag tag-date">Έως {deadline}</span>
+            : deadlineOpen ? <span className="tag tag-open">Ανοιχτή πρόσκληση</span> : null}
+          {region && <span className="tag tag-region">{region}</span>}
         </div>
         <div className="actions">
           <EligibilityCta size="sm">Δείτε αν δικαιούστε</EligibilityCta>

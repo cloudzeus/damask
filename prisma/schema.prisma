@@ -1181,6 +1181,7 @@ model Program {
   cmsContent           Json? // περιεχόμενο public front-end (SEO/GEO/AEO), auto από DeepSeek
   cmsGeneratedAt       DateTime?
   cmsModel             String?
+  publicSlug           String?                      @unique // SEO-friendly slug για /programmata/[slug]
   model                String?
   tokensUsed           Int?
   errorMessage         String?

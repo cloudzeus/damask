@@ -11,7 +11,7 @@ import { openEligibility } from './eligibility-modal'
  */
 const NAV = [
   { label: 'Αρχική', href: '/' },
-  { label: 'Προγράμματα ΕΣΠΑ', href: '/#programs' },
+  { label: 'Προγράμματα ΕΣΠΑ', href: '/programmata' },
   { label: 'Υπηρεσίες', href: '/#services' },
   { label: 'Εταιρεία', href: '/#company' },
   { label: 'Νέα', href: '/#news' },
