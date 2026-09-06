@@ -66,10 +66,8 @@ export function PartnerHeader({
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-[20px]">{partner.name}</h1>
           <span className="badge-pill info">{partner.sodtype === 12 ? 'Προμηθευτής' : 'Πελάτης'}</span>
-          {partner.sodtype === 13 && (
-            <span className={`badge-pill ${partner.isProsp ? 'warn' : 'ok'}`}>
-              {partner.isProsp ? 'Υποψήφιος' : 'Πελάτης'}
-            </span>
+          {partner.sodtype === 13 && partner.isProsp && (
+            <span className="badge-pill warn">Υποψήφιος</span>
           )}
         </div>
         <p className="mt-0.5 text-[12.5px] text-muted-foreground">
