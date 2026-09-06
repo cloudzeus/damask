@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search, MoreVertical, Pencil, Unlink, Trash2, FileCheck2 } from 'lucide-react'
+import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search, MoreVertical, Pencil, Unlink, Trash2, FileCheck2, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   listApplicationContactOptions, setApplicationContacts, createAndLinkContact,
-  updateLinkedContact, unlinkApplicationContact, deleteContactCompletely, type AppContactOption,
+  updateLinkedContact, unlinkApplicationContact, deleteContactCompletely, grantPortalAccess,
+  type AppContactOption,
 } from '@/lib/pm/application-contacts'
 import { getProgramFileTemplateOptions, type PhaseFileRow } from '@/lib/programs/phase-files'
 import { requestDocsFromContact } from '@/lib/file-requests/actions'
@@ -74,6 +75,22 @@ export function ApplicationContactsTab({ applicationId, canManage, programId, tr
 
   const openNew = React.useCallback(() => { setEditing(null); setFormOpen(true) }, [])
   const openEdit = React.useCallback((c: AppContactOption) => { setEditing(c); setFormOpen(true) }, [])
+
+  function grantPortal(c: AppContactOption) {
+    setBusyId(c.contactId)
+    startActing(async () => {
+      try {
+        const res = await grantPortalAccess(c.contactId)
+        if (!res.ok) throw new Error(res.error)
+        toast.success(res.created ? 'Δημιουργήθηκε λογαριασμός — στάλθηκε email ορισμού κωδικού.' : 'Στάλθηκε email ορισμού κωδικού.')
+        await reload()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Η ενέργεια απέτυχε.')
+      } finally {
+        setBusyId(null)
+      }
+    })
+  }
 
   function runConfirm() {
     if (!confirm) return
@@ -143,6 +160,7 @@ export function ApplicationContactsTab({ applicationId, canManage, programId, tr
               onEdit={openEdit}
               onRequestDocs={c => setRequesting(c)}
               onEmail={c => setEmailing(c)}
+              onPortal={grantPortal}
               onUnlink={c => setConfirm({ mode: 'unlink', contact: c })}
               onDelete={c => setConfirm({ mode: 'delete', contact: c })}
             />
@@ -260,6 +278,7 @@ function ContactFormDialog({
   const [position, setPosition] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [phone, setPhone] = React.useState('')
+  const [portalAccess, setPortalAccess] = React.useState(false)
   const [saving, startSaving] = React.useTransition()
 
   // Prefill/reset κατά το άνοιγμα (documented render-time pattern, όχι effect).
@@ -271,18 +290,24 @@ function ContactFormDialog({
       setPosition(contact?.position ?? '')
       setEmail(contact?.email ?? '')
       setPhone(contact?.phone ?? '')
+      setPortalAccess(false)
     }
   }
 
   function handleSave() {
     if (!name.trim()) { toast.error('Συμπλήρωσε όνομα.'); return }
+    if (portalAccess && !email.trim()) { toast.error('Για πρόσβαση στο portal χρειάζεται email.'); return }
     startSaving(async () => {
       try {
         const res = isEdit
           ? await updateLinkedContact(contact!.contactId, { name, position, email, phone })
-          : await createAndLinkContact(applicationId, { name, position, email, phone })
+          : await createAndLinkContact(applicationId, { name, position, email, phone, portalAccess })
         if (!res.ok) throw new Error(res.error)
-        toast.success(isEdit ? 'Η επαφή ενημερώθηκε.' : 'Η επαφή προστέθηκε και συνδέθηκε με το έργο.')
+        if (!isEdit && 'portalError' in res && res.portalError) {
+          toast.warning(`Η επαφή προστέθηκε, αλλά η πρόσβαση portal απέτυχε: ${res.portalError}`)
+        } else {
+          toast.success(isEdit ? 'Η επαφή ενημερώθηκε.' : portalAccess ? 'Η επαφή προστέθηκε — στάλθηκε email ορισμού κωδικού.' : 'Η επαφή προστέθηκε και συνδέθηκε με το έργο.')
+        }
         onSaved()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : isEdit ? 'Η ενημέρωση απέτυχε.' : 'Η προσθήκη απέτυχε.')
@@ -323,6 +348,18 @@ function ContactFormDialog({
               <Input id="nc-phone" name="contact-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="2101234567" autoComplete="off" />
             </div>
           </div>
+
+          {!isEdit && (
+            <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border bg-card/60 p-3">
+              <input type="checkbox" checked={portalAccess} onChange={e => setPortalAccess(e.target.checked)} className="mt-0.5 size-4 shrink-0" />
+              <span className="flex flex-col">
+                <span className="flex items-center gap-1.5 text-[0.8125rem] font-semibold">
+                  <KeyRound className="size-3.5" aria-hidden /> Πρόσβαση στο portal
+                </span>
+                <span className="text-[0.71875rem] text-muted-foreground">Αποστολή email στην επαφή με σύνδεσμο για να ορίσει τον δικό της κωδικό.</span>
+              </span>
+            </label>
+          )}
         </form>
 
         <DialogFooter>
@@ -340,7 +377,7 @@ function ContactFormDialog({
 }
 
 function ContactCard({
-  contact, canManage, busy, onEdit, onRequestDocs, onEmail, onUnlink, onDelete,
+  contact, canManage, busy, onEdit, onRequestDocs, onEmail, onPortal, onUnlink, onDelete,
 }: {
   contact: AppContactOption
   canManage: boolean
@@ -348,6 +385,7 @@ function ContactCard({
   onEdit: (contact: AppContactOption) => void
   onRequestDocs: (contact: AppContactOption) => void
   onEmail: (contact: AppContactOption) => void
+  onPortal: (contact: AppContactOption) => void
   onUnlink: (contact: AppContactOption) => void
   onDelete: (contact: AppContactOption) => void
 }) {
@@ -402,6 +440,13 @@ function ContactCard({
                   title={contact.email ? undefined : 'Η επαφή δεν έχει email'}
                 >
                   <FileCheck2 className="size-3.5" aria-hidden /> Αίτημα δικαιολογητικών
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onPortal(contact)}
+                  disabled={!contact.email}
+                  title={contact.email ? undefined : 'Η επαφή δεν έχει email'}
+                >
+                  <KeyRound className="size-3.5" aria-hidden /> Πρόσβαση στο portal
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onEdit(contact)}>

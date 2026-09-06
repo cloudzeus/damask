@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
+import { grantContactPortalAccess } from '@/lib/portal/contact-access'
 
 /**
  * Σύνδεση έργου (ProgramApplication) με επαφές του πελάτη (Contact) — μία ή
@@ -67,24 +68,45 @@ export async function setApplicationContacts(applicationId: string, contactIds: 
 /** Δημιουργεί ΝΕΑ επαφή στον πελάτη του έργου και τη συνδέει αμέσως με το έργο. */
 export async function createAndLinkContact(
   applicationId: string,
-  input: { name: string; position?: string; email?: string; phone?: string },
-): Promise<{ ok: boolean; error?: string }> {
+  input: { name: string; position?: string; email?: string; phone?: string; portalAccess?: boolean },
+): Promise<{ ok: boolean; error?: string; portalError?: string }> {
   const session = await requirePermission('programs.manage')
   const name = input.name?.trim()
   if (!name) return { ok: false, error: 'Το όνομα είναι υποχρεωτικό.' }
+  const email = input.email?.trim() || null
+  if (input.portalAccess && !email) return { ok: false, error: 'Για πρόσβαση στο portal χρειάζεται email.' }
   const app = await prisma.programApplication.findUniqueOrThrow({ where: { id: applicationId }, select: { trdrId: true } })
   const contact = await prisma.contact.create({
     data: {
       trdrId: app.trdrId,
       name,
       position: input.position?.trim() || null,
-      email: input.email?.trim() || null,
+      email,
       phone: input.phone?.trim() || null,
     },
   })
   await prisma.applicationContact.create({ data: { applicationId, contactId: contact.id, createdById: session.user.id } })
+
+  // Προαιρετική πρόσβαση portal → δημιουργία User + email ορισμού κωδικού.
+  let portalError: string | undefined
+  if (input.portalAccess) {
+    const res = await grantContactPortalAccess(contact.id)
+    if (!res.ok) portalError = res.error
+  }
+
   revalidatePath(`/partners/${app.trdrId}`)
-  return { ok: true }
+  return { ok: true, portalError }
+}
+
+/** Χορήγηση/επαναποστολή πρόσβασης portal σε υπάρχουσα επαφή (⋮ → «Πρόσβαση στο portal»). */
+export async function grantPortalAccess(contactId: string): Promise<{ ok: boolean; error?: string; created?: boolean }> {
+  await requirePermission('programs.manage')
+  const res = await grantContactPortalAccess(contactId)
+  if (res.ok) {
+    const contact = await prisma.contact.findUnique({ where: { id: contactId }, select: { trdrId: true } })
+    if (contact) revalidatePath(`/partners/${contact.trdrId}`)
+  }
+  return res
 }
 
 /** Επεξεργασία επαφής (company-wide) από το έργο. */

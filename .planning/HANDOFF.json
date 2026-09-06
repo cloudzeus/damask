@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-06T14:37:37.808Z",
+  "timestamp": "2026-09-06T14:42:28.306Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,37 +26,13 @@
     },
     {
       "status": "M",
-      "path": "src/components/pm/application-hub.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/file-requests-review-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/pending-reviews.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/email/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/file-requests/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/file-requests/review.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/file-requests/service.ts"
+      "path": "src/lib/pm/application-contacts.ts"
     },
     {
       "status": "??",
-      "path": "src/lib/email/deliver.ts"
+      "path": "src/lib/portal/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n0134520 feat(pm): αίτημα δικαιολογητικών από επαφή έργου + πληρέστερες ειδοποιήσεις\na6efbdb fix(pm): απενεργοποίηση browser autofill στη φόρμα επαφής έργου\nd31fd79 feat(pm): edit/unlink/delete επαφών in-place από την καρτέλα έργου\n72aede1 feat(pm): δημιουργία νέας επαφής από το έργο (καταχωρείται και ως επαφή εταιρίας)\n92b5668 feat(files): ευρύτερο modal preview + ενέργειες review σε dropdown (Προβολή/Λήψη/Έγκριση/Απόρριψη)"
+  "context_notes": "Recent commits:\n7766d62 feat(pm): reject-with-reason + επαναποστολή upload, email action επαφής, tags σε όλα τα emails\n0134520 feat(pm): αίτημα δικαιολογητικών από επαφή έργου + πληρέστερες ειδοποιήσεις\na6efbdb fix(pm): απενεργοποίηση browser autofill στη φόρμα επαφής έργου\nd31fd79 feat(pm): edit/unlink/delete επαφών in-place από την καρτέλα έργου\n72aede1 feat(pm): δημιουργία νέας επαφής από το έργο (καταχωρείται και ως επαφή εταιρίας)"
 }
