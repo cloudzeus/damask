@@ -30,6 +30,12 @@ function LifecycleBadge({ lifecycle }: { lifecycle: string }) {
   return <span className="badge-pill" style={{ color: c.fg, background: c.bg }}>{lifecycleLabel(lifecycle as LifecycleStr)}</span>
 }
 
+/** Χρωματιστό badge με το συνολικό πλήθος ανατεθειμένων έργων του χρήστη. */
+function LoadBadge({ n }: { n: number }) {
+  const variant = n === 0 ? 'muted' : n >= 5 ? 'warn' : n >= 3 ? 'teal' : 'info'
+  return <span className={`badge-pill ${variant} shrink-0 tabular-nums`} title={`${n} ανατεθειμένα έργα συνολικά`}>{n} έργα</span>
+}
+
 export function AssignmentsTable({ rows, staff }: { rows: AssignableApplicationRow[]; staff: Staff }) {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = React.useState(false)
@@ -184,7 +190,10 @@ function AssignDialog({
     })
   }
 
-  const managerName = (id: string) => staff.managers.find(m => m.id === id)?.name ?? 'Κανένας'
+  const managerName = (id: string) => {
+    if (id === NONE) return 'Κανένας'
+    return staff.managers.find(m => m.id === id)?.name ?? staff.employees.find(e => e.id === id)?.name ?? row.managerName ?? 'Κανένας'
+  }
 
   return (
     <Dialog open={open} onOpenChange={next => { if (!pending) onOpenChange(next) }}>
@@ -212,7 +221,12 @@ function AssignDialog({
             <SelectContent>
               <SelectItem value={NONE}>Κανένας</SelectItem>
               {staff.managers.map(m => (
-                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                <SelectItem key={m.id} value={m.id}>
+                  <span className="flex w-full items-center justify-between gap-3">
+                    <span className="truncate">{m.name}</span>
+                    <LoadBadge n={m.assignedCount} />
+                  </span>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -259,7 +273,7 @@ function AssignDialog({
                     <span className="block truncate text-[0.8125rem] font-semibold text-foreground">{e.name}</span>
                     <span className="block truncate text-[0.71875rem] text-muted-foreground">{e.email}</span>
                   </span>
-                  <span className="badge-pill muted shrink-0">{e.role}</span>
+                  <LoadBadge n={e.assignedCount} />
                 </label>
               )
             })}

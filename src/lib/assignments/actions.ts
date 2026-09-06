@@ -13,16 +13,32 @@ import { createNotification } from '@/lib/notifications/service'
  * ApplicationAssignment rows.
  */
 
-export type StaffOption = { id: string; name: string; email: string; role: string }
+export type StaffOption = { id: string; name: string; email: string; role: string; assignedCount: number }
 
 export async function getAssignableStaff(): Promise<{ managers: StaffOption[]; employees: StaffOption[] }> {
   await requirePermission('application.assign')
-  const users = await prisma.user.findMany({
-    where: { active: true, role: { name: { in: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'SALESMAN'] } } },
-    select: { id: true, name: true, email: true, role: { select: { name: true } } },
-    orderBy: { name: 'asc' },
-  })
-  const mapped = users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role.name }))
+  const [users, apps, assigns] = await Promise.all([
+    prisma.user.findMany({
+      where: { active: true, role: { name: { in: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'SALESMAN'] } } },
+      select: { id: true, name: true, email: true, role: { select: { name: true } } },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.programApplication.findMany({ select: { id: true, managerId: true } }),
+    prisma.applicationAssignment.findMany({ select: { applicationId: true, userId: true } }),
+  ])
+
+  // Συνολικά έργα ανά χρήστη = distinct applications όπου είναι manager Ή εκτελεστής.
+  const appsByUser = new Map<string, Set<string>>()
+  const add = (userId: string | null, appId: string) => {
+    if (!userId) return
+    const set = appsByUser.get(userId) ?? new Set<string>()
+    set.add(appId)
+    appsByUser.set(userId, set)
+  }
+  for (const a of apps) add(a.managerId, a.id)
+  for (const a of assigns) add(a.userId, a.applicationId)
+
+  const mapped = users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role.name, assignedCount: appsByUser.get(u.id)?.size ?? 0 }))
   return {
     managers: mapped.filter(u => ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(u.role)),
     employees: mapped.filter(u => ['MANAGER', 'EMPLOYEE', 'SALESMAN'].includes(u.role)),
