@@ -5,7 +5,6 @@ import { requirePermission } from '@/lib/rbac-server'
 import { isMailerConfigured } from '@/lib/mailer'
 import {
   deliverCustomerEmail,
-  type ComposeAttachment,
   type DeliverCustomerEmailInput,
   type DeliverCustomerEmailResult,
 } from '@/lib/email/deliver'
@@ -17,7 +16,6 @@ import {
  * (FileRequest one-time link). Gated: customer.edit (αποστολή) / customer.view (ιστορικό).
  */
 
-export type { ComposeAttachment }
 export type SendCustomerEmailInput = DeliverCustomerEmailInput
 export type SendCustomerEmailResult = DeliverCustomerEmailResult
 

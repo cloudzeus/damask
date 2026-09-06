@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-06T14:42:28.306Z",
+  "timestamp": "2026-09-06T14:44:16.888Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,24 +15,7 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [
-    {
-      "status": "M",
-      "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/application-contacts-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/application-contacts.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/portal/"
-    }
-  ],
+  "uncommitted_files": [],
   "next_action": null,
-  "context_notes": "Recent commits:\n7766d62 feat(pm): reject-with-reason + επαναποστολή upload, email action επαφής, tags σε όλα τα emails\n0134520 feat(pm): αίτημα δικαιολογητικών από επαφή έργου + πληρέστερες ειδοποιήσεις\na6efbdb fix(pm): απενεργοποίηση browser autofill στη φόρμα επαφής έργου\nd31fd79 feat(pm): edit/unlink/delete επαφών in-place από την καρτέλα έργου\n72aede1 feat(pm): δημιουργία νέας επαφής από το έργο (καταχωρείται και ως επαφή εταιρίας)"
+  "context_notes": "Recent commits:\na6b67f8 feat(portal): πρόσβαση portal σε επαφή έργου + email ορισμού κωδικού\n7766d62 feat(pm): reject-with-reason + επαναποστολή upload, email action επαφής, tags σε όλα τα emails\n0134520 feat(pm): αίτημα δικαιολογητικών από επαφή έργου + πληρέστερες ειδοποιήσεις\na6efbdb fix(pm): απενεργοποίηση browser autofill στη φόρμα επαφής έργου\nd31fd79 feat(pm): edit/unlink/delete επαφών in-place από την καρτέλα έργου"
 }
