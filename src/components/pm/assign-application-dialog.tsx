@@ -51,15 +51,26 @@ function AssignApplicationDialogContent({
   const [processorId, setProcessorId] = React.useState(app.processorId ?? NONE_USER)
   const [saving, setSaving] = React.useState(false)
 
+  const userName = (id: string) => (id === NONE_USER ? '— (κανένας) —' : (users.find(u => u.id === id)?.name ?? '…'))
+
   React.useEffect(() => {
     if (!open) return
-    setManagerId(app.managerId ?? NONE_USER)
-    setProcessorId(app.processorId ?? NONE_USER)
-    setLoading(true)
-    listInternalUsers()
-      .then(setUsers)
-      .catch(() => toast.error('Η φόρτωση χρηστών απέτυχε.'))
-      .finally(() => setLoading(false))
+    let cancelled = false
+    const load = async () => {
+      setManagerId(app.managerId ?? NONE_USER)
+      setProcessorId(app.processorId ?? NONE_USER)
+      setLoading(true)
+      try {
+        const u = await listInternalUsers()
+        if (!cancelled) setUsers(u)
+      } catch {
+        if (!cancelled) toast.error('Η φόρτωση χρηστών απέτυχε.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -97,7 +108,7 @@ function AssignApplicationDialogContent({
           <label htmlFor="assign-manager">Διαχειριστής</label>
           <Select value={managerId} onValueChange={v => setManagerId(v as string)} disabled={loading || saving}>
             <SelectTrigger id="assign-manager" className="h-11 w-full rounded-full border-border bg-card px-4">
-              <SelectValue />
+              <SelectValue>{(v: string) => userName(v)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_USER}>— (κανένας) —</SelectItem>
@@ -112,7 +123,7 @@ function AssignApplicationDialogContent({
           <label htmlFor="assign-processor">Διεκπεραιωτής</label>
           <Select value={processorId} onValueChange={v => setProcessorId(v as string)} disabled={loading || saving}>
             <SelectTrigger id="assign-processor" className="h-11 w-full rounded-full border-border bg-card px-4">
-              <SelectValue />
+              <SelectValue>{(v: string) => userName(v)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_USER}>— (κανένας) —</SelectItem>
