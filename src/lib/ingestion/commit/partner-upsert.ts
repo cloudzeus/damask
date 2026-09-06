@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { resolveIrsdataCode } from '@/lib/trdr/irsdata'
+import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { applyAadeToTrdr, gemiSyncTrdr, matchTrdrRegionAction } from '@/lib/trdr/enrich-actions'
 import { geocodeSearchParts } from '@/lib/geocode'
 import { getIntegration } from '@/lib/settings'
@@ -166,6 +167,7 @@ export async function runPartnerUpsert(parsed: ParsedRow[], enrich: PartnerEnric
         const created = await prisma.trdr.create({ data: { ...row.data, IRSDATA: irsdataCode, TRDR: null, ISPROSP: 0 } })
         totals.created++
         trdrId = created.id
+        await ensureTrdrCdnFolder(trdrId)
       }
       if (anyEnrich) {
         await enrichTrdrRow(trdrId, row.rowNum, enrich, geocodeApiKey, pushError)

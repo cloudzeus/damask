@@ -339,6 +339,7 @@ model Trdr {
   appNotes             String?
   appEmployees         Int? // αριθμός εργαζομένων (app-only, από import/χειροκίνητα)
   appAnnualRevenue     Decimal?                 @db.Decimal(14, 2) // τελευταία ετήσια έσοδα € (app-only)
+  cdnFolder            String? // path στο Bunny (private) — αυτόματος φάκελος ανά συναλλασσόμενο (partners/<type>/<ΑΦΜ>/)
   syncedAt             DateTime?
   // ΓΕΜΗ (Open Data businessportal.gr)
   arGemi               String?                  @unique // Αριθμός ΓΕΜΗ

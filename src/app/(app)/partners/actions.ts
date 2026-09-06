@@ -8,6 +8,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { getIntegration } from '@/lib/settings'
 import { aadeLookup, type AadeCompany } from '@/lib/aade'
 import { resolveIrsdataCode } from '@/lib/trdr/irsdata'
+import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { geocodeSearch, geocodeSuggest, geocodeReverse, GeocodeError, type GeocodeResult } from '@/lib/geocode'
 import { logActivity } from '@/lib/activity/log'
 
@@ -146,6 +147,7 @@ export async function createPartner(input: PartnerFormValues): Promise<ActionRes
         referrerId: n(data.referrerId),
       },
     })
+    await ensureTrdrCdnFolder(created.id)
     revalidatePartners()
     await logActivity('partner.create', { entityType: 'trdr', entityId: created.id, summary: created.NAME })
     return { ok: true, message: `Ο συναλλασσόμενος «${created.NAME}» δημιουργήθηκε.`, partnerId: created.id }

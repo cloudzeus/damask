@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { requirePermission } from '@/lib/rbac-server'
 import { aadeLookup } from '@/lib/trdr/aade'
 import { createExpense, suggestExpenseCategory } from '@/lib/programs/actions'
@@ -76,6 +77,7 @@ export async function processProgramInvoice(input: ProcessProgramInvoiceInput): 
     )
     // ΧΩΡΙΣ S1 push — Workflow Β είναι καθαρά δικό μας μητρώο (δες design doc).
     trdrRow = await prisma.trdr.create({ data: createData })
+    await ensureTrdrCdnFolder(trdrRow.id)
   }
 
   const description =

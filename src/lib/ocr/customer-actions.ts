@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { requirePermission } from '@/lib/rbac-server'
 import { prisma } from '@/lib/prisma'
 import { aadeLookup, type AadeCompany } from '@/lib/aade'
+import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 
 /**
  * Server actions πίσω από την κάρτα «Εξακρίβωση & Καρτέλα» του OCR review panel
@@ -130,5 +131,6 @@ export async function createCustomerFromOcr(input: CreateCustomerFromOcrInput): 
     },
   })
 
+  await ensureTrdrCdnFolder(trdr.id)
   return { ok: true, customerId: trdr.id }
 }

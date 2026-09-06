@@ -8,6 +8,7 @@ import { aadeLookup, AadeError, normalizeAfm } from '@/lib/trdr/aade'
 import { resolveKadForActivity } from '@/lib/registries/kad'
 import { matchRegion } from '@/lib/registries/regions'
 import { computeSinglePair } from '@/lib/prospects/evaluate-pair'
+import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { sendMail, isMailerConfigured } from '@/lib/mailer'
 import { logActivity } from '@/lib/activity/log'
 import { createNotification } from '@/lib/notifications/service'
@@ -255,6 +256,9 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
           select: { id: true },
         })
       ).id
+
+  // Αυτόματος φάκελος στο CDN (idempotent).
+  await ensureTrdrCdnFolder(trdrId)
 
   // 2) ΚΑΔ — γράφουμε μόνο αν δεν υπάρχουν ήδη (μη επεμβαίνουμε σε υπάρχοντα πελάτη).
   const existingKads = await prisma.trdrKad.count({ where: { trdrId } })

@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { requirePermission } from '@/lib/rbac-server'
 import { s1 } from '@/lib/softone'
 import { getIntegration, isIntegrationConfigured } from '@/lib/settings'
@@ -143,6 +144,7 @@ export async function processCompanyInvoice(input: ProcessCompanyInvoiceInput): 
       aadeMapped,
     )
     trdrRow = await prisma.trdr.create({ data: createData })
+    await ensureTrdrCdnFolder(trdrRow.id)
 
     if (s1Active) {
       try {
