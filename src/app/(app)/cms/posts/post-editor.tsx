@@ -41,6 +41,7 @@ export function PostEditor({
   const [slugTouched, setSlugTouched] = useState(mode === 'edit')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const [translating, startTranslate] = useTransition()
 
@@ -289,6 +290,32 @@ export function PostEditor({
                 </div>
               </div>
             </div>
+
+            <div className="glass p-4">
+              <label className="mb-1.5 block text-[0.75rem] font-bold">Άλλες εικόνες (gallery)</label>
+              <div className="flex flex-wrap gap-2">
+                {values.otherImages.map((url, i) => (
+                  <div key={`${url}-${i}`} className="relative size-16 overflow-hidden rounded-[10px]" style={{ background: 'var(--muted)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="size-full object-cover" />
+                    <button
+                      type="button"
+                      aria-label="Αφαίρεση"
+                      onClick={() => setValues(v => ({ ...v, otherImages: v.otherImages.filter((_, idx) => idx !== i) }))}
+                      className="absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-[0.7rem] leading-none text-white hover:bg-destructive"
+                    >×</button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setGalleryPickerOpen(true)}
+                  className="flex size-16 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-border text-muted-foreground hover:text-foreground"
+                >
+                  <ImageIcon className="size-5" strokeWidth={1.6} aria-hidden />
+                </button>
+              </div>
+              <p className="help mt-1.5">Εμφανίζονται στη δημόσια σελίδα του άρθρου κάτω από το κείμενο.</p>
+            </div>
           </div>
         </div>
       </form>
@@ -301,6 +328,17 @@ export function PostEditor({
         onSelect={assets => {
           const asset = assets[0]
           if (asset) setValues(v => ({ ...v, featuredImage: asset.url }))
+        }}
+      />
+
+      <MediaPicker
+        open={galleryPickerOpen}
+        onOpenChange={setGalleryPickerOpen}
+        multiple
+        accept={['IMAGE']}
+        onSelect={assets => {
+          const urls = assets.map(a => a.url).filter(Boolean)
+          if (urls.length) setValues(v => ({ ...v, otherImages: [...v.otherImages, ...urls.filter(u => !v.otherImages.includes(u))] }))
         }}
       />
     </div>

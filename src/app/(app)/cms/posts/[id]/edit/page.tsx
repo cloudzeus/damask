@@ -32,6 +32,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
     categoryId: post.categoryId,
     authorId: post.authorId,
     featuredImage: post.featuredImage,
+    otherImages: Array.isArray(post.otherImages) ? (post.otherImages as string[]) : [],
     el: elTranslation
       ? {
           title: elTranslation.title,

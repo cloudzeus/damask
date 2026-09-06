@@ -55,30 +55,37 @@ function shortRegion(cmsRegion: string | undefined | null, regionNames: string[]
 }
 
 /**
- * Ενιαίο «headline» ποσό για κάρτες & summary: ΠΑΝΤΑ το ποσοστό επιχορήγησης ως
- * κύριο νούμερο (συγκρίσιμο μεταξύ προγραμμάτων), και το ποσό/προϋπολογισμό (€)
- * ως δευτερεύουσα σημείωση. Έτσι δεν δείχνει το ένα πρόγραμμα % και το άλλο €.
+ * Δύο ξεχωριστά νούμερα για την κάρτα/hero: το μέγιστο ποσό προϋπολογισμού (€,
+ * κύριο — πράσινο) και το ποσοστό επιχορήγησης (%, δευτερεύον — μπλε). Το € βγαίνει
+ * από το cms.amountDisplay όταν περιέχει €· αλλιώς μένει null και προβάλλεται μόνο το %.
  */
-function headlineAmount(fundingRate: number | null, cms: ProgramCms | null): { amount: string; amountNote: string } {
-  const pct = fundingRate != null ? `έως ${fundingRate}%` : null
+function programFigures(fundingRate: number | null, cms: ProgramCms | null): { budget: string | null; rate: string | null } {
+  const rate = fundingRate != null ? `έως ${fundingRate}%` : null
   const cmsAmount = (cms?.amountDisplay || '').trim()
-  const euro = cmsAmount.includes('€') ? cmsAmount : ''
-  if (pct) return { amount: pct, amountNote: euro || cms?.amountNote || '' }
-  return { amount: cmsAmount || '—', amountNote: cms?.amountNote || '' }
+  const budget = cmsAmount.includes('€') ? cmsAmount : null
+  return { budget, rate }
+}
+
+/** Headline (detail head) — € αν υπάρχει, αλλιώς %· note = το άλλο μέγεθος. */
+function headlineAmount(fundingRate: number | null, cms: ProgramCms | null): { amount: string; amountNote: string } {
+  const { budget, rate } = programFigures(fundingRate, cms)
+  if (budget) return { amount: budget, amountNote: rate || cms?.amountNote || '' }
+  return { amount: rate || '—', amountNote: cms?.amountNote || '' }
 }
 
 export type PublicProgramCard = {
   slug: string
   title: string
   summary: string
-  amount: string
-  amountNote: string
-  deadline: string | null      // ΜΟΝΟ πραγματική ημερομηνία (submissionEnd)
+  budget: string | null          // μέγιστο ποσό προϋπολογισμού (€) — κύριο, πράσινο
+  rate: string | null            // ποσοστό επιχορήγησης — δευτερεύον, μπλε
+  deadline: string | null        // ΜΟΝΟ πραγματική ημερομηνία (submissionEnd)
   deadlineOpen: boolean          // χωρίς προθεσμία → badge «Ανοιχτή πρόσκληση»
   region: string | null          // σύντομη ετικέτα για badge
   image: string
   heroTitle: string              // για το hero της αρχικής (πιο πρόσφατο πρόγραμμα)
   heroSubtitle: string
+  heroAmount: string             // για το hero — €, αλλιώς %
 }
 
 // CDN (Media Gallery «WWA — Δημόσιο site») — βλ. app/(public)/_wwa/assets.ts
@@ -105,19 +112,20 @@ export async function listPublicPrograms(): Promise<PublicProgramCard[]> {
     const p = rows[i]
     const cms = cmsOf(p.cmsContent)
     const slug = await ensureProgramSlug(p.id, p.title, p.publicSlug)
-    const { amount, amountNote } = headlineAmount(p.fundingRate != null ? Number(p.fundingRate) : null, cms)
+    const { budget, rate } = programFigures(p.fundingRate != null ? Number(p.fundingRate) : null, cms)
     out.push({
       slug,
       title: cms?.cardTitle || p.title,
       summary: cms?.cardSummary || p.summary || '',
-      amount,
-      amountNote,
+      budget,
+      rate,
       deadline: p.submissionEnd ? dateFmt.format(p.submissionEnd) : null,
       deadlineOpen: !p.submissionEnd,
       region: shortRegion(cms?.regionText, p.regions.map(r => r.name), p._count.regions),
       image: p.imageUrl || FALLBACK_IMAGES[i % FALLBACK_IMAGES.length],
       heroTitle: cms?.heroTitle || p.title,
       heroSubtitle: cms?.heroSubtitle || cms?.cardSummary || p.summary || '',
+      heroAmount: budget || rate || '',
     })
   }
   return out

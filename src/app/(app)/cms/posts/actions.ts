@@ -63,6 +63,7 @@ const postFormSchema = z.object({
   categoryId: z.string().nullable(),
   authorId: z.string().nullable(),
   featuredImage: z.string().nullable(),
+  otherImages: z.array(z.string()).default([]),
   el: elContentSchema,
   en: enContentSchema,
   enMachineTranslated: z.boolean(),
@@ -82,6 +83,7 @@ export type PostFormValues = {
   categoryId: string | null
   authorId: string | null
   featuredImage: string | null
+  otherImages: string[]
   el: LocaleContentValues
   en: LocaleContentValues
   enMachineTranslated: boolean
@@ -161,6 +163,7 @@ export async function createPost(values: PostFormValues): Promise<ActionResult> 
       categoryId: data.categoryId,
       authorId: data.authorId,
       featuredImage: data.featuredImage,
+      otherImages: data.otherImages,
       publishedAt: data.status === 'PUBLISHED' ? now : null,
       translations: { create: translations },
     },
@@ -198,6 +201,7 @@ export async function updatePost(postId: string, values: PostFormValues): Promis
         categoryId: data.categoryId,
         authorId: data.authorId,
         featuredImage: data.featuredImage,
+        otherImages: data.otherImages,
         // κλειδώνει publishedAt στην ΠΡΩΤΗ δημοσίευση· δεν το ξαναγράφει σε κάθε save.
         publishedAt: !wasPublished && nowPublishing ? new Date() : existing.publishedAt,
       },

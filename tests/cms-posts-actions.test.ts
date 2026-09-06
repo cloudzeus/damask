@@ -116,6 +116,7 @@ function baseFormValues(overrides: Partial<PostFormValues> = {}): PostFormValues
     categoryId: null,
     authorId: null,
     featuredImage: null,
+    otherImages: [],
     el: { ...EMPTY_LOCALE },
     en: { ...EMPTY_LOCALE },
     enMachineTranslated: false,

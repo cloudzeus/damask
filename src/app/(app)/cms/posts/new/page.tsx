@@ -24,6 +24,7 @@ export default async function NewPostPage() {
     categoryId: null,
     authorId: null,
     featuredImage: null,
+    otherImages: [],
     el: { ...EMPTY_LOCALE },
     en: { ...EMPTY_LOCALE },
     enMachineTranslated: false,

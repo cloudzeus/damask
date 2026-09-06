@@ -8,6 +8,7 @@ import { Faq, type FaqItem } from './_components/faq'
 import { EligibilityCta } from './_components/eligibility-cta'
 import { wwaPhoto } from './_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
+import { listPublishedPosts } from '@/lib/cms/public-posts'
 
 export const metadata: Metadata = {
   title: 'World Wide Associates — Σύμβουλοι ΕΣΠΑ & Ευρωπαϊκών Προγραμμάτων',
@@ -54,6 +55,7 @@ export default async function HomePage() {
         status: 'active' as const, isNew: i === 0, href: `/programmata/${p.slug}`,
       }))
     : FALLBACK_PROGRAMS
+  const news = await listPublishedPosts(3)
   const featured = active[0] ?? null
   const heroDeadline = featured
     ? (featured.deadline ? `υποβολές έως ${featured.deadline}` : featured.deadlineOpen ? 'ανοιχτή πρόσκληση' : 'ενεργό πρόγραμμα')
@@ -170,17 +172,26 @@ export default async function HomePage() {
       </section>
 
       {/* NEWS */}
-      <section lang="el" className="news alt" id="news">
-        <div className="wrap">
-          <div className="sec-head r"><span className="eyebrow"><span className="idx">05</span>Νέα &amp; προκηρύξεις</span><h2>Τι αλλάζει αυτόν τον μήνα</h2></div>
-          <div className="cards3">
-            <article className="card card-hover ncard r"><div className="media"><img src={wwaPhoto('ecommerce')} alt="" /></div><div className="body"><div className="date"><Badge variant="upcoming">Αναμένεται</Badge>04/09/2026</div><h3><Link href="/#news">Ψηφιακός Μετασχηματισμός ΜμΕ: τι φέρνει ο νέος κύκλος</Link></h3><p>Τρεις δράσεις (βασικός, προηγμένος, αιχμής) με νέες προϋποθέσεις για λογισμικό και υπηρεσίες cloud.</p></div></article>
-            <article className="card card-hover ncard r"><div className="media"><img src={wwaPhoto('cosmetics')} alt="" /></div><div className="body"><div className="date"><Badge variant="active">Ενεργό</Badge>28/08/2026</div><h3><Link href="/#news">Παράγουμε στην Ελλάδα: οδηγός επιλέξιμων δαπανών</Link></h3><p>Τι καλύπτεται σε μηχανήματα, κτιριακά, πιστοποιήσεις και τι εξαιρείται ρητά από την προκήρυξη.</p></div></article>
-            <article className="card card-hover ncard r"><div className="media"><img src={wwaPhoto('hotel')} alt="" /></div><div className="body"><div className="date"><Badge variant="running">Σε υλοποίηση</Badge>19/08/2026</div><h3><Link href="/#news">Πράσινη Παραγωγική Επένδυση: προθεσμίες ολοκλήρωσης</Link></h3><p>Παράταση 6 μηνών για την ολοκλήρωση φυσικού και οικονομικού αντικειμένου.</p></div></article>
+      {news.length > 0 && (
+        <section lang="el" className="news alt" id="news">
+          <div className="wrap">
+            <div className="sec-head r"><span className="eyebrow"><span className="idx">05</span>Νέα &amp; προκηρύξεις</span><h2>Τι αλλάζει αυτόν τον μήνα</h2></div>
+            <div className="cards3">
+              {news.map((post, i) => (
+                <article key={post.slug} className="card card-hover ncard r">
+                  <div className="media"><img src={post.image || wwaPhoto(['ecommerce', 'cosmetics', 'hotel'][i % 3] as 'ecommerce')} alt="" /></div>
+                  <div className="body">
+                    <div className="date">{post.category && <Badge variant="active">{post.category}</Badge>}{post.date}</div>
+                    <h3><Link href={`/nea/${post.slug}`}>{post.title}</Link></h3>
+                    {post.excerpt && <p>{post.excerpt}</p>}
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="sec-foot r"><Button href="/nea" variant="outline">Όλα τα νέα</Button></div>
           </div>
-          <div className="sec-foot r"><Button href="/#news" variant="outline">Όλα τα νέα</Button></div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* AFFILIATIONS */}
       <div className="aff" lang="el">

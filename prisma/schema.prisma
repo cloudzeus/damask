@@ -867,7 +867,8 @@ model Post {
   author        Author?           @relation(fields: [authorId], references: [id])
   categoryId    String?
   category      PostCategory?     @relation(fields: [categoryId], references: [id])
-  featuredImage String? // cdn url
+  featuredImage String? // cdn url — κύρια εικόνα
+  otherImages   Json? // string[] — πρόσθετες εικόνες (gallery)
   publishedAt   DateTime?
   aiGenerated   Boolean           @default(false)
   translations  PostTranslation[]

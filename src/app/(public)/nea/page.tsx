@@ -4,11 +4,12 @@ import Link from 'next/link'
 import { SubBanner } from '../_components/sub-banner'
 import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
-import { wwaPhoto, type WwaPhoto } from '../_wwa/assets'
+import { wwaPhoto } from '../_wwa/assets'
+import { listPublishedPosts, type PublicPostCard } from '@/lib/cms/public-posts'
 
 export const metadata: Metadata = {
   title: 'Νέα & προκηρύξεις ΕΣΠΑ — World Wide Associates',
-  description: 'Νέες προκηρύξεις, τροποποιήσεις, παρατάσεις και οδηγοί επιλέξιμων δαπανών ΕΣΠΑ. Ένα email τον μήνα για όσους εγγραφούν.',
+  description: 'Νέες προκηρύξεις, εκδηλώσεις και ενημερώσεις ΕΣΠΑ από τη World Wide Associates. Ένα email τον μήνα για όσους εγγραφούν.',
 }
 
 const FAQS: FaqItem[] = [
@@ -18,30 +19,25 @@ const FAQS: FaqItem[] = [
   { q: 'Ενημερώνετε για παρατάσεις και τροποποιήσεις;', a: 'Ναι. Κάθε παράταση προθεσμίας ή τροποποίηση όρων δημοσιεύεται εδώ και αποστέλλεται στους πελάτες που έχουν έργο στο συγκεκριμένο πρόγραμμα.' },
 ]
 
-type Post = { photo: WwaPhoto; badgeCls: string; badge: string; date: string; title: string; text: string; href?: string }
-const POSTS: Post[] = [
-  { photo: 'manufacturing', badgeCls: 'badge-active', badge: 'Ενεργό', date: '28/08/2026', title: 'Παράγουμε στην Ελλάδα: οδηγός επιλέξιμων δαπανών', text: 'Τι καλύπτεται σε μηχανήματα, κτιριακά, πιστοποιήσεις και τι εξαιρείται ρητά από την προκήρυξη.' },
-  { photo: 'hotel', badgeCls: 'badge-running', badge: 'Σε υλοποίηση', date: '19/08/2026', title: 'Πράσινη Παραγωγική Επένδυση: παράταση 6 μηνών', text: 'Νέα προθεσμία ολοκλήρωσης φυσικού και οικονομικού αντικειμένου — τι πρέπει να κάνετε τώρα.' },
-  { photo: 'startup', badgeCls: 'badge-active', badge: 'Ενεργό', date: '12/08/2026', title: 'Ξεκινώ Επιχειρηματικά 2026: οι 7 πιο συχνές αιτίες απόρριψης', text: 'ΚΑΔ, ημερομηνία έναρξης, μη επιλέξιμες δαπάνες — πώς να τις αποφύγετε πριν την υποβολή.' },
-  { photo: 'cosmetics', badgeCls: 'badge-upcoming', badge: 'Αναμένεται', date: '30/07/2026', title: 'Εξωστρέφεια ΜμΕ 2027: τι γνωρίζουμε μέχρι τώρα', text: 'Εκθέσεις, πιστοποιήσεις εξαγωγών και branding — ποιες δαπάνες θα είναι επιλέξιμες.' },
-  { photo: 'team', badgeCls: 'badge-closed', badge: 'Εταιρικά', date: '15/07/2026', title: 'Η WWA επίσημος σύμβουλος του ΣΕΔΕ', text: 'Νέα συνεργασία για τις επιχειρήσεις‑μέλη του Συνδέσμου Επιχειρήσεων Διαδικτύου.' },
-  { photo: 'consulting', badgeCls: 'badge-closed', badge: 'Οδηγός', date: '02/07/2026', title: 'Πώς βαθμολογείται ένα επενδυτικό σχέδιο', text: 'Τα κριτήρια αξιολόγησης του ΕΣΠΑ 2021–2027 και πώς να κερδίσετε μονάδες πριν την υποβολή.' },
-]
+const FALLBACK = [wwaPhoto('manufacturing'), wwaPhoto('hotel'), wwaPhoto('startup'), wwaPhoto('cosmetics'), wwaPhoto('team'), wwaPhoto('consulting')]
 
-function NCard({ photo, badgeCls, badge, date, title, text, href = '#' }: Post) {
+function NCard({ post, i }: { post: PublicPostCard; i: number }) {
   return (
     <article className="card card-hover ncard r">
-      <div className="media"><img src={wwaPhoto(photo)} alt="" /></div>
+      <div className="media"><img src={post.image || FALLBACK[i % FALLBACK.length]} alt="" /></div>
       <div className="body">
-        <div className="date"><span className={`badge ${badgeCls}`}>{badge}</span>{date}</div>
-        <h3><Link href={href}>{title}</Link></h3>
-        <p>{text}</p>
+        <div className="date">{post.category && <span className="badge badge-active">{post.category}</span>}{post.date}</div>
+        <h3><Link href={`/nea/${post.slug}`}>{post.title}</Link></h3>
+        {post.excerpt && <p>{post.excerpt}</p>}
       </div>
     </article>
   )
 }
 
-export default function NewsPage() {
+export default async function NewsPage() {
+  const posts = await listPublishedPosts(30)
+  const [featured, ...rest] = posts
+
   return (
     <>
       <SubBanner
@@ -49,32 +45,35 @@ export default function NewsPage() {
         crumbs={[{ label: 'Νέα' }]}
         title="ΝΕΑ & ΠΡΟΚΗΡΥΞΕΙΣ"
         sub={<>Ό,τι αλλάζει στο ΕΣΠΑ, <span style={{ color: 'var(--wwa-cyan-400)' }}>πριν</span> λήξει η προθεσμία</>}
-        lead="Νέες προκηρύξεις, τροποποιήσεις, παρατάσεις και οδηγοί επιλέξιμων δαπανών. Ένα email τον μήνα για όσους εγγραφούν."
+        lead="Νέες προκηρύξεις, εκδηλώσεις και ενημερώσεις. Ένα email τον μήνα για όσους εγγραφούν."
       />
 
       <section lang="el" className="alt">
         <div className="wrap">
-          <article className="feat-post">
-            <div className="photo square"><img src={wwaPhoto('ecommerce')} alt="" /></div>
-            <div className="b">
-              <div className="date" style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13, color: 'var(--fg-3)' }}><span className="badge badge-upcoming">Αναμένεται</span>04/09/2026</div>
-              <h2>Ψηφιακός Μετασχηματισμός ΜμΕ: τι φέρνει ο νέος κύκλος</h2>
-              <p>Τρεις δράσεις (βασικός, προηγμένος, αιχμής) με νέες προϋποθέσεις για λογισμικό, cloud και αυτοματισμούς. Ποιες επιχειρήσεις πρέπει να προετοιμάσουν φάκελο από τώρα.</p>
-              <div><Button href="/nea/psifiakos-metaschimatismos-mme">Διαβάστε το άρθρο</Button></div>
-            </div>
-          </article>
-
-          <div className="page-tabs">
-            {['Όλα', 'Προκηρύξεις', 'Παρατάσεις', 'Οδηγοί', 'Εταιρικά'].map((t, i) => (
-              <button key={t} className="chip" aria-pressed={i === 0}>{t}</button>
-            ))}
-          </div>
-
-          <div className="cards3 cards-2rows">
-            {POSTS.map(p => <NCard key={p.title} {...p} />)}
-          </div>
-
-          <div className="pager-wrap"><div className="pager"><a href="#">‹</a><a href="#" aria-current="page">1</a><a href="#">2</a><a href="#">3</a><span>…</span><a href="#">8</a><a href="#">›</a></div></div>
+          {posts.length === 0 ? (
+            <p className="r" style={{ textAlign: 'center', color: 'var(--fg-3)' }}>Δεν υπάρχουν δημοσιευμένα νέα αυτή τη στιγμή.</p>
+          ) : (
+            <>
+              {featured && (
+                <article className="feat-post">
+                  <div className="photo square"><img src={featured.image || FALLBACK[0]} alt="" /></div>
+                  <div className="b">
+                    <div className="date" style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13, color: 'var(--fg-3)' }}>
+                      {featured.category && <span className="badge badge-active">{featured.category}</span>}{featured.date}
+                    </div>
+                    <h2>{featured.title}</h2>
+                    {featured.excerpt && <p>{featured.excerpt}</p>}
+                    <div><Button href={`/nea/${featured.slug}`}>Διαβάστε το άρθρο</Button></div>
+                  </div>
+                </article>
+              )}
+              {rest.length > 0 && (
+                <div className="cards3 cards-2rows">
+                  {rest.map((p, i) => <NCard key={p.slug} post={p} i={i} />)}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
 
