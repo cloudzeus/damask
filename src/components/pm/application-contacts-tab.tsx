@@ -272,26 +272,28 @@ function ContactFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
+        {/* autoComplete="off" παντού: αλλιώς ο browser autofill γεμίζει τα πεδία με
+            το προφίλ του συνδεδεμένου χρήστη και μπορεί να «γράψει» πάνω στην επαφή. */}
+        <form className="flex flex-col gap-3" autoComplete="off" onSubmit={e => { e.preventDefault(); handleSave() }}>
           <div className="field !mb-0">
             <label htmlFor="nc-name">Ονοματεπώνυμο*</label>
-            <Input id="nc-name" value={name} onChange={e => setName(e.target.value)} placeholder="π.χ. Μαρία Παπαδοπούλου" autoFocus />
+            <Input id="nc-name" name="contact-name" value={name} onChange={e => setName(e.target.value)} placeholder="π.χ. Μαρία Παπαδοπούλου" autoComplete="off" autoFocus />
           </div>
           <div className="field !mb-0">
             <label htmlFor="nc-position">Θέση/Ρόλος</label>
-            <Input id="nc-position" value={position} onChange={e => setPosition(e.target.value)} placeholder="π.χ. Οικονομικός Διευθυντής" />
+            <Input id="nc-position" name="contact-position" value={position} onChange={e => setPosition(e.target.value)} placeholder="π.χ. Οικονομικός Διευθυντής" autoComplete="off" />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="field !mb-0">
               <label htmlFor="nc-email">Email</label>
-              <Input id="nc-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.gr" />
+              <Input id="nc-email" name="contact-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.gr" autoComplete="off" />
             </div>
             <div className="field !mb-0">
               <label htmlFor="nc-phone">Τηλέφωνο</label>
-              <Input id="nc-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="2101234567" />
+              <Input id="nc-phone" name="contact-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="2101234567" autoComplete="off" />
             </div>
           </div>
-        </div>
+        </form>
 
         <DialogFooter>
           <DialogClose render={<Button type="button" variant="outline" disabled={saving}>Άκυρο</Button>} />
