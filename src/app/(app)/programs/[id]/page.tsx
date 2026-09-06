@@ -48,6 +48,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
     id: program.id,
     title: program.title,
     summary: program.summary,
+    imageUrl: program.imageUrl,
     referenceCode: program.referenceCode,
     totalBudget: program.totalBudget != null ? Number(program.totalBudget) : null,
     fundingRate: program.fundingRate != null ? Number(program.fundingRate) : null,

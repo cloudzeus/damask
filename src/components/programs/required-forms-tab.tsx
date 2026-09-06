@@ -14,10 +14,12 @@ import {
   listProgramRequiredForms, addRequiredForm, updateRequiredForm, removeRequiredForm, listTaxTemplateOptions,
   type ProgramRequiredFormItem, type TaxTemplateOption,
 } from '@/lib/programs/actions'
+import { DELIVERABLE_PHASE_ORDER, deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/deliverable-phases'
 
 /** Sentinel τιμή για το «— (κανένας) —» option — το base-ui Select δεν
  * επιτρέπει value="" σε Item. */
 const NONE_TEMPLATE = '__none__'
+const NONE_PHASE = '__nophase__'
 
 /**
  * «Έντυπα» tab — απαιτούμενα υποστηρικτικά έντυπα ενός Προγράμματος
@@ -32,6 +34,8 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
+  // Manual reload — καλείται από handlers (μετά από save/create/delete), όπου το
+  // synchronous setState επιτρέπεται.
   const load = React.useCallback(() => {
     setLoading(true)
     setError(null)
@@ -41,19 +45,38 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
       .finally(() => setLoading(false))
   }, [programId])
 
-  React.useEffect(() => { load() }, [load])
+  // Αρχική φόρτωση — setState ΜΕΤΑ το await (react-hooks/set-state-in-effect).
+  React.useEffect(() => {
+    let cancelled = false
+    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions()])
+      .then(([f, t]) => { if (!cancelled) { setForms(f); setTemplates(t) } })
+      .catch(() => { if (!cancelled) setError('Η φόρτωση των εντύπων απέτυχε.') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [programId])
 
   function patchLocal(id: string, patch: Partial<ProgramRequiredFormItem>) {
     setForms(prev => prev.map(f => (f.id === id ? { ...f, ...patch } : f)))
   }
 
-  async function persist(id: string, patch: { name?: string; notes?: string | null; mandatory?: boolean; templateId?: string | null }) {
+  async function persist(id: string, patch: { name?: string; notes?: string | null; mandatory?: boolean; templateId?: string | null; phase?: string | null; reusable?: boolean }) {
     try {
       await updateRequiredForm(id, patch)
     } catch {
       toast.error('Η ενημέρωση του εντύπου απέτυχε.')
       load()
     }
+  }
+
+  function handlePhaseChange(form: ProgramRequiredFormItem, value: string | null) {
+    const phase = !value || value === NONE_PHASE ? null : value
+    patchLocal(form.id, { phase })
+    void persist(form.id, { phase })
+  }
+
+  function handleReusableChange(form: ProgramRequiredFormItem, checked: boolean) {
+    patchLocal(form.id, { reusable: checked })
+    void persist(form.id, { reusable: checked })
   }
 
   function handleNameBlur(form: ProgramRequiredFormItem, value: string) {
@@ -125,7 +148,9 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
             <thead>
               <tr>
                 <th>Όνομα</th>
+                <th>Φάση</th>
                 <th className="ctr">Υποχρεωτικό</th>
+                <th className="ctr">Επαναχρ.</th>
                 <th>Οδηγός Εντύπου</th>
                 <th>Σημείωση</th>
                 <th aria-hidden />
@@ -144,11 +169,36 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       />
                     </div>
                   </td>
+                  <td style={{ minWidth: 170 }}>
+                    <Select
+                      value={form.phase ?? NONE_PHASE}
+                      onValueChange={v => handlePhaseChange(form, v)}
+                    >
+                      <SelectTrigger aria-label={`Φάση — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
+                        <SelectValue>
+                          {(v: string) => (v === NONE_PHASE ? '— (καμία) —' : deliverablePhaseLabel(v as DeliverablePhaseStr))}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE_PHASE}>— (καμία) —</SelectItem>
+                        {DELIVERABLE_PHASE_ORDER.map(p => (
+                          <SelectItem key={p} value={p}>{deliverablePhaseLabel(p)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
                   <td className="ctr">
                     <Switch
                       checked={form.mandatory}
                       onCheckedChange={checked => handleMandatoryChange(form, checked)}
                       aria-label={`Υποχρεωτικό — ${form.name}`}
+                    />
+                  </td>
+                  <td className="ctr">
+                    <Switch
+                      checked={form.reusable}
+                      onCheckedChange={checked => handleReusableChange(form, checked)}
+                      aria-label={`Επαναχρησιμοποιήσιμο — ${form.name}`}
                     />
                   </td>
                   <td style={{ minWidth: 220 }}>
@@ -202,11 +252,13 @@ function AddRequiredFormDialog({ programId, onCreated }: { programId: string; on
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState('')
   const [mandatory, setMandatory] = React.useState(true)
+  const [phase, setPhase] = React.useState<string>(NONE_PHASE)
+  const [reusable, setReusable] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
 
   function handleOpenChange(next: boolean) {
     if (saving) return
-    if (!next) { setName(''); setMandatory(true) }
+    if (!next) { setName(''); setMandatory(true); setPhase(NONE_PHASE); setReusable(false) }
     setOpen(next)
   }
 
@@ -218,7 +270,7 @@ function AddRequiredFormDialog({ programId, onCreated }: { programId: string; on
     }
     setSaving(true)
     try {
-      await addRequiredForm(programId, { name: trimmed, mandatory })
+      await addRequiredForm(programId, { name: trimmed, mandatory, phase: phase === NONE_PHASE ? null : phase, reusable })
       toast.success('Το έντυπο προστέθηκε.')
       onCreated()
       handleOpenChange(false)
@@ -258,9 +310,31 @@ function AddRequiredFormDialog({ programId, onCreated }: { programId: string; on
             </div>
           </div>
 
+          <div className="field !mb-0">
+            <label htmlFor="rf-phase">Φάση προγράμματος</label>
+            <Select value={phase} onValueChange={v => setPhase(v ?? NONE_PHASE)}>
+              <SelectTrigger id="rf-phase" className="h-10 w-full rounded-full border-border bg-card px-3 text-[0.8125rem]">
+                <SelectValue>
+                  {(v: string) => (v === NONE_PHASE ? '— (καμία) —' : deliverablePhaseLabel(v as DeliverablePhaseStr))}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_PHASE}>— (καμία) —</SelectItem>
+                {DELIVERABLE_PHASE_ORDER.map(p => (
+                  <SelectItem key={p} value={p}>{deliverablePhaseLabel(p)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center gap-2.5">
             <Switch checked={mandatory} onCheckedChange={setMandatory} disabled={saving} id="rf-mandatory" />
             <label htmlFor="rf-mandatory" className="text-[0.78125rem] font-semibold">Υποχρεωτικό</label>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Switch checked={reusable} onCheckedChange={setReusable} disabled={saving} id="rf-reusable" />
+            <label htmlFor="rf-reusable" className="text-[0.78125rem] font-semibold">Επαναχρησιμοποιήσιμο σε άλλα έργα</label>
           </div>
 
           <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] bg-transparent p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>

@@ -1160,6 +1160,7 @@ model Program {
   id                   String                       @id @default(cuid())
   title                String
   summary              String?
+  imageUrl             String? // δημόσια εικόνα προγράμματος (front-end)
   referenceCode        String?
   sourceFileName       String?
   storageKey           String?                      @unique
@@ -1322,6 +1323,8 @@ model ProgramRequiredForm {
   mandatory  Boolean          @default(true)
   notes      String?
   order      Int              @default(0)
+  phase      DeliverablePhase? // ανάθεση εντύπου σε φάση του προγράμματος
+  reusable   Boolean          @default(false) // επαναχρησιμοποιήσιμο και σε άλλα έργα/προγράμματα
   templateId String? // optional link to a «Οδηγός Εντύπου» (TaxFormTemplate)
   template   TaxFormTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   createdAt  DateTime         @default(now())

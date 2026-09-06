@@ -1,6 +1,6 @@
 'use server'
 
-import type { Prisma } from '@prisma/client'
+import type { Prisma, DeliverablePhase } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ensureTrdrProgramFolder } from '@/lib/trdr/cdn-folder'
 import { requirePermission } from '@/lib/rbac-server'
@@ -460,6 +460,8 @@ export type ProgramRequiredFormItem = {
   name: string
   mandatory: boolean
   notes: string | null
+  phase: string | null
+  reusable: boolean
   templateId: string | null
   templateName: string | null
 }
@@ -476,6 +478,8 @@ export async function listProgramRequiredForms(programId: string): Promise<Progr
     name: r.name,
     mandatory: r.mandatory,
     notes: r.notes,
+    phase: r.phase,
+    reusable: r.reusable,
     templateId: r.templateId,
     templateName: r.template ? `${r.template.name} (${r.template.code})` : null,
   }))
@@ -483,7 +487,7 @@ export async function listProgramRequiredForms(programId: string): Promise<Progr
 
 export async function addRequiredForm(
   programId: string,
-  input: { name: string; mandatory?: boolean; notes?: string | null },
+  input: { name: string; mandatory?: boolean; notes?: string | null; phase?: string | null; reusable?: boolean },
 ): Promise<{ id: string }> {
   await requirePermission('programs.manage')
   const count = await prisma.programRequiredForm.count({ where: { programId } })
@@ -493,6 +497,8 @@ export async function addRequiredForm(
       name: input.name.trim(),
       mandatory: input.mandatory ?? true,
       notes: input.notes ?? null,
+      phase: (input.phase as DeliverablePhase | null | undefined) ?? null,
+      reusable: input.reusable ?? false,
       order: count,
     },
   })
@@ -502,7 +508,7 @@ export async function addRequiredForm(
 
 export async function updateRequiredForm(
   id: string,
-  input: { name?: string; mandatory?: boolean; notes?: string | null; templateId?: string | null },
+  input: { name?: string; mandatory?: boolean; notes?: string | null; templateId?: string | null; phase?: string | null; reusable?: boolean },
 ): Promise<void> {
   await requirePermission('programs.manage')
   const row = await prisma.programRequiredForm.update({
@@ -512,6 +518,8 @@ export async function updateRequiredForm(
       ...(input.mandatory !== undefined ? { mandatory: input.mandatory } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
       ...(input.templateId !== undefined ? { templateId: input.templateId } : {}),
+      ...(input.phase !== undefined ? { phase: (input.phase as DeliverablePhase | null) } : {}),
+      ...(input.reusable !== undefined ? { reusable: input.reusable } : {}),
     },
   })
   revalidatePath(`/programs/${row.programId}`)
@@ -521,6 +529,14 @@ export async function removeRequiredForm(id: string): Promise<void> {
   await requirePermission('programs.manage')
   const row = await prisma.programRequiredForm.delete({ where: { id } })
   revalidatePath(`/programs/${row.programId}`)
+}
+
+/** Ορισμός/αφαίρεση δημόσιας εικόνας προγράμματος (για το front-end). */
+export async function setProgramImage(programId: string, imageUrl: string | null): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  await prisma.program.update({ where: { id: programId }, data: { imageUrl: imageUrl?.trim() || null } })
+  revalidatePath(`/programs/${programId}`)
+  return { ok: true }
 }
 
 export type TaxTemplateOption = { id: string; code: string; name: string; year: number | null }

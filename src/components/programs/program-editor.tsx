@@ -12,8 +12,9 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
-import { updateProgramMeta, extractProgram } from '@/lib/programs/actions'
+import { updateProgramMeta, extractProgram, setProgramImage } from '@/lib/programs/actions'
 import { extractPdfText } from '@/lib/programs/pdf-text'
+import { MassUploader } from '@/components/media/mass-uploader'
 import { RequiredFormsTab } from './required-forms-tab'
 import { TaskTemplatesTab } from './task-templates-tab'
 import { DeliverableTemplatesTab } from './deliverable-templates-tab'
@@ -56,6 +57,7 @@ export type ProgramData = {
   id: string
   title: string
   summary: string | null
+  imageUrl: string | null
   referenceCode: string | null
   totalBudget: number | null
   fundingRate: number | null
@@ -221,6 +223,16 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
   const [eligibilityNote, setEligibilityNote] = React.useState(program.eligibilityNote ?? '')
   const [status, setStatus] = React.useState<ProgramData['status']>(program.status)
   const [notes, setNotes] = React.useState(program.notes ?? '')
+  const [imageUrl, setImageUrl] = React.useState<string | null>(program.imageUrl)
+
+  function handleImageUploaded(url: string) {
+    setImageUrl(url)
+    void setProgramImage(program.id, url).then(() => toast.success('Η εικόνα αποθηκεύτηκε.')).catch(() => toast.error('Η αποθήκευση εικόνας απέτυχε.'))
+  }
+  function handleImageRemove() {
+    setImageUrl(null)
+    void setProgramImage(program.id, null).then(() => toast.success('Η εικόνα αφαιρέθηκε.')).catch(() => toast.error('Η αφαίρεση απέτυχε.'))
+  }
   const [errors, setErrors] = React.useState<Record<string, string>>({})
   const [savingMeta, startSaveMeta] = React.useTransition()
 
@@ -387,6 +399,35 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
       {/* «Περιγραφή & Ημερομηνίες» — επεξεργάσιμα core scalars */}
       {activeTab === 'desc' && (
         <section className="glass rounded-[22px] p-4">
+          {/* Δημόσια εικόνα προγράμματος (front-end) */}
+          <div className="mb-4">
+            <div className="dotted-leader mb-2 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+              Εικόνα προγράμματος (front-end)
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              {imageUrl ? (
+                <div className="relative shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageUrl} alt="Εικόνα προγράμματος" className="h-32 w-56 rounded-xl border border-border object-cover" />
+                  <Button type="button" variant="outline" size="sm" className="mt-2" onClick={handleImageRemove}>
+                    <LuCircleX className="size-3.5" aria-hidden /> Αφαίρεση
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex h-32 w-56 shrink-0 items-center justify-center rounded-xl border border-dashed border-border text-[0.71875rem] text-muted-foreground">
+                  Χωρίς εικόνα
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <MassUploader
+                  pathPrefix={`programs/${program.id}`}
+                  accept="image/*"
+                  onUploaded={assets => { const url = assets[0]?.url; if (url) handleImageUploaded(url) }}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="field">
               <label htmlFor="pm-title">Τίτλος</label>
