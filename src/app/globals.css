@@ -199,7 +199,10 @@
   }
   html {
     @apply font-sans;
-    font-size: 14px;
+    /* Fluid root — όλη η rem-based τυπογραφία (Tailwind scale + arbitrary) κλιμακώνεται
+       ομαλά ανά οθόνη: ~13.5px mobile → 16px desktop. Στο desktop το root=16px, οπότε
+       τα arbitrary text-[Nrem] (=Npx/16) επανέρχονται στο αρχικό px μέγεθος. */
+    font-size: clamp(13.5px, 0.72rem + 0.45vw, 16px);
   }
   h1, h2, h3 {
     font-family: var(--font-display);
