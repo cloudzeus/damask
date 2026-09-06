@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { SiteNav } from '../site-nav'
 import { EligibilityWizard } from './eligibility-wizard'
 
 export const metadata: Metadata = {
@@ -10,9 +9,7 @@ export const metadata: Metadata = {
 
 export default function EligibilityPage() {
   return (
-    <>
-      <SiteNav />
-      <main
+      <div
         style={{
           minHeight: '70vh',
           display: 'grid',
@@ -44,7 +41,6 @@ export default function EligibilityPage() {
             <EligibilityWizard />
           </section>
         </div>
-      </main>
-    </>
+      </div>
   )
 }

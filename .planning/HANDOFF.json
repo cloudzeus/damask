@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-06T15:22:03.290Z",
+  "timestamp": "2026-09-06T15:59:33.327Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,25 +22,29 @@
     },
     {
       "status": "M",
-      "path": "src/app/(app)/partners/[id]/page.tsx"
+      "path": "src/app/(public)/eligibility/page.tsx"
     },
     {
       "status": "M",
-      "path": "src/lib/activity/registry.ts"
+      "path": "src/app/(public)/layout.tsx"
     },
     {
       "status": "M",
-      "path": "src/lib/leads/actions.ts"
+      "path": "src/app/(public)/page.tsx"
     },
     {
       "status": "??",
-      "path": "src/components/communications/"
+      "path": "public/wwa/"
     },
     {
       "status": "??",
-      "path": "src/lib/communications/"
+      "path": "src/app/(public)/_components/"
+    },
+    {
+      "status": "??",
+      "path": "src/app/(public)/_wwa/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n85fd852 feat(programs): εικόνα προγράμματος (front-end) + Έντυπα ανά φάση & επαναχρησιμοποιήσιμα\n5feab4b feat(leads): pipeline follow-up ενδιαφερομένων (eligibility + newsletter)\n7ca7bf3 fix(email): μη re-export type σε 'use server' αρχείο (ComposeAttachment ReferenceError)\na6b67f8 feat(portal): πρόσβαση portal σε επαφή έργου + email ορισμού κωδικού\n7766d62 feat(pm): reject-with-reason + επαναποστολή upload, email action επαφής, tags σε όλα τα emails"
+  "context_notes": "Recent commits:\n063b3b1 feat(comm): ενοποιημένο ιστορικό επικοινωνίας πελάτη + employee score\n85fd852 feat(programs): εικόνα προγράμματος (front-end) + Έντυπα ανά φάση & επαναχρησιμοποιήσιμα\n5feab4b feat(leads): pipeline follow-up ενδιαφερομένων (eligibility + newsletter)\n7ca7bf3 fix(email): μη re-export type σε 'use server' αρχείο (ComposeAttachment ReferenceError)\na6b67f8 feat(portal): πρόσβαση portal σε επαφή έργου + email ορισμού κωδικού"
 }

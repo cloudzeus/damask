@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 800 800">
+  <!-- Generator: Adobe Illustrator 29.7.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 8)  -->
+  <defs>
+    <style>
+      .st0 {
+        mask: url(#mask);
+      }
+
+      .st1 {
+        fill: url(#linear-gradient10);
+      }
+
+      .st1, .st2, .st3, .st4, .st5, .st6, .st7, .st8, .st9, .st10 {
+        fill-rule: evenodd;
+      }
+
+      .st11 {
+        fill: url(#linear-gradient2);
+      }
+
+      .st12 {
+        fill: url(#linear-gradient1);
+      }
+
+      .st13 {
+        fill: url(#linear-gradient9);
+      }
+
+      .st14 {
+        fill: url(#linear-gradient3);
+      }
+
+      .st15 {
+        fill: url(#linear-gradient6);
+      }
+
+      .st16 {
+        fill: url(#linear-gradient8);
+      }
+
+      .st17 {
+        fill: url(#linear-gradient5);
+      }
+
+      .st18 {
+        fill: url(#linear-gradient12);
+      }
+
+      .st19 {
+        fill: url(#linear-gradient11);
+      }
+
+      .st2 {
+        fill: #240049;
+      }
+
+      .st3 {
+        fill: #001b72;
+      }
+
+      .st20 {
+        mask: url(#mask-2);
+      }
+
+      .st21 {
+        mask: url(#mask-3);
+      }
+
+      .st22 {
+        mask: url(#mask-4);
+      }
+
+      .st23 {
+        mask: url(#mask-5);
+      }
+
+      .st24 {
+        mask: url(#mask-7);
+      }
+
+      .st25 {
+        mask: url(#mask-6);
+      }
+
+      .st26 {
+        mask: url(#mask-1);
+      }
+
+      .st27 {
+        mask: url(#mask-8);
+      }
+
+      .st4 {
+        fill: #ff2b8e;
+      }
+
+      .st5 {
+        fill: #00085e;
+      }
+
+      .st6 {
+        fill: #002;
+      }
+
+      .st7 {
+        fill: url(#linear-gradient);
+      }
+
+      .st8 {
+        fill: url(#linear-gradient7);
+      }
+
+      .st9 {
+        fill: url(#linear-gradient4);
+      }
+
+      .st10 {
+        fill: lime;
+      }
+    </style>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient" x1="0.261" y1="0.939" x2="0.739" y2="0.061">
+      <stop offset="0" stop-color="#4000a6"/>
+      <stop offset="1" stop-color="#ff0677"/>
+    </linearGradient>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient1" x1="0.269" y1="0.944" x2="0.731" y2="0.056">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="mask" x="521.4" y="329.5" width="150.8" height="274.8" maskUnits="userSpaceOnUse">
+      <g id="id0">
+        <rect class="st12" x="521.4" y="329.5" width="150.8" height="274.8"/>
+      </g>
+    </mask>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient2" x1="0.757" y1="0.071" x2="0.243" y2="0.929" xlink:href="#linear-gradient1"/>
+    <mask id="mask-1" x="561.2" y="178.8" width="193.9" height="425.4" maskUnits="userSpaceOnUse">
+      <g id="id2">
+        <rect class="st11" x="561.2" y="178.8" width="193.8" height="425.4"/>
+      </g>
+    </mask>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient3" x1="0.654" y1="0.976" x2="0.346" y2="0.024" xlink:href="#linear-gradient1"/>
+    <mask id="mask-2" x="519.3" y="395" width="78.5" height="209.3" maskUnits="userSpaceOnUse">
+      <g id="id4">
+        <rect class="st14" x="519.3" y="395" width="78.5" height="209.3"/>
+      </g>
+    </mask>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient4" x1="0.836" y1="0.129" x2="0.164" y2="0.871">
+      <stop offset="0" stop-color="#251bc8"/>
+      <stop offset="1" stop-color="#34c8f6"/>
+    </linearGradient>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient5" x1="0.646" y1="0.978" x2="0.354" y2="0.022" xlink:href="#linear-gradient1"/>
+    <mask id="mask-3" x="440.1" y="305.6" width="151.9" height="298.6" maskUnits="userSpaceOnUse">
+      <g id="id6">
+        <rect class="st17" x="440.1" y="305.6" width="151.9" height="298.6"/>
+      </g>
+    </mask>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient6" x1="0.630" y1="0.017" x2="0.370" y2="0.983" xlink:href="#linear-gradient1"/>
+    <mask id="mask-4" x="366.9" y="305.6" width="92.1" height="185" maskUnits="userSpaceOnUse">
+      <g id="id8">
+        <rect class="st15" x="366.9" y="305.6" width="92.1" height="185"/>
+      </g>
+    </mask>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient7" x1="0.206" y1="0.905" x2="0.794" y2="0.095" xlink:href="#linear-gradient"/>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient8" x1="0.780" y1="0.086" x2="0.220" y2="0.914" xlink:href="#linear-gradient1"/>
+    <mask id="mask-5" x="295.8" y="305.6" width="157.9" height="298.6" maskUnits="userSpaceOnUse">
+      <g id="id10">
+        <rect class="st16" x="295.8" y="305.6" width="157.9" height="298.6"/>
+      </g>
+    </mask>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient9" x1="0.654" y1="0.976" x2="0.346" y2="0.024" xlink:href="#linear-gradient1"/>
+    <mask id="mask-6" x="249.9" y="395" width="82.6" height="209.3" maskUnits="userSpaceOnUse">
+      <g id="id12">
+        <rect class="st13" x="249.9" y="395" width="82.6" height="209.3"/>
+      </g>
+    </mask>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient10" x1="0.284" y1="0.049" x2="0.716" y2="0.951" xlink:href="#linear-gradient4"/>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient11" x1="0.216" y1="0.089" x2="0.784" y2="0.911" xlink:href="#linear-gradient1"/>
+    <mask id="mask-7" x="64.9" y="178" width="184.5" height="293.8" maskUnits="userSpaceOnUse">
+      <g id="id14">
+        <rect class="st19" x="64.9" y="178" width="184.5" height="293.8"/>
+      </g>
+    </mask>
+    <linearGradient gradientUnits="objectBoundingBox" id="linear-gradient12" x1="0.628" y1="0.983" x2="0.372" y2="0.017" xlink:href="#linear-gradient1"/>
+    <mask id="mask-8" x="138" y="178" width="189.3" height="427.1" maskUnits="userSpaceOnUse">
+      <g id="id16">
+        <rect class="st18" x="138" y="178" width="189.3" height="427.1"/>
+      </g>
+    </mask>
+  </defs>
+  <path class="st7" d="M755.1,178.8h-90.6c-30.7,0-56.8,24.8-68.1,64.5l-74.9,264.2h27.8v96.7h35.3c30.7,0,56.8-24.8,68.1-64.5l102.4-360.9h0Z"/>
+  <g class="st0">
+    <path class="st2" d="M521.4,507.6h27.8v96.7h35.3c30.7,0,56.8-24.8,68.1-64.5l19.5-68.8-100.2-141.4-50.5,178h0Z"/>
+  </g>
+  <g class="st26">
+    <path class="st4" d="M755.1,178.8h-73.2l-31.9,112.5-51.2,180.4-37.6,132.5h23.4c30.7,0,56.8-24.8,68.1-64.5l102.4-360.9h0Z"/>
+  </g>
+  <g class="st20">
+    <path class="st6" d="M559.5,604.3h25c1.4,0,2.8,0,4.2-.2h.2c.4,0,.8,0,1.2-.1h.2s1-.1,1-.1h.6c0,0,.7-.2.7-.2h.8c0-.1.4-.2.4-.2l.9-.2h.3c0,0,1-.3,1-.3h.6c0-.1.7-.3.7-.3h.4c0-.1-44.5-207.8-44.5-207.8l-34.1,120h40.2v89.3h0Z"/>
+  </g>
+  <path class="st9" d="M525.6,370.2l66.4,234.1h-90.6c-30.7,0-56.8-24.8-68.1-64.5l-66.4-234.1h90.6c30.7,0,56.8,24.8,68.1,64.5Z"/>
+  <g class="st21">
+    <path class="st10" d="M525.6,370.2l66.4,234.1h-67.2l-37.6-132.5-47.1-166.2h17.4c30.7,0,56.8,24.8,68.1,64.5h0Z"/>
+  </g>
+  <g class="st22">
+    <path class="st5" d="M419.4,490.6l-52.5-185h90.6c.5,0,1,0,1.5,0l-39.6,184.9h0Z"/>
+  </g>
+  <path class="st8" d="M295,370.2l-45.1,159.1h41.1v75h28.2c30.7,0,56.8-24.8,68.1-64.5l66.4-234.1h-90.6c-30.7,0-56.8,24.8-68.1,64.5h0Z"/>
+  <g class="st23">
+    <path class="st4" d="M295.8,604.3h23.4c30.7,0,56.8-24.8,68.1-64.5l66.4-234.1h-73.2l-31.9,112.5-51.2,180.4-1.6,5.7Z"/>
+  </g>
+  <g class="st25">
+    <path class="st6" d="M288,395l-38.1,134.3h41.1v75h28.2c4.5,0,9-.6,13.3-1.6l-44.5-207.7Z"/>
+  </g>
+  <path class="st1" d="M65.6,178.8h90.6c30.7,0,56.8,24.8,68.1,64.5l102.4,360.9h-90.6c-30.7,0-56.8-24.8-68.1-64.5,0,0-102.4-360.9-102.4-360.9Z"/>
+  <g class="st24">
+    <path class="st3" d="M65.6,178.8h90.6c30.7,0,56.8,24.8,68.1,64.5l24.4,86.1-100.2,141.4h0L65.6,178.8h0Z"/>
+  </g>
+  <g class="st27">
+    <path class="st10" d="M138.7,178.8h17.4c30.7,0,56.8,24.8,68.1,64.5l102.4,360.9h-67.2l-37.6-132.5-51.2-180.4-31.9-112.5h0Z"/>
+  </g>
+</svg>

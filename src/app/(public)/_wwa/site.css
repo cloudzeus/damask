@@ -1,0 +1,175 @@
+/* ============================================================
+   WWA public site — page/layout styles (από ui_kits/wwa-web/_part1.html)
+   Παίρνει tokens από tokens.css + κοινά components από components.css.
+   Φορτώνεται ΜΟΝΟ στο (public) bundle → δεν επηρεάζει το (app)/admin.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body { background: #fff; color: var(--fg-1); font-family: var(--font-body); }
+html { scroll-behavior: smooth; }
+@media (max-width: 768px) { body { font-size: 16px; } }
+.wrap { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
+section { padding: clamp(56px, 6vw, 88px) 0; }
+.sec-head { text-align: center; max-width: 720px; margin: 0 auto var(--sp-10); }
+.sec-head .eyebrow { justify-content: center; display: flex; margin-bottom: 12px; }
+.sec-head p { color: var(--fg-2); font-size: 16px; margin-top: 12px; }
+.sec-head.left { text-align: left; margin-left: 0; }
+.sec-head.left .eyebrow { justify-content: flex-start; }
+.sec-foot { display: flex; justify-content: center; margin-top: var(--sp-8); }
+.alt { background: var(--n-50); }
+
+/* utility bar + topbar (nova: μαύρη λεπτή μπάρα + λευκό header) */
+.util { background: var(--wwa-navy-950); color: rgba(255,255,255,.8); font-size: 13px; }
+.util .wrap { height: 36px; display: flex; align-items: center; gap: 24px; }
+.util a { color: rgba(255,255,255,.8); text-decoration: none; }
+.util a:hover { color: #fff; }
+.util .right { margin-left: auto; display: flex; gap: 24px; }
+.topbar { position: sticky; top: 0; z-index: 60; background: #fff; border-bottom: 1px solid var(--border-subtle); box-shadow: 0 1px 0 rgba(0,0,34,.04); }
+.topbar .wrap { height: 80px; display: flex; align-items: center; gap: var(--sp-10); }
+.topbar img { height: 44px; display: block; }
+.topbar nav { display: flex; gap: 28px; margin-left: auto; }
+.topbar nav a { font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-1); text-decoration: none; padding: 8px 0; border-bottom: 2px solid transparent; transition: color var(--dur-hover), border-color var(--dur-hover); }
+.topbar nav a:hover, .topbar nav a[aria-current] { color: var(--brand); border-color: var(--brand); }
+.topbar .cta { display: flex; gap: 10px; align-items: center; margin-left: 28px; }
+.topbar .login { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--fg-2); text-decoration: none; padding: 8px 12px; border-radius: var(--radius-pill); }
+.topbar .login svg { width: 18px; height: 18px; stroke-width: 1.75; }
+.topbar .login:hover { color: var(--brand); background: var(--navy-50); }
+.burger { display: none; }
+@media (max-width: 1024px) { .topbar nav:not(.wwa-mobile-nav), .util { display: none; } .burger { display: inline-flex; margin-left: auto; } }
+/* mobile dropdown nav (client burger) */
+.wwa-mobile-nav { display: none; }
+@media (max-width: 1024px) {
+  .wwa-mobile-nav { display: flex; flex-direction: column; gap: 4px; padding: 12px var(--gutter) 20px; border-top: 1px solid var(--border-subtle); background: #fff; }
+  .wwa-mobile-nav a:not(.btn) { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 15px; color: var(--fg-1); text-decoration: none; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); }
+  .wwa-mobile-nav .btn { margin-top: 12px; align-self: flex-start; }
+}
+
+/* hero banner (nova: full-width photo, μήνυμα αριστερά, pill CTA)
+   section.hero: υψηλότερο specificity από το admin globals .hero (old damask
+   homepage, display:grid) ώστε να μη «σπάει» το banner σε grid columns. */
+section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; }
+.hero { padding: 0; }
+.hero .banner { position: relative; min-height: 560px; display: flex; align-items: center; overflow: hidden; background: var(--wwa-navy-950); }
+.hero .banner > .wrap { width: 100%; }
+.hero .banner > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 50%; }
+.hero .banner::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,34,.96) 0%, rgba(0,0,34,.90) 35%, rgba(0,0,34,.55) 62%, rgba(0,0,34,.20) 100%); z-index: 1; }
+.hero .content { position: relative; z-index: 2; color: #fff; max-width: 640px; padding: 72px 0; }
+.hero .tag { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; padding: 6px 12px 6px 8px; border-radius: var(--radius-pill); background: rgba(255,255,255,.12); color: #fff; margin-bottom: 20px; }
+.hero .tag::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--wwa-cyan-400); }
+.hero h1 { color: #fff; font-size: clamp(2rem, 3.4vw, 3rem); line-height: 1.08; }
+.hero p { margin-top: 18px; font-size: 17px; line-height: 1.55; color: rgba(255,255,255,.85); max-width: 48ch; }
+.hero .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.hero .dots { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 2; }
+.hero .dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.4); }
+.hero .dots span.on { background: #fff; width: 24px; border-radius: 4px; }
+/* quick strip κάτω από το hero (nova: "feature blocks") */
+.strip { background: #fff; border-bottom: 1px solid var(--border-subtle); }
+.strip .wrap { display: grid; grid-template-columns: repeat(4, 1fr); }
+.strip .item { display: flex; gap: 14px; align-items: center; padding: 22px 20px; border-right: 1px solid var(--border-subtle); }
+.strip .item:last-child { border-right: 0; }
+.strip svg { width: 28px; height: 28px; color: var(--brand); stroke-width: 1.5; flex: none; }
+.strip b { display: block; font-size: 15px; font-weight: 700; }
+.strip span { font-size: 13px; color: var(--fg-3); }
+@media (max-width: 900px) { .strip .wrap { grid-template-columns: repeat(2,1fr); } .strip .item:nth-child(2) { border-right: 0; } }
+
+/* programs — κάρτες με φωτογραφία (nova: product cards) */
+.cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-6); }
+.pcard .media { position: relative; }
+.pcard .media .badge { position: absolute; left: 14px; top: 14px; background: #fff; color: var(--success-500); box-shadow: var(--elev-1); }
+.pcard .media .badge-new { background: var(--accent-text); color: #fff; left: auto; right: 14px; }
+.pcard { display: flex; flex-direction: column; }
+.pcard .body { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.pcard p { flex: 1; }
+.pcard h3 { font-size: 19px; min-height: 2.5em; display: flex; align-items: flex-end; }
+.pcard p { font-size: 14px; color: var(--fg-2); }
+.pcard .price { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
+.pcard .price b { font-family: var(--font-display); font-weight: 700; font-size: 30px; color: var(--brand); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.pcard .price span { font-size: 13px; color: var(--fg-3); }
+.pcard .meta { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--fg-3); padding-top: 12px; border-top: 1px solid var(--border-subtle); }
+.pcard .meta b { color: var(--fg-1); font-weight: 500; font-variant-numeric: tabular-nums; }
+.pcard .actions { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: var(--sp-8); }
+@media (max-width: 1024px) { .cards3 { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 640px) { .cards3 { grid-template-columns: 1fr; } }
+
+/* stats */
+.stats .wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-6); align-items: start; }
+@media (max-width: 900px) { .stats .wrap { grid-template-columns: repeat(2,1fr); } }
+
+/* services */
+.services .cards3 article { align-items: flex-start; }
+
+/* company — promo banner με φωτογραφία (nova: 2-col promo) */
+.promo { display: grid; grid-template-columns: 1fr 1fr; border-radius: var(--radius-xl); overflow: hidden; background: var(--wwa-navy-950); color: #fff; }
+.promo .photo { border-radius: 0; min-height: 420px; }
+.promo .txt { padding: clamp(36px, 5vw, 64px); display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+.promo h2 { color: #fff; }
+.promo p { color: rgba(255,255,255,.8); font-size: 16px; max-width: 48ch; }
+.promo ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; font-size: 15px; }
+.promo li { display: flex; gap: 10px; align-items: flex-start; }
+.promo li svg { width: 20px; height: 20px; color: var(--wwa-cyan-400); stroke-width: 2; flex: none; margin-top: 2px; }
+.promo .actions { margin-top: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 900px) { .promo { grid-template-columns: 1fr; } .promo .photo { min-height: 260px; } }
+
+/* sectors — tabs (nova: content tabs) */
+.sector-tabs { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: var(--sp-8); }
+.sector-panel { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-8); align-items: center; background: #fff; border-radius: var(--radius-xl); box-shadow: var(--elev-1); overflow: hidden; }
+.sector-panel .photo { border-radius: 0; min-height: 360px; }
+.sector-panel .txt { padding: clamp(28px, 4vw, 48px); }
+.sector-panel h3 { font-size: 24px; margin-bottom: 10px; }
+.sector-panel p { font-size: 15px; color: var(--fg-2); }
+.sector-panel dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 20px 0 0; font-size: 14px; }
+.sector-panel dt { color: var(--fg-3); } .sector-panel dd { margin: 0; font-weight: 500; }
+@media (max-width: 900px) { .sector-panel { grid-template-columns: 1fr; } }
+
+/* news cards */
+.ncard .body { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 8px; }
+.ncard .date { font-size: 13px; color: var(--fg-3); display: flex; gap: 10px; align-items: center; }
+.ncard h3 { font-size: 17px; line-height: 1.3; }
+.ncard h3 a { color: inherit; text-decoration: none; } .ncard h3 a:hover { color: var(--brand); }
+.ncard p { font-size: 14px; color: var(--fg-2); }
+
+/* affiliations */
+.aff { padding: 40px 0; border-top: 1px solid var(--border-subtle); }
+.aff .wrap { display: flex; flex-wrap: wrap; gap: 16px 48px; align-items: center; justify-content: center; }
+.aff .lab { width: 100%; text-align: center; font-size: 13px; color: var(--fg-3); }
+
+/* faq */
+.faq-sec .acc { border-top: 0; }
+
+/* contact band */
+.contact { background: var(--wwa-navy-950); color: #fff; }
+.contact .box { display: grid; grid-template-columns: 1.1fr 1fr; gap: var(--sp-12); align-items: center; }
+.contact h2 { color: #fff; font-size: clamp(1.75rem, 3vw, 2.5rem); }
+.contact p { color: rgba(255,255,255,.78); font-size: 16px; margin-top: 14px; max-width: 46ch; }
+.contact .lines { margin-top: 28px; display: grid; gap: 10px; font-size: 15px; }
+.contact .lines div { display: flex; gap: 12px; align-items: center; }
+.contact .lines svg { width: 18px; height: 18px; color: var(--wwa-cyan-400); stroke-width: 1.75; }
+.contact .lines a { color: #fff; text-decoration: none; }
+.contact form { display: grid; gap: 14px; background: #fff; color: var(--fg-1); padding: 32px; border-radius: var(--radius-xl); box-shadow: var(--elev-3); }
+.contact form h3 { font-size: 20px; margin-bottom: 2px; }
+@media (max-width: 900px) { .contact .box { grid-template-columns: 1fr; } }
+
+/* footer */
+.footer { background: #fff; color: var(--fg-2); padding: 56px 0 28px; border-top: 1px solid var(--border-default); }
+.footer .cols { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: var(--sp-10); }
+.footer h4 { color: var(--fg-1); font-family: var(--font-body); font-size: 14px; font-weight: 700; text-transform: none; letter-spacing: 0; margin-bottom: 14px; }
+.footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 14px; }
+.footer a { color: var(--fg-2); text-decoration: none; } .footer a:hover { color: var(--brand); }
+.footer .about p { font-size: 14px; max-width: 40ch; margin-top: 16px; }
+.footer .legal { margin-top: 44px; padding-top: 20px; border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; font-size: 13px; color: var(--fg-3); }
+.footer .legal a { color: var(--fg-3); }
+@media (max-width: 900px) { .footer .cols { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .footer .cols { grid-template-columns: 1fr; } }
+
+/* motion helpers */
+.is-typing::after { content: "|"; font-weight: 400; color: var(--wwa-cyan-400); animation: caret 1s steps(1) infinite; margin-left: 2px; }
+@keyframes caret { 50% { opacity: 0; } }
+.topbar { transition: box-shadow var(--dur-hover) var(--ease-standard); }
+.topbar.scrolled { box-shadow: 0 4px 16px rgba(0,0,34,.08); }
+.banner > img, .sub-banner > img { will-change: transform; }
+
+/* reveal (vanilla IntersectionObserver — δες WwaMotion) */
+.r { transition: transform var(--dur-page) var(--ease-emphasis), opacity var(--dur-page) var(--ease-emphasis); }
+.r.pre { transform: translateY(16px); opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .r, .r.pre { transform: none; opacity: 1; transition: none; } }

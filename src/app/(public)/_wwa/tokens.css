@@ -1,0 +1,155 @@
+/* ============================================================
+   WWA Design System — canonical tokens  (v2.1 · corporate, κατά το πρότυπο nova.gr)
+   World Wide Associates Ε.Ε. · Σύμβουλοι Ευρωπαϊκών Προγραμμάτων
+   2026-09 · DGsoft
+   Link this file from every HTML artifact. Never inline the tokens.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;700;900&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap');
+
+:root {
+  /* ---------- BRAND (από το λογότυπο, χωρίς μετατροπή) ---------- */
+  --wwa-navy-950:   #000022;   /* βάση: hero overlay, stats, footer */
+  --wwa-navy-900:   #00085E;   /* hover primary */
+  --wwa-navy-800:   #001B72;   /* PRIMARY: κουμπιά, links, τίτλοι‑έμφασης */
+  --wwa-indigo-600: #251BC8;   /* hover links, τρίτος τόνος σε charts */
+  --wwa-violet-600: #4000A6;   /* focus ring, section index, hairline‑accent */
+  --wwa-violet-900: #240049;
+  --wwa-magenta-500:#FF0677;   /* ACCENT‑1: ποσά/ποσοστά επιδότησης, key figures, μία γραμμή στο CTA */
+  --wwa-pink-400:   #FF2B8E;   /* magenta hover / σε dark φόντο */
+  --wwa-cyan-400:   #34C8F6;   /* ACCENT‑2: προθεσμίες & meta σε dark φόντο, δείκτες σε charts */
+  --wwa-lime-500:   #00FF00;   /* μόνο λογότυπο */
+
+  /* ---------- NAVY RAMP (primary) ---------- */
+  --navy-50:  #EEF1FA;  --navy-100: #DCE2F3;  --navy-200: #B9C4E6;  --navy-300: #8A9BD1;
+  --navy-400: #5A70B8;  --navy-500: #2F4699;  --navy-600: #142E86;  --navy-700: #0B2379;
+  --navy-800: #001B72;  --navy-900: #00085E;  --navy-950: #000022;
+
+  /* ---------- MAGENTA RAMP (accent‑1) ---------- */
+  --magenta-50: #FFEDF5; --magenta-100: #FFD6E8; --magenta-300: #FF7DB6; --magenta-500: #FF0677; --magenta-600: #D60062; --magenta-700: #A6004C;
+
+  /* ---------- NEUTRALS (cool paper) ---------- */
+  --n-0:   #FFFFFF;
+  --n-50:  #F6F7FA;   /* canvas */
+  --n-100: #EEF0F5;   /* muted surface */
+  --n-200: #DFE2EA;   /* rules */
+  --n-300: #C6CAD6;   /* strong borders */
+  --n-400: #9AA0B1;   /* placeholder / disabled */
+  --n-500: #666C80;   /* muted text (4.9:1 on canvas) */
+  --n-600: #474C60;   /* secondary text */
+  --n-700: #30354A;
+  --n-800: #1B1F36;
+  --n-900: #0B0F2A;   /* ink */
+
+  /* ---------- SEMANTIC ---------- */
+  --success-500: #117235;  --success-100: #E1F3E7;
+  --warning-500: #8F4B00;  --warning-100: #FBEEDC;
+  --danger-500:  #B3261E;  --danger-100:  #FBE4E2;
+  --info-500:    #001B72;  --info-100:    #E7EBF7;
+
+  /* ---------- ROLE ALIASES ---------- */
+  --bg-canvas:    var(--n-50);
+  --bg-surface:   var(--n-0);
+  --bg-muted:     var(--n-100);
+  --bg-inverse:   var(--navy-950);
+  --fg-1:         var(--n-900);
+  --fg-2:         var(--n-600);
+  --fg-3:         var(--n-500);
+  --fg-inverse:   #FFFFFF;
+  --fg-on-inverse-muted: rgba(255,255,255,0.68);
+  --brand:        var(--navy-800);
+  --brand-hover:  var(--navy-900);
+  --brand-active: var(--navy-950);
+  --brand-soft:   var(--navy-50);
+  --link:         var(--navy-800);
+  --link-hover:   var(--wwa-indigo-600);
+  --accent:       var(--wwa-magenta-500);   /* μόνο: μικρό tag «Νέο», 4px rule, 1 ποσό ανά ενότητα */
+  --accent-text:  #C4005A;                 /* magenta για κείμενο <24 px (4.5:1+ σε λευκό) */
+  --accent-hover: var(--magenta-600);
+  --accent-soft:  var(--magenta-50);
+  --accent-2:     var(--wwa-cyan-400);      /* σε dark φόντο μόνο */
+  --accent-3:     var(--wwa-violet-600);    /* focus, index, hairline */
+  --border-subtle:  rgba(11,15,42,0.08);
+  --border-default: rgba(11,15,42,0.14);
+  --border-strong:  rgba(11,15,42,0.28);
+  --focus-ring:   0 0 0 2px #FFFFFF, 0 0 0 4px var(--wwa-violet-600);
+  --photo-overlay: linear-gradient(90deg, rgba(0,0,34,.92) 0%, rgba(0,0,34,.55) 55%, rgba(0,0,34,.25) 100%);
+  --photo-tint:   rgba(0,27,114,.28);
+
+  /* ---------- TYPE ---------- */
+  --font-display: 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  --font-body:    'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-mono:    ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-xs:   0.8125rem; /* 13 · λεζάντες, meta */
+  --text-sm:   0.9375rem; /* 15 · κείμενο (βάση, όπως nova.gr) */
+  --text-base: 1rem;      /* 16 · lede */
+  --text-md:   1.125rem;  /* 18 · κάρτες‑τίτλοι μικροί */
+  --text-lg:   1.25rem;   /* 20 · h3 */
+  --text-xl:   1.5rem;    /* 24 · h2 μικρό / ποσά σε κάρτες */
+  --text-2xl:  2rem;      /* 32 · h2 ενότητας */
+  --text-3xl:  2.5rem;    /* 40 · stats */
+  --text-4xl:  3rem;      /* 48 · h1 hero */
+  --text-5xl:  3.5rem;    /* 56 · h1 hero μεγάλες οθόνες (max) */
+
+  --leading-display: 1.05;
+  --leading-tight: 1.1;
+  --leading-snug:  1.25;
+  --leading-body:  1.6;
+  --tracking-display: -0.02em;
+  --tracking-h:       -0.01em;
+
+  /* ---------- SPACING (4‑px baseline) ---------- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px; --sp-5: 20px;
+  --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px; --sp-16: 64px;
+  --sp-20: 80px; --sp-24: 96px; --sp-32: 128px;
+
+  /* ---------- RADII (κατά nova.gr: pill κουμπιά, στρογγυλεμένες κάρτες) ---------- */
+  --radius-xs: 4px;  --radius-sm: 6px;  --radius-md: 12px;  --radius-lg: 16px;  --radius-xl: 24px;  --radius-pill: 999px;
+
+  /* ---------- ELEVATION (σπάνια · δύο στρώσεις navy‑tinted) ---------- */
+  --elev-1: 0 1px 2px rgba(0,0,34,0.04), 0 2px 8px rgba(0,0,34,0.05);     /* κάρτες at rest */
+  --elev-2: 0 4px 10px rgba(0,0,34,0.06), 0 14px 28px -12px rgba(0,0,34,0.12); /* κάρτες hover */
+  --elev-3: 0 6px 12px rgba(0,0,34,0.06), 0 24px 40px -16px rgba(0,0,34,0.18); /* dropdown / modal */
+
+  /* ---------- MOTION ---------- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasis: cubic-bezier(0.3, 0, 0, 1);
+  --ease-exit:     cubic-bezier(0.4, 0, 1, 1);
+  --dur-color: 120ms;  --dur-hover: 200ms;  --dur-reveal: 400ms;  --dur-page: 600ms;
+
+  /* ---------- LAYOUT ---------- */
+  --container: 1280px;
+  --container-narrow: 720px;
+  --gutter: 32px;
+  --nav-height: 76px;
+}
+
+/* ---------- Base ---------- */
+html { font-family: var(--font-body); color: var(--fg-1); background: var(--bg-surface); -webkit-font-smoothing: antialiased; }
+body { margin: 0; font-size: var(--text-sm); line-height: var(--leading-body); }
+h1, h2, h3, h4 { font-family: var(--font-display); margin: 0; text-wrap: balance; color: var(--fg-1); }
+/* Κλίμακα τίτλων μέτρια και συμμετρική: h1 48 · h2 32 · h3 20 · h4 18 (κατά nova.gr)
+   h1–h4: ΚΕΦΑΛΑΙΑ χωρίς τόνους, Condensed 900, ελαφρύ θετικό tracking (τα ελληνικά κεφαλαία χάνουν τόνους — σωστό τυπογραφικά) */
+h1 { font-size: clamp(2.25rem, 3.6vw, var(--text-4xl)); font-weight: 900; text-transform: uppercase; line-height: var(--leading-display); letter-spacing: 0.01em; }
+h2 { font-size: var(--text-2xl); font-weight: 900; text-transform: uppercase; line-height: 1.15; letter-spacing: 0.01em; }
+/* h3/h4 επίσης ΚΕΦΑΛΑΙΑ 900 — βασικός κανόνας: όλοι οι τίτλοι κεφαλαία */
+h3 { font-size: var(--text-lg); font-weight: 900; text-transform: uppercase; line-height: var(--leading-snug); letter-spacing: 0.01em; }
+h4 { font-size: var(--text-md); font-weight: 900; text-transform: uppercase; line-height: var(--leading-snug); letter-spacing: 0.01em; }
+h1 em, h2 em { font-style: normal; color: var(--brand); }
+p  { margin: 0; }
+a  { color: var(--link); text-decoration: underline; text-decoration-color: var(--n-300); text-decoration-thickness: 1px; text-underline-offset: 4px; transition: color var(--dur-color), text-decoration-color var(--dur-color); }
+a:hover { color: var(--link-hover); text-decoration-color: currentColor; }
+/* Eyebrow: index + label, Roboto 500, κανονική γραφή με τόνους */
+.eyebrow { display: inline-flex; align-items: baseline; gap: 12px; font-family: var(--font-body); font-weight: 500; font-size: var(--text-xs); letter-spacing: 0.02em; color: var(--fg-2); }
+.eyebrow .idx { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--accent-3); font-variant-numeric: tabular-nums; }
+/* Key figure: ο πυρήνας του συστήματος — μεγάλος αριθμός σε Condensed 800 */
+.figure { font-family: var(--font-display); font-weight: 700; font-size: var(--text-3xl); letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--brand); white-space: nowrap; }
+.figure.accent { color: var(--accent-text); }  /* magenta μόνο για ΕΝΑ ποσό ανά ενότητα */
+.figure small { display: block; font-family: var(--font-body); font-weight: 400; font-size: var(--text-sm); letter-spacing: 0; color: var(--fg-3); margin-top: 10px; line-height: 1.4; }
+.on-dark .figure, .figure.on-dark { color: #fff; }
+.on-dark .figure.accent { color: var(--wwa-pink-400); }
+.on-dark .figure small { color: var(--fg-on-inverse-muted); }
+.numeric { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
