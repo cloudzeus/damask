@@ -2,6 +2,7 @@
 
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { ensureTrdrProgramFolder } from '@/lib/trdr/cdn-folder'
 import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { revalidatePath } from 'next/cache'
@@ -183,6 +184,9 @@ export async function createApplication(input: { trdrId: string; programId: stri
     create: { trdrId: input.trdrId, programId: input.programId, createdById: session.user.id },
     update: {},
   })
+
+  // Αυτόματος φάκελος προγράμματος στο CDN μέσα στον φάκελο του πελάτη (idempotent).
+  await ensureTrdrProgramFolder(input.trdrId, input.programId)
 
   // C2e: materialize per-stage task templates onto the new/linked application.
   // Generation failure must NOT roll back enrollment — the manager can re-run

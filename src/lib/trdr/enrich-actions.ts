@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
+import { trdrGemiFolder } from '@/lib/trdr/cdn-folder'
 import {
   searchGemiCompanies,
   getGemiCompany,
@@ -241,9 +242,10 @@ function toDate(v?: string | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-function gemiDocKey(trdrId: string, kak: string, docKind: 'DECISION' | 'PUBLICATION' | 'OTHER', ext: string): string {
+/** base = ο κοινός φάκελος ΓΕΜΗ του πελάτη (partners/<type>/<ΑΦΜ>/documents/gemi/), με trailing slash. */
+function gemiDocKey(base: string, kak: string, docKind: 'DECISION' | 'PUBLICATION' | 'OTHER', ext: string): string {
   const prefix = docKind === 'PUBLICATION' ? 'pub-' : ''
-  return `trdr/${trdrId}/gemi/${prefix}${sanitizeKak(kak)}.${ext}`
+  return `${base}${prefix}${sanitizeKak(kak)}.${ext}`
 }
 
 type ImportDocFields = {
@@ -274,7 +276,8 @@ async function importGemiDocument(trdrId: string, kak: string, fields: ImportDoc
     const { buffer, contentType } = await downloadGemiFile(fields.sourceUrl)
     mimeType = contentType
     sizeBytes = buffer.length
-    storageKey = gemiDocKey(trdrId, kak, fields.docKind, safeExt(contentType))
+    const gemiBase = (await trdrGemiFolder(trdrId)) ?? `trdr/${trdrId}/gemi/`
+    storageKey = gemiDocKey(gemiBase, kak, fields.docKind, safeExt(contentType))
     await bunnyUploadPrivate({ key: storageKey, body: buffer, contentType })
   }
 
@@ -589,7 +592,8 @@ export async function saveTrdrGemiDocument(
   if (!trdr) notFound()
 
   const { buffer, contentType } = await downloadGemiFile(input.sourceUrl)
-  const storageKey = gemiDocKey(trdrId, input.kak, input.docKind, safeExt(contentType))
+  const gemiBase = (await trdrGemiFolder(trdrId)) ?? `trdr/${trdrId}/gemi/`
+  const storageKey = gemiDocKey(gemiBase, input.kak, input.docKind, safeExt(contentType))
   await bunnyUploadPrivate({ key: storageKey, body: buffer, contentType })
 
   const shared = {
