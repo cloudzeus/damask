@@ -1178,6 +1178,9 @@ model Program {
   status               ProgramStatus                @default(DRAFT)
   extractStatus        ProgramExtractStatus         @default(PENDING)
   extractedData        Json?
+  cmsContent           Json? // περιεχόμενο public front-end (SEO/GEO/AEO), auto από DeepSeek
+  cmsGeneratedAt       DateTime?
+  cmsModel             String?
   model                String?
   tokensUsed           Int?
   errorMessage         String?

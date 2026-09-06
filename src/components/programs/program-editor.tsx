@@ -20,6 +20,7 @@ import { TaskTemplatesTab } from './task-templates-tab'
 import { DeliverableTemplatesTab } from './deliverable-templates-tab'
 import { PhaseFilesTab } from './phase-files-tab'
 import { ProspectsTab } from './prospects-tab'
+import { CmsTab } from './cms-tab'
 
 /**
  * Detail/editor του αποδελτιωμένου Προγράμματος (Task 14, tabbed layout).
@@ -165,10 +166,11 @@ function validateNonNegativeInteger(v: string, label: string): string | null {
 /* ── Tab bar — lightweight, χωρίς Tabs primitive (δεν υπάρχει στο
  * src/components/ui) — pill row, navy active state (Steel & Frost §4β). */
 
-type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'phaseFiles' | 'prospects'
+type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'phaseFiles' | 'prospects' | 'cms'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'desc', label: 'Περιγραφή & Ημερομηνίες' },
+  { key: 'cms', label: 'CMS' },
   { key: 'kad', label: 'ΚΑΔ' },
   { key: 'terms', label: 'Προϋποθέσεις' },
   { key: 'deliverables', label: 'Παραδοτέα' },
@@ -628,6 +630,8 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
       {activeTab === 'phaseFiles' && <PhaseFilesTab programId={program.id} />}
 
       {activeTab === 'prospects' && <ProspectsTab programId={program.id} />}
+
+      {activeTab === 'cms' && <CmsTab programId={program.id} />}
     </div>
   )
 }

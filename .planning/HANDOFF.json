@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-06T16:41:11.666Z",
+  "timestamp": "2026-09-06T17:01:49.694Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,25 +22,33 @@
     },
     {
       "status": "M",
-      "path": "src/app/(app)/dashboard/page.tsx"
+      "path": "prisma/schema.prisma"
     },
     {
       "status": "M",
-      "path": "src/app/(public)/_components/eligibility-modal.tsx"
+      "path": "src/components/programs/program-editor.tsx"
     },
     {
       "status": "M",
-      "path": "src/components/shell/notifications-bell.tsx"
+      "path": "src/lib/programs/actions.ts"
     },
     {
-      "status": "M",
-      "path": "src/lib/public-lead/actions.ts"
+      "status": "??",
+      "path": "prisma/migrations/20260906165014_program_cms_content/"
     },
     {
-      "status": "M",
-      "path": "src/lib/public-lead/emails.ts"
+      "status": "??",
+      "path": "src/components/programs/cms-tab.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/programs/cms-prompt.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/programs/cms.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nffdab87 feat(public+email): eligibility modal με preloader + WWA email redesign + λογότυπο/unsubscribe\nc690ec9 fix(public): fluid μέγεθος γραμμάτων στο top menu (ίδια λογική με admin) — μία γραμμή μέχρι το mobile bp\na17b6df feat(public): WWA public front-end (design system) — isolated από το admin\n063b3b1 feat(comm): ενοποιημένο ιστορικό επικοινωνίας πελάτη + employee score\n85fd852 feat(programs): εικόνα προγράμματος (front-end) + Έντυπα ανά φάση & επαναχρησιμοποιήσιμα"
+  "context_notes": "Recent commits:\nd5070ea feat(eligibility): υπάρχων-πελάτης handling + όριο 4/μήνα/email + ΑΑΔΕ μετά το OTP\nffdab87 feat(public+email): eligibility modal με preloader + WWA email redesign + λογότυπο/unsubscribe\nc690ec9 fix(public): fluid μέγεθος γραμμάτων στο top menu (ίδια λογική με admin) — μία γραμμή μέχρι το mobile bp\na17b6df feat(public): WWA public front-end (design system) — isolated από το admin\n063b3b1 feat(comm): ενοποιημένο ιστορικό επικοινωνίας πελάτη + employee score"
 }

@@ -8,6 +8,7 @@ import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { revalidatePath } from 'next/cache'
 import { extractProgramFromText } from '@/lib/programs/extract'
 import { persistExtractedProgram } from '@/lib/programs/persist'
+import { generateProgramCms, getProgramCms, saveProgramCms, type ProgramCms } from '@/lib/programs/cms'
 import { suggestCategory } from '@/lib/programs/categorize'
 import { expenseCatInput } from '@/lib/programs/expense-prep'
 import { buildOcrCostViewForSession, type OcrCostView } from '@/lib/ingestion/ocr-cost'
@@ -139,6 +140,32 @@ export async function updateProgramMeta(
   revalidatePath(`/programs/${id}`)
 }
 
+/** CMS tab — παραγωγή public περιεχομένου (SEO/GEO/AEO) μέσω DeepSeek. */
+export async function generateProgramCmsAction(programId: string): Promise<{ ok: boolean; cms?: ProgramCms; error?: string }> {
+  const session = await requirePermission('programs.manage')
+  try {
+    const cms = await generateProgramCms(programId, { userId: session.user.id })
+    await logActivity('program.extract', { entityType: 'program', entityId: programId, userId: session.user.id, meta: { cms: true } })
+    revalidatePath(`/programs/${programId}`)
+    return { ok: true, cms }
+  } catch (err) {
+    console.error(`generateProgramCmsAction: ${programId}`, err)
+    return { ok: false, error: 'Η δημιουργία περιεχομένου απέτυχε. Ελέγξτε τη σύνδεση DeepSeek στις Ρυθμίσεις.' }
+  }
+}
+
+export async function getProgramCmsAction(programId: string): Promise<{ cms: ProgramCms | null; generatedAt: string | null; model: string | null }> {
+  await requirePermission('programs.manage')
+  return getProgramCms(programId)
+}
+
+export async function saveProgramCmsAction(programId: string, cms: ProgramCms): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  await saveProgramCms(programId, cms)
+  revalidatePath(`/programs/${programId}`)
+  return { ok: true }
+}
+
 export async function deleteProgram(id: string): Promise<void> {
   await requirePermission('programs.manage')
   await prisma.program.delete({ where: { id } })
@@ -159,6 +186,15 @@ export async function extractProgram(programId: string, text: string): Promise<{
     })
     const cost = await buildOcrCostViewForSession(session.user.role, r.model, r.tokensUsed)
     await logActivity('program.extract', { entityType: 'program', entityId: programId, userId: session.user.id, meta: { model: r.model } })
+
+    // Αυτόματη παραγωγή public CMS περιεχομένου (SEO/GEO/AEO) από την αποδελτίωση.
+    // Best-effort — αποτυχία CMS ΔΕΝ ρίχνει την αποδελτίωση.
+    try {
+      await generateProgramCms(programId, { userId: session.user.id })
+    } catch (cmsErr) {
+      console.error(`extractProgram: CMS generation failed for ${programId}`, cmsErr)
+    }
+
     revalidatePath(`/programs/${programId}`)
     return { ok: true, cost }
   } catch (err) {
