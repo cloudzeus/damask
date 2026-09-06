@@ -64,6 +64,7 @@ export function DataTable<T>({
   rowClassName,
   onRowClick,
   bare = false,
+  fillHeight = false,
 }: {
   tableId: string
   columns: DataTableColumn<T>[]
@@ -77,6 +78,8 @@ export function DataTable<T>({
   rowClassName?: (row: T) => string
   /** Χωρίς το glass-card wrapper — για ενσωμάτωση μέσα σε υπάρχον section. */
   bare?: boolean
+  /** Ο πίνακας γεμίζει το διαθέσιμο ύψος (viewport) με sticky header + εσωτερικό scroll. */
+  fillHeight?: boolean
   /** Click σε ολόκληρη τη γραμμή. Κελιά με δικές τους ενέργειες (π.χ. actions
    * menu) πρέπει να κάνουν stopPropagation στο δικό τους wrapper. */
   onRowClick?: (row: T) => void
@@ -187,7 +190,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={cn(bare ? 'dt-bare' : 'glass table-card stagger', className)}>
+    <div className={cn(bare ? 'dt-bare' : 'glass table-card stagger', fillHeight && 'dt-fill', className)}>
       <div className="table-toolbar">
         {toolbarExtras}
         <div className="flex-1" />

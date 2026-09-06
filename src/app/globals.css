@@ -1079,6 +1079,30 @@
   overflow-x: auto;
 }
 
+/* Full-height mode (fillHeight) — ο πίνακας γεμίζει το διαθέσιμο viewport ύψος με
+   sticky header + εσωτερικό κάθετο scroll. Ο toolbar/footer μένουν σταθεροί. */
+.table-card.dt-fill {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 15rem);
+}
+.table-card.dt-fill .table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.table-card.dt-fill .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card);
+}
+@media (max-width: 640px) {
+  .table-card.dt-fill {
+    height: calc(100dvh - 12rem);
+  }
+}
+
 /* scoped table chrome — NOT a bare `table`/`th`/`td` selector, so it never
    leaks onto unrelated tables elsewhere in the app. */
 .data-table {

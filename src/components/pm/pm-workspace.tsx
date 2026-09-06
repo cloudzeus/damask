@@ -63,7 +63,7 @@ export function PmWorkspace({
     <div>
       <ViewBar active={view} onChange={setView} />
       {view === 'overview' && <PmOverview obligations={obligations} />}
-      {view === 'applications' && <ApplicationsTable rows={applications} />}
+      {view === 'applications' && <ApplicationsTable rows={applications} fillHeight />}
       {view === 'board' && (
         <ObligationsBoard obligations={obligations} swimlaneBy="assignee" onStatusChange={() => router.refresh()} />
       )}

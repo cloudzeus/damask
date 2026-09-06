@@ -10,7 +10,7 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
  * DataTable (resize/wrap/επιλογή στηλών/sorting· persist `dt:pm-applications`).
  * 'use client' γιατί τα cell render fns (Link/labels) περνούν το RSC→client boundary.
  */
-export function ApplicationsTable({ rows }: { rows: VisibleApplicationItem[] }) {
+export function ApplicationsTable({ rows, fillHeight = false }: { rows: VisibleApplicationItem[]; fillHeight?: boolean }) {
   const columns: DataTableColumn<VisibleApplicationItem>[] = [
     {
       id: 'trdr',
@@ -43,6 +43,7 @@ export function ApplicationsTable({ rows }: { rows: VisibleApplicationItem[] }) 
       rows={rows}
       rowKey={r => r.id}
       emptyMessage="Δεν υπάρχουν έργα."
+      fillHeight={fillHeight}
     />
   )
 }
