@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { FileDropzone, xhrUpload } from '@/components/ui/file-dropzone'
 import { RichTextEditor } from '@/components/email/rich-text-editor'
 import { sendCustomerEmail, type ComposeAttachment } from '@/lib/email/actions'
+import { getPhaseFileTemplate } from '@/lib/programs/phase-files'
+import { DELIVERABLE_PHASE_ORDER, deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/deliverable-phases'
 import { cn } from '@/lib/utils'
 
 /**
@@ -21,7 +23,7 @@ import { cn } from '@/lib/utils'
  * υπάρχει `trdrId` (το backend αγνοεί file request χωρίς πελάτη).
  */
 
-type RequestItem = { label: string; required: boolean }
+type RequestItem = { label: string; required: boolean; description?: string | null }
 
 export function ComposeEmailDialog({
   trdrId, programId, applicationId, obligationId,
@@ -64,6 +66,7 @@ export function ComposeEmailDialog({
   const [wantRequest, setWantRequest] = useState(false)
   const [reqTitle, setReqTitle] = useState('')
   const [reqExpires, setReqExpires] = useState('')
+  const [reqPhase, setReqPhase] = useState('')
   const [reqItems, setReqItems] = useState<RequestItem[]>([{ label: '', required: true }])
 
   const [pending, startTransition] = useTransition()
@@ -78,7 +81,25 @@ export function ComposeEmailDialog({
     setWantRequest(false)
     setReqTitle('')
     setReqExpires('')
+    setReqPhase('')
     setReqItems([{ label: '', required: true }])
+  }
+
+  // Prefill των ζητούμενων δικαιολογητικών από το πρότυπο «Αρχεία πελάτη ανά φάση».
+  function loadPhaseTemplate(phase: string) {
+    setReqPhase(phase)
+    if (!phase || !programId) return
+    startTransition(async () => {
+      try {
+        const tpl = await getPhaseFileTemplate(programId, phase)
+        if (tpl.length === 0) { toast.info('Δεν υπάρχουν ορισμένα δικαιολογητικά για αυτή τη φάση.'); return }
+        setReqItems(tpl.map(t => ({ label: t.label, required: t.required, description: t.description })))
+        if (!reqTitle.trim()) setReqTitle(`Δικαιολογητικά — ${deliverablePhaseLabel(phase as DeliverablePhaseStr)}`)
+        toast.success(`Φορτώθηκαν ${tpl.length} δικαιολογητικά από τη φάση.`)
+      } catch {
+        toast.error('Αδυναμία φόρτωσης προτύπου φάσης.')
+      }
+    })
   }
 
   function handleOpenChange(next: boolean) {
@@ -112,7 +133,7 @@ export function ComposeEmailDialog({
 
     let fileRequest: NonNullable<Parameters<typeof sendCustomerEmail>[0]['fileRequest']> | undefined
     if (wantRequest && trdrId) {
-      const items = reqItems.map(it => ({ label: it.label.trim(), required: it.required })).filter(it => it.label)
+      const items = reqItems.map(it => ({ label: it.label.trim(), required: it.required, description: it.description ?? undefined })).filter(it => it.label)
       if (!reqTitle.trim()) { toast.error('Δώσε τίτλο στο αίτημα δικαιολογητικών.'); return }
       if (!reqExpires) { toast.error('Δώσε ημερομηνία λήξης για το αίτημα.'); return }
       if (items.length === 0) { toast.error('Πρόσθεσε τουλάχιστον ένα δικαιολογητικό.'); return }
@@ -229,6 +250,22 @@ export function ComposeEmailDialog({
 
               {wantRequest && (
                 <div className="flex flex-col gap-3 border-t border-border p-3.5">
+                  {programId && (
+                    <div className="field !mb-0">
+                      <label htmlFor="req-phase">Πρότυπο ανά φάση (προαιρετικό)</label>
+                      <select
+                        id="req-phase"
+                        value={reqPhase}
+                        onChange={e => loadPhaseTemplate(e.target.value)}
+                        className="h-11 w-full rounded-full border border-border bg-card px-4 text-sm outline-none focus-visible:border-(--info) focus-visible:ring-4 focus-visible:ring-(--info-soft)"
+                      >
+                        <option value="">— Φόρτωση δικαιολογητικών από φάση —</option>
+                        {DELIVERABLE_PHASE_ORDER.map(p => (
+                          <option key={p} value={p}>{deliverablePhaseLabel(p)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="field !mb-0">
                       <label htmlFor="req-title">Τίτλος αιτήματος*</label>

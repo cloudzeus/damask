@@ -72,9 +72,9 @@ async function notifyCompletion(fileRequestId: string): Promise<void> {
     await sendMail({ to: fr.email, subject: mail.subject, html: mail.html, tracking: false, refType: 'file-request-done', refId: fr.id }).catch(() => {})
   }
 
-  // Email στην ομάδα (δημιουργός ή admins/managers).
+  // Email στην ομάδα του έργου (δημιουργός + manager + ανατεθειμένοι· fallback admins).
   if (!fr.staffNotifiedAt) {
-    const recipients = await staffRecipients(fr.createdById)
+    const recipients = await staffRecipients(fr.createdById, fr.applicationId)
     if (recipients.length > 0) {
       const adminUrl = fr.applicationId
         ? `${APP_URL}/programs/${fr.programId ?? ''}/applications/${fr.applicationId}`
@@ -98,14 +98,31 @@ async function stampNotified(id: string, customer: boolean, staff: boolean): Pro
   })
 }
 
-async function staffRecipients(createdById?: string | null): Promise<string[]> {
-  if (createdById) {
-    const creator = await prisma.user.findUnique({ where: { id: createdById }, select: { email: true, active: true } })
-    if (creator?.active && creator.email) return [creator.email]
+/**
+ * Παραλήπτες ειδοποίησης ομάδας: δημιουργός + manager του έργου + ανατεθειμένοι
+ * εκτελεστές. Αν δεν βρεθεί κανείς (π.χ. αίτημα χωρίς έργο), fallback σε admins/managers.
+ */
+async function staffRecipients(createdById?: string | null, applicationId?: string | null): Promise<string[]> {
+  const ids = new Set<string>()
+  if (createdById) ids.add(createdById)
+  if (applicationId) {
+    const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { managerId: true } })
+    if (app?.managerId) ids.add(app.managerId)
+    const assigns = await prisma.applicationAssignment.findMany({ where: { applicationId }, select: { userId: true } })
+    for (const a of assigns) ids.add(a.userId)
   }
-  const staff = await prisma.user.findMany({
-    where: { active: true, role: { name: { in: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] } } },
-    select: { email: true },
-  })
-  return [...new Set(staff.map(s => s.email).filter(Boolean))]
+
+  let emails: string[] = []
+  if (ids.size > 0) {
+    const users = await prisma.user.findMany({ where: { id: { in: [...ids] }, active: true }, select: { email: true } })
+    emails = users.map(u => u.email).filter(Boolean)
+  }
+  if (emails.length === 0) {
+    const staff = await prisma.user.findMany({
+      where: { active: true, role: { name: { in: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] } } },
+      select: { email: true },
+    })
+    emails = staff.map(s => s.email).filter(Boolean)
+  }
+  return [...new Set(emails)]
 }
