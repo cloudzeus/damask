@@ -56,6 +56,21 @@ export async function setProgramPhaseFiles(programId: string, items: PhaseFileIn
   return { ok: true, count: clean.length }
 }
 
+/**
+ * ΟΛΑ τα ορισμένα απαιτούμενα αρχεία του προγράμματος (όλες οι φάσεις), για
+ * επιλογή κατά τη δημιουργία αιτήματος δικαιολογητικών από την καρτέλα έργου.
+ * Gated customer.view (staff της ομάδας του έργου). Ίδιο mapping με
+ * listProgramPhaseFiles αλλά με χαλαρότερο permission (ανάγνωση προτύπου).
+ */
+export async function getProgramFileTemplateOptions(programId: string): Promise<PhaseFileRow[]> {
+  await requirePermission('customer.view')
+  const rows = await prisma.programPhaseFile.findMany({ where: { programId }, orderBy: [{ order: 'asc' }] })
+  const phaseIdx = (p: string) => DELIVERABLE_PHASE_ORDER.indexOf(p as (typeof DELIVERABLE_PHASE_ORDER)[number])
+  return rows
+    .map(r => ({ id: r.id, phase: r.phase, label: r.label, description: r.description, required: r.required, order: r.order }))
+    .sort((a, b) => phaseIdx(a.phase) - phaseIdx(b.phase) || a.order - b.order)
+}
+
 /** Πρότυπο απαιτούμενων αρχείων για μια φάση — για prefill ενός FileRequest. */
 export async function getPhaseFileTemplate(programId: string, phase: string): Promise<{ label: string; description: string | null; required: boolean }[]> {
   await requirePermission('customer.view')

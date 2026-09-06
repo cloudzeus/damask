@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search, MoreVertical, Pencil, Unlink, Trash2 } from 'lucide-react'
+import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search, MoreVertical, Pencil, Unlink, Trash2, FileCheck2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -15,6 +15,9 @@ import {
   listApplicationContactOptions, setApplicationContacts, createAndLinkContact,
   updateLinkedContact, unlinkApplicationContact, deleteContactCompletely, type AppContactOption,
 } from '@/lib/pm/application-contacts'
+import { getProgramFileTemplateOptions, type PhaseFileRow } from '@/lib/programs/phase-files'
+import { requestDocsFromContact } from '@/lib/file-requests/actions'
+import { deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/deliverable-phases'
 
 /**
  * «Επαφές» tab του έργου (ProgramApplication hub) — συνδέει μία ή περισσότερες
@@ -24,7 +27,7 @@ import {
  * customer.view· η διαχείριση (Dialog με checkbox list) gated programs.manage
  * και εμφανίζεται μόνο όταν canManage.
  */
-export function ApplicationContactsTab({ applicationId, canManage }: { applicationId: string; canManage: boolean }) {
+export function ApplicationContactsTab({ applicationId, canManage, programId }: { applicationId: string; canManage: boolean; programId?: string }) {
   const [options, setOptions] = React.useState<AppContactOption[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -32,6 +35,7 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
   const [formOpen, setFormOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<AppContactOption | null>(null)
   const [confirm, setConfirm] = React.useState<{ mode: 'unlink' | 'delete'; contact: AppContactOption } | null>(null)
+  const [requesting, setRequesting] = React.useState<AppContactOption | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [acting, startActing] = React.useTransition()
 
@@ -135,6 +139,7 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
               canManage={canManage}
               busy={acting && busyId === c.contactId}
               onEdit={openEdit}
+              onRequestDocs={c => setRequesting(c)}
               onUnlink={c => setConfirm({ mode: 'unlink', contact: c })}
               onDelete={c => setConfirm({ mode: 'delete', contact: c })}
             />
@@ -163,6 +168,14 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
             busy={acting}
             onCancel={() => { if (!acting) setConfirm(null) }}
             onConfirm={runConfirm}
+          />
+          <RequestDocsDialog
+            applicationId={applicationId}
+            programId={programId}
+            contact={requesting}
+            open={!!requesting}
+            onOpenChange={next => { if (!next) setRequesting(null) }}
+            onSent={() => setRequesting(null)}
           />
         </>
       )}
@@ -310,12 +323,13 @@ function ContactFormDialog({
 }
 
 function ContactCard({
-  contact, canManage, busy, onEdit, onUnlink, onDelete,
+  contact, canManage, busy, onEdit, onRequestDocs, onUnlink, onDelete,
 }: {
   contact: AppContactOption
   canManage: boolean
   busy: boolean
   onEdit: (contact: AppContactOption) => void
+  onRequestDocs: (contact: AppContactOption) => void
   onUnlink: (contact: AppContactOption) => void
   onDelete: (contact: AppContactOption) => void
 }) {
@@ -357,6 +371,14 @@ function ContactCard({
                 }
               />
               <DropdownMenuContent align="end" className="w-max min-w-52">
+                <DropdownMenuItem
+                  onClick={() => onRequestDocs(contact)}
+                  disabled={!contact.email}
+                  title={contact.email ? undefined : 'Η επαφή δεν έχει email'}
+                >
+                  <FileCheck2 className="size-3.5" aria-hidden /> Αίτημα δικαιολογητικών
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onEdit(contact)}>
                   <Pencil className="size-3.5" aria-hidden /> Επεξεργασία
                 </DropdownMenuItem>
@@ -373,6 +395,220 @@ function ContactCard({
         </div>
       </div>
     </div>
+  )
+}
+
+/** Προεπιλεγμένη λήξη: +14 ημέρες από σήμερα (YYYY-MM-DD για <input type=date>). */
+function defaultExpiry(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 14)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * «Αίτημα δικαιολογητικών» προς μία επαφή του έργου — ανοίγει από το ⋮ menu της
+ * κάρτας. Ο χρήστης επιλέγει ποια από τα ορισμένα (ανά φάση) δικαιολογητικά θέλει
+ * (checkboxes) + προαιρετικά custom, ορίζει τίτλο/λήξη, και στέλνεται one-time
+ * link στο email της επαφής (requestDocsFromContact). Το αίτημα εμφανίζεται στην
+ * καρτέλα «Δικαιολογητικά» για έλεγχο.
+ */
+function RequestDocsDialog({
+  applicationId, programId, contact, open, onOpenChange, onSent,
+}: {
+  applicationId: string
+  programId?: string
+  contact: AppContactOption | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSent: () => void
+}) {
+  const [templates, setTemplates] = React.useState<PhaseFileRow[]>([])
+  const [loadingTpl, setLoadingTpl] = React.useState(false)
+  const [checked, setChecked] = React.useState<Set<string>>(new Set())
+  const [custom, setCustom] = React.useState<{ label: string; required: boolean }[]>([])
+  const [title, setTitle] = React.useState('')
+  const [expires, setExpires] = React.useState(defaultExpiry())
+  const [saving, startSaving] = React.useTransition()
+
+  // Reset + φόρτωση προτύπου ανά φάση σε κάθε άνοιγμα (render-time pattern).
+  const [prevOpen, setPrevOpen] = React.useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      setChecked(new Set())
+      setCustom([])
+      setTitle('Δικαιολογητικά')
+      setExpires(defaultExpiry())
+      setTemplates([])
+    }
+  }
+
+  React.useEffect(() => {
+    if (!open || !programId) return
+    let cancelled = false
+    // Nested async ώστε κανένα setState να μην τρέχει σύγχρονα στο σώμα του effect
+    // (react-hooks/set-state-in-effect).
+    const load = async () => {
+      setLoadingTpl(true)
+      try {
+        const rows = await getProgramFileTemplateOptions(programId)
+        if (!cancelled) { setTemplates(rows); setChecked(new Set(rows.filter(r => r.required).map(r => r.id))) }
+      } catch {
+        if (!cancelled) setTemplates([])
+      } finally {
+        if (!cancelled) setLoadingTpl(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [open, programId])
+
+  // Ομαδοποίηση προτύπου ανά φάση για ευανάγνωστη επιλογή.
+  const groups = React.useMemo(() => {
+    const map = new Map<string, PhaseFileRow[]>()
+    for (const r of templates) {
+      const arr = map.get(r.phase) ?? []
+      arr.push(r)
+      map.set(r.phase, arr)
+    }
+    return [...map.entries()]
+  }, [templates])
+
+  const selectedCount = checked.size + custom.filter(c => c.label.trim()).length
+
+  function toggle(id: string) {
+    setChecked(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function handleSend() {
+    if (!contact) return
+    const items = [
+      ...templates.filter(t => checked.has(t.id)).map(t => ({ label: t.label, description: t.description ?? undefined, required: t.required })),
+      ...custom.filter(c => c.label.trim()).map(c => ({ label: c.label.trim(), required: c.required })),
+    ]
+    if (items.length === 0) { toast.error('Επίλεξε τουλάχιστον ένα δικαιολογητικό.'); return }
+    if (!title.trim()) { toast.error('Δώσε τίτλο στο αίτημα.'); return }
+    if (!expires) { toast.error('Δώσε ημερομηνία λήξης.'); return }
+    startSaving(async () => {
+      try {
+        const res = await requestDocsFromContact({ applicationId, contactId: contact.contactId, title: title.trim(), expiresAt: expires, items })
+        if (!res.ok) throw new Error(res.error)
+        toast.success(`Το αίτημα στάλθηκε στο ${contact.email}.`)
+        onSent()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Η αποστολή απέτυχε.')
+      }
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={next => { if (!saving) onOpenChange(next) }}>
+      <DialogContent className="flex max-h-[88vh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden bg-popover sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle>Αίτημα δικαιολογητικών</DialogTitle>
+          <DialogDescription>
+            Επίλεξε τα δικαιολογητικά και στείλε σύνδεσμο μεταφόρτωσης στην επαφή
+            {contact?.email ? <> «{contact.name}» ({contact.email})</> : null}.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="field !mb-0">
+            <label htmlFor="rq-title">Τίτλος*</label>
+            <Input id="rq-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="π.χ. Δικαιολογητικά αξιολόγησης" autoComplete="off" />
+          </div>
+          <div className="field !mb-0">
+            <label htmlFor="rq-expires">Ημ/νία λήξης*</label>
+            <Input id="rq-expires" type="date" value={expires} onChange={e => setExpires(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border p-2">
+          {loadingTpl ? (
+            <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+              <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση προτύπου…
+            </div>
+          ) : groups.length === 0 ? (
+            <p className="px-1 py-3 text-[0.75rem] text-muted-foreground">
+              Δεν υπάρχουν ορισμένα δικαιολογητικά ανά φάση για αυτό το πρόγραμμα. Πρόσθεσε custom παρακάτω.
+            </p>
+          ) : (
+            groups.map(([phase, rows]) => (
+              <div key={phase} className="mb-2">
+                <div className="px-1 py-1 text-[0.65625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+                  {deliverablePhaseLabel(phase as DeliverablePhaseStr)}
+                </div>
+                <ul className="flex flex-col">
+                  {rows.map(r => (
+                    <li key={r.id}>
+                      <label className="flex min-h-[42px] cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted">
+                        <input type="checkbox" checked={checked.has(r.id)} onChange={() => toggle(r.id)} className="size-4 shrink-0" />
+                        <span className="flex min-w-0 flex-col">
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[0.8125rem] font-medium">{r.label}</span>
+                            {r.required
+                              ? <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>
+                              : <span className="badge-pill muted shrink-0">Προαιρετικό</span>}
+                          </span>
+                          {r.description && <span className="truncate text-[0.71875rem] text-muted-foreground">{r.description}</span>}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          )}
+
+          {custom.length > 0 && (
+            <div className="mb-1 mt-1">
+              <div className="px-1 py-1 text-[0.65625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">Custom</div>
+              <div className="flex flex-col gap-1.5">
+                {custom.map((c, idx) => (
+                  <div key={idx} className="flex items-center gap-2 px-1">
+                    <Input
+                      value={c.label}
+                      onChange={e => setCustom(items => items.map((it, i) => i === idx ? { ...it, label: e.target.value } : it))}
+                      placeholder={`Δικαιολογητικό ${idx + 1}`}
+                      autoComplete="off"
+                      className="h-9 flex-1"
+                    />
+                    <label className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 text-[0.6875rem] font-semibold">
+                      <input type="checkbox" checked={c.required} onChange={e => setCustom(items => items.map((it, i) => i === idx ? { ...it, required: e.target.checked } : it))} className="size-3.5" />
+                      Υποχρ.
+                    </label>
+                    <button
+                      type="button"
+                      aria-label="Αφαίρεση"
+                      onClick={() => setCustom(items => items.filter((_, i) => i !== idx))}
+                      className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <Trash2 className="size-4" aria-hidden />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Button type="button" variant="outline" size="sm" className="mt-1 ml-1" onClick={() => setCustom(items => [...items, { label: '', required: true }])}>
+            <UserPlus className="size-3.5" aria-hidden /> Προσθήκη custom δικαιολογητικού
+          </Button>
+        </div>
+
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" disabled={saving}>Άκυρο</Button>} />
+          <Button type="button" onClick={handleSend} disabled={saving || selectedCount === 0}>
+            {saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <FileCheck2 className="size-3.5" aria-hidden />}
+            Αποστολή ({selectedCount})
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

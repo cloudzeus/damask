@@ -50,11 +50,19 @@ async function notifyCompletion(fileRequestId: string): Promise<void> {
   const trdr = await prisma.trdr.findUnique({ where: { id: fr.trdrId }, select: { NAME: true } })
   const customerName = trdr?.NAME ?? null
 
-  // In-app ειδοποίηση στην ομάδα.
+  // Τα ανεβασμένα δικαιολογητικά (τι ζητήθηκε → ποιο αρχείο) — για email + notification.
+  const uploadedItems = fr.items
+    .filter(i => i.fileKey || i.fileUrl)
+    .map(i => ({ label: i.label, fileName: i.fileName }))
+
+  // In-app ειδοποίηση στην ομάδα — αναφέρει ΠΟΙΑ δικαιολογητικά ανέβηκαν.
+  const notifBody = uploadedItems.length
+    ? uploadedItems.map(i => (i.fileName ? `${i.label}: ${i.fileName}` : i.label)).join(' · ')
+    : `${uploadedItems.length} αρχεία για «${fr.title}»`
   await createNotification({
     type: 'GENERIC',
     title: `Ολοκληρώθηκαν δικαιολογητικά — ${customerName ?? fr.title}`,
-    body: `${fr.items.filter(i => i.fileKey || i.fileUrl).length} αρχεία για «${fr.title}»`,
+    body: notifBody,
     entityType: 'FileRequest',
     entityId: fr.id,
     meta: { trdrId: fr.trdrId, programId: fr.programId, applicationId: fr.applicationId },
@@ -79,7 +87,7 @@ async function notifyCompletion(fileRequestId: string): Promise<void> {
       const adminUrl = fr.applicationId
         ? `${APP_URL}/programs/${fr.programId ?? ''}/applications/${fr.applicationId}`
         : `${APP_URL}/partners/${fr.trdrId}`
-      const mail = fileRequestCompletedStaffEmail({ title: fr.title, customerName, adminUrl, itemCount: fr.items.filter(i => i.fileKey || i.fileUrl).length })
+      const mail = fileRequestCompletedStaffEmail({ title: fr.title, customerName, adminUrl, itemCount: uploadedItems.length, items: uploadedItems })
       await sendMail({ to: recipients.join(','), subject: mail.subject, html: mail.html, tracking: false, refType: 'file-request-done-staff', refId: fr.id }).catch(() => {})
     }
   }
@@ -106,8 +114,9 @@ async function staffRecipients(createdById?: string | null, applicationId?: stri
   const ids = new Set<string>()
   if (createdById) ids.add(createdById)
   if (applicationId) {
-    const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { managerId: true } })
+    const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { managerId: true, processorId: true } })
     if (app?.managerId) ids.add(app.managerId)
+    if (app?.processorId) ids.add(app.processorId) // ο διεκπεραιωτής είναι primary owner — έλειπε
     const assigns = await prisma.applicationAssignment.findMany({ where: { applicationId }, select: { userId: true } })
     for (const a of assigns) ids.add(a.userId)
   }

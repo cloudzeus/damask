@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-25T10:44:38.922Z",
+  "timestamp": "2026-09-06T14:21:10.717Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -18,85 +18,33 @@
   "uncommitted_files": [
     {
       "status": "M",
-      "path": ".gitignore"
-    },
-    {
-      "status": "M",
       "path": ".planning/HANDOFF.json"
     },
     {
       "status": "M",
-      "path": "src/components/ingestion/step-ingest-commit.tsx"
+      "path": "src/components/pm/application-contacts-tab.tsx"
     },
     {
       "status": "M",
-      "path": "src/components/ingestion/step-ingest-map.tsx"
+      "path": "src/components/pm/application-hub.tsx"
     },
     {
       "status": "M",
-      "path": "src/components/ingestion/step-ingest-validate.tsx"
+      "path": "src/lib/file-requests/actions.ts"
     },
     {
       "status": "M",
-      "path": "src/components/ingestion/types.ts"
+      "path": "src/lib/file-requests/emails.ts"
     },
     {
       "status": "M",
-      "path": "src/components/programs/prospects-tab.tsx"
+      "path": "src/lib/file-requests/service.ts"
     },
     {
       "status": "M",
-      "path": "src/components/shell/topbar.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/geocode.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ingestion/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ingestion/commit/index.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ingestion/commit/partner-upsert.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ingestion/fields.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ingestion/map.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ingestion/registry.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ingestion/target.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/prospects/eligibility.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/trdr/gemi.ts"
-    },
-    {
-      "status": "M",
-      "path": "tests/ingestion-partner-prep.test.ts"
-    },
-    {
-      "status": "M",
-      "path": "tests/prospects-eligibility.test.ts"
+      "path": "src/lib/programs/phase-files.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ne7aa3c6 feat(registries): διαχείριση Περιφερειών/ΚΑΔ στην ενότητα «Ευρωπαϊκά Προγράμματα»\naac14ee feat(trdr): ΔΟΥ από ΑΑΔΕ παντού + νέα πεδία καρτέλας (PHONE02/EMAILACC/εργαζόμενοι/έσοδα)\ne204b00 fix(trdr): timeouts σε ΓΕΜΗ fetches (20s/45s) + Bunny upload (90s) — τέλος στο πάγωμα του gemi-sync\ne1817ca fix(pm): C2g wizard — ευρύτερο modal (1180px) ώστε tasks + panel προτύπων να χωρούν\n62ec67f feat(invoices): W4 UI — workflow Εταιρίας στο OCR + Καταχώριση δαπάνης από OCR στο έργο"
+  "context_notes": "Recent commits:\na6efbdb fix(pm): απενεργοποίηση browser autofill στη φόρμα επαφής έργου\nd31fd79 feat(pm): edit/unlink/delete επαφών in-place από την καρτέλα έργου\n72aede1 feat(pm): δημιουργία νέας επαφής από το έργο (καταχωρείται και ως επαφή εταιρίας)\n92b5668 feat(files): ευρύτερο modal preview + ενέργειες review σε dropdown (Προβολή/Λήψη/Έγκριση/Απόρριψη)\nf344ac4 feat(files): in-modal viewer (pdf/image/docx/xlsx/txt) + actions dropdown στις ειδοποιήσεις"
 }

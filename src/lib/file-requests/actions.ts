@@ -15,6 +15,77 @@ import { fileRequestInviteEmail } from '@/lib/file-requests/emails'
 
 const APP_URL = process.env.AUTH_URL ?? 'http://localhost:3000'
 
+/**
+ * Αίτημα δικαιολογητικών προς ΣΥΓΚΕΚΡΙΜΕΝΗ επαφή του έργου (από το ⋮ menu της
+ * κάρτας επαφής). Στέλνει το one-time link στο email της επαφής, δημιουργεί
+ * FileRequest που εμφανίζεται στην καρτέλα «Δικαιολογητικά». Gated programs.manage
+ * (η καρτέλα επαφών εμφανίζει το action μόνο σε canManage).
+ */
+export async function requestDocsFromContact(input: {
+  applicationId: string
+  contactId: string
+  title: string
+  message?: string
+  expiresAt: string // ISO ή YYYY-MM-DD
+  items: { label: string; description?: string; required?: boolean }[]
+}): Promise<{ ok: boolean; error?: string; url?: string }> {
+  const session = await requirePermission('programs.manage')
+  if (!input.title?.trim()) return { ok: false, error: 'Λείπει ο τίτλος.' }
+  const items = input.items.filter(i => i.label?.trim())
+  if (items.length === 0) return { ok: false, error: 'Επίλεξε τουλάχιστον ένα δικαιολογητικό.' }
+
+  const app = await prisma.programApplication.findUnique({
+    where: { id: input.applicationId },
+    select: { id: true, trdrId: true, programId: true },
+  })
+  if (!app) return { ok: false, error: 'Το έργο δεν βρέθηκε.' }
+
+  // Ασφάλεια: η επαφή πρέπει να ανήκει στον πελάτη του έργου.
+  const contact = await prisma.contact.findFirst({
+    where: { id: input.contactId, trdrId: app.trdrId },
+    select: { email: true, name: true },
+  })
+  if (!contact) return { ok: false, error: 'Η επαφή δεν βρέθηκε.' }
+  if (!contact.email?.trim()) return { ok: false, error: 'Η επαφή δεν έχει καταχωρημένο email.' }
+
+  const expiresAt = new Date(input.expiresAt.length <= 10 ? `${input.expiresAt}T23:59:59` : input.expiresAt)
+  if (Number.isNaN(expiresAt.getTime())) return { ok: false, error: 'Μη έγκυρη ημερομηνία λήξης.' }
+
+  const { raw, hash } = newToken()
+  const fr = await prisma.fileRequest.create({
+    data: {
+      tokenHash: hash,
+      title: input.title.trim(),
+      message: input.message?.trim() || null,
+      email: contact.email.trim(),
+      expiresAt,
+      trdrId: app.trdrId,
+      programId: app.programId,
+      applicationId: app.id,
+      createdById: session.user.id,
+      items: { create: items.map((it, i) => ({ label: it.label.trim(), description: it.description?.trim() || null, required: it.required ?? true, order: i })) },
+    },
+  })
+  const url = `${APP_URL}/r/${raw}`
+
+  if (await isMailerConfigured()) {
+    const trdr = await prisma.trdr.findUnique({ where: { id: app.trdrId }, select: { NAME: true } })
+    const mail = fileRequestInviteEmail({
+      customerName: contact.name ?? trdr?.NAME ?? null,
+      title: input.title.trim(),
+      message: input.message,
+      items: items.map(i => ({ label: i.label.trim(), required: i.required ?? true })),
+      url,
+      expiresAt,
+    })
+    await sendMail({ to: contact.email.trim(), subject: mail.subject, html: mail.html, tracking: false, refType: 'file-request-invite', refId: fr.id }).catch(() => {})
+  }
+
+  await logActivity('file_request.create', { entityType: 'FileRequest', entityId: fr.id, summary: input.title, meta: { items: items.length, contactId: input.contactId } })
+  revalidatePath(`/partners/${app.trdrId}`)
+  return { ok: true, url }
+}
+
 export type CreateFileRequestInput = {
   trdrId: string
   programId?: string
