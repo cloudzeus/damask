@@ -78,17 +78,21 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header — πελάτης/πρόγραμμα + verdict/βαθμολογία */}
+      {/* Header — breadcrumb + πελάτης/πρόγραμμα + verdict/βαθμολογία (μία κάρτα) */}
       <div className="glass rounded-[22px] p-4">
+        <nav aria-label="Διαδρομή" className="mb-2 flex flex-wrap items-center gap-1 text-[0.71875rem] text-muted-foreground">
+          <Link href="/programs" className="hover:text-foreground hover:underline">Προγράμματα</Link>
+          <span aria-hidden>›</span>
+          <Link href={`/programs/${app.programId}`} className="hover:text-foreground hover:underline">{app.programTitle}</Link>
+          <span aria-hidden>›</span>
+          <b className="text-foreground">Έργο</b>
+        </nav>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground">
               <LuBuilding2 className="size-3" aria-hidden /> Πελάτης
             </div>
             <h2 className="text-[1.1875rem] font-bold">{app.trdrName}</h2>
-            <Link href={`/programs/${app.programId}`} className="text-[0.78125rem] text-muted-foreground hover:text-foreground hover:underline">
-              {app.programTitle}
-            </Link>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <VerdictBadge verdict={app.assessmentVerdict} />

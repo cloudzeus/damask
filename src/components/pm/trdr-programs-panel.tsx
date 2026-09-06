@@ -127,7 +127,7 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
                         </button>
                       }
                     />
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="w-max min-w-52">
                       {canManage && (
                         <DropdownMenuItem onClick={() => evaluateCard(card)}>
                           <ClipboardCheck className="size-3.5" aria-hidden /> Αξιολόγηση εταιρίας

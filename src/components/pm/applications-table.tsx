@@ -109,7 +109,7 @@ export function ApplicationsTable({ rows, fillHeight = false, canManage = false 
                 </button>
               }
             />
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-max min-w-52">
               {canManage && (
                 <DropdownMenuItem onClick={() => evaluate(r)}>
                   <ClipboardCheck className="size-3.5" aria-hidden /> Αξιολόγηση εταιρίας
