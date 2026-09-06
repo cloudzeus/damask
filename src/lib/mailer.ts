@@ -44,6 +44,12 @@ export type SendMailInput = {
    * θέλουμε να μετράνε (π.χ. reset password).
    */
   tracking?: boolean
+  /**
+   * URL/mailto για List-Unsubscribe header → οι email clients δείχνουν καθαρό
+   * native «Unsubscribe» (αντί για το άσχημο auto-footer της Mailgun). Μόνο για
+   * newsletter/bulk — όχι transactional.
+   */
+  listUnsubscribe?: string
 }
 export type SendMailResult = { ok: true; id?: string } | { ok: false; error: string }
 
@@ -102,6 +108,11 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   for (const [k, v] of Object.entries(input.variables ?? {})) fields.push([`v:${k}`, v])
   if (input.tracking !== false) {
     fields.push(['o:tracking', 'yes'], ['o:tracking-opens', 'yes'], ['o:tracking-clicks', 'htmlonly'])
+  }
+  if (input.listUnsubscribe?.trim()) {
+    const u = input.listUnsubscribe.trim()
+    fields.push(['h:List-Unsubscribe', u.startsWith('<') ? u : `<${u}>`])
+    fields.push(['h:List-Unsubscribe-Post', 'List-Unsubscribe=One-Click'])
   }
 
   const attachments = input.attachments ?? []
@@ -167,52 +178,69 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
  * clients δεν υποστηρίζουν backdrop-filter/εξωτερικά CSS). Table-based layout
  * για συμβατότητα. Χρησιμοποιείται από forgot-password + approve access request.
  */
+const EMAIL_APP_URL = process.env.AUTH_URL ?? 'http://localhost:3000'
+
 export function renderEmailShell(opts: {
   preheader?: string
   heading: string
   bodyHtml: string
   ctaLabel?: string
   ctaUrl?: string
+  /** Branded «διαγραφή από λίστα» link στο footer (newsletter). Αντικαθιστά το άσχημο auto-footer. */
+  unsubscribeUrl?: string
 }): string {
+  // WWA design system (email-safe: tables + inline styles· condensed look μέσω
+  // 'Arial Narrow'/bold/uppercase γιατί τα email clients δεν φορτώνουν Roboto Condensed).
+  const NAVY = '#001B72', NAVY_950 = '#000022', CYAN = '#34C8F6', INK = '#0B0F2A', MUTED = '#666C80', RULE = '#DFE2EA', CANVAS = '#EEF1FA'
+  const condensed = "'Arial Narrow',Arial,sans-serif"
+  const body = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+  const year = new Date().getFullYear()
   return `<!doctype html>
 <html lang="el">
-  <body style="margin:0;padding:32px 16px;background:#F2F6F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <body style="margin:0;padding:28px 16px;background:${CANVAS};font-family:${body};">
     ${opts.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${opts.preheader}</div>` : ''}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
-            <tr>
-              <td style="padding-bottom:20px;text-align:center;">
-                <span style="font-size:15px;font-weight:700;letter-spacing:0.14em;color:#16323F;">World Wide Associates</span>
-              </td>
-            </tr>
-            <tr>
-              <td style="background:#FFFFFF;border:1px solid #DCE5E9;border-radius:18px;padding:32px 28px;">
-                <h1 style="margin:0 0 14px;font-size:19px;line-height:1.3;color:#16323F;font-weight:700;">${opts.heading}</h1>
-                <div style="font-size:14px;line-height:1.65;color:#3E5563;">${opts.bodyHtml}</div>
-                ${
-                  opts.ctaLabel && opts.ctaUrl
-                    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px;">
-                  <tr>
-                    <td style="border-radius:999px;background:#16323F;">
-                      <a href="${opts.ctaUrl}" style="display:inline-block;padding:12px 26px;font-size:13.5px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:999px;">${opts.ctaLabel}</a>
-                    </td>
-                  </tr>
-                </table>
-                <div style="margin-top:14px;font-size:11.5px;color:#8098A5;word-break:break-all;">${opts.ctaUrl}</div>`
-                    : ''
-                }
-              </td>
-            </tr>
-            <tr>
-              <td style="padding-top:18px;text-align:center;font-size:11.5px;color:#8098A5;">
-                Αυτό είναι αυτοματοποιημένο μήνυμα από το World Wide Associates — μην απαντήσεις σε αυτό το email.
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+          <!-- header band -->
+          <tr>
+            <td style="background:${NAVY_950};border-radius:18px 18px 0 0;padding:24px 30px;">
+              <img src="${EMAIL_APP_URL}/wwa/wwa-logo-light-text.png" alt="World Wide Associates" height="40" style="height:40px;width:auto;display:block;border:0;outline:none;text-decoration:none;" />
+              <div style="margin-top:8px;font-size:12px;letter-spacing:0.02em;color:${CYAN};">Σύμβουλοι ΕΣΠΑ &amp; Ευρωπαϊκών Προγραμμάτων</div>
+            </td>
+          </tr>
+          <!-- card -->
+          <tr>
+            <td style="background:#FFFFFF;border:1px solid ${RULE};border-top:0;border-radius:0 0 18px 18px;padding:34px 30px;">
+              <h1 style="margin:0 0 16px;font-family:${condensed};font-size:23px;line-height:1.2;color:${NAVY};font-weight:700;text-transform:uppercase;letter-spacing:0.01em;">${opts.heading}</h1>
+              <div style="font-size:15px;line-height:1.65;color:${INK};">${opts.bodyHtml}</div>
+              ${
+                opts.ctaLabel && opts.ctaUrl
+                  ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:26px;">
+                <tr><td style="border-radius:999px;background:${NAVY};">
+                  <a href="${opts.ctaUrl}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:999px;">${opts.ctaLabel}</a>
+                </td></tr>
+              </table>
+              <div style="margin-top:14px;font-size:12px;color:${MUTED};word-break:break-all;">${opts.ctaUrl}</div>`
+                  : ''
+              }
+            </td>
+          </tr>
+          <!-- footer -->
+          <tr>
+            <td style="padding:22px 30px 6px;text-align:center;font-size:12px;line-height:1.7;color:${MUTED};">
+              <div style="font-weight:600;color:${INK};">World Wide Associates Ε.Ε.</div>
+              Αλεξανδρουπόλεως 25, Αθήνα 115 27 · <a href="tel:+302107218758" style="color:${NAVY};text-decoration:none;">210 721 8758</a> · <a href="mailto:info@wwa-espa.com" style="color:${NAVY};text-decoration:none;">info@wwa-espa.com</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 30px 0;text-align:center;font-size:11px;color:#8B93A6;">
+              Αυτοματοποιημένο μήνυμα από το World Wide Associates — μην απαντήσετε σε αυτό το email.<br/>© ${year} World Wide Associates Ε.Ε.
+              ${opts.unsubscribeUrl ? `<br/><a href="${opts.unsubscribeUrl}" style="color:#8B93A6;text-decoration:underline;">Διαγραφή από τη λίστα ενημερώσεων</a>` : ''}
+            </td>
+          </tr>
+        </table>
+      </td></tr>
     </table>
   </body>
 </html>`

@@ -51,6 +51,12 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`badge-pill shrink-0 ${m.variant === 'coral' ? '' : m.variant}`} style={style}>{m.label}</span>
 }
 
+/** Χρωματιστό badge ανά πηγή lead — διαφορετικό χρώμα ανά τύπο. */
+const SOURCE_VARIANT: Record<string, string> = { ELIGIBILITY: 'info', NEWSLETTER: 'teal', MANUAL: 'muted' }
+function SourceBadge({ source }: { source: string }) {
+  return <span className={`badge-pill shrink-0 ${SOURCE_VARIANT[source] ?? 'muted'}`}>{SOURCE_LABEL[source] ?? source}</span>
+}
+
 export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff: Staff; canAssign: boolean }) {
   const router = useRouter()
   const [statusFilter, setStatusFilter] = React.useState<string>('ALL')
@@ -94,7 +100,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
         </div>
       ),
     },
-    { id: 'source', header: 'Πηγή', width: 130, sortValue: r => r.source, cell: r => <span className="badge-pill muted shrink-0">{SOURCE_LABEL[r.source] ?? r.source}</span> },
+    { id: 'source', header: 'Πηγή', width: 130, sortValue: r => r.source, cell: r => <SourceBadge source={r.source} /> },
     { id: 'status', header: 'Κατάσταση', width: 130, sortValue: r => r.status, cell: r => <StatusBadge status={r.status} /> },
     {
       id: 'eligible', header: 'Επιλέξιμα', width: 100, align: 'center', nowrap: true, sortValue: r => r.eligibleCount,

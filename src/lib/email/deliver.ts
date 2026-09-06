@@ -129,9 +129,9 @@ export async function deliverCustomerEmail(
       },
     })
     fileRequestUrl = `${APP_URL}/r/${raw}`
-    fileRequestCtaHtml = `<div style="margin-top:20px;padding:14px 16px;background:#EEF4F5;border:1px solid #DCE5E9;border-radius:10px;">
-      <div style="font-weight:700;color:#16323F;margin-bottom:6px;">Ζητούμενα δικαιολογητικά</div>
-      <div style="font-size:13px;color:#3E5563;">Ανεβάστε τα αρχεία μέσω του ασφαλούς συνδέσμου: <a href="${fileRequestUrl}" style="color:#1f6feb;">${fileRequestUrl}</a></div>
+    fileRequestCtaHtml = `<div style="margin-top:20px;padding:14px 16px;background:#EEF1FA;border:1px solid #DFE2EA;border-radius:10px;">
+      <div style="font-weight:700;color:#001B72;margin-bottom:6px;">Ζητούμενα δικαιολογητικά</div>
+      <div style="font-size:13px;color:#3E5563;">Ανεβάστε τα αρχεία μέσω του ασφαλούς συνδέσμου: <a href="${fileRequestUrl}" style="color:#001B72;">${fileRequestUrl}</a></div>
     </div>`
     await logActivity('file_request.create', { entityType: 'FileRequest', entityId: fr.id, summary: fr.title, meta: { items: input.fileRequest.items.length } })
   }

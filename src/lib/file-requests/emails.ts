@@ -54,7 +54,7 @@ export function fileRequestCompletedCustomerEmail(input: {
 function uploadedItemsHtml(items: { label: string; fileName: string | null }[]): string {
   if (items.length === 0) return ''
   return `<ul style="margin:12px 0 0;padding-left:18px;color:#3E5563;font-size:13.5px;">${items
-    .map(i => `<li style="margin:0 0 5px;"><b>${escapeHtml(i.label)}</b>${i.fileName ? ` — <span style="color:#16323F;">${escapeHtml(i.fileName)}</span>` : ''}</li>`)
+    .map(i => `<li style="margin:0 0 5px;"><b>${escapeHtml(i.label)}</b>${i.fileName ? ` — <span style="color:#001B72;">${escapeHtml(i.fileName)}</span>` : ''}</li>`)
     .join('')}</ul>`
 }
 
@@ -72,7 +72,7 @@ export function fileRequestCompletedStaffEmail(input: {
     heading: 'Ολοκληρώθηκε αίτημα δικαιολογητικών',
     bodyHtml: `
       <p style="margin:0 0 12px;">Ο πελάτης <b>${escapeHtml(name)}</b> ανέβασε όλα τα ζητούμενα δικαιολογητικά (${input.itemCount}) για «${escapeHtml(input.title)}».</p>
-      ${items.length ? '<p style="margin:0 0 4px;font-weight:700;color:#16323F;">Δικαιολογητικά που ανέβηκαν</p>' : ''}
+      ${items.length ? '<p style="margin:0 0 4px;font-weight:700;color:#001B72;">Δικαιολογητικά που ανέβηκαν</p>' : ''}
       ${uploadedItemsHtml(items)}
       <p style="margin:14px 0 0;">Μπορείτε να τα ελέγξετε στο διαχειριστικό.</p>
     `,

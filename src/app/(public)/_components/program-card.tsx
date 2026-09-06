@@ -1,5 +1,6 @@
 import { Badge } from './badge'
 import { Button } from './button'
+import { EligibilityCta } from './eligibility-cta'
 
 /**
  * WWA public ProgramCard — φωτογραφική κάρτα προγράμματος (nova product card).
@@ -27,12 +28,11 @@ export type ProgramCardData = {
   status?: ProgramStatus
   isNew?: boolean
   href?: string
-  ctaHref?: string
 }
 
 export function ProgramCard({
   image, imageAlt = '', title, description, amount, amountNote, deadline, region,
-  status = 'active', isNew = false, href = '#', ctaHref = '#contact',
+  status = 'active', isNew = false, href = '#',
 }: ProgramCardData) {
   return (
     <article className="card card-hover pcard r">
@@ -51,7 +51,7 @@ export function ProgramCard({
           {region && <span>{region}</span>}
         </div>
         <div className="actions">
-          <Button href={ctaHref} size="sm">Δείτε αν δικαιούστε</Button>
+          <EligibilityCta size="sm">Δείτε αν δικαιούστε</EligibilityCta>
           <Button href={href} variant="link">Λεπτομέρειες</Button>
         </div>
       </div>

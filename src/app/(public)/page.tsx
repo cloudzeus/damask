@@ -5,6 +5,7 @@ import { Button } from './_components/button'
 import { Badge } from './_components/badge'
 import { ProgramCard, type ProgramCardData } from './_components/program-card'
 import { Faq, type FaqItem } from './_components/faq'
+import { EligibilityCta } from './_components/eligibility-cta'
 
 export const metadata: Metadata = {
   title: 'World Wide Associates — Σύμβουλοι ΕΣΠΑ & Ευρωπαϊκών Προγραμμάτων',
@@ -55,7 +56,7 @@ export default function HomePage() {
             <h1 data-typewrite>Επιδότηση έως <span style={{ color: 'var(--wwa-cyan-400)' }}>€36.000</span> για τη νέα σας επιχείρηση</h1>
             <p>100% ενίσχυση για πτυχιούχους που ιδρύουν επιχείρηση στο αντικείμενο των σπουδών τους. Ελέγχουμε δωρεάν αν δικαιούστε — απάντηση σε μία εργάσιμη.</p>
             <div className="actions">
-              <Button href="/eligibility" size="lg">Δείτε αν δικαιούστε</Button>
+              <EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>
               <Button href="/#programs" size="lg" variant="inverse-outline">Όλα τα προγράμματα</Button>
             </div>
           </div></div>
@@ -185,7 +186,7 @@ export default function HomePage() {
               <li style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}><span style={{ color: 'var(--brand)', flex: 'none', width: 20, height: 20 }}>{check}</span>Χωρίς χρέωση — αμοιβή επιτυχίας</li>
               <li style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}><span style={{ color: 'var(--brand)', flex: 'none', width: 20, height: 20 }}>{check}</span>Τα στοιχεία σας δεν κοινοποιούνται σε τρίτους</li>
             </ul>
-            <Button href="/eligibility" size="lg">Ζητήστε αξιολόγηση</Button>
+            <EligibilityCta size="lg">Ζητήστε αξιολόγηση</EligibilityCta>
           </div>
         </div></div>
       </section>

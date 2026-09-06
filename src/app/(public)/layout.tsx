@@ -6,6 +6,7 @@ import { getCachedConsentConfig } from './consent-settings'
 import { SiteHeader } from './_components/site-header'
 import { WwaFooter } from './_components/wwa-footer'
 import { WwaMotion } from './_components/wwa-motion'
+import { EligibilityModal } from './_components/eligibility-modal'
 import { CONSENT_COOKIE_NAME, parseConsentCookie, shouldShowBanner } from '@/lib/consent'
 import { ConsentBanner } from '@/components/consent/consent-banner'
 
@@ -79,6 +80,7 @@ export default async function PublicLayout({ children }: { children: React.React
       <main>{children}</main>
       <WwaFooter />
       <WwaMotion />
+      <EligibilityModal />
 
       <ConsentBanner config={consentConfig} initialShow={showBanner} locale={bannerLocale} />
     </>
