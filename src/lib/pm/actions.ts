@@ -136,7 +136,17 @@ export type VisibleApplicationItem = {
   programTitle: string
   stage: StageStr
   assessmentVerdict: VerdictStr
+  /** Αποτέλεσμα αξιολόγησης επιλεξιμότητας (eligibilitySnapshot.eligible) — null αν δεν έχει αξιολογηθεί. */
+  eligible: boolean | null
   managerName: string | null
+}
+
+function snapshotEligible(snapshot: unknown): boolean | null {
+  if (snapshot && typeof snapshot === 'object' && 'eligible' in snapshot) {
+    const v = (snapshot as { eligible?: unknown }).eligible
+    if (typeof v === 'boolean') return v
+  }
+  return null
 }
 
 export async function listVisibleApplications(): Promise<VisibleApplicationItem[]> {
@@ -157,6 +167,7 @@ export async function listVisibleApplications(): Promise<VisibleApplicationItem[
     programTitle: r.program.title,
     stage: r.stage as StageStr,
     assessmentVerdict: r.assessmentVerdict as VerdictStr,
+    eligible: snapshotEligible(r.eligibilitySnapshot),
     managerName: r.manager?.name ?? null,
   }))
 }

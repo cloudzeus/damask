@@ -51,10 +51,11 @@ function ViewBar({ active, onChange }: { active: ViewKey; onChange: (key: ViewKe
 }
 
 export function PmWorkspace({
-  applications, obligations,
+  applications, obligations, canManage = false,
 }: {
   applications: VisibleApplicationItem[]
   obligations: BoardObligation[]
+  canManage?: boolean
 }) {
   const router = useRouter()
   const [view, setView] = React.useState<ViewKey>('applications')
@@ -63,7 +64,7 @@ export function PmWorkspace({
     <div>
       <ViewBar active={view} onChange={setView} />
       {view === 'overview' && <PmOverview obligations={obligations} />}
-      {view === 'applications' && <ApplicationsTable rows={applications} fillHeight />}
+      {view === 'applications' && <ApplicationsTable rows={applications} fillHeight canManage={canManage} />}
       {view === 'board' && (
         <ObligationsBoard obligations={obligations} swimlaneBy="assignee" onStatusChange={() => router.refresh()} />
       )}

@@ -1,4 +1,5 @@
 import { requirePermission } from '@/lib/rbac-server'
+import { can } from '@/lib/rbac'
 import { listVisibleApplications, listVisibleObligations } from '@/lib/pm/actions'
 import { PmWorkspace } from '@/components/pm/pm-workspace'
 import { PageHeader } from '@/components/ui/page-header'
@@ -17,8 +18,9 @@ import { PageHeader } from '@/components/ui/page-header'
  * το page.tsx παραμένει RSC, μόνο fetch + gate.
  */
 export default async function PmPage() {
-  await requirePermission('pm.work')
+  const session = await requirePermission('pm.work')
   const [applications, obligations] = await Promise.all([listVisibleApplications(), listVisibleObligations()])
+  const canManage = can(session, 'programs.manage')
 
   return (
     <div>
@@ -28,7 +30,7 @@ export default async function PmPage() {
         subtitle="Οι αιτήσεις προγραμμάτων που έχεις ανατεθεί (ως διαχειριστής ή εισηγητής)."
       />
 
-      <PmWorkspace applications={applications} obligations={obligations} />
+      <PmWorkspace applications={applications} obligations={obligations} canManage={canManage} />
     </div>
   )
 }

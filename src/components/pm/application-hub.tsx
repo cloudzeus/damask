@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   LuBuilding2, LuCircleCheck, LuCircleX, LuClock3, LuChevronRight, LuCheck, LuUserRound,
@@ -46,7 +46,12 @@ import { EmailHistory } from '@/components/email/email-history'
  */
 export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetail; canSend?: boolean }) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = React.useState<TabKey>('assessment')
+  const searchParams = useSearchParams()
+  // Αρχικό tab από ?tab= (π.χ. deep-link «Επαφές έργου» από τα «Έργα»).
+  const [activeTab, setActiveTab] = React.useState<TabKey>(() => {
+    const t = searchParams.get('tab')
+    return t && TABS.some(x => x.key === t) ? (t as TabKey) : 'assessment'
+  })
   const [changingStage, setChangingStage] = React.useState(false)
 
   const next = nextStage(app.stage)
