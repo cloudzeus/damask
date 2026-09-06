@@ -4,15 +4,18 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Plus, LoaderCircle, Landmark, ExternalLink, Trash2, CircleCheck, CircleX, Search } from 'lucide-react'
+import { Plus, LoaderCircle, Landmark, ExternalLink, Trash2, CircleCheck, CircleX, Search, MoreVertical, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   listTrdrProgramCards, listActivePrograms, associateTrdrPrograms,
-  setApplicationLifecycle, removeTrdrProgram, type TrdrProgramCard,
+  setApplicationLifecycle, removeTrdrProgram, reevaluateApplication, type TrdrProgramCard,
 } from '@/lib/pm/program-link'
 import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import {
@@ -28,6 +31,35 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
   const [loading, setLoading] = React.useState(true)
   const [addOpen, setAddOpen] = React.useState(false)
   const [selected, setSelected] = React.useState<TrdrProgramCard | null>(null)
+  const [busyId, setBusyId] = React.useState<string | null>(null)
+
+  async function evaluateCard(card: TrdrProgramCard) {
+    setBusyId(card.id)
+    try {
+      const snapshot = await reevaluateApplication(card.id)
+      setCards(prev => prev.map(c => (c.id === card.id ? { ...c, snapshot } : c)))
+      toast.success(snapshot.eligible ? 'Η εταιρία πληροί τα κριτήρια.' : 'Η εταιρία δεν πληροί όλα τα κριτήρια.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Η αξιολόγηση απέτυχε.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function removeCard(card: TrdrProgramCard) {
+    if (!window.confirm(`Αφαίρεση σύνδεσης με «${card.programTitle}»;`)) return
+    setBusyId(card.id)
+    try {
+      await removeTrdrProgram(card.id)
+      setCards(prev => prev.filter(c => c.id !== card.id))
+      toast.success('Η σύνδεση αφαιρέθηκε.')
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Η αφαίρεση απέτυχε.')
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -72,27 +104,77 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map(card => {
             const c = LIFECYCLE_COLORS[card.lifecycle]
+            const busy = busyId === card.id
             return (
-              <button
+              <div
                 key={card.id}
-                type="button"
-                onClick={() => setSelected(card)}
-                className="lift rounded-[14px] border p-3 text-left transition-shadow"
+                className="lift relative rounded-[14px] border p-3 transition-shadow"
                 style={{ borderColor: c.fg, background: c.bg }}
               >
-                <div className="mb-1.5 flex items-center gap-2">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg" style={{ background: 'var(--card)', color: c.fg }}>
-                    <Landmark className="size-3.5" aria-hidden />
-                  </span>
-                  <span className="badge-pill" style={{ color: c.fg, background: 'var(--card)' }}>{lifecycleLabel(card.lifecycle)}</span>
+                {/* Dropdown ενεργειών — πάνω δεξιά */}
+                <div className="absolute top-2 right-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <button
+                          type="button"
+                          aria-label="Ενέργειες"
+                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card hover:text-foreground disabled:opacity-50"
+                          disabled={busy}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <MoreVertical className="size-4" aria-hidden />}
+                        </button>
+                      }
+                    />
+                    <DropdownMenuContent align="end">
+                      {canManage && (
+                        <DropdownMenuItem onClick={() => evaluateCard(card)}>
+                          <ClipboardCheck className="size-3.5" aria-hidden /> Αξιολόγηση εταιρίας
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => setSelected(card)}>
+                        <Search className="size-3.5" aria-hidden /> Λεπτομέρειες αξιολόγησης
+                      </DropdownMenuItem>
+                      <DropdownMenuItem render={<Link href={`/programs/${card.programId}/applications/${card.id}`} />}>
+                        <ExternalLink className="size-3.5" aria-hidden /> Άνοιγμα έργου
+                      </DropdownMenuItem>
+                      {canManage && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => removeCard(card)} style={{ color: 'var(--destructive)' }}>
+                            <Trash2 className="size-3.5" aria-hidden /> Αφαίρεση σύνδεσης
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <div className="line-clamp-2 text-[12.5px] font-semibold text-foreground">{card.programTitle}</div>
-                <div className="mt-1 text-[11px] text-muted-foreground">
-                  {card.snapshot
-                    ? (card.snapshot.eligible ? 'Πληροί τα κριτήρια' : 'Δεν πληροί όλα τα κριτήρια')
-                    : 'Χωρίς αξιολόγηση'}
-                </div>
-              </button>
+
+                {/* Σώμα κάρτας — άνοιγμα αξιολόγησης */}
+                <button type="button" onClick={() => setSelected(card)} className="block w-full pr-7 text-left">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg" style={{ background: 'var(--card)', color: c.fg }}>
+                      <Landmark className="size-3.5" aria-hidden />
+                    </span>
+                    <span className="badge-pill" style={{ color: c.fg, background: 'var(--card)' }}>{lifecycleLabel(card.lifecycle)}</span>
+                  </div>
+                  <div className="line-clamp-2 text-[12.5px] font-semibold text-foreground">{card.programTitle}</div>
+                  <div className="mt-1.5">
+                    {card.snapshot ? (
+                      card.snapshot.eligible ? (
+                        <span className="badge-pill ok"><CircleCheck className="size-3" aria-hidden /> Πληροί τα κριτήρια</span>
+                      ) : (
+                        <span className="badge-pill" style={{ color: 'var(--card)', background: 'var(--coral)' }}>
+                          <CircleX className="size-3" aria-hidden /> Δεν πληροί όλα
+                        </span>
+                      )
+                    ) : (
+                      <span className="badge-pill muted">Χωρίς αξιολόγηση</span>
+                    )}
+                  </div>
+                </button>
+              </div>
             )
           })}
         </div>

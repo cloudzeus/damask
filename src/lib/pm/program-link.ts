@@ -124,6 +124,24 @@ export async function associateTrdrPrograms(trdrId: string, programIds: string[]
   return { linked }
 }
 
+/**
+ * Αξιολόγηση εταιρίας για το πρόγραμμα μιας συμμετοχής — (ξανα)υπολογίζει την
+ * επιλεξιμότητα (kad/region/legalForm) και αποθηκεύει το snapshot στην κάρτα.
+ * Επιστρέφει το αποτέλεσμα ώστε το UI να ενημερωθεί άμεσα.
+ */
+export async function reevaluateApplication(applicationId: string): Promise<SinglePairEligibility> {
+  const session = await requirePermission('programs.manage')
+  const app = await prisma.programApplication.findUniqueOrThrow({ where: { id: applicationId }, select: { trdrId: true, programId: true } })
+  const snapshot = await computeSinglePair(app.trdrId, app.programId)
+  await prisma.programApplication.update({
+    where: { id: applicationId },
+    data: { eligibilitySnapshot: snapshot as unknown as Prisma.InputJsonValue },
+  })
+  await logActivity('application.evaluate', { entityType: 'application', entityId: applicationId, userId: session.user.id, meta: { programId: app.programId, eligible: snapshot.eligible } })
+  revalidatePath(`/partners/${app.trdrId}`)
+  return snapshot
+}
+
 /** Αλλάζει τον κύκλο ζωής μιας συμμετοχής (χρώμα κάρτας). */
 export async function setApplicationLifecycle(applicationId: string, lifecycle: ApplicationLifecycle): Promise<void> {
   await requirePermission('programs.manage')

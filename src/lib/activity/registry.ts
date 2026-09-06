@@ -50,6 +50,7 @@ export const ACTIONS = {
   'file_request.completed': { category: 'COMMUNICATION', label: 'Ολοκλήρωση δικαιολογητικών', weight: 2 },
   // Συμμετοχές / Έργα
   'application.associate': { category: 'APPLICATION', label: 'Σύνδεση πελάτη με πρόγραμμα', weight: 2 },
+  'application.evaluate': { category: 'APPLICATION', label: 'Αξιολόγηση εταιρίας σε πρόγραμμα', weight: 1 },
   'application.lifecycle': { category: 'APPLICATION', label: 'Αλλαγή κατάστασης συμμετοχής', weight: 1 },
   'application.remove': { category: 'APPLICATION', label: 'Αφαίρεση σύνδεσης προγράμματος', weight: 1 },
   'application.create': { category: 'APPLICATION', label: 'Δημιουργία έργου (ένταξη)', weight: 3 },
