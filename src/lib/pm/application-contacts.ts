@@ -63,3 +63,26 @@ export async function setApplicationContacts(applicationId: string, contactIds: 
   revalidatePath(`/programs`)
   return { ok: true, linked: validIds.length }
 }
+
+/** Δημιουργεί ΝΕΑ επαφή στον πελάτη του έργου και τη συνδέει αμέσως με το έργο. */
+export async function createAndLinkContact(
+  applicationId: string,
+  input: { name: string; position?: string; email?: string; phone?: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await requirePermission('programs.manage')
+  const name = input.name?.trim()
+  if (!name) return { ok: false, error: 'Το όνομα είναι υποχρεωτικό.' }
+  const app = await prisma.programApplication.findUniqueOrThrow({ where: { id: applicationId }, select: { trdrId: true } })
+  const contact = await prisma.contact.create({
+    data: {
+      trdrId: app.trdrId,
+      name,
+      position: input.position?.trim() || null,
+      email: input.email?.trim() || null,
+      phone: input.phone?.trim() || null,
+    },
+  })
+  await prisma.applicationContact.create({ data: { applicationId, contactId: contact.id, createdById: session.user.id } })
+  revalidatePath(`/partners/${app.trdrId}`)
+  return { ok: true }
+}

@@ -2,13 +2,14 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { Users, UserPlus, Mail, Phone, Check, LoaderCircle, Search } from 'lucide-react'
+import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import {
-  listApplicationContactOptions, setApplicationContacts, type AppContactOption,
+  listApplicationContactOptions, setApplicationContacts, createAndLinkContact, type AppContactOption,
 } from '@/lib/pm/application-contacts'
 
 /**
@@ -24,6 +25,7 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [manageOpen, setManageOpen] = React.useState(false)
+  const [newOpen, setNewOpen] = React.useState(false)
 
   // Καθαρή ανάκτηση — δεν αγγίζει state, ώστε να καλείται και μέσα σε effect
   // (μετά το await) και από event handlers.
@@ -63,9 +65,14 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
           Επαφές έργου ({linked.length})
         </div>
         {canManage && (
-          <Button type="button" onClick={() => setManageOpen(true)} disabled={loading}>
-            <UserPlus className="size-4" aria-hidden /> Διαχείριση επαφών
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" onClick={() => setNewOpen(true)}>
+              <UserRoundPlus className="size-4" aria-hidden /> Νέα επαφή
+            </Button>
+            <Button type="button" onClick={() => setManageOpen(true)} disabled={loading || options.length === 0}>
+              <UserPlus className="size-4" aria-hidden /> Σύνδεση επαφών
+            </Button>
+          </div>
         )}
       </div>
 
@@ -82,8 +89,8 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
           {canManage && (
             <p className="text-[0.71875rem] text-muted-foreground">
               {hasContacts
-                ? 'Πάτησε «Διαχείριση επαφών» για να συνδέσεις επαφές του πελάτη.'
-                : 'Ο πελάτης δεν έχει καταχωρημένες επαφές — προστίθενται από την καρτέλα πελάτη.'}
+                ? 'Πάτησε «Σύνδεση επαφών» για υπάρχουσες επαφές, ή «Νέα επαφή» για να προσθέσεις νέα.'
+                : 'Πάτησε «Νέα επαφή» για να προσθέσεις (καταχωρείται και ως επαφή της εταιρίας).'}
             </p>
           )}
         </div>
@@ -94,15 +101,98 @@ export function ApplicationContactsTab({ applicationId, canManage }: { applicati
       )}
 
       {canManage && (
-        <ManageContactsDialog
-          applicationId={applicationId}
-          options={options}
-          open={manageOpen}
-          onOpenChange={setManageOpen}
-          onSaved={() => { setManageOpen(false); void reload() }}
-        />
+        <>
+          <ManageContactsDialog
+            applicationId={applicationId}
+            options={options}
+            open={manageOpen}
+            onOpenChange={setManageOpen}
+            onSaved={() => { setManageOpen(false); void reload() }}
+          />
+          <NewContactDialog
+            applicationId={applicationId}
+            open={newOpen}
+            onOpenChange={setNewOpen}
+            onSaved={() => { setNewOpen(false); void reload() }}
+          />
+        </>
       )}
     </section>
+  )
+}
+
+function NewContactDialog({
+  applicationId, open, onOpenChange, onSaved,
+}: {
+  applicationId: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSaved: () => void
+}) {
+  const [name, setName] = React.useState('')
+  const [position, setPosition] = React.useState('')
+  const [email, setEmail] = React.useState('')
+  const [phone, setPhone] = React.useState('')
+  const [saving, startSaving] = React.useTransition()
+
+  const [prevOpen, setPrevOpen] = React.useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) { setName(''); setPosition(''); setEmail(''); setPhone('') }
+  }
+
+  function handleSave() {
+    if (!name.trim()) { toast.error('Συμπλήρωσε όνομα.'); return }
+    startSaving(async () => {
+      try {
+        const res = await createAndLinkContact(applicationId, { name, position, email, phone })
+        if (!res.ok) throw new Error(res.error)
+        toast.success('Η επαφή προστέθηκε και συνδέθηκε με το έργο.')
+        onSaved()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Η προσθήκη απέτυχε.')
+      }
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={next => { if (!saving) onOpenChange(next) }}>
+      <DialogContent className="w-full max-w-[calc(100%-2rem)] bg-popover sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Νέα επαφή</DialogTitle>
+          <DialogDescription>Δημιουργείται στον πελάτη (καταχωρείται ως επαφή της εταιρίας) και συνδέεται με αυτό το έργο.</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-3">
+          <div className="field !mb-0">
+            <label htmlFor="nc-name">Ονοματεπώνυμο*</label>
+            <Input id="nc-name" value={name} onChange={e => setName(e.target.value)} placeholder="π.χ. Μαρία Παπαδοπούλου" autoFocus />
+          </div>
+          <div className="field !mb-0">
+            <label htmlFor="nc-position">Θέση/Ρόλος</label>
+            <Input id="nc-position" value={position} onChange={e => setPosition(e.target.value)} placeholder="π.χ. Οικονομικός Διευθυντής" />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="field !mb-0">
+              <label htmlFor="nc-email">Email</label>
+              <Input id="nc-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.gr" />
+            </div>
+            <div className="field !mb-0">
+              <label htmlFor="nc-phone">Τηλέφωνο</label>
+              <Input id="nc-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="2101234567" />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" disabled={saving}>Άκυρο</Button>} />
+          <Button type="button" onClick={handleSave} disabled={saving || !name.trim()}>
+            {saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <UserRoundPlus className="size-3.5" aria-hidden />}
+            Προσθήκη
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
