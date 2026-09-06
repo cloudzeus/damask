@@ -34,8 +34,27 @@ export function teamNewLeadEmail(input: {
   eligibleTitles: string[]
   newsletterOptIn: boolean
   adminUrl: string
+  alreadyCustomer?: boolean
 }): { subject: string; html: string } {
   const name = input.companyName?.trim() || `ΑΦΜ ${input.afm}`
+  if (input.alreadyCustomer) {
+    const html = renderEmailShell({
+      preheader: `Υπάρχων πελάτης ζητά επικοινωνία: ${name}`,
+      heading: 'Υπάρχων πελάτης ζητά επικοινωνία',
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Ο/Η <b>${escapeHtml(name)}</b> — ήδη καταχωρημένος πελάτης — υπέβαλε έλεγχο επιλεξιμότητας από τον ιστότοπο και ζητά εκ νέου επικοινωνία.</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
+          <tr><td style="padding:6px 10px 6px 0;color:#8098A5;font-size:12.5px;">ΑΦΜ</td><td style="padding:6px 0;color:#001B72;font-size:13.5px;font-weight:600;">${escapeHtml(input.afm)}</td></tr>
+          <tr><td style="padding:6px 10px 6px 0;color:#8098A5;font-size:12.5px;">Email</td><td style="padding:6px 0;color:#001B72;font-size:13.5px;font-weight:600;">${escapeHtml(input.email)}</td></tr>
+          <tr><td style="padding:6px 10px 6px 0;color:#8098A5;font-size:12.5px;">Τηλέφωνο</td><td style="padding:6px 0;color:#001B72;font-size:13.5px;font-weight:600;">${escapeHtml(input.phone)}</td></tr>
+        </table>
+        <p style="margin:14px 0 0;">Επικοινωνήστε μαζί του από την καρτέλα πελάτη.</p>
+      `,
+      ctaLabel: 'Άνοιγμα καρτέλας πελάτη',
+      ctaUrl: input.adminUrl,
+    })
+    return { subject: `Υπάρχων πελάτης ζητά επικοινωνία — ${name}`, html }
+  }
   const rows = [
     ['Επωνυμία', input.companyName || '—'],
     ['ΑΦΜ', input.afm],

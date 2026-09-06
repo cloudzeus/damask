@@ -62,7 +62,11 @@ export default async function DashboardPage() {
               const itemClass = 'flex min-h-[2.75rem] flex-col items-start gap-0.5 py-2.5'
               return (
                 <li key={n.id}>
-                  {n.type === 'PUBLIC_LEAD' || n.entityType === 'Lead' ? (
+                  {n.entityType === 'Trdr' && n.entityId ? (
+                    <Link href={`/partners/${n.entityId}`} className={`${itemClass} -mx-2 rounded-lg px-2 transition-colors hover:bg-muted`}>
+                      {content}
+                    </Link>
+                  ) : n.type === 'PUBLIC_LEAD' || n.entityType === 'Lead' ? (
                     <Link href="/leads" className={`${itemClass} -mx-2 rounded-lg px-2 transition-colors hover:bg-muted`}>
                       {content}
                     </Link>

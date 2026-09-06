@@ -2,9 +2,9 @@
 
 import { z } from 'zod'
 import { headers } from 'next/headers'
-import { Prisma, type PublicLeadRequest } from '@prisma/client'
+import { type PublicLeadRequest } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { aadeLookup, AadeError, normalizeAfm } from '@/lib/trdr/aade'
+import { aadeLookup, normalizeAfm } from '@/lib/trdr/aade'
 import { resolveKadForActivity } from '@/lib/registries/kad'
 import { matchRegion } from '@/lib/registries/regions'
 import { computeSinglePair } from '@/lib/prospects/evaluate-pair'
@@ -37,6 +37,7 @@ const APP_URL = process.env.AUTH_URL ?? 'http://localhost:3000'
 // Anti-abuse: max αιτήματα ανά IP σε παράθυρο, max ενεργά PENDING ανά ΑΦΜ.
 const MAX_REQUESTS_PER_IP_PER_HOUR = 12
 const MAX_PENDING_PER_AFM = 3
+const MAX_CHECKS_PER_EMAIL_PER_MONTH = 4
 
 const startSchema = z.object({
   afm: z.string().trim().regex(/^\d{9}$/, 'Το ΑΦΜ πρέπει να έχει 9 ψηφία.'),
@@ -110,55 +111,43 @@ export async function startLeadRequest(input: {
     return { ok: false, error: 'Υπάρχει ήδη ενεργό αίτημα για αυτό το ΑΦΜ. Ελέγξτε το email σας ή δοκιμάστε σε λίγο.' }
   }
 
-  // ΑΑΔΕ — εντοπισμός επωνυμίας + στιγμιότυπο (ΚΑΔ/διεύθυνση) για το βήμα 2.
-  let companyName: string | null = null
-  let snapshot: AadeSnapshot | null = null
-  try {
-    const res = await aadeLookup(afm)
-    if (!res) {
-      return { ok: false, error: 'Δεν βρέθηκαν στοιχεία για αυτό το ΑΦΜ στο μητρώο ΑΑΔΕ.' }
-    }
-    companyName = res.mapped.NAME || null
-    snapshot = {
-      name: res.mapped.NAME || null,
-      address: res.mapped.ADDRESS,
-      city: res.mapped.CITY,
-      zip: res.mapped.ZIP,
-      activities: res.activities
-        .filter((a): a is { code: string; description: string | null; kind: 'PRIMARY' | 'SECONDARY'; order: number } => a.code != null)
-        .map(a => ({ code: a.code, description: a.description ?? '', kind: a.kind, order: a.order })),
-    }
-  } catch (err) {
-    if (err instanceof AadeError) return { ok: false, error: err.message }
-    return { ok: false, error: 'Αδυναμία επικοινωνίας με την υπηρεσία ΑΑΔΕ. Δοκιμάστε ξανά σε λίγο.' }
+  // Όριο χρήσης: έως 4 ολοκληρωμένοι έλεγχοι/μήνα ανά email.
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60_000)
+  const monthlyChecks = await prisma.publicLeadRequest.count({
+    where: { email, status: 'VERIFIED', verifiedAt: { gte: monthAgo } },
+  })
+  if (monthlyChecks >= MAX_CHECKS_PER_EMAIL_PER_MONTH) {
+    return { ok: false, error: `Έχετε φτάσει το όριο των ${MAX_CHECKS_PER_EMAIL_PER_MONTH} ελέγχων αυτόν τον μήνα. Επικοινωνήστε μαζί μας στο 210 721 8758.` }
   }
 
+  // ΣΗΜ.: Ο έλεγχος ΑΑΔΕ + η αξιολόγηση γίνονται ΜΕΤΑ την επιβεβαίωση OTP
+  // (finalizeVerifiedLead) — δεν ξοδεύουμε ΑΑΔΕ API/CPU πριν αποδειχθεί ότι ο
+  // χρήστης κατέχει το email. Εδώ μόνο δημιουργία αιτήματος + αποστολή κωδικού.
   const code = generateOtp()
   const request = await prisma.publicLeadRequest.create({
     data: {
       afm,
       email,
       phone: data.phone,
-      companyName,
+      companyName: null,
       otpHash: hashOtp(code),
       otpExpiresAt: otpExpiry(),
       newsletterOptIn: data.newsletterOptIn ?? false,
       ipHash,
       userAgent,
-      aadeSnapshot: snapshot as unknown as Prisma.InputJsonValue,
       status: 'PENDING_OTP',
     },
   })
 
-  const mail = otpEmail(code, companyName)
+  const mail = otpEmail(code, null)
   const sent = await sendMail({ to: email, subject: mail.subject, html: mail.html, tracking: false, refType: 'public-lead-otp', refId: request.id })
   if (!sent.ok) {
     await prisma.publicLeadRequest.update({ where: { id: request.id }, data: { status: 'FAILED' } }).catch(() => {})
     return { ok: false, error: 'Δεν ήταν δυνατή η αποστολή του κωδικού. Ελέγξτε το email σας ή δοκιμάστε ξανά.' }
   }
 
-  await logActivity('public_lead.request', { userId: null, entityType: 'PublicLeadRequest', entityId: request.id, summary: companyName ?? afm })
-  return { ok: true, requestId: request.id, companyName }
+  await logActivity('public_lead.request', { userId: null, entityType: 'PublicLeadRequest', entityId: request.id, summary: afm })
+  return { ok: true, requestId: request.id, companyName: null }
 }
 
 export type EligibleProgram = { id: string; title: string; matchedKads: string[] }
@@ -169,6 +158,8 @@ export type VerifyLeadState = {
   eligible?: EligibleProgram[]
   error?: string
   remainingAttempts?: number
+  /** true όταν το ΑΦΜ ανήκει ήδη σε πελάτη (ISPROSP=0) — δεν είναι δυνητικός, ζητά εκ νέου επικοινωνία. */
+  alreadyCustomer?: boolean
 }
 
 /** Βήμα 2: επιβεβαίωση OTP → αξιολόγηση + καταχώριση. */
@@ -233,8 +224,29 @@ export async function resendLeadOtp(requestId: string): Promise<{ ok: boolean; e
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyLeadState> {
-  const snapshot = (request.aadeSnapshot ?? null) as AadeSnapshot | null
   const now = new Date()
+
+  // 0) ΑΑΔΕ lookup ΤΩΡΑ (μετά το OTP) — εντοπισμός επωνυμίας + ΚΑΔ/διεύθυνση.
+  //    Αν αποτύχει, συνεχίζουμε με ό,τι έχουμε (ο χρήστης έχει ήδη επιβεβαιώσει).
+  let companyName: string | null = request.companyName
+  let snapshot: AadeSnapshot | null = null
+  try {
+    const res = await aadeLookup(request.afm)
+    if (res) {
+      companyName = res.mapped.NAME || companyName
+      snapshot = {
+        name: res.mapped.NAME || null,
+        address: res.mapped.ADDRESS,
+        city: res.mapped.CITY,
+        zip: res.mapped.ZIP,
+        activities: res.activities
+          .filter((a): a is { code: string; description: string | null; kind: 'PRIMARY' | 'SECONDARY'; order: number } => a.code != null)
+          .map(a => ({ code: a.code, description: a.description ?? '', kind: a.kind, order: a.order })),
+      }
+    }
+  } catch (err) {
+    console.error('finalizeVerifiedLead: ΑΑΔΕ lookup failed', err)
+  }
 
   // 1) Trdr υποψήφιος — upsert κατά ΑΦΜ (AFM δεν είναι unique → findFirst).
   const existing = await prisma.trdr.findFirst({ where: { AFM: request.afm }, select: { id: true, ISPROSP: true } })
@@ -243,7 +255,7 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
     : (
         await prisma.trdr.create({
           data: {
-            NAME: snapshot?.name || request.companyName || `ΑΦΜ ${request.afm}`,
+            NAME: companyName || `ΑΦΜ ${request.afm}`,
             AFM: request.afm,
             SODTYPE: 13,
             ISPROSP: 1,
@@ -329,7 +341,7 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
     await subscribeWithConsent({
       email: request.email,
       afm: request.afm,
-      name: request.companyName,
+      name: companyName,
       trdrId,
       ip: null, // η IP κρατείται στο consent από τα headers παρακάτω
       userAgent: request.userAgent,
@@ -340,40 +352,48 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
   // 7) Ενημέρωση αιτήματος.
   await prisma.publicLeadRequest.update({
     where: { id: request.id },
-    data: { status: 'VERIFIED', verifiedAt: now, trdrId, eligibleProgramIds: eligible.map(e => e.id) },
+    data: { status: 'VERIFIED', verifiedAt: now, trdrId, companyName, eligibleProgramIds: eligible.map(e => e.id) },
   })
 
-  // 8) Lead στο pipeline follow-up (idempotent ανά αίτημα).
-  const leadId = await upsertEligibilityLead({
-    publicLeadRequestId: request.id,
-    trdrId,
-    companyName: request.companyName,
-    afm: request.afm,
-    email: request.email,
-    phone: request.phone,
-    eligibleProgramIds: eligible.map(e => e.id),
-  })
+  // Υπάρχων ΠΕΛΑΤΗΣ (ISPROSP=0); δεν είναι δυνητικός — ζητά εκ νέου επικοινωνία.
+  const alreadyCustomer = !!existing && existing.ISPROSP === 0
 
-  // 9) Ειδοποίηση ομάδας — dashboard + email (δείχνει στο lead).
+  // 8) Lead στο pipeline follow-up — ΜΟΝΟ για μη-πελάτες (idempotent ανά αίτημα).
+  //    Οι υπάρχοντες πελάτες ΔΕΝ μπαίνουν στα leads· ειδοποιείται η ομάδα ξεχωριστά.
+  const leadId = alreadyCustomer
+    ? undefined
+    : await upsertEligibilityLead({
+        publicLeadRequestId: request.id,
+        trdrId,
+        companyName,
+        afm: request.afm,
+        email: request.email,
+        phone: request.phone,
+        eligibleProgramIds: eligible.map(e => e.id),
+      })
+
+  // 9) Ειδοποίηση ομάδας — dashboard + email.
   await notifyTeam({
-    companyName: request.companyName,
+    companyName,
     afm: request.afm,
     email: request.email,
     phone: request.phone,
     newsletterOptIn: request.newsletterOptIn,
     eligible,
     leadId,
+    alreadyCustomer,
+    trdrId,
   })
 
   await logActivity('public_lead.verified', {
     userId: null,
     entityType: 'PublicLeadRequest',
     entityId: request.id,
-    summary: request.companyName ?? request.afm,
+    summary: companyName ?? request.afm,
     meta: { eligible: eligible.length, trdrId },
   })
 
-  return { ok: true, companyName: request.companyName, eligible }
+  return { ok: true, companyName, eligible, alreadyCustomer }
 }
 
 /** Εγγραφή στο newsletter + append-only απόδειξη συναίνεσης. */
@@ -441,25 +461,39 @@ async function notifyTeam(input: {
   phone: string
   newsletterOptIn: boolean
   eligible: EligibleProgram[]
-  leadId: string
+  leadId?: string
+  alreadyCustomer?: boolean
+  trdrId: string
 }): Promise<void> {
   const name = input.companyName || `ΑΦΜ ${input.afm}`
-  await createNotification({
-    type: 'PUBLIC_LEAD',
-    title: `Νέος ενδιαφερόμενος (επιλεξιμότητα) — ${name}`,
-    body: `${input.eligible.length} επιλέξιμα προγράμματα · ${input.email} · ${input.phone}`,
-    entityType: 'Lead',
-    entityId: input.leadId,
-    meta: {
-      leadId: input.leadId,
-      source: 'ELIGIBILITY',
-      afm: input.afm,
-      email: input.email,
-      phone: input.phone,
-      newsletterOptIn: input.newsletterOptIn,
-      eligibleCount: input.eligible.length,
-    },
-  })
+  if (input.alreadyCustomer) {
+    // Υπάρχων πελάτης ζητά εκ νέου επικοινωνία — δείχνει στην καρτέλα πελάτη, όχι στα leads.
+    await createNotification({
+      type: 'PUBLIC_LEAD',
+      title: `Υπάρχων πελάτης ζητά επικοινωνία — ${name}`,
+      body: `${input.email} · ${input.phone} · ${input.eligible.length} επιλέξιμα προγράμματα`,
+      entityType: 'Trdr',
+      entityId: input.trdrId,
+      meta: { trdrId: input.trdrId, afm: input.afm, email: input.email, phone: input.phone, alreadyCustomer: true, eligibleCount: input.eligible.length },
+    })
+  } else {
+    await createNotification({
+      type: 'PUBLIC_LEAD',
+      title: `Νέος ενδιαφερόμενος (επιλεξιμότητα) — ${name}`,
+      body: `${input.eligible.length} επιλέξιμα προγράμματα · ${input.email} · ${input.phone}`,
+      entityType: 'Lead',
+      entityId: input.leadId,
+      meta: {
+        leadId: input.leadId,
+        source: 'ELIGIBILITY',
+        afm: input.afm,
+        email: input.email,
+        phone: input.phone,
+        newsletterOptIn: input.newsletterOptIn,
+        eligibleCount: input.eligible.length,
+      },
+    })
+  }
 
   // Email στην ομάδα (admins/managers).
   try {
@@ -478,9 +512,10 @@ async function notifyTeam(input: {
       eligibleCount: input.eligible.length,
       eligibleTitles: input.eligible.map(e => e.title),
       newsletterOptIn: input.newsletterOptIn,
-      adminUrl: `${APP_URL}/leads`,
+      adminUrl: input.alreadyCustomer ? `${APP_URL}/partners/${input.trdrId}` : `${APP_URL}/leads`,
+      alreadyCustomer: input.alreadyCustomer,
     })
-    await sendMail({ to: recipients.join(','), subject: mail.subject, html: mail.html, tracking: false, refType: 'public-lead-team', refId: input.leadId })
+    await sendMail({ to: recipients.join(','), subject: mail.subject, html: mail.html, tracking: false, refType: 'public-lead-team', refId: input.leadId ?? input.trdrId })
   } catch (err) {
     console.error('notifyTeam email failed', err)
   }

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-06T16:31:09.668Z",
+  "timestamp": "2026-09-06T16:41:11.666Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,57 +22,25 @@
     },
     {
       "status": "M",
-      "path": "src/app/(app)/leads/leads-client.tsx"
+      "path": "src/app/(app)/dashboard/page.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/(public)/_components/program-card.tsx"
+      "path": "src/app/(public)/_components/eligibility-modal.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/(public)/_components/site-header.tsx"
+      "path": "src/components/shell/notifications-bell.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/(public)/_wwa/site.css"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/layout.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/email/deliver.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/file-requests/emails.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/mailer.ts"
+      "path": "src/lib/public-lead/actions.ts"
     },
     {
       "status": "M",
       "path": "src/lib/public-lead/emails.ts"
-    },
-    {
-      "status": "??",
-      "path": "public/wwa/wwa-logo-light-text.png"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/_components/eligibility-cta.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/_components/eligibility-modal.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nc690ec9 fix(public): fluid μέγεθος γραμμάτων στο top menu (ίδια λογική με admin) — μία γραμμή μέχρι το mobile bp\na17b6df feat(public): WWA public front-end (design system) — isolated από το admin\n063b3b1 feat(comm): ενοποιημένο ιστορικό επικοινωνίας πελάτη + employee score\n85fd852 feat(programs): εικόνα προγράμματος (front-end) + Έντυπα ανά φάση & επαναχρησιμοποιήσιμα\n5feab4b feat(leads): pipeline follow-up ενδιαφερομένων (eligibility + newsletter)"
+  "context_notes": "Recent commits:\nffdab87 feat(public+email): eligibility modal με preloader + WWA email redesign + λογότυπο/unsubscribe\nc690ec9 fix(public): fluid μέγεθος γραμμάτων στο top menu (ίδια λογική με admin) — μία γραμμή μέχρι το mobile bp\na17b6df feat(public): WWA public front-end (design system) — isolated από το admin\n063b3b1 feat(comm): ενοποιημένο ιστορικό επικοινωνίας πελάτη + employee score\n85fd852 feat(programs): εικόνα προγράμματος (front-end) + Έντυπα ανά φάση & επαναχρησιμοποιήσιμα"
 }

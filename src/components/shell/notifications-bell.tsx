@@ -17,6 +17,7 @@ function notifTarget(n: NotificationRow): string | null {
   const m = n.meta && typeof n.meta === 'object' ? (n.meta as Record<string, unknown>) : {}
   const s = (k: string) => (typeof m[k] === 'string' ? (m[k] as string) : undefined)
   const appId = s('applicationId'); const programId = s('programId'); const trdrId = s('trdrId')
+  if (n.entityType === 'Trdr' && (trdrId || n.entityId)) return `/partners/${trdrId || n.entityId}`
   if (n.entityType === 'Lead' || n.type === 'PUBLIC_LEAD' || n.entityType === 'PublicLeadRequest') return '/leads'
   if ((n.entityType === 'FileRequest' || n.entityType === 'FileRequestItem') && appId && programId) return `/programs/${programId}/applications/${appId}?tab=filereq`
   if (n.entityType === 'ProgramApplication' && appId && programId) return `/programs/${programId}/applications/${appId}`

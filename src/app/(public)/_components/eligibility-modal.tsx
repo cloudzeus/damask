@@ -41,12 +41,13 @@ export function EligibilityModal() {
   const [remaining, setRemaining] = useState<number | null>(null)
   const [resent, setResent] = useState(false)
   const [eligible, setEligible] = useState<EligibleProgram[]>([])
+  const [alreadyCustomer, setAlreadyCustomer] = useState(false)
 
   const dialogRef = useRef<HTMLDivElement>(null)
 
   function reset() {
     setStep('form'); setPhase('idle'); setAfm(''); setEmail(''); setPhone(''); setNewsletter(true)
-    setFieldErrors({}); setError(null); setRequestId(null); setCompanyName(null); setCode(''); setRemaining(null); setResent(false); setEligible([])
+    setFieldErrors({}); setError(null); setRequestId(null); setCompanyName(null); setCode(''); setRemaining(null); setResent(false); setEligible([]); setAlreadyCustomer(false)
   }
 
   // Open via event ή hash· lock scroll· Esc για κλείσιμο.
@@ -82,7 +83,7 @@ export function EligibilityModal() {
       const res = await verifyLeadOtp({ requestId, code })
       setPhase('idle')
       if (!res.ok) { setError(res.error ?? 'Λάθος κωδικός.'); setRemaining(res.remainingAttempts ?? null); return }
-      setEligible(res.eligible ?? []); setCompanyName(res.companyName ?? companyName); setStep('done')
+      setEligible(res.eligible ?? []); setCompanyName(res.companyName ?? companyName); setAlreadyCustomer(res.alreadyCustomer ?? false); setStep('done')
     })
   }
 
@@ -166,6 +167,11 @@ export function EligibilityModal() {
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 999, background: 'var(--success-100)', color: 'var(--success-500)', flex: 'none' }}><CheckCircle2 size={22} /></span>
                   <div><h3 style={{ margin: 0 }}>Ολοκληρώθηκε ο έλεγχος</h3>{companyName && <p style={{ margin: '2px 0 0', fontSize: 14, color: 'var(--fg-3)' }}>{companyName}</p>}</div>
                 </div>
+                {alreadyCustomer && (
+                  <div className="alert alert-info" style={{ fontSize: 14 }}>
+                    <span>Είστε ήδη πελάτης μας — ο σύμβουλός σας θα επικοινωνήσει άμεσα μαζί σας.</span>
+                  </div>
+                )}
                 {eligible.length > 0 ? (
                   <>
                     <p className="m-lead">Η επιχείρησή σας φαίνεται <b style={{ color: 'var(--fg-1)' }}>επιλέξιμη</b> σε {eligible.length} {eligible.length === 1 ? 'ενεργό πρόγραμμα' : 'ενεργά προγράμματα'}:</p>
