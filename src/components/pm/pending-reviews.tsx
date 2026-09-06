@@ -2,9 +2,12 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { FileCheck2, Check, X, Download } from 'lucide-react'
+import { FileCheck2, Check, X, Download, Eye } from 'lucide-react'
 import { listMyPendingReviews, reviewFileRequestItem, type PendingReviewRow } from '@/lib/file-requests/review'
+import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import { relativeTime } from '@/lib/relative-time'
+
+const inlineUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}disp=inline`
 
 /**
  * «Δικαιολογητικά προς επιβεβαίωση»: εκκρεμή αρχεία που ανέβασε ο πελάτης και
@@ -17,6 +20,7 @@ export function PendingReviews() {
   const [rows, setRows] = React.useState<PendingReviewRow[]>([])
   const [loading, setLoading] = React.useState(true)
   const [busyId, setBusyId] = React.useState<string | null>(null)
+  const [viewer, setViewer] = React.useState<ViewerFile | null>(null)
   const [pending, startTransition] = React.useTransition()
 
   // await-first: κανένα setState δεν τρέχει σύγχρονα στο σώμα του effect.
@@ -108,6 +112,17 @@ export function PendingReviews() {
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
+                {r.downloadUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setViewer({ name: r.fileName ?? r.label, url: inlineUrl(r.downloadUrl!) })}
+                    className="inline-flex size-11 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    title="Προβολή"
+                    aria-label="Προβολή"
+                  >
+                    <Eye className="size-4" strokeWidth={1.9} />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => handleReview(r.itemId, 'ACCEPTED')}
@@ -133,6 +148,8 @@ export function PendingReviews() {
           )
         })}
       </ul>
+
+      <FileViewerModal open={!!viewer} onOpenChange={o => { if (!o) setViewer(null) }} file={viewer} />
     </section>
   )
 }

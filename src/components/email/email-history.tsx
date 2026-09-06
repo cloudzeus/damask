@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Mail, ChevronDown, ChevronRight, ArrowDownLeft, ArrowUpRight, Paperclip, Reply, Inbox, LoaderCircle,
+  Mail, ChevronDown, ChevronRight, ArrowDownLeft, ArrowUpRight, Paperclip, Eye, Reply, Inbox, LoaderCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import { ComposeEmailDialog } from '@/components/email/compose-email-dialog'
 import {
   listThreadsForTrdr, listThreadsForProgram, listThreadsForApplication, listThreadMessages,
@@ -12,6 +13,9 @@ import {
 } from '@/lib/email/actions'
 import { relativeTime } from '@/lib/relative-time'
 import { cn } from '@/lib/utils'
+
+/** Inline variant του gated download URL — προβολή χωρίς λήψη. */
+const inlineUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}disp=inline`
 
 /**
  * Ιστορικό email συσχετισμένο με πελάτη/πρόγραμμα/έργο. Λίστα-ακορντεόν με τα
@@ -198,6 +202,7 @@ function ThreadItem({
 
 function MessageCard({ message }: { message: MessageRow }) {
   const inbound = message.direction === 'INBOUND'
+  const [viewer, setViewer] = useState<ViewerFile | null>(null)
   return (
     <div className="rounded-xl border border-border bg-card p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -227,19 +232,33 @@ function MessageCard({ message }: { message: MessageRow }) {
       {message.attachments.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {message.attachments.map((att, i) => (
-            <a
-              key={i}
-              href={att.downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 text-xs font-semibold transition-colors hover:bg-muted"
-            >
-              <Paperclip className="size-3.5" aria-hidden />
-              <span className="max-w-48 truncate">{att.name}</span>
-            </a>
+            <div key={i} className="inline-flex min-h-11 items-center gap-1 rounded-full border border-border bg-muted/40 pl-3 pr-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setViewer({ name: att.name, url: inlineUrl(att.downloadUrl) })}
+                className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+                title="Προβολή"
+                aria-label={`Προβολή ${att.name}`}
+              >
+                <Paperclip className="size-3.5" aria-hidden />
+                <span className="max-w-48 truncate">{att.name}</span>
+              </button>
+              <a
+                href={att.downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                title="Προβολή σε νέα καρτέλα"
+                aria-label={`Προβολή ${att.name} σε νέα καρτέλα`}
+              >
+                <Eye className="size-3.5" aria-hidden />
+              </a>
+            </div>
           ))}
         </div>
       )}
+
+      <FileViewerModal open={!!viewer} onOpenChange={o => { if (!o) setViewer(null) }} file={viewer} />
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, CheckCheck } from 'lucide-react'
+import { Bell, CheckCheck, MoreVertical, ExternalLink, Check } from 'lucide-react'
 import {
   getUnreadNotificationCount,
   getNotifications,
@@ -11,6 +11,19 @@ import {
 } from '@/lib/notifications/actions'
 import type { NotificationRow } from '@/lib/notifications/service'
 import { relativeTime } from '@/lib/relative-time'
+
+/** Καλύτερη διαδρομή «Άνοιγμα» ανά ειδοποίηση (best-effort από entityType/meta). */
+function notifTarget(n: NotificationRow): string | null {
+  const m = n.meta && typeof n.meta === 'object' ? (n.meta as Record<string, unknown>) : {}
+  const s = (k: string) => (typeof m[k] === 'string' ? (m[k] as string) : undefined)
+  const appId = s('applicationId'); const programId = s('programId'); const trdrId = s('trdrId')
+  if (n.type === 'PUBLIC_LEAD' || n.entityType === 'PublicLeadRequest') return '/newsletter'
+  if ((n.entityType === 'FileRequest' || n.entityType === 'FileRequestItem') && appId && programId) return `/programs/${programId}/applications/${appId}?tab=filereq`
+  if (n.entityType === 'ProgramApplication' && appId && programId) return `/programs/${programId}/applications/${appId}`
+  if (n.entityType === 'EmailThread' && trdrId) return `/partners/${trdrId}`
+  if (trdrId) return `/partners/${trdrId}`
+  return null
+}
 
 /**
  * Καμπάνα ειδοποιήσεων στο topbar: badge μη-αναγνωσμένων (poll ανά 60s) + dropdown
@@ -24,6 +37,7 @@ export function NotificationsBell() {
   const [count, setCount] = React.useState(0)
   const [items, setItems] = React.useState<NotificationRow[]>([])
   const [loading, setLoading] = React.useState(false)
+  const [menuId, setMenuId] = React.useState<string | null>(null)
   const rootRef = React.useRef<HTMLDivElement>(null)
 
   // Poll πλήθους μη-αναγνωσμένων (mount + κάθε 60s). setState μέσα σε nested async.
@@ -72,15 +86,19 @@ export function NotificationsBell() {
     }
   }, [open])
 
-  const handleItemClick = React.useCallback(async (n: NotificationRow) => {
+  const markRead = React.useCallback(async (n: NotificationRow) => {
+    if (n.read) return
     setItems(prev => prev.map(r => (r.id === n.id ? { ...r, read: true } : r)))
-    setCount(c => (n.read ? c : Math.max(0, c - 1)))
+    setCount(c => Math.max(0, c - 1))
     await markNotificationReadAction(n.id)
-    if (n.type === 'PUBLIC_LEAD') {
-      setOpen(false)
-      router.push('/newsletter')
-    }
-  }, [router])
+  }, [])
+
+  const handleOpen = React.useCallback(async (n: NotificationRow) => {
+    setMenuId(null)
+    await markRead(n)
+    const target = notifTarget(n)
+    if (target) { setOpen(false); router.push(target) }
+  }, [markRead, router])
 
   const handleMarkAll = React.useCallback(async () => {
     setItems(prev => prev.map(r => ({ ...r, read: true })))
@@ -145,41 +163,64 @@ export function NotificationsBell() {
               </div>
             ) : (
               <ul className="divide-y divide-border">
-                {items.map(n => (
-                  <li key={n.id}>
-                    <button
-                      type="button"
-                      onClick={() => { void handleItemClick(n) }}
-                      className="flex w-full min-h-[2.75rem] flex-col items-start gap-0.5 px-3.5 py-2.5 text-left transition-colors hover:bg-muted"
-                      style={
-                        n.read
-                          ? undefined
-                          : { borderLeft: '3px solid var(--coral)', background: 'var(--coral-soft)' }
-                      }
-                    >
-                      <span className="flex w-full items-center gap-2">
-                        {!n.read && (
-                          <span
-                            className="size-1.5 shrink-0 rounded-full"
-                            style={{ background: 'var(--coral)' }}
-                            aria-hidden
-                          />
-                        )}
-                        <span className={`min-w-0 flex-1 truncate text-[0.8125rem] ${n.read ? 'font-medium text-foreground' : 'font-bold text-foreground'}`}>
-                          {n.title}
-                        </span>
-                        <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
-                          {relativeTime(n.createdAt)}
-                        </span>
-                      </span>
-                      {n.body && (
-                        <span className="line-clamp-2 text-[0.75rem] text-muted-foreground">
-                          {n.body}
-                        </span>
+                {items.map(n => {
+                  const target = notifTarget(n)
+                  return (
+                    <li key={n.id} className="relative">
+                      <div
+                        className="flex items-start gap-1"
+                        style={n.read ? undefined : { borderLeft: '3px solid var(--coral)', background: 'var(--coral-soft)' }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => { void handleOpen(n) }}
+                          className="flex min-h-[2.75rem] min-w-0 flex-1 flex-col items-start gap-0.5 py-2.5 pr-1 pl-3.5 text-left transition-colors hover:bg-muted"
+                        >
+                          <span className="flex w-full items-center gap-2">
+                            {!n.read && <span className="size-1.5 shrink-0 rounded-full" style={{ background: 'var(--coral)' }} aria-hidden />}
+                            <span className={`min-w-0 flex-1 truncate text-[0.8125rem] ${n.read ? 'font-medium text-foreground' : 'font-bold text-foreground'}`}>{n.title}</span>
+                            <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">{relativeTime(n.createdAt)}</span>
+                          </span>
+                          {n.body && <span className="line-clamp-2 text-[0.75rem] text-muted-foreground">{n.body}</span>}
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Ενέργειες"
+                          onClick={e => { e.stopPropagation(); setMenuId(id => (id === n.id ? null : n.id)) }}
+                          className="mt-1 mr-1 flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <MoreVertical className="size-4" aria-hidden />
+                        </button>
+                      </div>
+
+                      {menuId === n.id && (
+                        <div className="absolute right-2 z-10 mt-1 min-w-max overflow-hidden rounded-lg border border-border bg-popover p-1 shadow-lg">
+                          {target && (
+                            <button
+                              type="button"
+                              onClick={() => { void handleOpen(n) }}
+                              className="flex min-h-9 w-full items-center gap-2 rounded-md px-3 text-left text-[0.8125rem] transition-colors hover:bg-muted"
+                            >
+                              <ExternalLink className="size-3.5" aria-hidden /> Άνοιγμα
+                            </button>
+                          )}
+                          {!n.read && (
+                            <button
+                              type="button"
+                              onClick={() => { setMenuId(null); void markRead(n) }}
+                              className="flex min-h-9 w-full items-center gap-2 rounded-md px-3 text-left text-[0.8125rem] transition-colors hover:bg-muted"
+                            >
+                              <Check className="size-3.5" aria-hidden /> Σήμανση ως αναγνωσμένο
+                            </button>
+                          )}
+                          {!target && n.read && (
+                            <span className="block px-3 py-1.5 text-[0.75rem] text-muted-foreground">Καμία ενέργεια</span>
+                          )}
+                        </div>
                       )}
-                    </button>
-                  </li>
-                ))}
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </div>

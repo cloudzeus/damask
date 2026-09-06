@@ -2,12 +2,16 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { FileCheck2, Check, X, Download, UserCheck, LoaderCircle } from 'lucide-react'
+import { FileCheck2, Check, X, Download, Eye, UserCheck, LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import { relativeTime } from '@/lib/relative-time'
 import {
   listApplicationFileRequests, reviewFileRequestItem, type FileRequestGroup, type ReviewItem,
 } from '@/lib/file-requests/review'
+
+/** Inline variant του gated download URL — προβολή χωρίς λήψη. */
+const inlineUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}disp=inline`
 
 /**
  * «Δικαιολογητικά» tab του έργου (ProgramApplication hub) — λίστα των αιτημάτων
@@ -143,6 +147,7 @@ function FileRequestGroupCard({ group, onReload }: { group: FileRequestGroup; on
 
 function FileRequestItemRow({ item, onReload }: { item: ReviewItem; onReload: () => void }) {
   const [pending, startTransition] = React.useTransition()
+  const [viewer, setViewer] = React.useState<ViewerFile | null>(null)
 
   function handleReview(decision: 'ACCEPTED' | 'REJECTED') {
     startTransition(async () => {
@@ -176,12 +181,23 @@ function FileRequestItemRow({ item, onReload }: { item: ReviewItem; onReload: ()
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[0.71875rem] text-muted-foreground">
             <span className="truncate">{item.fileName}</span>
             {item.downloadUrl && (
-              <a
-                href={item.downloadUrl}
-                className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
-              >
-                <Download className="size-3.5" aria-hidden /> Λήψη
-              </a>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setViewer({ name: item.fileName ?? 'αρχείο', url: inlineUrl(item.downloadUrl!) })}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  title="Προβολή"
+                  aria-label={`Προβολή ${item.fileName ?? 'αρχείου'}`}
+                >
+                  <Eye className="size-3.5" aria-hidden />
+                </button>
+                <a
+                  href={item.downloadUrl}
+                  className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
+                >
+                  <Download className="size-3.5" aria-hidden /> Λήψη
+                </a>
+              </>
             )}
           </div>
         )}
@@ -220,6 +236,8 @@ function FileRequestItemRow({ item, onReload }: { item: ReviewItem; onReload: ()
           </Button>
         </div>
       )}
+
+      <FileViewerModal open={!!viewer} onOpenChange={o => { if (!o) setViewer(null) }} file={viewer} />
     </li>
   )
 }

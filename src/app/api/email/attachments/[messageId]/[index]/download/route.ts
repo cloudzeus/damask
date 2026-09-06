@@ -14,7 +14,7 @@ export const maxDuration = 60
 
 type StoredAttachment = { name?: string; key?: string; url?: string; mime?: string }
 
-export async function GET(_req: Request, ctx: { params: Promise<{ messageId: string; index: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ messageId: string; index: string }> }) {
   const session = await auth()
   if (!can(session, 'customer.view')) {
     return NextResponse.json({ error: 'Δεν έχεις δικαίωμα.' }, { status: 403 })
@@ -26,13 +26,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ messageId: str
   if (!att || (!att.key && !att.url)) return NextResponse.json({ error: 'Το συνημμένο δεν βρέθηκε.' }, { status: 404 })
   if (!att.key && att.url) return NextResponse.redirect(att.url)
 
+  const inline = new URL(req.url).searchParams.get('disp') === 'inline'
   try {
     const buf = await bunnyDownload(att.key!)
     const filename = encodeURIComponent(att.name ?? 'attachment')
     return new NextResponse(new Uint8Array(buf), {
       headers: {
         'Content-Type': att.mime || 'application/octet-stream',
-        'Content-Disposition': `attachment; filename*=UTF-8''${filename}`,
+        'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${filename}`,
         'Content-Length': String(buf.length),
       },
     })

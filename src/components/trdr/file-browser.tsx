@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState, useTransition, type MouseEvent, type ReactNode } from 'react'
 import {
   Folder, FileText, Download, Trash2, FolderPlus, ChevronRight, ArrowLeft, LoaderCircle, Upload,
-  Pencil, Copy, ExternalLink,
+  Pencil, Copy, ExternalLink, Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
+import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import { FileDropzone, xhrUpload } from '@/components/ui/file-dropzone'
 import {
   listTrdrFiles, deleteTrdrFile, createTrdrSubfolder, renameTrdrFile, type TrdrFilesListing, type BrowserFile,
@@ -37,6 +38,9 @@ function segmentLabel(name: string): string {
   return SEGMENT_LABELS[name] ?? name
 }
 
+/** Inline variant του gated download URL — προβολή χωρίς λήψη. */
+const inlineUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}disp=inline`
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -54,6 +58,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
   const [menu, setMenu] = useState<{ x: number; y: number; file: BrowserFile } | null>(null)
   const [renameTarget, setRenameTarget] = useState<BrowserFile | null>(null)
   const [renameName, setRenameName] = useState('')
+  const [viewer, setViewer] = useState<ViewerFile | null>(null)
   const [pending, startTransition] = useTransition()
 
   // Κλείσιμο context menu σε click/scroll/Escape (χωρίς setState στο σώμα του effect).
@@ -283,6 +288,15 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
                       </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setViewer({ name: file.name, url: inlineUrl(file.downloadUrl) })}
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        aria-label={`Προβολή ${file.name}`}
+                        title="Προβολή"
+                      >
+                        <Eye className="size-4" aria-hidden />
+                      </button>
                       <a
                         href={file.downloadUrl}
                         className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -368,6 +382,9 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
           style={{ top: menu.y, left: menu.x }}
           onContextMenu={e => e.preventDefault()}
         >
+          <ContextItem icon={<Eye className="size-4" aria-hidden />} onClick={() => setViewer({ name: menu.file.name, url: inlineUrl(menu.file.downloadUrl) })}>
+            Προβολή
+          </ContextItem>
           <ContextItem icon={<Download className="size-4" aria-hidden />} onClick={() => { window.location.href = menu.file.downloadUrl }}>
             Λήψη
           </ContextItem>
@@ -413,6 +430,8 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FileViewerModal open={!!viewer} onOpenChange={o => { if (!o) setViewer(null) }} file={viewer} />
     </div>
   )
 }
