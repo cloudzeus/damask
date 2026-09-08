@@ -9,6 +9,12 @@ import { toProgramScalars, toRelatedRows } from '@/lib/programs/persist-map'
 
 export { parseIsoDate, toProgramScalars, toRelatedRows } from '@/lib/programs/persist-map'
 
+/** Κανονικοποίηση ονόματος τύπου δικαιολογητικού για matching (lowercase, χωρίς
+ * τόνους, χωρίς διπλά κενά/σημεία στίξης). Συντηρητικό — μόνο exact normalized. */
+function normalizeTypeName(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9α-ω]+/gi, ' ').trim()
+}
+
 /**
  * Αντικαθιστά ΟΛΑ τα related rows ενός Program με βάση το ExtractedProgram
  * (πλήρες overwrite — όχι merge). Καλείται μετά από (re-)extraction.
@@ -75,7 +81,14 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
     if (rows.requiredForms.length) {
       // NOTE: extraction never sets templateId — the user links a required
       // form to a «Οδηγός Εντύπου» (TaxFormTemplate) later via updateRequiredForm.
-      await tx.programRequiredForm.createMany({ data: rows.requiredForms.map(r => ({ ...r, programId })) })
+      // Φάση 3 — auto-mapping σε τύπο δικαιολογητικού (DocumentType) βάσει
+      // normalized ονόματος: ΜΟΝΟ σε ΥΠΑΡΧΟΝΤΕΣ τύπους (όχι auto-create OCR
+      // θορύβου). Ό,τι δεν ταιριάξει μένει null → ο admin το χαρτογραφεί στο UI.
+      const docTypes = await tx.documentType.findMany({ where: { active: true }, select: { id: true, name: true } })
+      const byNorm = new Map(docTypes.map(t => [normalizeTypeName(t.name), t.id]))
+      await tx.programRequiredForm.createMany({
+        data: rows.requiredForms.map(r => ({ ...r, programId, documentTypeId: byNorm.get(normalizeTypeName(r.name)) ?? null })),
+      })
     }
 
     if (rows.deliverableGroups.length) {

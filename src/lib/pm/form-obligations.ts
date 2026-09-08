@@ -14,7 +14,7 @@ import { createNotification } from '@/lib/notifications/service'
 export async function propagateRequiredFormObligation(formId: string): Promise<{ created: number }> {
   const form = await prisma.programRequiredForm.findUnique({
     where: { id: formId },
-    select: { id: true, programId: true, name: true, mandatory: true, order: true, program: { select: { title: true } } },
+    select: { id: true, programId: true, name: true, mandatory: true, order: true, documentTypeId: true, program: { select: { title: true } } },
   })
   if (!form) return { created: 0 }
 
@@ -48,31 +48,58 @@ export async function propagateRequiredFormObligation(formId: string): Promise<{
   }
 
   const newApps = apps.filter(a => !has.has(a.id))
-  const toCreate = newApps.map(a => ({
-    applicationId: a.id,
-    stage: 'DOCUMENTS' as const,
-    kind: 'FORM' as const,
-    sourceId: form.id,
-    name: form.name,
-    mandatory: true,
-    status: 'PENDING' as const,
-    order: form.order,
-  }))
-  if (toCreate.length) {
-    await prisma.applicationObligation.createMany({ data: toCreate })
-    // Ειδοποίηση ανά εταιρία που απέκτησε νέα εκκρεμότητα — εμφανίζεται στο
-    // dashboard feed «Ειδοποιήσεις» και είναι clickable στην καρτέλα της (Trdr).
-    for (const a of newApps) {
+  if (newApps.length === 0) return { created: 0 }
+
+  // Refinement — matching με την αποθήκη κάθε εταιρίας: αν το έντυπο έχει τύπο
+  // και η εταιρία έχει ήδη valid έγγραφο ίδιου τύπου → SUBMITTED αντί PENDING
+  // (δεν το ξαναζητάμε), όπως και στην ένταξη (seedFormObligationsForApplication).
+  const now = Date.now()
+  const dossierByTrdr = new Map<string, { name: string; storageKey: string; mimeType: string | null; sizeBytes: number | null; expiresAt: Date | null }>()
+  if (form.documentTypeId) {
+    const dossierDocs = await prisma.trdrDossierDocument.findMany({
+      where: { trdrId: { in: newApps.map(a => a.trdrId) }, documentTypeId: form.documentTypeId },
+      orderBy: { createdAt: 'desc' },
+      select: { trdrId: true, name: true, storageKey: true, mimeType: true, sizeBytes: true, expiresAt: true },
+    })
+    for (const d of dossierDocs) {
+      const valid = !d.expiresAt || d.expiresAt.getTime() > now
+      if (valid && !dossierByTrdr.has(d.trdrId)) {
+        dossierByTrdr.set(d.trdrId, { name: d.name, storageKey: d.storageKey, mimeType: d.mimeType, sizeBytes: d.sizeBytes, expiresAt: d.expiresAt })
+      }
+    }
+  }
+  const dateFmt = new Intl.DateTimeFormat('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
+  let created = 0
+  for (const a of newApps) {
+    const fromDossier = dossierByTrdr.get(a.trdrId)
+    if (fromDossier) {
+      await prisma.applicationObligation.create({
+        data: {
+          applicationId: a.id, stage: 'DOCUMENTS', kind: 'FORM', sourceId: form.id, name: form.name,
+          mandatory: true, status: 'SUBMITTED', order: form.order,
+          notes: `Υπάρχει ήδη στην αποθήκη της εταιρίας${fromDossier.expiresAt ? ` (σε ισχύ έως ${dateFmt.format(fromDossier.expiresAt)})` : ''} — έλεγξε & ενέκρινε.`,
+          documents: { create: { applicationId: a.id, name: fromDossier.name, storageKey: fromDossier.storageKey, mimeType: fromDossier.mimeType, size: fromDossier.sizeBytes, expiresAt: fromDossier.expiresAt } },
+        },
+      })
+      await createNotification({
+        title: `Δικαιολογητικό από αποθήκη: ${form.name}`,
+        body: `${a.trdr?.NAME ?? 'Εταιρία'} — ${form.program?.title ?? 'πρόγραμμα'}. Βρέθηκε στην αποθήκη — απαιτείται μόνο έγκριση.`,
+        entityType: 'Trdr', entityId: a.trdrId, meta: { programId: form.programId, formId: form.id, fromDossier: true },
+      })
+    } else {
+      await prisma.applicationObligation.create({
+        data: { applicationId: a.id, stage: 'DOCUMENTS', kind: 'FORM', sourceId: form.id, name: form.name, mandatory: true, status: 'PENDING', order: form.order },
+      })
       await createNotification({
         title: `Νέο δικαιολογητικό: ${form.name}`,
         body: `${a.trdr?.NAME ?? 'Εταιρία'} — ${form.program?.title ?? 'πρόγραμμα'}. Δημιουργήθηκε εκκρεμότητα υποβολής.`,
-        entityType: 'Trdr',
-        entityId: a.trdrId,
-        meta: { programId: form.programId, formId: form.id },
+        entityType: 'Trdr', entityId: a.trdrId, meta: { programId: form.programId, formId: form.id },
       })
     }
+    created++
   }
-  return { created: toCreate.length }
+  return { created }
 }
 
 /** Αφαίρεση εκκρεμοτήτων FORM ενός εντύπου (κατά τη διαγραφή του) — κρατά τις

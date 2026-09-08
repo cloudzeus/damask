@@ -116,10 +116,25 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
   }
 
   function handleDocTypeChange(form: ProgramRequiredFormItem, value: string | null) {
+    if (value === NEW_DOCTYPE) { void handleCreateTypeFromForm(form); return }
     const documentTypeId = !value || value === NONE_DOCTYPE ? null : value
     const dt = docTypes.find(d => d.id === documentTypeId)
     patchLocal(form.id, { documentTypeId, documentTypeName: dt?.name ?? null })
     void persist(form.id, { documentTypeId })
+  }
+
+  // Γρήγορη χαρτογράφηση OCR-εξαγόμενου εντύπου: δημιουργεί τύπο από το όνομα
+  // (idempotent) και τον αναθέτει. Default expires=false — ο admin το ρυθμίζει.
+  async function handleCreateTypeFromForm(form: ProgramRequiredFormItem) {
+    try {
+      const t = await createDocumentType(form.name.trim(), false)
+      setDocTypes(prev => [...prev.filter(x => x.id !== t.id), t].sort((a, b) => a.name.localeCompare(b.name, 'el')))
+      patchLocal(form.id, { documentTypeId: t.id, documentTypeName: t.name })
+      await persist(form.id, { documentTypeId: t.id })
+      toast.success(`Τύπος «${t.name}» δημιουργήθηκε & αντιστοιχίστηκε.`)
+    } catch {
+      toast.error('Η δημιουργία τύπου απέτυχε.')
+    }
   }
 
   async function handleRemove(form: ProgramRequiredFormItem) {
@@ -180,6 +195,9 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                         onBlur={e => handleNameBlur(form, e.target.value)}
                         className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[0.8125rem] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
                       />
+                      {form.mandatory && !form.documentTypeId && (
+                        <span className="badge-pill warn shrink-0" title="Δεν έχει αντιστοιχιστεί σε τύπο — δεν θα γίνεται αναγνώριση από την αποθήκη πελάτη">Χωρίς τύπο</span>
+                      )}
                     </div>
                   </td>
                   <td style={{ minWidth: 170 }}>
@@ -227,6 +245,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                         {docTypes.map(d => (
                           <SelectItem key={d.id} value={d.id}>{d.name}{d.expires ? ' · (λήγει)' : ''}</SelectItem>
                         ))}
+                        <SelectItem value={NEW_DOCTYPE}>+ Δημιουργία «{form.name.slice(0, 30)}»</SelectItem>
                       </SelectContent>
                     </Select>
                   </td>
