@@ -50,6 +50,7 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
       { key: 'referrer.view', description: 'Προβολή παραπομπών (ποιος έφερε πελάτη)' },
       { key: 'referrer.manage', description: 'Διαχείριση παραπομπών' },
     ] },
+    { key: 'referrals', href: '/referrals', label: 'Χαρτογράφηση παραπομπών', icon: Sparkles, menuPermission: 'programs.manage', permissions: [] },
   ] },
   { key: 'orders', label: 'Παραγγελίες & Πωλήσεις', items: [
     { key: 'orders', href: '/orders', label: 'Παραγγελίες', icon: ClipboardList, menuPermission: 'order.view', permissions: [

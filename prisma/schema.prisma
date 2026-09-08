@@ -413,11 +413,62 @@ model Referrer {
   trdrId    String? // αν ο συστήστης είναι ήδη συναλλασσόμενος
   trdr      Trdr?        @relation("ReferrerTrdr", fields: [trdrId], references: [id], onDelete: SetNull)
   referred  Trdr[]       @relation("TrdrReferrer") // πελάτες που έφερε
+  batches   ReferralBatch[]
+  mapped    ReferralCompany[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
   @@index([active])
   @@index([trdrId])
+}
+
+/// Batch χαρτογράφησης επιλεξιμότητας: ο διαχειριστής ανεβάζει Excel (ΑΦΜ/email/
+/// τηλέφωνο) + επιλέγει εταιρία παραπομπής → ΑΑΔΕ lookup + έλεγχος επιλεξιμότητας
+/// σε ενεργά προγράμματα. Αποθηκεύεται ΑΝΑ εταιρία παραπομπής, σε ξεχωριστό πίνακα.
+model ReferralBatch {
+  id            String            @id @default(cuid())
+  referrerId    String
+  referrer      Referrer          @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+  fileName      String?
+  total         Int               @default(0)
+  eligibleCount Int               @default(0)
+  createdById   String?
+  createdAt     DateTime          @default(now())
+  companies     ReferralCompany[]
+
+  @@index([referrerId])
+}
+
+/// Μία εταιρία του batch με τα στοιχεία ΑΑΔΕ + το αποτέλεσμα επιλεξιμότητας ανά
+/// πρόγραμμα. Όταν επιλεγεί από τη λίστα → δημιουργείται δυνητικός πελάτης (Trdr).
+model ReferralCompany {
+  id               String         @id @default(cuid())
+  batchId          String
+  batch            ReferralBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  referrerId       String
+  referrer         Referrer       @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+  afm              String
+  name             String?
+  email            String?
+  phone            String?
+  legalForm        String?
+  city             String?
+  zip              String?
+  regionName       String? // best-effort από ΤΚ/πόλη
+  regionConfident  Boolean        @default(false)
+  kads             Json? // string[] ΚΑΔ codes
+  eligiblePrograms Json? // [{ programId, title, fundingRate }]
+  status           String         @default("PENDING") // ELIGIBLE / INELIGIBLE / ERROR / NOT_FOUND
+  error            String?
+  existingTrdrId   String? // αν το ΑΦΜ είναι ΗΔΗ συναλλασσόμενος (αποφυγή διπλοεγγραφής)
+  existingIsCustomer Boolean      @default(false) // true = πελάτης (ISPROSP=0), false = δυνητικός/άλλο
+  convertedTrdrId  String? // ο δυνητικός πελάτης που δημιουργήθηκε (αν επιλέχθηκε)
+  createdAt        DateTime       @default(now())
+
+  @@index([referrerId])
+  @@index([batchId])
+  @@index([afm])
+  @@index([status])
 }
 
 model Contact {
