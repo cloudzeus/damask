@@ -15,12 +15,15 @@ import {
   listReusableFormCatalog, addReusableFormToProgram,
   type ProgramRequiredFormItem, type TaxTemplateOption, type ReusableFormItem,
 } from '@/lib/programs/actions'
+import { listDocumentTypes, createDocumentType, type DocumentTypeOption } from '@/lib/documents/actions'
 import { DELIVERABLE_PHASE_ORDER, deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/deliverable-phases'
 
 /** Sentinel τιμή για το «— (κανένας) —» option — το base-ui Select δεν
  * επιτρέπει value="" σε Item. */
 const NONE_TEMPLATE = '__none__'
 const NONE_PHASE = '__nophase__'
+const NONE_DOCTYPE = '__nodoctype__'
+const NEW_DOCTYPE = '__newdoctype__'
 
 /**
  * «Έντυπα» tab — απαιτούμενα υποστηρικτικά έντυπα ενός Προγράμματος
@@ -32,6 +35,7 @@ const NONE_PHASE = '__nophase__'
 export function RequiredFormsTab({ programId }: { programId: string }) {
   const [forms, setForms] = React.useState<ProgramRequiredFormItem[]>([])
   const [templates, setTemplates] = React.useState<TaxTemplateOption[]>([])
+  const [docTypes, setDocTypes] = React.useState<DocumentTypeOption[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -40,8 +44,8 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
   const load = React.useCallback(() => {
     setLoading(true)
     setError(null)
-    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions()])
-      .then(([f, t]) => { setForms(f); setTemplates(t) })
+    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions(), listDocumentTypes()])
+      .then(([f, t, d]) => { setForms(f); setTemplates(t); setDocTypes(d) })
       .catch(() => setError('Η φόρτωση των εντύπων απέτυχε.'))
       .finally(() => setLoading(false))
   }, [programId])
@@ -49,8 +53,8 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
   // Αρχική φόρτωση — setState ΜΕΤΑ το await (react-hooks/set-state-in-effect).
   React.useEffect(() => {
     let cancelled = false
-    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions()])
-      .then(([f, t]) => { if (!cancelled) { setForms(f); setTemplates(t) } })
+    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions(), listDocumentTypes()])
+      .then(([f, t, d]) => { if (!cancelled) { setForms(f); setTemplates(t); setDocTypes(d) } })
       .catch(() => { if (!cancelled) setError('Η φόρτωση των εντύπων απέτυχε.') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -60,7 +64,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
     setForms(prev => prev.map(f => (f.id === id ? { ...f, ...patch } : f)))
   }
 
-  async function persist(id: string, patch: { name?: string; notes?: string | null; mandatory?: boolean; templateId?: string | null; phase?: string | null; reusable?: boolean }) {
+  async function persist(id: string, patch: { name?: string; notes?: string | null; mandatory?: boolean; templateId?: string | null; phase?: string | null; reusable?: boolean; documentTypeId?: string | null }) {
     try {
       await updateRequiredForm(id, patch)
     } catch {
@@ -111,6 +115,13 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
     void persist(form.id, { templateId })
   }
 
+  function handleDocTypeChange(form: ProgramRequiredFormItem, value: string | null) {
+    const documentTypeId = !value || value === NONE_DOCTYPE ? null : value
+    const dt = docTypes.find(d => d.id === documentTypeId)
+    patchLocal(form.id, { documentTypeId, documentTypeName: dt?.name ?? null })
+    void persist(form.id, { documentTypeId })
+  }
+
   async function handleRemove(form: ProgramRequiredFormItem) {
     if (!window.confirm(`Διαγραφή του εντύπου «${form.name}»;`)) return
     const prevForms = forms
@@ -130,7 +141,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
         <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Έντυπα ({forms.length})
         </div>
-        <AddRequiredFormDialog programId={programId} onCreated={load} />
+        <AddRequiredFormDialog programId={programId} onCreated={load} docTypes={docTypes} onTypesChanged={setDocTypes} />
       </div>
 
       {loading ? (
@@ -152,6 +163,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                 <th>Φάση</th>
                 <th className="ctr">Υποχρεωτικό</th>
                 <th className="ctr">Επαναχρ.</th>
+                <th>Τύπος (αποθήκη)</th>
                 <th>Οδηγός Εντύπου</th>
                 <th>Σημείωση</th>
                 <th aria-hidden />
@@ -202,6 +214,22 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       aria-label={`Επαναχρησιμοποιήσιμο — ${form.name}`}
                     />
                   </td>
+                  <td style={{ minWidth: 190 }}>
+                    <Select
+                      value={form.documentTypeId ?? NONE_DOCTYPE}
+                      onValueChange={v => handleDocTypeChange(form, v)}
+                    >
+                      <SelectTrigger aria-label={`Τύπος δικαιολογητικού — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE_DOCTYPE}>— (κανένας) —</SelectItem>
+                        {docTypes.map(d => (
+                          <SelectItem key={d.id} value={d.id}>{d.name}{d.expires ? ' · (λήγει)' : ''}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
                   <td style={{ minWidth: 220 }}>
                     <Select
                       value={form.templateId ?? NONE_TEMPLATE}
@@ -249,19 +277,31 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
   )
 }
 
-function AddRequiredFormDialog({ programId, onCreated }: { programId: string; onCreated: () => void }) {
+function AddRequiredFormDialog({
+  programId, onCreated, docTypes, onTypesChanged,
+}: {
+  programId: string
+  onCreated: () => void
+  docTypes: DocumentTypeOption[]
+  onTypesChanged: (t: DocumentTypeOption[]) => void
+}) {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState('')
   const [mandatory, setMandatory] = React.useState(true)
   const [phase, setPhase] = React.useState<string>(NONE_PHASE)
   const [reusable, setReusable] = React.useState(false)
+  const [docTypeId, setDocTypeId] = React.useState<string>(NONE_DOCTYPE)
+  const [newTypeName, setNewTypeName] = React.useState('')
+  const [newTypeExpires, setNewTypeExpires] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
   const [catalog, setCatalog] = React.useState<ReusableFormItem[]>([])
+
+  const creatingType = docTypeId === NEW_DOCTYPE
 
   function handleOpenChange(next: boolean) {
     if (saving) return
     if (next) { listReusableFormCatalog(programId).then(setCatalog).catch(() => setCatalog([])) }
-    else { setName(''); setMandatory(true); setPhase(NONE_PHASE); setReusable(false) }
+    else { setName(''); setMandatory(true); setPhase(NONE_PHASE); setReusable(false); setDocTypeId(NONE_DOCTYPE); setNewTypeName(''); setNewTypeExpires(false) }
     setOpen(next)
   }
 
@@ -287,7 +327,14 @@ function AddRequiredFormDialog({ programId, onCreated }: { programId: string; on
     }
     setSaving(true)
     try {
-      await addRequiredForm(programId, { name: trimmed, mandatory, phase: phase === NONE_PHASE ? null : phase, reusable })
+      let documentTypeId: string | null = docTypeId === NONE_DOCTYPE || docTypeId === NEW_DOCTYPE ? null : docTypeId
+      if (creatingType) {
+        if (!newTypeName.trim()) { toast.error('Δώσε όνομα τύπου.'); setSaving(false); return }
+        const t = await createDocumentType(newTypeName.trim(), newTypeExpires)
+        documentTypeId = t.id
+        onTypesChanged([...docTypes.filter(x => x.id !== t.id), t].sort((a, b) => a.name.localeCompare(b.name, 'el')))
+      }
+      await addRequiredForm(programId, { name: trimmed, mandatory, phase: phase === NONE_PHASE ? null : phase, reusable, documentTypeId })
       toast.success('Το έντυπο προστέθηκε.')
       onCreated()
       handleOpenChange(false)
@@ -362,6 +409,32 @@ function AddRequiredFormDialog({ programId, onCreated }: { programId: string; on
               </SelectContent>
             </Select>
           </div>
+
+          <div className="field !mb-0">
+            <label htmlFor="rf-doctype">Τύπος δικαιολογητικού (αποθήκη πελάτη)</label>
+            <Select value={docTypeId} onValueChange={v => setDocTypeId(v ?? NONE_DOCTYPE)}>
+              <SelectTrigger id="rf-doctype" className="h-10 w-full rounded-full border-border bg-card px-3 text-[0.8125rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_DOCTYPE}>— (κανένας) —</SelectItem>
+                {docTypes.map(d => <SelectItem key={d.id} value={d.id}>{d.name}{d.expires ? ' · (λήγει)' : ''}</SelectItem>)}
+                <SelectItem value={NEW_DOCTYPE}>+ Νέος τύπος…</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[0.65625rem] text-muted-foreground">Αν η εταιρία το έχει ήδη σε ισχύ στην αποθήκη της, δεν θα ξαναζητηθεί.</p>
+          </div>
+
+          {creatingType && (
+            <div className="field !mb-0 rounded-[14px] border border-border bg-muted/40 p-2.5">
+              <label htmlFor="rf-newtype" className="!text-[0.6875rem]">Όνομα νέου τύπου</label>
+              <Input id="rf-newtype" value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="π.χ. Φορολογική ενημερότητα" autoComplete="off" disabled={saving} />
+              <div className="mt-2 flex items-center gap-2.5">
+                <Switch checked={newTypeExpires} onCheckedChange={setNewTypeExpires} disabled={saving} id="rf-newtype-exp" />
+                <label htmlFor="rf-newtype-exp" className="text-[0.78125rem] font-semibold">Λήγει (έχει ημερομηνία λήξης)</label>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2.5">
             <Switch checked={mandatory} onCheckedChange={setMandatory} disabled={saving} id="rf-mandatory" />

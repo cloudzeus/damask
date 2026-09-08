@@ -1387,10 +1387,15 @@ model ProgramRequiredForm {
   reusable   Boolean          @default(false) // επαναχρησιμοποιήσιμο και σε άλλα έργα/προγράμματα
   templateId String? // optional link to a «Οδηγός Εντύπου» (TaxFormTemplate)
   template   TaxFormTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  // Τύπος δικαιολογητικού — matching με την αποθήκη πελάτη (TrdrDossierDocument):
+  // στην ένταξη, valid έγγραφο ίδιου τύπου δεν ξαναζητείται.
+  documentTypeId String?
+  documentType   DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
   createdAt  DateTime         @default(now())
 
   @@index([programId])
   @@index([templateId])
+  @@index([documentTypeId])
 }
 
 enum ApplicationStage {
@@ -2080,9 +2085,10 @@ model DocumentType {
   name        String                @unique
   expires     Boolean               @default(false)
   active      Boolean               @default(true)
-  notes       String?
-  createdAt   DateTime              @default(now())
-  dossierDocs TrdrDossierDocument[]
+  notes         String?
+  createdAt     DateTime              @default(now())
+  dossierDocs   TrdrDossierDocument[]
+  requiredForms ProgramRequiredForm[]
 }
 
 /// Αποθήκη δικαιολογητικών ανά πελάτη (Trdr) — ανεξάρτητα προγράμματος. Ό,τι

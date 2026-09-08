@@ -97,13 +97,33 @@ export async function seedFormObligationsForApplication(applicationId: string, p
 
   const forms = await prisma.programRequiredForm.findMany({
     where: { programId, mandatory: true },
-    select: { id: true, name: true, order: true, templateId: true },
+    select: { id: true, name: true, order: true, templateId: true, documentTypeId: true },
   })
   if (forms.length === 0) return { created: 0, recognized: 0 }
 
   const existing = await prisma.applicationObligation.findMany({ where: { applicationId, kind: 'FORM' }, select: { sourceId: true } })
   const has = new Set(existing.map(e => e.sourceId))
   const pending = forms.filter(f => !has.has(f.id))
+
+  // Matching με την ΑΠΟΘΗΚΗ του πελάτη (TrdrDossierDocument): αν η εταιρία έχει
+  // ήδη έγγραφο ίδιου τύπου ΣΕ ΙΣΧΥ (μη ληγμένο) → δεν το ξαναζητάμε.
+  const now = Date.now()
+  const dossierTypeIds = [...new Set(pending.map(f => f.documentTypeId).filter((t): t is string => !!t))]
+  const dossierByType = new Map<string, { name: string; storageKey: string; mimeType: string | null; sizeBytes: number | null; expiresAt: Date | null }>()
+  if (dossierTypeIds.length) {
+    const dossierDocs = await prisma.trdrDossierDocument.findMany({
+      where: { trdrId: app.trdrId, documentTypeId: { in: dossierTypeIds } },
+      orderBy: { createdAt: 'desc' },
+      select: { documentTypeId: true, name: true, storageKey: true, mimeType: true, sizeBytes: true, expiresAt: true },
+    })
+    for (const d of dossierDocs) {
+      const valid = !d.expiresAt || d.expiresAt.getTime() > now
+      if (valid && !dossierByType.has(d.documentTypeId)) {
+        dossierByType.set(d.documentTypeId, { name: d.name, storageKey: d.storageKey, mimeType: d.mimeType, sizeBytes: d.sizeBytes, expiresAt: d.expiresAt })
+      }
+    }
+  }
+  const dateFmt = new Intl.DateTimeFormat('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
   // Αναγνώριση εγγράφων ίδιου τύπου (templateId) από ΑΛΛΑ έργα του ΙΔΙΟΥ πελάτη.
   const templateIds = [...new Set(pending.map(f => f.templateId).filter((t): t is string => !!t))]
@@ -129,15 +149,21 @@ export async function seedFormObligationsForApplication(applicationId: string, p
   let created = 0
   let recognized = 0
   for (const f of pending) {
-    const match = f.templateId ? recognizedByTemplate.get(f.templateId) : undefined
+    // Προτεραιότητα 1: αποθήκη πελάτη (valid έγγραφο ίδιου τύπου).
+    const fromDossier = f.documentTypeId ? dossierByType.get(f.documentTypeId) : undefined
+    // Προτεραιότητα 2: αναγνώριση από άλλο πρόγραμμα (templateId).
+    const match = fromDossier ?? (f.templateId ? recognizedByTemplate.get(f.templateId) : undefined)
     if (match) {
-      // Δημιούργησε εκκρεμότητα «υποβληθείσα» + αντίγραφο αναφοράς εγγράφου.
+      const validNote = fromDossier
+        ? `Υπάρχει ήδη στην αποθήκη της εταιρίας${fromDossier.expiresAt ? ` (σε ισχύ έως ${dateFmt.format(fromDossier.expiresAt)})` : ''} — έλεγξε & ενέκρινε.`
+        : 'Αναγνωρίστηκε από άλλο πρόγραμμα — έλεγξε & ενέκρινε ή απόρριψε.'
+      const size = fromDossier ? fromDossier.sizeBytes : (match as { size: number | null }).size
       await prisma.applicationObligation.create({
         data: {
           applicationId, stage: 'DOCUMENTS', kind: 'FORM', sourceId: f.id, name: f.name,
           mandatory: true, status: 'SUBMITTED', order: f.order,
-          notes: 'Αναγνωρίστηκε από άλλο πρόγραμμα — έλεγξε & ενέκρινε ή απόρριψε.',
-          documents: { create: { applicationId, name: match.name, storageKey: match.storageKey, mimeType: match.mimeType, size: match.size } },
+          notes: validNote,
+          documents: { create: { applicationId, name: match.name, storageKey: match.storageKey, mimeType: match.mimeType, size } },
         },
       })
       recognized++
