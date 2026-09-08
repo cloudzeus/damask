@@ -452,9 +452,12 @@ function ContextItem({ icon, children, onClick, danger }: { icon: ReactNode; chi
 
 function FileBrowserSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card" aria-hidden>
+    <div className="overflow-hidden rounded-xl border border-border bg-card" aria-busy="true" aria-live="polite">
+      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3.5 py-2 text-[0.71875rem] font-medium text-muted-foreground">
+        <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> Φόρτωση φακέλων…
+      </div>
       <ul className="divide-y divide-border">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <li key={i} className="flex min-h-11 items-center gap-3 px-3.5 py-2.5">
             <div className="size-5 shrink-0 animate-pulse rounded bg-muted" />
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">

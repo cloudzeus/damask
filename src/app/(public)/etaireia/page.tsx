@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element -- public φωτογραφίες με object-fit cover */
 import type { Metadata } from 'next'
 import { SubBanner } from '../_components/sub-banner'
 import { Faq, type FaqItem } from '../_components/faq'
@@ -51,13 +50,10 @@ export default function CompanyPage() {
               <div className="value"><IconChart /><h3>Αποτελεσματικότητα</h3><p>Μετράμε τη δουλειά μας σε εγκρίσεις και εκταμιεύσεις, όχι σε υποβολές.</p></div>
             </div>
 
-            <h2 id="team">Η ομάδα</h2>
-            <p>Οικονομολόγοι, μηχανικοί και νομικοί με εμπειρία σε τρεις προγραμματικές περιόδους ΕΣΠΑ.</p>
-            <div className="team">
-              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-ceo')} alt="" /></div><div className="b"><h3>Α. Στάμος</h3><div className="role">Διευθύνων Σύμβουλος · Οικονομολόγος</div><p>20+ χρόνια σε επενδυτικά σχέδια ΕΣΠΑ και Αναπτυξιακού Νόμου.</p></div></article>
-              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-team-submit')} alt="" /></div><div className="b"><h3>Ομάδα υποβολών</h3><div className="role">Σύνταξη &amp; υποβολή φακέλων</div><p>Τεχνική και οικονομική τεκμηρίωση, ΟΠΣΚΕ, διευκρινίσεις αξιολογητών.</p></div></article>
-              <article className="person"><div className="photo square ph"><img src={wwaPageImage('co-team-implement')} alt="" /></div><div className="b"><h3>Ομάδα υλοποίησης</h3><div className="role">Διαχείριση έργων &amp; πιστοποιήσεις</div><p>Επιτόπιες επαληθεύσεις, τροποποιήσεις, εκταμιεύσεις.</p></div></article>
-            </div>
+            <h2 id="team">Η ομάδα μας</h2>
+            <p>Πίσω από κάθε εγκεκριμένο έργο βρίσκεται μια πολυεπιστημονική ομάδα με εμπειρία σε τρεις προγραμματικές περιόδους ΕΣΠΑ — οικονομολόγοι, μηχανικοί και νομικοί που συνεργάζονται σε κάθε στάδιο, από τον σχεδιασμό μέχρι την εκταμίευση.</p>
+            <p>Δεν αναθέτουμε το έργο σας σε διαφορετικά τμήματα ανά φάση: ο ίδιος σύμβουλος σας συνοδεύει από την αξιολόγηση της ιδέας μέχρι την τελική εκταμίευση, με την υποστήριξη ολόκληρης της ομάδας όπου χρειάζεται. Έτσι εξασφαλίζουμε συνέπεια, ταχύτητα και υπευθυνότητα σε κάθε βήμα.</p>
+            <div className="note"><IconCheck /><span>Εξειδίκευση σε ΕΣΠΑ, Αναπτυξιακό Νόμο και Ταμείο Ανάκαμψης, με ποσοστό εγκρίσεων 98–100% σε περισσότερα από 2.500 επενδυτικά σχέδια.</span></div>
 
             <h2 id="foreis">Φορείς &amp; συνεργασίες</h2>
             <p>Επίσημοι σύμβουλοι του ΣΕΔΕ (Σύνδεσμος Επιχειρήσεων Διαδικτύου) και μέλη στον ΣΥ.Σ.ΕΠ., τον GR.EC.A, τον ΠΣΒΑΚ και το BNI Greece. Συνεργάτες του δικτύου Entersoftone.</p>
