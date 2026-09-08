@@ -67,31 +67,70 @@ export async function removeFormObligations(formId: string): Promise<void> {
   })
 }
 
-/** Seed εκκρεμοτήτων FORM για ΕΝΑ application (π.χ. όταν εντάσσεται νέα εταιρία)
- * βάσει όλων των υποχρεωτικών εντύπων του προγράμματος. */
-export async function seedFormObligationsForApplication(applicationId: string, programId: string): Promise<{ created: number }> {
+/**
+ * Seed εκκρεμοτήτων FORM για ΕΝΑ application (όταν εντάσσεται νέα εταιρία) βάσει
+ * όλων των υποχρεωτικών εντύπων του προγράμματος. ΑΝΑΓΝΩΡΙΣΗ: αν ο πελάτης έχει
+ * ήδη υποβάλει/εγκρίνει έγγραφο ΙΔΙΟΥ τύπου (ίδιο templateId) σε άλλο πρόγραμμα,
+ * η νέα εκκρεμότητα δημιουργείται ως «υποβληθείσα» (status SUBMITTED) με αντίγραφο
+ * αναφοράς του εγγράφου — ώστε ο διαχειριστής να το ελέγξει/εγκρίνει/απορρίψει
+ * αντί να το ξαναζητήσει.
+ */
+export async function seedFormObligationsForApplication(applicationId: string, programId: string): Promise<{ created: number; recognized: number }> {
+  const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { trdrId: true } })
+  if (!app) return { created: 0, recognized: 0 }
+
   const forms = await prisma.programRequiredForm.findMany({
     where: { programId, mandatory: true },
-    select: { id: true, name: true, order: true },
+    select: { id: true, name: true, order: true, templateId: true },
   })
-  if (forms.length === 0) return { created: 0 }
-  const existing = await prisma.applicationObligation.findMany({
-    where: { applicationId, kind: 'FORM' },
-    select: { sourceId: true },
-  })
+  if (forms.length === 0) return { created: 0, recognized: 0 }
+
+  const existing = await prisma.applicationObligation.findMany({ where: { applicationId, kind: 'FORM' }, select: { sourceId: true } })
   const has = new Set(existing.map(e => e.sourceId))
-  const toCreate = forms
-    .filter(f => !has.has(f.id))
-    .map(f => ({
-      applicationId,
-      stage: 'DOCUMENTS' as const,
-      kind: 'FORM' as const,
-      sourceId: f.id,
-      name: f.name,
-      mandatory: true,
-      status: 'PENDING' as const,
-      order: f.order,
-    }))
-  if (toCreate.length) await prisma.applicationObligation.createMany({ data: toCreate })
-  return { created: toCreate.length }
+  const pending = forms.filter(f => !has.has(f.id))
+
+  // Αναγνώριση εγγράφων ίδιου τύπου (templateId) από ΑΛΛΑ έργα του ΙΔΙΟΥ πελάτη.
+  const templateIds = [...new Set(pending.map(f => f.templateId).filter((t): t is string => !!t))]
+  const recognizedByTemplate = new Map<string, { name: string; storageKey: string; mimeType: string | null; size: number | null }>()
+  if (templateIds.length) {
+    const docs = await prisma.applicationDocument.findMany({
+      where: {
+        application: { trdrId: app.trdrId, id: { not: applicationId } },
+        obligation: { kind: 'FORM', sourceId: { in: (await prisma.programRequiredForm.findMany({ where: { templateId: { in: templateIds } }, select: { id: true } })).map(r => r.id) } },
+      },
+      orderBy: { uploadedAt: 'desc' },
+      select: { name: true, storageKey: true, mimeType: true, size: true, obligation: { select: { sourceId: true } } },
+    })
+    // map sourceId(form) → templateId
+    const formTpl = new Map<string, string>((await prisma.programRequiredForm.findMany({ where: { templateId: { in: templateIds } }, select: { id: true, templateId: true } })).map(r => [r.id, r.templateId as string] as [string, string]))
+    for (const d of docs) {
+      const sid = d.obligation?.sourceId
+      const tpl = sid ? formTpl.get(sid) : undefined
+      if (tpl && !recognizedByTemplate.has(tpl)) recognizedByTemplate.set(tpl, { name: d.name, storageKey: d.storageKey, mimeType: d.mimeType, size: d.size })
+    }
+  }
+
+  let created = 0
+  let recognized = 0
+  for (const f of pending) {
+    const match = f.templateId ? recognizedByTemplate.get(f.templateId) : undefined
+    if (match) {
+      // Δημιούργησε εκκρεμότητα «υποβληθείσα» + αντίγραφο αναφοράς εγγράφου.
+      await prisma.applicationObligation.create({
+        data: {
+          applicationId, stage: 'DOCUMENTS', kind: 'FORM', sourceId: f.id, name: f.name,
+          mandatory: true, status: 'SUBMITTED', order: f.order,
+          notes: 'Αναγνωρίστηκε από άλλο πρόγραμμα — έλεγξε & ενέκρινε ή απόρριψε.',
+          documents: { create: { applicationId, name: match.name, storageKey: match.storageKey, mimeType: match.mimeType, size: match.size } },
+        },
+      })
+      recognized++
+    } else {
+      await prisma.applicationObligation.create({
+        data: { applicationId, stage: 'DOCUMENTS', kind: 'FORM', sourceId: f.id, name: f.name, mandatory: true, status: 'PENDING', order: f.order },
+      })
+    }
+    created++
+  }
+  return { created, recognized }
 }
