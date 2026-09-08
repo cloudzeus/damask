@@ -7,6 +7,8 @@ import { aadeLookup, AadeLookupError } from '@/lib/aade'
 import { evaluateTrdrEligibility } from '@/lib/prospects/eligibility'
 import { extractKadRule } from '@/lib/prospects/evaluate-pair'
 import { regionFromZip } from '@/lib/referrals/region-from-zip'
+import { associateTrdrPrograms } from '@/lib/pm/program-link'
+import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 
 /**
  * Batch χαρτογράφησης επιλεξιμότητας ανά εταιρία παραπομπής: Excel (ΑΦΜ/email/
@@ -162,6 +164,109 @@ export async function runReferralBatch(
 
   await prisma.referralBatch.update({ where: { id: batch.id }, data: { eligibleCount } })
   revalidatePath('/referrals')
+  revalidatePath('/referrals/eligible')
 
   return { ok: true, batchId: batch.id, companies: results, total: clean.length, eligible: eligibleCount }
+}
+
+// ── Επιλέξιμοι ανά παραπομπή ────────────────────────────────────────────────
+
+export type EligibleCompanyRow = {
+  id: string
+  afm: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  city: string | null
+  regionName: string | null
+  regionConfident: boolean
+  referrerId: string
+  referrerName: string
+  eligiblePrograms: EligibleProgramLite[]
+  existingTrdrId: string | null
+  existingIsCustomer: boolean
+}
+
+/** Όλες οι επιλέξιμες εταιρίες (status ELIGIBLE) που δεν έχουν ακόμη αναχθεί σε
+ * δυνητικό πελάτη (convertedTrdrId=null) — για τη σελίδα «Επιλέξιμοι ανά
+ * παραπομπή». Επιστρέφει και τη λίστα εταιριών παραπομπής για φίλτρο. */
+export async function listEligibleReferralCompanies(): Promise<{
+  rows: EligibleCompanyRow[]
+  referrers: ReferrerOption[]
+}> {
+  await requirePermission('programs.manage')
+  const companies = await prisma.referralCompany.findMany({
+    where: { status: 'ELIGIBLE', convertedTrdrId: null },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true, afm: true, name: true, email: true, phone: true, city: true,
+      regionName: true, regionConfident: true, referrerId: true,
+      eligiblePrograms: true, existingTrdrId: true, existingIsCustomer: true,
+      referrer: { select: { name: true } },
+    },
+  })
+  const rows: EligibleCompanyRow[] = companies.map(c => ({
+    id: c.id, afm: c.afm, name: c.name, email: c.email, phone: c.phone, city: c.city,
+    regionName: c.regionName, regionConfident: c.regionConfident,
+    referrerId: c.referrerId, referrerName: c.referrer?.name ?? '—',
+    eligiblePrograms: (c.eligiblePrograms as unknown as EligibleProgramLite[]) ?? [],
+    existingTrdrId: c.existingTrdrId, existingIsCustomer: c.existingIsCustomer,
+  }))
+  const referrerMap = new Map<string, string>()
+  for (const r of rows) referrerMap.set(r.referrerId, r.referrerName)
+  const referrers = [...referrerMap.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'el'))
+  return { rows, referrers }
+}
+
+/**
+ * Αναγωγή μιας επιλέξιμης εταιρίας σε δυνητικό πελάτη για τα επιλεγμένα
+ * προγράμματα. Εξασφαλίζει Trdr μέσω ΑΦΜ (ΟΧΙ διπλοεγγραφή — reuse υπάρχοντος),
+ * συνδέει τον συστήνοντα (referrer), δημιουργεί ProgramApplication(s) POTENTIAL,
+ * και μαρκάρει τη ReferralCompany ως αναχθείσα (convertedTrdrId).
+ */
+export async function convertReferralToProspect(
+  companyId: string,
+  programIds: string[],
+): Promise<{ ok: boolean; trdrId?: string; linked?: number; message?: string }> {
+  await requirePermission('programs.manage')
+  if (programIds.length === 0) return { ok: false, message: 'Επίλεξε τουλάχιστον ένα πρόγραμμα.' }
+
+  const c = await prisma.referralCompany.findUnique({
+    where: { id: companyId },
+    select: { id: true, afm: true, name: true, email: true, phone: true, referrerId: true, existingTrdrId: true, convertedTrdrId: true },
+  })
+  if (!c) return { ok: false, message: 'Η εγγραφή δεν βρέθηκε.' }
+  if (c.convertedTrdrId) return { ok: false, message: 'Έχει ήδη δημιουργηθεί δυνητικός πελάτης για αυτή την εταιρία.' }
+
+  // 1) Εξασφάλιση Trdr — ΠΟΤΕ διπλοεγγραφή: existingTrdrId → lookup ΑΦΜ → create.
+  let trdrId = c.existingTrdrId ?? (await prisma.trdr.findFirst({ where: { AFM: c.afm }, select: { id: true } }))?.id ?? null
+  if (!trdrId) {
+    const created = await prisma.trdr.create({
+      data: {
+        NAME: c.name || `ΑΦΜ ${c.afm}`,
+        AFM: c.afm,
+        SODTYPE: 13,
+        ISPROSP: 1,
+        EMAIL: c.email ?? undefined,
+        PHONE01: c.phone ?? undefined,
+        referrerId: c.referrerId,
+        appNotes: 'Δημιουργήθηκε από χαρτογράφηση παραπομπής.',
+      },
+      select: { id: true },
+    })
+    trdrId = created.id
+    await ensureTrdrCdnFolder(trdrId).catch(() => {})
+  } else {
+    // Υπάρχων συναλλασσόμενος → σύνδεσε τον συστήνοντα αν λείπει (χωρίς overwrite).
+    await prisma.trdr.updateMany({ where: { id: trdrId, referrerId: null }, data: { referrerId: c.referrerId } })
+  }
+
+  // 2) ProgramApplication(s) POTENTIAL για τα επιλεγμένα προγράμματα.
+  const res = await associateTrdrPrograms(trdrId, programIds)
+
+  // 3) Μαρκάρισμα αναχθείσας.
+  await prisma.referralCompany.update({ where: { id: companyId }, data: { convertedTrdrId: trdrId } })
+  revalidatePath('/referrals/eligible')
+  revalidatePath(`/partners/${trdrId}`)
+  return { ok: true, trdrId, linked: res.linked }
 }
