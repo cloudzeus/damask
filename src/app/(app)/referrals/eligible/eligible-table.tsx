@@ -3,11 +3,13 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { LuLoaderCircle, LuUserPlus, LuUserCheck, LuUsers } from 'react-icons/lu'
+import { LuLoaderCircle, LuUserPlus, LuUserCheck, LuUsers, LuDownload } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { convertReferralToProspect, type EligibleCompanyRow, type ReferrerOption } from '@/lib/referrals/actions'
+import { exportEligibleXlsx } from '@/lib/referrals/export-xlsx'
+import { PromoButtons } from '../promo-buttons'
 
 /**
  * Λίστα επιλέξιμων εταιριών ανά παραπομπή. Φίλτρο ανά εταιρία παραπομπής +
@@ -111,8 +113,25 @@ export function EligibleReferralsTable({
               </SelectContent>
             </Select>
           </div>
-          <div className="ml-auto text-[0.75rem] text-muted-foreground">{visible.length} εταιρίες</div>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[0.75rem] text-muted-foreground">{visible.length} εταιρίες</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={visible.length === 0}
+              onClick={() => exportEligibleXlsx(visible, 'epilexima-parapombes.xlsx')}
+            >
+              <LuDownload className="size-3.5" aria-hidden /> Εξαγωγή Excel
+            </Button>
+          </div>
         </div>
+
+        {programOptions.length > 0 && (
+          <div className="mb-3">
+            <PromoButtons programs={programOptions.map(p => ({ programId: p.id, title: p.title }))} />
+          </div>
+        )}
 
         {visible.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-10 text-center">

@@ -2,13 +2,15 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { LuUpload, LuLoaderCircle, LuFileSpreadsheet, LuCircleCheck, LuCircleX, LuTriangleAlert, LuUserCheck, LuMailCheck } from 'react-icons/lu'
+import { LuUpload, LuLoaderCircle, LuFileSpreadsheet, LuCircleCheck, LuCircleX, LuTriangleAlert, LuUserCheck, LuMailCheck, LuDownload } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { readWorkbookFromFile, readSheetRows } from '@/lib/import/xlsx-parse'
 import { runReferralBatch, type ReferrerOption, type ReferralCompanyResult, type ReferralRowInput } from '@/lib/referrals/actions'
+import { exportEligibleXlsx } from '@/lib/referrals/export-xlsx'
 import { sendProgramNewsletterTest } from '@/lib/prospects/actions'
+import { PromoButtons } from './promo-buttons'
 
 /**
  * Client εργαλείο χαρτογράφησης παραπομπών: επιλογή εταιρίας παραπομπής →
@@ -196,6 +198,15 @@ export function ReferralsTool({
               Αποτελέσματα{referrerName ? ` — ${referrerName}` : ''} ({summary.total})
             </div>
             <span className="badge-pill ok shrink-0">{summary.eligible} επιλέξιμες</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={summary.eligible === 0}
+              onClick={() => exportEligibleXlsx(results.filter(c => c.status === 'ELIGIBLE'), `epilexima-${referrerName ?? 'parapombi'}.xlsx`)}
+            >
+              <LuDownload className="size-3.5" aria-hidden /> Εξαγωγή επιλέξιμων
+            </Button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[0.78125rem]">
@@ -251,6 +262,12 @@ export function ReferralsTool({
               </tbody>
             </table>
           </div>
+          {(() => {
+            const m = new Map<string, string>()
+            for (const c of results) for (const p of c.eligiblePrograms) m.set(p.programId, p.title)
+            const distinct = [...m.entries()].map(([programId, title]) => ({ programId, title }))
+            return distinct.length > 0 ? <div className="mt-4"><PromoButtons programs={distinct} /></div> : null
+          })()}
           <p className="mt-3 text-[0.71875rem] text-muted-foreground">
             Οι επιλέξιμες εταιρίες αποθηκεύτηκαν και εμφανίζονται στη σελίδα «Επιλέξιμοι ανά παραπομπή», όπου μπορείς να δημιουργήσεις δυνητικό πελάτη ανά πρόγραμμα.
           </p>

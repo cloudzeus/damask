@@ -31,6 +31,44 @@ export async function listActiveProgramTitles(): Promise<{ id: string; title: st
   return prisma.program.findMany({ where: { status: 'ACTIVE' }, orderBy: { title: 'asc' }, select: { id: true, title: true } })
 }
 
+export type PromoProgram = {
+  id: string
+  title: string
+  summary: string | null
+  referenceCode: string | null
+  fundingRate: number | null
+  totalBudget: number | null
+  durationMonths: number | null
+  submissionEnd: string | null
+  publicUrl: string | null
+}
+
+/** Δεδομένα προγράμματος για το εκτυπώσιμο promo (ένα ανά επιλέξιμο πρόγραμμα)
+ * που στέλνει η εταιρία παραπομπής στους πελάτες της. */
+export async function getPromoProgram(programId: string): Promise<PromoProgram | null> {
+  await requirePermission('programs.manage')
+  const p = await prisma.program.findUnique({
+    where: { id: programId },
+    select: {
+      id: true, title: true, summary: true, referenceCode: true,
+      fundingRate: true, totalBudget: true, durationMonths: true, submissionEnd: true, publicSlug: true,
+    },
+  })
+  if (!p) return null
+  const base = (process.env.APP_URL ?? process.env.AUTH_URL ?? '').replace(/\/$/, '')
+  return {
+    id: p.id,
+    title: p.title,
+    summary: p.summary,
+    referenceCode: p.referenceCode,
+    fundingRate: p.fundingRate == null ? null : Number(p.fundingRate),
+    totalBudget: p.totalBudget == null ? null : Number(p.totalBudget),
+    durationMonths: p.durationMonths,
+    submissionEnd: p.submissionEnd ? p.submissionEnd.toISOString() : null,
+    publicUrl: base ? (p.publicSlug ? `${base}/programmata/${p.publicSlug}` : `${base}/programmata`) : null,
+  }
+}
+
 export type ReferralRowInput = { afm: string; email?: string | null; phone?: string | null }
 export type EligibleProgramLite = { programId: string; title: string; fundingRate: number | null }
 
