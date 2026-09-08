@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { wwaLogoDark } from '../_wwa/assets'
+import { wwaLogoLight } from '../_wwa/assets'
 
 /**
  * WWA public footer — λευκό, 4 στήλες + legal bar. Δομή από ui_kits/wwa-web.
@@ -12,7 +12,7 @@ export function WwaFooter() {
         <div className="cols">
           <div className="about">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={wwaLogoDark} alt="World Wide Associates" style={{ height: 40 }} />
+            <img src={wwaLogoLight} alt="World Wide Associates" style={{ height: 40 }} />
             <p>World Wide Associates Ε.Ε. — σύμβουλοι διαχείρισης και αξιοποίησης ΕΣΠΑ και ευρωπαϊκών χρηματοδοτικών εργαλείων. Έδρα: Αθήνα.</p>
           </div>
           <div>

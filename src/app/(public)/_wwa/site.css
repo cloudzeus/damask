@@ -162,14 +162,17 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 @media (max-width: 900px) { .contact .box { grid-template-columns: 1fr; } }
 
 /* footer */
-.footer { background: #fff; color: var(--fg-2); padding: 56px 0 28px; border-top: 1px solid var(--border-default); }
+.footer { position: relative; background: var(--navy-950); color: rgba(255,255,255,.7); padding: 64px 0 28px; }
+.footer::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--wwa-cyan-400), var(--brand) 60%, transparent); }
 .footer .cols { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: var(--sp-10); }
-.footer h4 { color: var(--fg-1); font-family: var(--font-body); font-size: 14px; font-weight: 700; text-transform: none; letter-spacing: 0; margin-bottom: 14px; }
-.footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 14px; }
-.footer a { color: var(--fg-2); text-decoration: none; } .footer a:hover { color: var(--brand); }
-.footer .about p { font-size: 14px; max-width: 40ch; margin-top: 16px; }
-.footer .legal { margin-top: 44px; padding-top: 20px; border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; font-size: 13px; color: var(--fg-3); }
-.footer .legal a { color: var(--fg-3); }
+.footer h4 { color: #fff; font-family: var(--font-display); font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 16px; }
+.footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; font-size: 14px; }
+.footer a { color: rgba(255,255,255,.72); text-decoration: none; transition: color var(--dur-hover) var(--ease-standard); }
+.footer a:hover { color: var(--wwa-cyan-400); }
+.footer .about img { filter: none; }
+.footer .about p { font-size: 14px; line-height: 1.65; max-width: 42ch; margin-top: 16px; color: rgba(255,255,255,.6); }
+.footer .legal { margin-top: 48px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.12); display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; font-size: 13px; color: rgba(255,255,255,.55); }
+.footer .legal a { color: rgba(255,255,255,.55); } .footer .legal a:hover { color: #fff; }
 @media (max-width: 900px) { .footer .cols { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .footer .cols { grid-template-columns: 1fr; } }
 
