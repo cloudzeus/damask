@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { createNotification } from '@/lib/notifications/service'
 
 /**
  * Διάδοση «Εντύπων που χρειάζονται» (ProgramRequiredForm) → εκκρεμότητες
@@ -13,7 +14,7 @@ import { prisma } from '@/lib/prisma'
 export async function propagateRequiredFormObligation(formId: string): Promise<{ created: number }> {
   const form = await prisma.programRequiredForm.findUnique({
     where: { id: formId },
-    select: { id: true, programId: true, name: true, mandatory: true, order: true },
+    select: { id: true, programId: true, name: true, mandatory: true, order: true, program: { select: { title: true } } },
   })
   if (!form) return { created: 0 }
 
@@ -25,7 +26,10 @@ export async function propagateRequiredFormObligation(formId: string): Promise<{
     return { created: 0 }
   }
 
-  const apps = await prisma.programApplication.findMany({ where: { programId: form.programId }, select: { id: true } })
+  const apps = await prisma.programApplication.findMany({
+    where: { programId: form.programId },
+    select: { id: true, trdrId: true, trdr: { select: { NAME: true } } },
+  })
   if (apps.length === 0) return { created: 0 }
   const appIds = apps.map(a => a.id)
 
@@ -43,19 +47,31 @@ export async function propagateRequiredFormObligation(formId: string): Promise<{
     })
   }
 
-  const toCreate = appIds
-    .filter(id => !has.has(id))
-    .map(applicationId => ({
-      applicationId,
-      stage: 'DOCUMENTS' as const,
-      kind: 'FORM' as const,
-      sourceId: form.id,
-      name: form.name,
-      mandatory: true,
-      status: 'PENDING' as const,
-      order: form.order,
-    }))
-  if (toCreate.length) await prisma.applicationObligation.createMany({ data: toCreate })
+  const newApps = apps.filter(a => !has.has(a.id))
+  const toCreate = newApps.map(a => ({
+    applicationId: a.id,
+    stage: 'DOCUMENTS' as const,
+    kind: 'FORM' as const,
+    sourceId: form.id,
+    name: form.name,
+    mandatory: true,
+    status: 'PENDING' as const,
+    order: form.order,
+  }))
+  if (toCreate.length) {
+    await prisma.applicationObligation.createMany({ data: toCreate })
+    // Ειδοποίηση ανά εταιρία που απέκτησε νέα εκκρεμότητα — εμφανίζεται στο
+    // dashboard feed «Ειδοποιήσεις» και είναι clickable στην καρτέλα της (Trdr).
+    for (const a of newApps) {
+      await createNotification({
+        title: `Νέο δικαιολογητικό: ${form.name}`,
+        body: `${a.trdr?.NAME ?? 'Εταιρία'} — ${form.program?.title ?? 'πρόγραμμα'}. Δημιουργήθηκε εκκρεμότητα υποβολής.`,
+        entityType: 'Trdr',
+        entityId: a.trdrId,
+        meta: { programId: form.programId, formId: form.id },
+      })
+    }
+  }
   return { created: toCreate.length }
 }
 
