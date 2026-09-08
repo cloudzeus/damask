@@ -19,6 +19,8 @@ export type AppContactOption = {
   phone: string | null
   isPrimary: boolean
   linked: boolean
+  portalAllPrograms: boolean
+  hasPortalAccess: boolean
 }
 
 /** Όλες οι επαφές του πελάτη του έργου + flag αν είναι ήδη συνδεδεμένες. */
@@ -28,7 +30,7 @@ export async function listApplicationContactOptions(applicationId: string): Prom
   const [contacts, links] = await Promise.all([
     prisma.contact.findMany({
       where: { trdrId: app.trdrId },
-      select: { id: true, name: true, position: true, email: true, phone: true, mobile: true, isPrimary: true },
+      select: { id: true, name: true, position: true, email: true, phone: true, mobile: true, isPrimary: true, portalAllPrograms: true, userId: true },
       orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }],
     }),
     prisma.applicationContact.findMany({ where: { applicationId }, select: { contactId: true } }),
@@ -42,7 +44,18 @@ export async function listApplicationContactOptions(applicationId: string): Prom
     phone: c.phone ?? c.mobile,
     isPrimary: c.isPrimary,
     linked: linkedIds.has(c.id),
+    portalAllPrograms: c.portalAllPrograms,
+    hasPortalAccess: c.userId != null,
   }))
+}
+
+/** Ορίζει αν μια επαφή έχει «κεντρική» πρόσβαση portal (όλα τα προγράμματα) ή
+ * μόνο όσα είναι συνδεδεμένη. */
+export async function setContactPortalScope(contactId: string, all: boolean): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  await prisma.contact.update({ where: { id: contactId }, data: { portalAllPrograms: all } })
+  revalidatePath('/programs')
+  return { ok: true }
 }
 
 /** Αντικαθιστά το σύνολο των συνδεδεμένων επαφών του έργου (validate ίδιου Trdr). */

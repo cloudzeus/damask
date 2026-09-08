@@ -20,7 +20,7 @@ import {
 } from '@/lib/pm/program-link'
 import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { NewDocumentRequestDialog } from '@/components/pm/new-document-request-dialog'
-import { listApplicationContactOptions, setApplicationContacts, type AppContactOption } from '@/lib/pm/application-contacts'
+import { listApplicationContactOptions, setApplicationContacts, setContactPortalScope, type AppContactOption } from '@/lib/pm/application-contacts'
 import {
   LIFECYCLE_ORDER, LIFECYCLE_COLORS, lifecycleLabel, stageLabel, verdictLabel, obligationStatusLabel, type LifecycleStr,
 } from '@/lib/pm/types'
@@ -272,6 +272,18 @@ function EvaluationDialog({
     }
   }
 
+  async function togglePortalScope(contactId: string, all: boolean) {
+    if (!contacts) return
+    setContacts(contacts.map(c => (c.contactId === contactId ? { ...c, portalAllPrograms: all } : c)))
+    try {
+      await setContactPortalScope(contactId, all)
+      toast.success(all ? 'Κεντρική πρόσβαση portal (όλα τα προγράμματα).' : 'Πρόσβαση μόνο στα συνδεδεμένα προγράμματα.')
+    } catch {
+      toast.error('Η αλλαγή πρόσβασης απέτυχε.')
+      reloadContacts()
+    }
+  }
+
   async function changeLifecycle(next: LifecycleStr) {
     setBusy(true)
     try {
@@ -382,6 +394,18 @@ function EvaluationDialog({
                   {ct.isPrimary && <span className="badge-pill info">Κύρια</span>}
                   {ct.position && <span className="text-[0.6875rem] text-muted-foreground">{ct.position}</span>}
                   {ct.email && <span className="text-[0.6875rem] text-muted-foreground">· {ct.email}</span>}
+                  {ct.hasPortalAccess && (
+                    <button
+                      type="button"
+                      disabled={!canManage}
+                      onClick={() => togglePortalScope(ct.contactId, !ct.portalAllPrograms)}
+                      className="badge-pill"
+                      style={ct.portalAllPrograms ? { color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 12%, transparent)', cursor: 'pointer' } : { cursor: 'pointer' }}
+                      title="Εναλλαγή: κεντρική πρόσβαση portal (όλα τα προγράμματα) ή μόνο τα συνδεδεμένα"
+                    >
+                      portal: {ct.portalAllPrograms ? 'όλα' : 'συνδεδεμένα'}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

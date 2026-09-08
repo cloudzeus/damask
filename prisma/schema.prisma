@@ -437,6 +437,9 @@ model Contact {
   phone            String?
   mobile           String?
   isPrimary        Boolean              @default(false)
+  /// Portal scope: true = «κεντρική» επαφή (βλέπει ΟΛΑ τα προγράμματα του πελάτη),
+  /// false = βλέπει ΜΟΝΟ τα προγράμματα στα οποία είναι συνδεδεμένη (ApplicationContact).
+  portalAllPrograms Boolean             @default(false)
   /// Σύνδεση με User όταν εγκρίνεται το αίτημα πρόσβασης της επαφής (βλ.
   /// approveAccessRequest, src/app/(app)/users/actions.ts) — ίδιο idiom με
   /// ArchitectProfile.userId παρακάτω.
