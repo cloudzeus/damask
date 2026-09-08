@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { computeSinglePair, type SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { ensureTrdrProgramFolder } from '@/lib/trdr/cdn-folder'
+import { seedFormObligationsForApplication } from '@/lib/pm/form-obligations'
 import { logActivity } from '@/lib/activity/log'
 import type { LifecycleStr, StageStr, VerdictStr, ObligationStatusStr } from '@/lib/pm/types'
 
@@ -90,6 +91,7 @@ export async function associateTrdrProgram(trdrId: string, programId: string): P
     select: { id: true },
   })
   await ensureTrdrProgramFolder(trdrId, programId)
+  await seedFormObligationsForApplication(app.id, programId) // εκκρεμότητες υποχρεωτικών εντύπων
   await logActivity('application.associate', { entityType: 'application', entityId: app.id, userId: session.user.id, meta: { programId, eligible: snapshot.eligible } })
   revalidatePath(`/partners/${trdrId}`)
   return { id: app.id }
@@ -102,7 +104,7 @@ export async function associateTrdrPrograms(trdrId: string, programIds: string[]
   for (const programId of programIds) {
     try {
       const snapshot = await computeSinglePair(trdrId, programId)
-      await prisma.programApplication.upsert({
+      const appRow = await prisma.programApplication.upsert({
         where: { trdrId_programId: { trdrId, programId } },
         create: {
           trdrId,
@@ -112,9 +114,11 @@ export async function associateTrdrPrograms(trdrId: string, programIds: string[]
           createdById: session.user.id,
         },
         update: { eligibilitySnapshot: snapshot as unknown as Prisma.InputJsonValue },
+        select: { id: true },
       })
       await ensureTrdrProgramFolder(trdrId, programId)
-      await logActivity('application.associate', { entityType: 'application', entityId: `${trdrId}:${programId}`, userId: session.user.id, meta: { programId, eligible: snapshot.eligible } })
+      await seedFormObligationsForApplication(appRow.id, programId)
+      await logActivity('application.associate', { entityType: 'application', entityId: appRow.id, userId: session.user.id, meta: { programId, eligible: snapshot.eligible } })
       linked++
     } catch (err) {
       console.error(`associateTrdrPrograms: αποτυχία για program ${programId}`, err)
@@ -144,7 +148,7 @@ export async function reevaluateApplication(applicationId: string): Promise<Sing
 
 export type ApplicationPending = {
   stage: StageStr
-  obligations: { id: string; name: string; stage: StageStr; status: ObligationStatusStr; dueDate: string | null; mandatory: boolean; current: boolean }[]
+  obligations: { id: string; name: string; kind: string; stage: StageStr; status: ObligationStatusStr; dueDate: string | null; mandatory: boolean; current: boolean }[]
   fileRequests: { id: string; title: string; status: string; itemCount: number; uploadedCount: number }[]
   openCount: number
 }
@@ -160,7 +164,7 @@ export async function getApplicationPending(applicationId: string): Promise<Appl
     prisma.applicationObligation.findMany({
       where: { applicationId, status: { in: ['PENDING', 'IN_PROGRESS', 'REJECTED'] } },
       orderBy: [{ order: 'asc' }],
-      select: { id: true, name: true, stage: true, status: true, dueDate: true, mandatory: true },
+      select: { id: true, name: true, kind: true, stage: true, status: true, dueDate: true, mandatory: true },
     }),
     prisma.fileRequest.findMany({
       where: { applicationId, status: { in: ['PENDING', 'PARTIAL'] } },
@@ -172,7 +176,7 @@ export async function getApplicationPending(applicationId: string): Promise<Appl
     stage: current,
     obligations: obligations
       .map(o => ({
-        id: o.id, name: o.name, stage: o.stage as StageStr, status: o.status as ObligationStatusStr,
+        id: o.id, name: o.name, kind: o.kind as string, stage: o.stage as StageStr, status: o.status as ObligationStatusStr,
         dueDate: o.dueDate ? o.dueDate.toISOString() : null, mandatory: o.mandatory, current: (o.stage as StageStr) === current,
       }))
       .sort((a, b) => Number(b.current) - Number(a.current)),

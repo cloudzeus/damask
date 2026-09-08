@@ -13,6 +13,7 @@ import { suggestCategory } from '@/lib/programs/categorize'
 import { expenseCatInput } from '@/lib/programs/expense-prep'
 import { buildOcrCostViewForSession, type OcrCostView } from '@/lib/ingestion/ocr-cost'
 import { logActivity } from '@/lib/activity/log'
+import { propagateRequiredFormObligation, removeFormObligations } from '@/lib/pm/form-obligations'
 
 /**
  * Server orchestration για τη διαχείριση Προγραμμάτων Χρηματοδότησης
@@ -538,6 +539,8 @@ export async function addRequiredForm(
       order: count,
     },
   })
+  // Δημιούργησε εκκρεμότητα σε ΟΛΕΣ τις εταιρίες που έχουν ενταχθεί στο πρόγραμμα.
+  await propagateRequiredFormObligation(row.id)
   revalidatePath(`/programs/${programId}`)
   return { id: row.id }
 }
@@ -558,11 +561,14 @@ export async function updateRequiredForm(
       ...(input.reusable !== undefined ? { reusable: input.reusable } : {}),
     },
   })
+  // Συγχρόνισε τις εκκρεμότητες (mandatory toggle → δημιουργία/αφαίρεση· rename → ενημέρωση).
+  await propagateRequiredFormObligation(row.id)
   revalidatePath(`/programs/${row.programId}`)
 }
 
 export async function removeRequiredForm(id: string): Promise<void> {
   await requirePermission('programs.manage')
+  await removeFormObligations(id) // καθάρισε ανοιχτές εκκρεμότητες πριν τη διαγραφή
   const row = await prisma.programRequiredForm.delete({ where: { id } })
   revalidatePath(`/programs/${row.programId}`)
 }
