@@ -104,6 +104,9 @@ export async function startQueue(): Promise<void> {
   await boss.work(QUEUE_PM_REMINDERS, async () => {
     try { const { runPmReminders } = await import('@/lib/pm/reminders-run'); await runPmReminders(Date.now()) }
     catch (err) { console.error('[pg-boss] pm-reminders dispatcher απέτυχε', err) } // never rethrow — scheduled tick
+    // Υπενθύμιση επανεπικοινωνίας δικαιολογητικών (ανά αίτηση cadence) — ίδιο ημερήσιο tick.
+    try { const { runDocFollowupReminders } = await import('@/lib/pm/doc-followup-run'); await runDocFollowupReminders(Date.now()) }
+    catch (err) { console.error('[pg-boss] doc-followup dispatcher απέτυχε', err) }
   })
   await boss.schedule(QUEUE_PM_REMINDERS, '0 8 * * *', null, { tz: 'Europe/Athens' })
 

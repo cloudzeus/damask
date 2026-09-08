@@ -1516,6 +1516,11 @@ model ProgramApplication {
   opskeStatus         String?
   opskeRef            String?
   opskeSubmittedAt    DateTime?
+  // Υπενθύμιση επανεπικοινωνίας για εκκρεμή δικαιολογητικά: κάθε N ημέρες
+  // δημιουργείται alert σε manager + διεκπεραιωτή. Default εβδομαδιαία (7).
+  // 0 = απενεργοποιημένο. lastAt = πότε στάλθηκε το τελευταίο alert.
+  docFollowupDays     Int                         @default(7)
+  docFollowupLastAt   DateTime?
   obligations         ApplicationObligation[]
   documents           ApplicationDocument[]
   criterionScores     ApplicationCriterionScore[]

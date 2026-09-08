@@ -94,6 +94,7 @@ export type ApplicationDetail = {
   opskeStatus: string | null
   opskeRef: string | null
   opskeSubmittedAt: string | null
+  docFollowupDays: number
   canManage: boolean
 }
 
@@ -125,8 +126,20 @@ export async function getApplication(applicationId: string): Promise<Application
     opskeStatus: app.opskeStatus,
     opskeRef: app.opskeRef,
     opskeSubmittedAt: app.opskeSubmittedAt ? app.opskeSubmittedAt.toISOString() : null,
+    docFollowupDays: app.docFollowupDays,
     canManage: (session.user.permissions ?? []).includes('pm.manage'),
   }
+}
+
+/** Ορισμός συχνότητας (ημέρες) υπενθύμισης επανεπικοινωνίας δικαιολογητικών για
+ * αυτή την αίτηση (πρόγραμμα × πελάτης). 0 = απενεργοποιημένο. Το alert πηγαίνει
+ * σε manager + διεκπεραιωτή μέσω του ημερήσιου job (doc-followup-run). */
+export async function setDocFollowupDays(applicationId: string, days: number): Promise<{ ok: boolean; days: number }> {
+  await requireVisibleApplication(applicationId)
+  const clean = Math.max(0, Math.min(365, Math.round(Number.isFinite(days) ? days : 7)))
+  await prisma.programApplication.update({ where: { id: applicationId }, data: { docFollowupDays: clean } })
+  revalidatePath(`/programs`)
+  return { ok: true, days: clean }
 }
 
 export type VisibleApplicationItem = {

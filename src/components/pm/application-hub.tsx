@@ -22,6 +22,7 @@ import { GanttView } from './gantt-view'
 import { PaymentsTab } from './payments-tab'
 import { DocumentRequestsTab } from './document-requests-tab'
 import { FileRequestsReviewTab } from './file-requests-review-tab'
+import { DocFollowupControl } from './doc-followup-control'
 import { ApplicationContactsTab } from './application-contacts-tab'
 import { PortalAccessDialog } from './portal-access-dialog'
 import { EmailHistory } from '@/components/email/email-history'
@@ -175,6 +176,8 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
       {activeTab === 'docrequests' && <DocumentRequestsTab applicationId={app.id} />}
       {activeTab === 'filereq' && (
         <div className="flex flex-col gap-4">
+          {/* Ρύθμιση συχνότητας υπενθύμισης επανεπικοινωνίας (default εβδομαδιαία). */}
+          <DocFollowupControl applicationId={app.id} initialDays={app.docFollowupDays} canManage={app.canManage} />
           {/* Αυτόνομη λίστα: ΟΛΑ τα δικαιολογητικά (FORM) όλου του προγράμματος —
               συμπληρώνονται κατά την πορεία, εγκρίνονται από τον διαχειριστή, και
               μπλοκάρουν τη μετάβαση σταδίου μέχρι να εγκριθούν. */}
