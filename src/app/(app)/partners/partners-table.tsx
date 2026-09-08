@@ -20,6 +20,7 @@ export type PartnerRow = {
   sodtype: number
   trdr: number | null
   regionName: string | null
+  referrerName: string | null
 }
 
 type TabKey = 'customers' | 'suppliers' | 'leads'
@@ -41,6 +42,12 @@ function LogoAvatar({ name, logoUrl }: { name: string; logoUrl: string | null })
 export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
   const [tab, setTab] = useState<TabKey>('customers')
   const [query, setQuery] = useState('')
+  const [referrerFilter, setReferrerFilter] = useState<string>('')
+
+  const referrerOptions = useMemo(
+    () => [...new Set(partners.map(p => p.referrerName).filter((n): n is string => !!n))].sort((a, b) => a.localeCompare(b, 'el')),
+    [partners],
+  )
 
   const counts = useMemo(() => ({
     customers: partners.filter(p => p.sodtype === 13).length,
@@ -56,13 +63,17 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return byTab
-    return byTab.filter(p =>
-      p.name.toLowerCase().includes(q)
-      || (p.afm ?? '').includes(q)
-      || (p.city ?? '').toLowerCase().includes(q),
-    )
-  }, [byTab, query])
+    let rows = referrerFilter ? byTab.filter(p => p.referrerName === referrerFilter) : byTab
+    if (q) {
+      rows = rows.filter(p =>
+        p.name.toLowerCase().includes(q)
+        || (p.afm ?? '').includes(q)
+        || (p.city ?? '').toLowerCase().includes(q)
+        || (p.referrerName ?? '').toLowerCase().includes(q),
+      )
+    }
+    return rows
+  }, [byTab, query, referrerFilter])
 
   const columns: DataTableColumn<PartnerRow>[] = [
     {
@@ -88,6 +99,13 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
       width: 160,
       sortValue: p => p.regionName,
       cell: p => (p.regionName ? <span className="badge-pill muted">{p.regionName}</span> : <span className="text-muted-foreground">—</span>),
+    },
+    {
+      id: 'referrer',
+      header: 'Παραπομπή',
+      width: 150,
+      sortValue: p => p.referrerName,
+      cell: p => (p.referrerName ? <span className="badge-pill info">{p.referrerName}</span> : <span className="text-muted-foreground">—</span>),
     },
     { id: 'phone', header: 'Τηλέφωνο', width: 130, sortValue: p => p.phone, cell: p => p.phone ?? '—' },
     { id: 'contacts', header: 'Επαφές', align: 'right', width: 90, sortValue: p => p.contactsCount, cell: p => p.contactsCount },
@@ -159,6 +177,18 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
           <button type="button" className={`pill${tab === 'leads' ? ' on' : ''}`} onClick={() => setTab('leads')}>
             Leads <span className="cnt">{counts.leads}</span>
           </button>
+          {referrerOptions.length > 0 && (
+            <select
+              className="pill"
+              value={referrerFilter}
+              onChange={e => setReferrerFilter(e.target.value)}
+              aria-label="Φίλτρο ανά εταιρία παραπομπής"
+              title="Εταιρία παραπομπής"
+            >
+              <option value="">Όλες οι παραπομπές</option>
+              {referrerOptions.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          )}
           <BulkKadMatchButton />
           <BulkRegionMatchButton />
         </>

@@ -22,6 +22,7 @@ export default async function PartnersPage() {
       include: {
         _count: { select: { contacts: true } },
         region: { select: { nameEL: true } },
+        referrer: { select: { name: true } },
       },
       orderBy: { NAME: 'asc' },
     }),
@@ -45,6 +46,7 @@ export default async function PartnersPage() {
     sodtype: t.SODTYPE,
     trdr: t.TRDR,
     regionName: t.region?.nameEL ?? null,
+    referrerName: t.referrer?.name ?? null,
   }))
 
   const kpis = [
