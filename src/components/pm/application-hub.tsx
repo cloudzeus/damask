@@ -61,12 +61,13 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
     if (stage === app.stage || changingStage) return
     setChangingStage(true)
     setApplicationStage(app.id, stage)
-      .then(({ pendingMandatory }) => {
-        if (pendingMandatory > 0) {
-          toast.warning(`Υπάρχουν ${pendingMandatory} εκκρεμείς υποχρεώσεις.`)
-        } else {
-          toast.success('Το στάδιο ενημερώθηκε.')
+      .then(res => {
+        if (!res.ok) {
+          // Hard gate: μη-εγκεκριμένα υποχρεωτικά δικαιολογητικά — το στάδιο ΔΕΝ άλλαξε.
+          toast.error(res.message ?? 'Δεν επιτρέπεται η αλλαγή σταδίου.')
+          return
         }
+        toast.success('Το στάδιο ενημερώθηκε.')
         router.refresh()
       })
       .catch(() => toast.error('Η αλλαγή σταδίου απέτυχε.'))
@@ -172,7 +173,24 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
       {activeTab === 'certification' && <DeliverablesMatrixTab applicationId={app.id} programId={app.programId} />}
       {activeTab === 'gantt' && <GanttView applicationId={app.id} programId={app.programId} />}
       {activeTab === 'docrequests' && <DocumentRequestsTab applicationId={app.id} />}
-      {activeTab === 'filereq' && <FileRequestsReviewTab applicationId={app.id} />}
+      {activeTab === 'filereq' && (
+        <div className="flex flex-col gap-4">
+          {/* Αυτόνομη λίστα: ΟΛΑ τα δικαιολογητικά (FORM) όλου του προγράμματος —
+              συμπληρώνονται κατά την πορεία, εγκρίνονται από τον διαχειριστή, και
+              μπλοκάρουν τη μετάβαση σταδίου μέχρι να εγκριθούν. */}
+          <ObligationsTab
+            applicationId={app.id}
+            canManage={app.canManage}
+            programId={app.programId}
+            filterKind="FORM"
+            title="Δικαιολογητικά προγράμματος"
+            emptyMessage="Δεν έχουν οριστεί δικαιολογητικά για αυτό το πρόγραμμα."
+            showBoardToggle={false}
+          />
+          {/* Ενσωματωμένος έλεγχος αιτημάτων αρχείων (υποβολές πελάτη → έγκριση/απόρριψη). */}
+          <FileRequestsReviewTab applicationId={app.id} />
+        </div>
+      )}
       {activeTab === 'contacts' && <ApplicationContactsTab applicationId={app.id} canManage={app.canManage} programId={app.programId} trdrId={app.trdrId} />}
       {activeTab === 'payments' && <PaymentsTab applicationId={app.id} />}
       {activeTab === 'comm' && (

@@ -554,15 +554,37 @@ export async function removeApplicationDocument(id: string): Promise<void> {
 /** Αλλάζει στάδιο αίτησης· πριν αλλάξει μετράει πόσες mandatory υποχρεώσεις
  * του ΤΡΕΧΟΝΤΟΣ σταδίου είναι ακόμα PENDING — καθαρά ενημερωτικό (δεν μπλοκάρει
  * τη μετάβαση), το UI αποφασίζει αν θα προειδοποιήσει τον χρήστη. */
-export async function setApplicationStage(applicationId: string, stage: StageStr): Promise<{ pendingMandatory: number }> {
-  const { app } = await requireVisibleApplication(applicationId)
-  const pendingMandatory = await prisma.applicationObligation.count({
-    where: { applicationId, stage: app.stage, mandatory: true, status: 'PENDING' },
-  })
+export async function setApplicationStage(
+  applicationId: string,
+  stage: StageStr,
+): Promise<{ ok: boolean; blocked?: number; message?: string; pendingMandatory: number }> {
+  await requireVisibleApplication(applicationId)
+
+  // HARD GATE δικαιολογητικών: για να προχωρήσεις ΠΕΡΑ από το στάδιο
+  // «Δικαιολογητικά», ΟΛΑ τα υποχρεωτικά δικαιολογητικά (FORM) πρέπει να έχουν
+  // ΕΓΚΡΙΘΕΙ (APPROVED) ή απαλλαγεί (WAIVED). Τα δικαιολογητικά είναι αυτόνομο
+  // κομμάτι όλου του προγράμματος — δεν κλειδώνονται ανά στάδιο, αλλά μπλοκάρουν
+  // τη μετάβαση πέρα από τη συλλογή τους.
+  const docsIdx = STAGE_ORDER.indexOf('DOCUMENTS')
+  const targetIdx = STAGE_ORDER.indexOf(stage)
+  if (targetIdx > docsIdx) {
+    const blocked = await prisma.applicationObligation.count({
+      where: { applicationId, kind: 'FORM', mandatory: true, status: { notIn: ['APPROVED', 'WAIVED'] } },
+    })
+    if (blocked > 0) {
+      return {
+        ok: false,
+        blocked,
+        message: `Δεν μπορείς να προχωρήσεις στο επόμενο στάδιο: ${blocked} υποχρεωτικά δικαιολογητικά δεν έχουν εγκριθεί ακόμη.`,
+        pendingMandatory: blocked,
+      }
+    }
+  }
+
   await prisma.programApplication.update({ where: { id: applicationId }, data: { stage } })
   await logActivity('application.stage', { entityType: 'application', entityId: applicationId, meta: { stage } })
   revalidatePath(`/pm/applications/${applicationId}`)
-  return { pendingMandatory }
+  return { ok: true, pendingMandatory: 0 }
 }
 
 export async function updateOpske(
