@@ -282,6 +282,10 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
    Η in-flow <img> αλλιώς παρακάμπτει το aspect-ratio του container. */
 .pcard .media { aspect-ratio: 16 / 10; overflow: hidden; }
 .pcard .media > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+/* ΟΛΕΣ οι κάρτες ΙΔΙΟ ΥΨΟΣ: τίτλος 2 γραμμές, περιγραφή σταθερά 3 γραμμές (clamp) */
+.pcard h3 { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; align-items: initial; min-height: 2.5em; }
+.pcard p { flex: none; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.6; min-height: calc(3 * 1.6em); margin: 0; }
+.pcard .body .price { margin-top: auto; } /* σπρώχνει τιμή/tags/actions στη βάση → τέλεια στοίχιση */
 /* meta σε ετικέτες που αναδιπλώνονται */
 .pcard .meta { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
 /* Τιμή: μέγιστος προϋπολογισμός (€) πράσινο & μεγάλο πάνω, ποσοστό μπλε & μικρότερο κάτω */
