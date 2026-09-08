@@ -277,7 +277,12 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .strip b { font-size: clamp(13px, 0.4vw + 11px, 15px); line-height: 1.25; }
 .strip span { font-size: clamp(11.5px, 0.3vw + 10px, 13px); line-height: 1.3; }
 
-/* Κάρτα προγράμματος: meta σε ετικέτες που αναδιπλώνονται */
+/* Κάρτα προγράμματος: ΣΤΑΘΕΡΟ 16/10 media ώστε ΟΛΕΣ οι κάρτες να έχουν ίδιο ύψος
+   εικόνας — ανεξάρτητα από το aspect της φωτο (π.χ. τετράγωνη 1:1 κόβεται center).
+   Η in-flow <img> αλλιώς παρακάμπτει το aspect-ratio του container. */
+.pcard .media { aspect-ratio: 16 / 10; overflow: hidden; }
+.pcard .media > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+/* meta σε ετικέτες που αναδιπλώνονται */
 .pcard .meta { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
 /* Τιμή: μέγιστος προϋπολογισμός (€) πράσινο & μεγάλο πάνω, ποσοστό μπλε & μικρότερο κάτω */
 .pcard .price { display: block; margin-top: 4px; }
