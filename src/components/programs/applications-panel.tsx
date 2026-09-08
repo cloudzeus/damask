@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
-import { LuChevronDown, LuLoaderCircle, LuBuilding2 } from 'react-icons/lu'
+import { LuChevronDown, LuLoaderCircle, LuBuilding2, LuExternalLink, LuFolderOpen } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import {
   listApplications, getProgramExpenseCategories,
@@ -78,26 +79,50 @@ export function ApplicationsPanel({ programId }: { programId: string }) {
             const expanded = expandedId === app.id
             return (
               <div key={app.id} className="dotted-row-bottom py-2.5">
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(expanded ? null : app.id)}
-                  className="flex w-full items-center gap-2.5 text-left"
-                  aria-expanded={expanded}
-                >
+                <div className="flex items-center gap-2.5">
                   <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">
                     <LuBuilding2 className="size-3.5" aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <b className="text-[0.8125rem]">{app.trdrName}</b>
+                      <Link
+                        href={`/programs/${programId}/applications/${app.id}`}
+                        className="text-[0.8125rem] font-bold hover:text-primary hover:underline"
+                      >
+                        {app.trdrName}
+                      </Link>
                       <span className="badge-pill info">{STATUS_LABELS[app.status] ?? app.status}</span>
                       <span className="badge-pill muted">
                         {app.expenseCount} δαπάνες{app.expenseCount > 0 ? ` — ${app.confirmedCount} επιβεβαιωμένες` : ''}
                       </span>
                     </div>
                   </div>
-                  <LuChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')} aria-hidden />
-                </button>
+                  <Link
+                    href={`/programs/${programId}/applications/${app.id}`}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[0.6875rem] font-semibold text-foreground transition-colors hover:border-primary hover:text-primary"
+                    title="Διαχείριση του έργου της εταιρίας (εκκρεμότητες, δικαιολογητικά, δαπάνες)"
+                  >
+                    <LuFolderOpen className="size-3.5" aria-hidden /> Άνοιγμα έργου
+                  </Link>
+                  <Link
+                    href={`/partners/${app.trdrId}`}
+                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    title="Καρτέλα συναλλασσόμενου"
+                    aria-label={`Καρτέλα — ${app.trdrName}`}
+                  >
+                    <LuExternalLink className="size-3.5" aria-hidden />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(expanded ? null : app.id)}
+                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-expanded={expanded}
+                    aria-label={expanded ? 'Απόκρυψη δαπανών' : 'Γρήγορη προβολή δαπανών'}
+                    title="Γρήγορη προβολή δαπανών"
+                  >
+                    <LuChevronDown className={cn('size-4 transition-transform', expanded && 'rotate-180')} aria-hidden />
+                  </button>
+                </div>
 
                 {expanded && (
                   <div className="mt-2.5 pl-[42px]">
