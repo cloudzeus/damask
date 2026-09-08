@@ -37,7 +37,12 @@ section { padding: clamp(56px, 6vw, 88px) 0; }
 .topbar .login svg { width: 18px; height: 18px; stroke-width: 1.75; }
 .topbar .login:hover { color: var(--brand); background: var(--navy-50); }
 .burger { display: none; }
-@media (max-width: 1024px) { .topbar nav:not(.wwa-mobile-nav), .util, .topbar .hide-mobile { display: none; } .burger { display: inline-flex; margin-left: auto; } }
+@media (max-width: 1024px) {
+  .topbar nav:not(.wwa-mobile-nav), .util, .topbar .hide-mobile { display: none; }
+  .topbar .cta { margin-left: auto; gap: 8px; } /* login + burger τέρμα δεξιά */
+  .burger { display: inline-flex; order: 2; } /* burger πάντα τελευταίο (δεξιά του login) */
+  .topbar .login { order: 1; }
+}
 /* mobile dropdown nav (client burger) */
 .wwa-mobile-nav { display: none; }
 @media (max-width: 1024px) {

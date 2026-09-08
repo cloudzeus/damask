@@ -1,8 +1,11 @@
+/* eslint-disable @next/next/no-img-element -- public φωτογραφίες με object-fit cover */
 import type { Metadata } from 'next'
 import { SubBanner } from '../_components/sub-banner'
+import { EligibilityCta } from '../_components/eligibility-cta'
+import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
-import { IconCheck, IconInfo, IconShield, IconChart } from '../_components/icons'
-import { wwaPageImage } from '../_wwa/assets'
+import { IconCheck, IconShield, IconChart, IconInfo } from '../_components/icons'
+import { wwaPhoto, wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
   title: 'Η εταιρεία — World Wide Associates, Σύμβουλοι ΕΣΠΑ',
@@ -17,6 +20,10 @@ const FAQS: FaqItem[] = [
   { q: 'Με ποιους κλάδους έχετε μεγαλύτερη εμπειρία;', a: 'Μεταποίηση και τρόφιμα, τουρισμός, λιανεμπόριο και ηλεκτρονικό εμπόριο, τεχνολογία και λογισμικό, καλλυντικά, κοινωνική οικονομία.' },
 ]
 
+const tick = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+)
+
 export default function CompanyPage() {
   return (
     <>
@@ -25,53 +32,81 @@ export default function CompanyPage() {
         crumbs={[{ label: 'Εταιρεία' }]}
         title="Η ΕΤΑΙΡΕΙΑ"
         sub={<>Σύμβουλοι ΕΣΠΑ με <span style={{ color: 'var(--wwa-cyan-400)' }}>2.500+</span> εγκεκριμένα σχέδια</>}
-        lead="Η World Wide Associates Ε.Ε. λειτουργεί από την Αθήνα με πελάτες σε όλη την Ελλάδα. Διαφάνεια, αξιοπιστία και αποτελεσματικότητα σε κάθε στάδιο."
+        lead="Λειτουργούμε από την Αθήνα με πελάτες σε όλη την Ελλάδα. Διαφάνεια, αξιοπιστία και αποτελεσματικότητα σε κάθε στάδιο."
       />
 
-      <section lang="el">
-        <div className="wrap layout company-layout">
-          <nav className="side-nav" aria-label="Ενότητες εταιρείας">
-            <a href="#profil" aria-current="page">Εταιρικό προφίλ</a>
-            <a href="#values">Αξίες</a>
-            <a href="#team">Η ομάδα</a>
-            <a href="#foreis">Φορείς &amp; συνεργασίες</a>
-            <a href="#numbers">Σε αριθμούς</a>
-          </nav>
-          <div className="content">
-            <h2 id="profil">Εταιρικό προφίλ</h2>
-            <p>Η World Wide Associates ιδρύθηκε για να βοηθά ελληνικές μικρομεσαίες επιχειρήσεις να αξιοποιούν τα ευρωπαϊκά και εθνικά χρηματοδοτικά εργαλεία: ΕΣΠΑ, Αναπτυξιακό Νόμο, Ταμείο Ανάκαμψης και περιφερειακά προγράμματα.</p>
-            <p>Δουλεύουμε με ένα μοντέλο: ο ίδιος σύμβουλος συνοδεύει την επιχείρηση από την αξιολόγηση της ιδέας μέχρι την τελική εκταμίευση. Αναλαμβάνουμε μόνο σχέδια που μπορούν να εγκριθούν — γι’ αυτό το ποσοστό εγκρίσεών μας κινείται σταθερά στο 98–100%.</p>
-            <div className="note"><IconInfo /><span>Έδρα: Αλεξανδρουπόλεως 25, Αθήνα 115 27 · Εξυπηρετούμε επιχειρήσεις σε όλη την Ελλάδα, με επιτόπιες επισκέψεις όπου χρειάζεται.</span></div>
-
-            <h2 id="values">Αξίες</h2>
-            <div className="values">
-              <div className="value"><IconShield /><h3>Διαφάνεια</h3><p>Λέμε από την πρώτη επικοινωνία αν ένα σχέδιο έχει πιθανότητες. Καμία υπόσχεση που δεν μπορούμε να κρατήσουμε.</p></div>
-              <div className="value"><IconCheck /><h3>Αξιοπιστία</h3><p>Φάκελος έτοιμος πριν από τη λήξη, πιστοποιήσεις στην ώρα τους, καμία χαμένη εκταμίευση.</p></div>
-              <div className="value"><IconChart /><h3>Αποτελεσματικότητα</h3><p>Μετράμε τη δουλειά μας σε εγκρίσεις και εκταμιεύσεις, όχι σε υποβολές.</p></div>
+      {/* ΠΟΙΟΙ ΕΙΜΑΣΤΕ — promo panel (navy + φωτο) */}
+      <section lang="el" className="company">
+        <div className="wrap">
+          <div className="promo r">
+            <div className="photo square"><img src={wwaPageImage('promo-team')} alt="Συνάντηση με επιχείρηση-πελάτη" /></div>
+            <div className="txt">
+              <span className="eyebrow" style={{ color: 'rgba(255,255,255,.7)' }}><span className="idx" style={{ color: 'var(--wwa-cyan-400)' }}>01</span>Ποιοι είμαστε</span>
+              <h2>Μια ομάδα δίπλα σε κάθε ελληνική επιχείρηση</h2>
+              <p>Η World Wide Associates ιδρύθηκε για έναν λόγο: να κάνει τα ευρωπαϊκά και εθνικά χρηματοδοτικά εργαλεία — ΕΣΠΑ, Αναπτυξιακό Νόμο, Ταμείο Ανάκαμψης — προσιτά και κατανοητά για κάθε μικρομεσαία επιχείρηση.</p>
+              <ul>
+                <li>{tick}Ο ίδιος σύμβουλος σας συνοδεύει από την ιδέα μέχρι την εκταμίευση — χωρίς μεταβιβάσεις ανά τμήμα.</li>
+                <li>{tick}Αναλαμβάνουμε μόνο σχέδια που μπορούν να εγκριθούν — αν δεν είστε επιλέξιμοι, θα το μάθετε από την πρώτη κουβέντα.</li>
+                <li>{tick}Πληρώνετε με αμοιβή επιτυχίας, μετά την έγκριση.</li>
+              </ul>
+              <div className="actions"><EligibilityCta variant="inverse">Δείτε αν δικαιούστε</EligibilityCta><Button href="/pelates" variant="inverse-outline">Πελάτες</Button></div>
             </div>
-
-            <h2 id="team">Η ομάδα μας</h2>
-            <p>Πίσω από κάθε εγκεκριμένο έργο βρίσκεται μια πολυεπιστημονική ομάδα με εμπειρία σε τρεις προγραμματικές περιόδους ΕΣΠΑ — οικονομολόγοι, μηχανικοί και νομικοί που συνεργάζονται σε κάθε στάδιο, από τον σχεδιασμό μέχρι την εκταμίευση.</p>
-            <p>Δεν αναθέτουμε το έργο σας σε διαφορετικά τμήματα ανά φάση: ο ίδιος σύμβουλος σας συνοδεύει από την αξιολόγηση της ιδέας μέχρι την τελική εκταμίευση, με την υποστήριξη ολόκληρης της ομάδας όπου χρειάζεται. Έτσι εξασφαλίζουμε συνέπεια, ταχύτητα και υπευθυνότητα σε κάθε βήμα.</p>
-            <div className="note"><IconCheck /><span>Εξειδίκευση σε ΕΣΠΑ, Αναπτυξιακό Νόμο και Ταμείο Ανάκαμψης, με ποσοστό εγκρίσεων 98–100% σε περισσότερα από 2.500 επενδυτικά σχέδια.</span></div>
-
-            <h2 id="foreis">Φορείς &amp; συνεργασίες</h2>
-            <p>Επίσημοι σύμβουλοι του ΣΕΔΕ (Σύνδεσμος Επιχειρήσεων Διαδικτύου) και μέλη στον ΣΥ.Σ.ΕΠ., τον GR.EC.A, τον ΠΣΒΑΚ και το BNI Greece. Συνεργάτες του δικτύου Entersoftone.</p>
-            <div className="logo-strip" style={{ padding: '12px 0 8px' }}><span>ΣΕΔΕ</span><span>ΣΥ.Σ.ΕΠ.</span><span>GR.EC.A</span><span>ΠΣΒΑΚ</span><span>BNI Greece</span><span>Entersoftone</span></div>
           </div>
         </div>
       </section>
 
-      <section lang="el" className="stats alt" id="numbers">
+      {/* ΑΞΙΕΣ */}
+      <section lang="el" className="alt">
         <div className="wrap">
-          <div className="stat"><div className="value" data-count="2500" data-suffix="+">2.500+</div><div className="label">επενδυτικά σχέδια με έγκριση</div></div>
-          <div className="stat accent"><div className="value">98–100%</div><div className="label">ποσοστό εγκρίσεων</div></div>
-          <div className="stat"><div className="value" data-count="30" data-suffix="+">30+</div><div className="label">προγράμματα σε υλοποίηση ή ολοκληρωμένα</div></div>
-          <div className="stat"><div className="value">3</div><div className="label">προγραμματικές περίοδοι ΕΣΠΑ</div></div>
+          <div className="sec-head r"><span className="eyebrow"><span className="idx">02</span>Αξίες</span><h2>Αυτά που μας κρατούν στο 98–100%</h2><p>Δεν είναι σύνθημα — είναι ο τρόπος που δουλεύουμε κάθε φάκελο.</p></div>
+          <div className="values">
+            <div className="value r"><IconShield /><h3>Διαφάνεια</h3><p>Λέμε από την πρώτη επικοινωνία αν ένα σχέδιο έχει πιθανότητες. Καμία υπόσχεση που δεν μπορούμε να κρατήσουμε.</p></div>
+            <div className="value r"><IconCheck /><h3>Αξιοπιστία</h3><p>Φάκελος έτοιμος πριν από τη λήξη, πιστοποιήσεις στην ώρα τους, καμία χαμένη εκταμίευση.</p></div>
+            <div className="value r"><IconChart /><h3>Αποτελεσματικότητα</h3><p>Μετράμε τη δουλειά μας σε εγκρίσεις και εκταμιεύσεις, όχι σε υποβολές.</p></div>
+          </div>
         </div>
       </section>
 
-      <Faq items={FAQS} idx="02" subtitle="Τα πιο συχνά ερωτήματα για την εταιρεία." />
+      {/* Η ΠΡΟΣΕΓΓΙΣΗ ΜΑΣ — feature row (φωτο | κείμενο) */}
+      <section lang="el">
+        <div className="wrap">
+          <article className="feature">
+            <div className="photo"><img src={wwaPhoto('consulting')} alt="" /></div>
+            <div>
+              <span className="eyebrow"><span className="idx">03</span>Η προσέγγισή μας</span>
+              <h2 style={{ marginTop: 12 }}>Λιγότερο άγχος για εσάς, περισσότερη δουλειά για εμάς</h2>
+              <p className="k">Πίσω από κάθε εγκεκριμένο έργο βρίσκεται μια πολυεπιστημονική ομάδα — οικονομολόγοι, μηχανικοί και νομικοί — με εμπειρία σε τρεις προγραμματικές περιόδους ΕΣΠΑ. Συντονίζουμε εμείς λογιστή, μηχανικό και σύμβουλο· εσείς εστιάζετε στην επιχείρησή σας.</p>
+              <ul>
+                <li>{tick}Δωρεάν έλεγχος επιλεξιμότητας, με απάντηση σε μία εργάσιμη</li>
+                <li>{tick}Σχεδιασμός που μεγιστοποιεί τη βαθμολογία του σχεδίου σας</li>
+                <li>{tick}Υποβολή, διευκρινίσεις και πλήρης διαχείριση μέχρι την εκταμίευση</li>
+              </ul>
+              <div className="acts"><EligibilityCta>Δωρεάν αξιολόγηση</EligibilityCta><Button href="/ypiresies" variant="link">Οι υπηρεσίες μας</Button></div>
+            </div>
+          </article>
+          <div className="note" style={{ maxWidth: 760 }}><IconInfo /><span>Έδρα: Αλεξανδρουπόλεως 25, Αθήνα 115 27 · Εξυπηρετούμε επιχειρήσεις σε όλη την Ελλάδα, με επιτόπιες επισκέψεις όπου χρειάζεται.</span></div>
+        </div>
+      </section>
+
+      {/* ΣΕ ΑΡΙΘΜΟΥΣ */}
+      <section lang="el" className="stats alt">
+        <div className="wrap">
+          <div className="stat r"><div className="value" data-count="2500" data-suffix="+">2.500+</div><div className="label">επενδυτικά σχέδια με έγκριση</div></div>
+          <div className="stat r"><div className="value">98–100%</div><div className="label">ποσοστό εγκρίσεων</div></div>
+          <div className="stat r"><div className="value" data-count="30" data-suffix="+">30+</div><div className="label">προγράμματα σε υλοποίηση ή ολοκληρωμένα</div></div>
+          <div className="stat r"><div className="value">3</div><div className="label">προγραμματικές περίοδοι ΕΣΠΑ</div></div>
+        </div>
+      </section>
+
+      {/* ΦΟΡΕΙΣ */}
+      <section lang="el">
+        <div className="wrap">
+          <div className="sec-head r"><span className="eyebrow"><span className="idx">04</span>Φορείς &amp; συνεργασίες</span><h2>Δεν δουλεύουμε μόνοι μας</h2><p>Επίσημοι σύμβουλοι του ΣΕΔΕ και μέλη σε κορυφαίους κλαδικούς φορείς — γιατί οι σωστές συνεργασίες φέρνουν καλύτερα αποτελέσματα.</p></div>
+          <div className="aff" style={{ marginTop: 8 }}><div className="wrap" style={{ padding: 0 }}><div className="logo-strip"><span>ΣΕΔΕ</span><span>ΣΥ.Σ.ΕΠ.</span><span>GR.EC.A</span><span>ΠΣΒΑΚ</span><span>BNI Greece</span><span>Entersoftone</span></div></div></div>
+        </div>
+      </section>
+
+      <Faq items={FAQS} idx="05" subtitle="Τα πιο συχνά ερωτήματα για την εταιρεία." />
     </>
   )
 }
