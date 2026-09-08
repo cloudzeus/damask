@@ -15,6 +15,7 @@ import { FinancialsTab } from '@/components/tax/financials-tab'
 import { TrdrProgramsPanel } from '@/components/pm/trdr-programs-panel'
 import { CommunicationTimeline } from '@/components/communications/communication-timeline'
 import { FileBrowser } from '@/components/trdr/file-browser'
+import { TrdrDossier } from '@/components/trdr/trdr-dossier'
 import {
   GemiAadeCard, TrdrKadCard, TrdrDocumentsCard, type TrdrKadRow, type TrdrDocumentRow,
 } from '@/components/trdr/trdr-enrich-cards'
@@ -180,6 +181,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
           }
           kad={<TrdrKadCard kads={kadRows} trdrId={trdr.id} afm={trdr.AFM} canEdit={canEdit} />}
           docs={<TrdrDocumentsCard trdrId={trdr.id} arGemi={trdr.arGemi} documents={documentRows} />}
+          dossier={<TrdrDossier trdrId={trdr.id} canEdit={canEdit} />}
           files={<FileBrowser trdrId={trdr.id} canEdit={can(session, 'customer.edit')} />}
           map={
             <PartnerMapCard

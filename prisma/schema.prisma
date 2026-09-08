@@ -380,6 +380,7 @@ model Trdr {
   portalTokens         PortalToken[]
   kads                 TrdrKad[]
   documents            TrdrDocument[]
+  dossierDocs          TrdrDossierDocument[]
   programLeads         ProgramLead[]
   referrerLinks        Referrer[]               @relation("ReferrerTrdr") // Referrer records που δείχνουν σε αυτόν τον Trdr
   publicLeadRequests   PublicLeadRequest[] // αιτήματα από τη δημόσια φόρμα επιλεξιμότητας
@@ -2068,6 +2069,42 @@ model TrdrDocument {
   @@unique([trdrId, kak])
   @@index([trdrId])
   @@index([kak])
+}
+
+/// Ελαφρύς κατάλογος τύπων δικαιολογητικών — κοινό λεξιλόγιο που «δένει»
+/// απαιτήσεις προγράμματος ↔ αποθήκη πελάτη ↔ αποδελτίωση PDF. `expires`: ο
+/// τύπος έχει ημερομηνία λήξης (π.χ. φορολογική/ασφαλιστική ενημερότητα).
+/// Δημιουργείται inline (modal) — όχι βαρύ ξεχωριστό μενού.
+model DocumentType {
+  id          String                @id @default(cuid())
+  name        String                @unique
+  expires     Boolean               @default(false)
+  active      Boolean               @default(true)
+  notes       String?
+  createdAt   DateTime              @default(now())
+  dossierDocs TrdrDossierDocument[]
+}
+
+/// Αποθήκη δικαιολογητικών ανά πελάτη (Trdr) — ανεξάρτητα προγράμματος. Ό,τι
+/// έχει ήδη η εταιρία (τύπος + αρχείο + ημ. λήξης) ώστε στην ένταξη σε πρόγραμμα
+/// να μη ζητείται ξανά ό,τι υπάρχει ήδη valid.
+model TrdrDossierDocument {
+  id             String       @id @default(cuid())
+  trdrId         String
+  trdr           Trdr         @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  documentTypeId String
+  documentType   DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Restrict)
+  name           String
+  storageKey     String
+  mimeType       String?
+  sizeBytes      Int?
+  issuedAt       DateTime?
+  expiresAt      DateTime? // null = δεν λήγει· διαφορετικά «αναφορά λήξης»
+  uploadedById   String?
+  createdAt      DateTime     @default(now())
+
+  @@index([trdrId])
+  @@index([documentTypeId])
 }
 
 // ============================================================
