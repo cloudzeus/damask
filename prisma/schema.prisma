@@ -1805,6 +1805,7 @@ model ApplicationDocument {
   storageKey    String
   mimeType      String?
   size          Int?
+  expiresAt     DateTime? // ημ. λήξης δικαιολογητικού (π.χ. φορολογική/ασφαλιστική ενημερότητα)
   uploadedById  String?
   uploadedAt    DateTime               @default(now())
   requestUpload DocumentRequest?       @relation("RequestUpload")

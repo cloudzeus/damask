@@ -506,7 +506,7 @@ export async function waiveObligation(id: string): Promise<void> {
 export async function uploadApplicationDocument(
   applicationId: string,
   obligationId: string | null,
-  input: { name: string; base64: string; mimeType: string; ext: string },
+  input: { name: string; base64: string; mimeType: string; ext: string; expiresAt?: string | null },
 ): Promise<{ id: string }> {
   const { session } = await requireVisibleApplication(applicationId)
   const id = crypto.randomUUID()
@@ -522,6 +522,7 @@ export async function uploadApplicationDocument(
       storageKey: key,
       mimeType: input.mimeType,
       size: Buffer.byteLength(body),
+      expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
       uploadedById: session.user.id,
     },
   })

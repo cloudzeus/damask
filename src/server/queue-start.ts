@@ -107,6 +107,9 @@ export async function startQueue(): Promise<void> {
     // Υπενθύμιση επανεπικοινωνίας δικαιολογητικών (ανά αίτηση cadence) — ίδιο ημερήσιο tick.
     try { const { runDocFollowupReminders } = await import('@/lib/pm/doc-followup-run'); await runDocFollowupReminders(Date.now()) }
     catch (err) { console.error('[pg-boss] doc-followup dispatcher απέτυχε', err) }
+    // Λήξη-reopen: ληγμένα εγκεκριμένα δικαιολογητικά → ξανά PENDING + alert.
+    try { const { runDocExpiryReopen } = await import('@/lib/pm/doc-expiry-run'); await runDocExpiryReopen(Date.now()) }
+    catch (err) { console.error('[pg-boss] doc-expiry dispatcher απέτυχε', err) }
   })
   await boss.schedule(QUEUE_PM_REMINDERS, '0 8 * * *', null, { tz: 'Europe/Athens' })
 

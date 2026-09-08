@@ -163,7 +163,7 @@ export async function seedFormObligationsForApplication(applicationId: string, p
           applicationId, stage: 'DOCUMENTS', kind: 'FORM', sourceId: f.id, name: f.name,
           mandatory: true, status: 'SUBMITTED', order: f.order,
           notes: validNote,
-          documents: { create: { applicationId, name: match.name, storageKey: match.storageKey, mimeType: match.mimeType, size } },
+          documents: { create: { applicationId, name: match.name, storageKey: match.storageKey, mimeType: match.mimeType, size, expiresAt: fromDossier?.expiresAt ?? null } },
         },
       })
       recognized++

@@ -59,6 +59,7 @@ export function ApplicationDocuments({
   const [docs, setDocs] = React.useState<ApplicationDocumentItem[]>([])
   const [loading, setLoading] = React.useState(true)
   const [uploading, setUploading] = React.useState(false)
+  const [expiresAt, setExpiresAt] = React.useState('')
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -83,8 +84,10 @@ export function ApplicationDocuments({
         base64,
         mimeType: file.type || 'application/octet-stream',
         ext: extOf(file.name),
+        expiresAt: expiresAt || null,
       })
       toast.success('Το έγγραφο ανέβηκε.')
+      setExpiresAt('')
       load()
       router.refresh()
     } catch {
@@ -121,6 +124,17 @@ export function ApplicationDocuments({
           {uploading ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />}
           {uploading ? 'Ανέβασμα…' : 'Ανέβασμα εγγράφου'}
         </button>
+        <label className="inline-flex items-center gap-1 text-[0.65625rem] text-muted-foreground" title="Ημ. λήξης δικαιολογητικού (προαιρετικό — π.χ. φορολογική/ασφαλιστική ενημερότητα)">
+          λήξη:
+          <input
+            type="date"
+            value={expiresAt}
+            onChange={e => setExpiresAt(e.target.value)}
+            disabled={uploading}
+            aria-label="Ημερομηνία λήξης (προαιρετικό)"
+            className="rounded-full border border-border bg-card px-2 py-0.5 text-[0.65625rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+          />
+        </label>
         {loading && <LuLoaderCircle className="size-3 animate-spin text-muted-foreground" aria-hidden />}
       </div>
 
