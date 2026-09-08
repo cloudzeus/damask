@@ -44,13 +44,26 @@ section { padding: clamp(56px, 6vw, 88px) 0; }
   .topbar .login { order: 1; }
 }
 /* mobile dropdown nav (client burger) */
-.wwa-mobile-nav { display: none; }
+.wwa-mobile-nav, .wwa-mnav-backdrop { display: none; }
 @media (max-width: 1024px) {
-  .wwa-mobile-nav { display: flex; flex-direction: column; gap: 2px; padding: 8px var(--gutter) 18px; border-top: 1px solid var(--border-subtle); background: #fff; box-shadow: 0 12px 24px rgba(0,0,34,.10); }
-  .wwa-mobile-nav > a { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 15px; color: var(--fg-1); text-decoration: none; padding: 13px 4px; border-bottom: 1px solid var(--border-subtle); }
-  .wwa-mobile-nav > a[aria-current] { color: var(--brand); }
-  .mnav-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-  .mnav-login { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 500; color: var(--brand); text-decoration: none; padding: 12px; border: 1px solid var(--brand); border-radius: var(--radius-pill); }
+  /* Backdrop που σκουραίνει τη σελίδα — δείχνει ξεκάθαρα ότι το μενού άνοιξε */
+  .wwa-mnav-backdrop { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(0,0,34,.5); backdrop-filter: blur(2px); animation: wwaFade .2s var(--ease-standard); }
+  /* Σκούρο navy overlay panel — premium & αναμφισβήτητα ορατό πάνω στη λευκή σελίδα */
+  .wwa-mobile-nav {
+    display: flex; flex-direction: column; gap: 2px;
+    position: absolute; left: 0; right: 0; top: 100%;
+    z-index: 56; /* πάνω από το backdrop (55) — αλλιώς το overlay σκεπάζει τους συνδέσμους */
+    padding: 14px var(--gutter) 22px;
+    background: var(--navy-950); color: #fff;
+    box-shadow: 0 24px 48px rgba(0,0,34,.5);
+    border-top: 1px solid rgba(255,255,255,.08);
+    animation: wwaRise .28s var(--ease-emphasis) both;
+  }
+  .wwa-mobile-nav > a { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 16px; color: rgba(255,255,255,.88); text-decoration: none; padding: 14px 4px; border-bottom: 1px solid rgba(255,255,255,.1); transition: color var(--dur-hover) var(--ease-standard); }
+  .wwa-mobile-nav > a:hover { color: var(--wwa-cyan-400); }
+  .wwa-mobile-nav > a[aria-current] { color: var(--wwa-cyan-400); }
+  .mnav-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+  .mnav-login { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; color: #fff; text-decoration: none; padding: 12px; border: 1px solid rgba(255,255,255,.4); border-radius: var(--radius-pill); }
   .mnav-login svg { width: 18px; height: 18px; stroke-width: 1.75; }
   .mnav-actions .btn { width: 100%; }
 }
@@ -162,6 +175,8 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 @media (max-width: 900px) { .contact .box { grid-template-columns: 1fr; } }
 
 /* footer */
+/* Sonner toaster region: fixed overlay, ΠΟΤΕ στο flow (αλλιώς κενό λευκό κάτω από footer) */
+body > section[aria-label^="Notifications"] { position: fixed; inset: auto; }
 .footer { position: relative; background: var(--navy-950); color: rgba(255,255,255,.7); padding: 64px 0 28px; }
 .footer::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--wwa-cyan-400), var(--brand) 60%, transparent); }
 .footer .cols { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: var(--sp-10); }

@@ -66,6 +66,7 @@ export function SiteHeader() {
             </button>
           </div>
         </div>
+        {open && <div className="wwa-mnav-backdrop" aria-hidden onClick={() => setOpen(false)} />}
         {open && (
           <nav lang="el" aria-label="Κινητό μενού" className="wwa-mobile-nav">
             {NAV.map(n => (
