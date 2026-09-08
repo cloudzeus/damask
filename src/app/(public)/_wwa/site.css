@@ -59,11 +59,13 @@ section { padding: clamp(56px, 6vw, 88px) 0; }
     border-top: 1px solid rgba(255,255,255,.08);
     animation: wwaRise .28s var(--ease-emphasis) both;
   }
-  .wwa-mobile-nav > a { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 16px; color: rgba(255,255,255,.88); text-decoration: none; padding: 14px 4px; border-bottom: 1px solid rgba(255,255,255,.1); transition: color var(--dur-hover) var(--ease-standard); }
-  .wwa-mobile-nav > a:hover { color: var(--wwa-cyan-400); }
-  .wwa-mobile-nav > a[aria-current] { color: var(--wwa-cyan-400); }
+  /* .topbar prefix ώστε να νικά σε specificity τον desktop κανόνα `.topbar nav a`
+     (ink σε navy → αόρατα links). Λευκά links πάνω στο navy-950 panel. */
+  .topbar .wwa-mobile-nav > a { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 16px; color: #fff; text-decoration: none; padding: 14px 4px; border-bottom: 1px solid rgba(255,255,255,.12); transition: color var(--dur-hover) var(--ease-standard); }
+  .topbar .wwa-mobile-nav > a:hover { color: var(--wwa-cyan-400); }
+  .topbar .wwa-mobile-nav > a[aria-current] { color: var(--wwa-cyan-400); }
   .mnav-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
-  .mnav-login { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; color: #fff; text-decoration: none; padding: 12px; border: 1px solid rgba(255,255,255,.4); border-radius: var(--radius-pill); }
+  .topbar .wwa-mobile-nav .mnav-login { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; color: #fff; text-decoration: none; padding: 12px; border: 1px solid rgba(255,255,255,.4); border-radius: var(--radius-pill); }
   .mnav-login svg { width: 18px; height: 18px; stroke-width: 1.75; }
   .mnav-actions .btn { width: 100%; }
 }
