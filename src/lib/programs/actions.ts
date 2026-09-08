@@ -545,6 +545,51 @@ export async function addRequiredForm(
   return { id: row.id }
 }
 
+export type ReusableFormItem = { sourceId: string; name: string; templateId: string | null; templateName: string | null; programTitle: string }
+
+/** Κατάλογος επαναχρησιμοποιήσιμων εντύπων από ΑΛΛΑ προγράμματα (dedupe ανά
+ * template/όνομα) — για να τα επιλέξει ο διαχειριστής και σε άλλο πρόγραμμα. */
+export async function listReusableFormCatalog(excludeProgramId: string): Promise<ReusableFormItem[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.programRequiredForm.findMany({
+    where: { reusable: true, programId: { not: excludeProgramId } },
+    include: { program: { select: { title: true } }, template: { select: { name: true, code: true } } },
+    orderBy: [{ name: 'asc' }, { createdAt: 'asc' }],
+  })
+  const seen = new Set<string>()
+  const out: ReusableFormItem[] = []
+  for (const r of rows) {
+    const key = r.templateId ?? `name:${r.name.trim().toLowerCase()}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ sourceId: r.id, name: r.name, templateId: r.templateId, templateName: r.template ? `${r.template.name} (${r.template.code})` : null, programTitle: r.program.title })
+  }
+  return out
+}
+
+/** Προσθέτει ένα επαναχρησιμοποιήσιμο έντυπο του καταλόγου σε ΑΥΤΟ το πρόγραμμα
+ * (αντιγράφει όνομα/template/φάση, reusable+mandatory) + διάδοση εκκρεμοτήτων. */
+export async function addReusableFormToProgram(programId: string, sourceFormId: string): Promise<{ id: string }> {
+  await requirePermission('programs.manage')
+  const src = await prisma.programRequiredForm.findUniqueOrThrow({
+    where: { id: sourceFormId },
+    select: { name: true, templateId: true, notes: true, phase: true },
+  })
+  // Μην προσθέτεις διπλότυπο (ίδιο template ή όνομα) στο ίδιο πρόγραμμα.
+  const dup = await prisma.programRequiredForm.findFirst({
+    where: { programId, OR: [...(src.templateId ? [{ templateId: src.templateId }] : []), { name: src.name }] },
+    select: { id: true },
+  })
+  if (dup) return { id: dup.id }
+  const count = await prisma.programRequiredForm.count({ where: { programId } })
+  const row = await prisma.programRequiredForm.create({
+    data: { programId, name: src.name, templateId: src.templateId, notes: src.notes, phase: src.phase, reusable: true, mandatory: true, order: count },
+  })
+  await propagateRequiredFormObligation(row.id)
+  revalidatePath(`/programs/${programId}`)
+  return { id: row.id }
+}
+
 export async function updateRequiredForm(
   id: string,
   input: { name?: string; mandatory?: boolean; notes?: string | null; templateId?: string | null; phase?: string | null; reusable?: boolean },

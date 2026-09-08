@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/dialog'
 import {
   listProgramRequiredForms, addRequiredForm, updateRequiredForm, removeRequiredForm, listTaxTemplateOptions,
-  type ProgramRequiredFormItem, type TaxTemplateOption,
+  listReusableFormCatalog, addReusableFormToProgram,
+  type ProgramRequiredFormItem, type TaxTemplateOption, type ReusableFormItem,
 } from '@/lib/programs/actions'
 import { DELIVERABLE_PHASE_ORDER, deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/deliverable-phases'
 
@@ -255,11 +256,27 @@ function AddRequiredFormDialog({ programId, onCreated }: { programId: string; on
   const [phase, setPhase] = React.useState<string>(NONE_PHASE)
   const [reusable, setReusable] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
+  const [catalog, setCatalog] = React.useState<ReusableFormItem[]>([])
 
   function handleOpenChange(next: boolean) {
     if (saving) return
-    if (!next) { setName(''); setMandatory(true); setPhase(NONE_PHASE); setReusable(false) }
+    if (next) { listReusableFormCatalog(programId).then(setCatalog).catch(() => setCatalog([])) }
+    else { setName(''); setMandatory(true); setPhase(NONE_PHASE); setReusable(false) }
     setOpen(next)
+  }
+
+  async function handleAddFromCatalog(sourceId: string) {
+    setSaving(true)
+    try {
+      await addReusableFormToProgram(programId, sourceId)
+      toast.success('Το έντυπο προστέθηκε από τον κατάλογο.')
+      onCreated()
+      handleOpenChange(false)
+    } catch {
+      toast.error('Η προσθήκη από τον κατάλογο απέτυχε.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleAdd() {
@@ -292,6 +309,25 @@ function AddRequiredFormDialog({ programId, onCreated }: { programId: string; on
             <DialogTitle>Νέο απαιτούμενο έντυπο</DialogTitle>
             <DialogDescription>Πρόσθεσε ένα έντυπο που απαιτεί το πρόγραμμα — μπορείς να το συνδέσεις με έναν Οδηγό Εντύπου αργότερα.</DialogDescription>
           </DialogHeader>
+
+          {catalog.length > 0 && (
+            <div className="field !mb-0 rounded-[14px] border border-border bg-muted/40 p-2.5">
+              <label className="!text-[0.6875rem]">Από κατάλογο επαναχρησιμοποιήσιμων (άλλα προγράμματα)</label>
+              <Select value={''} onValueChange={v => { if (v) void handleAddFromCatalog(v) }} disabled={saving}>
+                <SelectTrigger className="h-10 w-full rounded-full border-border bg-card px-3 text-[0.8125rem]">
+                  <SelectValue placeholder="Επίλεξε έτοιμο έντυπο…">{() => 'Επίλεξε έτοιμο έντυπο…'}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {catalog.map(c => (
+                    <SelectItem key={c.sourceId} value={c.sourceId}>
+                      {c.name}{c.templateName ? ` · ${c.templateName}` : ''} — {c.programTitle}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-[0.65625rem] text-muted-foreground">…ή συμπλήρωσε νέο έντυπο παρακάτω.</p>
+            </div>
+          )}
 
           <div className="field !mb-0">
             <label htmlFor="rf-name">Όνομα εντύπου</label>
