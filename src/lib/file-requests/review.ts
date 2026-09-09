@@ -132,7 +132,7 @@ export async function reviewFileRequestItem(itemId: string, decision: 'ACCEPTED'
   const session = await requirePermission('pm.work')
   const item = await prisma.fileRequestItem.findUnique({
     where: { id: itemId },
-    include: { fileRequest: { select: { applicationId: true, trdrId: true } } },
+    include: { fileRequest: { select: { applicationId: true, trdrId: true, programId: true } } },
   })
   if (!item) return { ok: false, error: 'Το δικαιολογητικό δεν βρέθηκε.' }
   const applicationId = item.fileRequest.applicationId
@@ -152,7 +152,7 @@ export async function reviewFileRequestItem(itemId: string, decision: 'ACCEPTED'
     body: `${session.user.name ?? 'Χρήστης'} · ${item.fileName ?? ''}`.trim(),
     entityType: 'FileRequestItem',
     entityId: itemId,
-    meta: { applicationId, decision, reviewerId: session.user.id },
+    meta: { applicationId, programId: item.fileRequest.programId, trdrId: item.fileRequest.trdrId, decision, reviewerId: session.user.id },
   })
   await logActivity(decision === 'ACCEPTED' ? 'file_request.completed' : 'file_request.create', {
     userId: session.user.id, entityType: 'FileRequestItem', entityId: itemId, summary: `${decision}: ${item.label}`,
@@ -199,7 +199,7 @@ export async function rejectAndResendFileRequestItem(
     body: `${session.user.name ?? 'Χρήστης'}: ${note}`,
     entityType: 'FileRequestItem',
     entityId: itemId,
-    meta: { applicationId, decision: 'REJECTED', reviewerId: session.user.id },
+    meta: { applicationId, programId: fr.programId, trdrId: fr.trdrId, decision: 'REJECTED', reviewerId: session.user.id },
   })
   await logActivity('file_request.create', {
     userId: session.user.id, entityType: 'FileRequestItem', entityId: itemId, summary: `REJECTED: ${item.label}`,

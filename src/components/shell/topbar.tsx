@@ -1,4 +1,3 @@
-import { Search } from 'lucide-react'
 import { auth, signOut } from '@/auth'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel,
@@ -7,6 +6,7 @@ import {
 import { SignOutMenuItem } from './sign-out-item'
 import { MobileNavToggle } from './mobile-nav'
 import { NotificationsBell } from './notifications-bell'
+import { GlobalSearch } from './global-search'
 
 export async function Topbar() {
   const session = await auth()
@@ -15,16 +15,8 @@ export async function Topbar() {
   return (
     <header className="glass mx-3.5 mt-3.5 mb-4 flex h-[54px] items-center gap-2.5 rounded-full py-0 pr-2 pl-2.5 sm:pl-4.5">
       <MobileNavToggle />
-      <div className="flex h-[34px] min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-[0.78125rem] text-muted-foreground shadow-[inset_0_1px_3px_rgb(23_43_58_/_5%)] sm:min-w-[220px] sm:flex-none">
-        <Search className="size-3.5 shrink-0" strokeWidth={1.8} />
-        <span className="truncate">Γρήγορη αναζήτηση…</span>
-        <span className="ml-auto hidden rounded border border-border px-1 text-[0.625rem] sm:inline">⌘K</span>
-      </div>
+      <GlobalSearch />
       <div className="hidden flex-1 sm:block" />
-      <span className="badge-pill ok hidden sm:inline-flex">
-        <span className="status-dot pulse" style={{ background: 'var(--success)', color: 'var(--success)' }} aria-hidden />
-        Sync πριν 4′
-      </span>
       <NotificationsBell />
       <DropdownMenu>
         <DropdownMenuTrigger

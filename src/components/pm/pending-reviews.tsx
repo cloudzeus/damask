@@ -68,8 +68,20 @@ export function PendingReviews() {
     })
   }, [])
 
-  // Κενή κατάσταση ή φόρτωση → τίποτα (μόνο όταν υπάρχουν items εμφανίζεται).
-  if (loading || rows.length === 0) return null
+  // Φόρτωση → τίποτα (αποφυγή flash). Κενό → ήσυχη «όλα εντάξει» κατάσταση αντί
+  // για εξαφάνιση, ώστε το dashboard να μη «μετακινείται» και ο χρήστης να έχει
+  // σιγουριά ότι δεν εκκρεμεί επιβεβαίωση.
+  if (loading) return null
+  if (rows.length === 0) {
+    return (
+      <section className="glass mt-3 flex items-center gap-2.5 px-4 py-3.5">
+        <span className="flex size-[1.75rem] items-center justify-center rounded-[0.6875rem]" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>
+          <Check className="size-[0.9375rem]" strokeWidth={2} aria-hidden />
+        </span>
+        <p className="text-[0.78125rem] text-muted-foreground">Καμία εκκρεμότητα προς επιβεβαίωση — όλα ήρεμα.</p>
+      </section>
+    )
+  }
 
   return (
     <section className="glass mt-3 px-4 pt-3.5 pb-3">
