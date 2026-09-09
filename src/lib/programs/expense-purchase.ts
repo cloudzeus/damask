@@ -37,6 +37,7 @@ export type PurchaseItem = {
   missingDocs: string[]
   reconVerdict: PurchaseVerdict | null
   reconNote: string | null
+  ocr: { amount: number | null; supplier: string | null; number: string | null } | null
 }
 
 function docsOf(p: { invoiceKey: string | null; invoiceName: string | null; bankExtraitKey: string | null; bankExtraitName: string | null; supplierCertKey: string | null; supplierCertName: string | null } | null): PurchaseItem['docs'] {
@@ -74,8 +75,38 @@ export async function listExpensePurchases(applicationId: string): Promise<Purch
       docs, missingDocs,
       reconVerdict: (p?.reconVerdict ?? null) as PurchaseVerdict | null,
       reconNote: p?.reconNote ?? null,
+      ocr: p?.ocrCheckedAt ? { amount: p.ocrAmount != null ? Number(p.ocrAmount) : null, supplier: p.ocrSupplier ?? null, number: p.ocrNumber ?? null } : null,
     }
   })
+}
+
+/** Αποθήκευση OCR ανάγνωσης παραστατικού (τι διάβασε το AI από το ίδιο το
+ * αρχείο) + auto-prefill πληρωμένου ποσού / αρ. παραστατικού αν είναι κενά. */
+export async function saveInvoiceOcr(
+  expenseId: string,
+  input: { amount?: number | null; supplier?: string | null; docNumber?: string | null; date?: string | null },
+): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  const existing = await prisma.expensePurchase.findUnique({ where: { expenseId }, select: { paidAmount: true, invoiceNumber: true } })
+  const d = input.date ? new Date(input.date) : null
+  const ocrData = {
+    ocrAmount: input.amount ?? null,
+    ocrSupplier: input.supplier?.trim() || null,
+    ocrNumber: input.docNumber?.trim() || null,
+    ocrDate: d && !Number.isNaN(d.getTime()) ? d : null,
+    ocrCheckedAt: new Date(),
+  }
+  // prefill μόνο όταν ο χρήστης δεν έχει ήδη βάλει τιμή
+  const prefill: Record<string, unknown> = {}
+  if (existing?.paidAmount == null && input.amount != null) prefill.paidAmount = input.amount
+  if (!existing?.invoiceNumber && input.docNumber?.trim()) prefill.invoiceNumber = input.docNumber.trim()
+  await prisma.expensePurchase.upsert({
+    where: { expenseId },
+    create: { expenseId, ...ocrData, ...prefill },
+    update: { ...ocrData, ...prefill },
+  })
+  revalidatePath('/programs')
+  return { ok: true }
 }
 
 async function ensurePurchase(expenseId: string): Promise<void> {
@@ -149,19 +180,23 @@ export async function reconcileExpensePurchase(expenseId: string): Promise<{ ok:
   const docs = docsOf(p)
   const missing = (Object.keys(DOC_FIELDS) as PurchaseDocKind[]).filter(k => !docs[k].has).map(k => DOC_FIELDS[k].label)
 
+  const ocrLine = p?.ocrCheckedAt
+    ? `AI ανάγνωση παραστατικού (από το ίδιο το αρχείο): ποσό ${p.ocrAmount != null ? `${Number(p.ocrAmount)}€` : '—'}, προμηθευτής ${p.ocrSupplier ?? '—'}, αρ. ${p.ocrNumber ?? '—'}`
+    : 'AI ανάγνωση παραστατικού: δεν έχει γίνει.'
   const facts = [
     `Εγκεκριμένη δαπάνη: «${r.description}»`,
     `Εγκεκριμένο ποσό: ${approvedAmount}€`,
-    supplierName ? `Προμηθευτής: ${supplierName}${r.supplier?.AFM ?? r.vendorAfm ? ` (ΑΦΜ ${r.supplier?.AFM ?? r.vendorAfm})` : ''}` : 'Προμηθευτής: —',
-    p?.paidAmount != null ? `Πραγματικά πληρωμένο ποσό: ${Number(p.paidAmount)}€` : 'Πραγματικά πληρωμένο ποσό: δεν καταχωρίστηκε',
-    p?.invoiceNumber ? `Αρ. παραστατικού: ${p.invoiceNumber}` : 'Αρ. παραστατικού: —',
+    supplierName ? `Προμηθευτής (εγκεκριμένος): ${supplierName}${r.supplier?.AFM ?? r.vendorAfm ? ` (ΑΦΜ ${r.supplier?.AFM ?? r.vendorAfm})` : ''}` : 'Προμηθευτής: —',
+    p?.paidAmount != null ? `Πραγματικά πληρωμένο ποσό (καταχώριση): ${Number(p.paidAmount)}€` : 'Πραγματικά πληρωμένο ποσό: δεν καταχωρίστηκε',
+    p?.invoiceNumber ? `Αρ. παραστατικού (καταχώριση): ${p.invoiceNumber}` : 'Αρ. παραστατικού: —',
     p?.serial ? `Serial: ${p.serial}` : 'Serial: —',
+    ocrLine,
     `Έγγραφα που έχουν ανέβει: ${(Object.keys(DOC_FIELDS) as PurchaseDocKind[]).filter(k => docs[k].has).map(k => DOC_FIELDS[k].label).join(', ') || 'κανένα'}`,
     `Έγγραφα που λείπουν: ${missing.join(', ') || 'κανένα'}`,
   ].join('\n')
 
   const messages = [
-    { role: 'system' as const, content: 'Είσαι έμπειρος σύμβουλος αποπληρωμής ΕΣΠΑ. Έλεγξε αν μια πραγματική αγορά αντιστοιχεί στην εγκεκριμένη δαπάνη και αν είναι πλήρης για αίτημα αποπληρωμής. Κανόνες: το πραγματικά πληρωμένο ποσό δεν πρέπει να ξεπερνά το εγκεκριμένο (μικρή απόκλιση προς τα κάτω επιτρέπεται)· χρειάζονται και τα 3 έγγραφα (Παραστατικό, Extrait τράπεζας, Βεβαίωση προμηθευτή). Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"verdict":"OK"|"MISMATCH"|"UNCERTAIN","note":"2-4 προτάσεις στα ελληνικά με τα ευρήματα"}. OK μόνο αν ταιριάζει το ποσό/προμηθευτής ΚΑΙ υπάρχουν και τα 3 έγγραφα. MISMATCH αν ποσό ξεπερνά το εγκεκριμένο ή λείπουν έγγραφα. UNCERTAIN αν τα στοιχεία δεν επαρκούν.' },
+    { role: 'system' as const, content: 'Είσαι έμπειρος σύμβουλος αποπληρωμής ΕΣΠΑ. Έλεγξε αν μια πραγματική αγορά αντιστοιχεί στην εγκεκριμένη δαπάνη και αν είναι πλήρης για αίτημα αποπληρωμής. Δώσε ΕΜΦΑΣΗ στη σύγκριση της AI ανάγνωσης του παραστατικού (τι διαβάστηκε από το ίδιο το αρχείο) με την εγκεκριμένη δαπάνη: αν το ποσό/προμηθευτής του παραστατικού διαφέρει από το εγκεκριμένο, είναι σοβαρό εύρημα. Κανόνες: το ποσό του παραστατικού/πληρωμής δεν πρέπει να ξεπερνά το εγκεκριμένο (μικρή απόκλιση προς τα κάτω επιτρέπεται)· ο προμηθευτής πρέπει να ταιριάζει· χρειάζονται και τα 3 έγγραφα (Παραστατικό, Extrait τράπεζας, Βεβαίωση προμηθευτή). Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"verdict":"OK"|"MISMATCH"|"UNCERTAIN","note":"2-4 προτάσεις στα ελληνικά με τα ευρήματα, αναφέροντας τυχόν διαφορά ποσού/προμηθευτή"}. OK μόνο αν ταιριάζει ποσό+προμηθευτής ΚΑΙ υπάρχουν και τα 3 έγγραφα. MISMATCH αν το ποσό ξεπερνά το εγκεκριμένο, ο προμηθευτής διαφέρει, ή λείπουν έγγραφα. UNCERTAIN αν τα στοιχεία δεν επαρκούν.' },
     { role: 'user' as const, content: facts },
   ]
 

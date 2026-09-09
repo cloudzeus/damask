@@ -2,10 +2,13 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { LuLoaderCircle, LuUpload, LuFileCheck2, LuSparkles, LuTriangleAlert, LuCircleCheck, LuX } from 'react-icons/lu'
+import { LuLoaderCircle, LuUpload, LuFileCheck2, LuSparkles, LuTriangleAlert, LuCircleCheck, LuX, LuScanText } from 'react-icons/lu'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { OcrUploader } from '@/components/ocr/ocr-uploader'
+import type { ExtractedDocument } from '@/lib/ocr/schema'
 import {
-  listExpensePurchases, savePurchaseMeta, uploadPurchaseDoc, removePurchaseDoc, reconcileExpensePurchase,
+  listExpensePurchases, savePurchaseMeta, uploadPurchaseDoc, removePurchaseDoc, reconcileExpensePurchase, saveInvoiceOcr,
   type PurchaseItem, type PurchaseDocKind, type PurchaseVerdict,
 } from '@/lib/programs/expense-purchase'
 
@@ -62,6 +65,19 @@ function PurchaseCard({ item: it, onReload }: { item: PurchaseItem; onReload: ()
   const [paid, setPaid] = React.useState(it.paidAmount != null ? String(it.paidAmount) : '')
   const [reconciling, setReconciling] = React.useState(false)
   const [showNote, setShowNote] = React.useState(false)
+  const [ocrOpen, setOcrOpen] = React.useState(false)
+
+  async function onOcr(data: ExtractedDocument) {
+    try {
+      await saveInvoiceOcr(it.expenseId, {
+        amount: data.totals.gross ?? data.totals.net ?? null,
+        supplier: data.issuer.name, docNumber: data.documentNumber, date: data.date,
+      })
+      setOcrOpen(false)
+      toast.success('Το παραστατικό διαβάστηκε.')
+      onReload()
+    } catch { toast.error('Η αποθήκευση OCR απέτυχε.') }
+  }
 
   async function saveMeta() {
     try {
@@ -81,6 +97,8 @@ function PurchaseCard({ item: it, onReload }: { item: PurchaseItem; onReload: ()
 
   const vm = it.reconVerdict ? VERDICT_META[it.reconVerdict] : null
   const overpaid = it.paidAmount != null && it.paidAmount > it.amount
+  // ασυμφωνία: το OCR-read ποσό του παραστατικού ξεπερνά το εγκεκριμένο (>1% ανοχή)
+  const ocrAmountMismatch = it.ocr?.amount != null && it.ocr.amount > it.amount * 1.01
 
   return (
     <div className="rounded-2xl border border-border p-3">
@@ -111,10 +129,23 @@ function PurchaseCard({ item: it, onReload }: { item: PurchaseItem; onReload: ()
         ))}
       </div>
 
-      {/* AI διασταύρωση */}
+      {/* AI ανάγνωση παραστατικού (OCR) — σύνοψη τι διαβάστηκε */}
+      {it.ocr && (
+        <p className="mt-1.5 rounded-md bg-muted/60 px-2 py-1 text-[0.6875rem]">
+          <LuScanText className="mr-1 inline size-3 align-[-2px] text-primary" aria-hidden />
+          <strong>Διαβάστηκε από παραστατικό:</strong> ποσό <span className={ocrAmountMismatch ? 'font-bold text-[color:var(--coral)]' : 'font-semibold'}>{it.ocr.amount != null ? `${EUR.format(it.ocr.amount)} €` : '—'}</span>
+          {it.ocr.supplier ? ` · ${it.ocr.supplier}` : ''}{it.ocr.number ? ` · αρ. ${it.ocr.number}` : ''}
+          {ocrAmountMismatch && <span className="ml-1 font-semibold text-[color:var(--coral)]">≠ εγκεκριμένο!</span>}
+        </p>
+      )}
+
+      {/* Ενέργειες AI */}
       <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => setOcrOpen(true)} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary">
+          <LuScanText className="size-3" aria-hidden /> {it.ocr ? 'Νέα ανάγνωση' : 'AI ανάγνωση παραστατικού'}
+        </button>
         <button type="button" onClick={reconcile} disabled={reconciling} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary disabled:opacity-60">
-          {reconciling ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {it.reconVerdict ? 'Ξανά' : 'AI διασταύρωση'}
+          {reconciling ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {it.reconVerdict ? 'Ξανά διασταύρωση' : 'AI διασταύρωση'}
         </button>
         {vm && <button type="button" onClick={() => setShowNote(s => !s)} className={`badge-pill ${vm.cls} shrink-0`}>{vm.label} ▾</button>}
         {it.missingDocs.length > 0 && <span className="inline-flex items-center gap-1 text-[0.65625rem] text-[color:var(--warning)]"><LuTriangleAlert className="size-3" aria-hidden /> λείπουν: {it.missingDocs.join(', ')}</span>}
@@ -123,6 +154,16 @@ function PurchaseCard({ item: it, onReload }: { item: PurchaseItem; onReload: ()
       {showNote && it.reconNote && (
         <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[0.6875rem] text-muted-foreground"><strong>AI τεκμηρίωση:</strong> {it.reconNote}</p>
       )}
+
+      <Dialog open={ocrOpen} onOpenChange={setOcrOpen}>
+        <DialogContent className="glass sm:max-w-[720px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><LuScanText className="size-4 text-primary" aria-hidden /> Ανάγνωση παραστατικού</DialogTitle>
+            <DialogDescription>Ανέβασε/τράβηξε το παραστατικό — το AI διαβάζει ποσό/προμηθευτή/αριθμό και τα συγκρίνει με την εγκεκριμένη δαπάνη.</DialogDescription>
+          </DialogHeader>
+          <OcrUploader title="Ανάγνωση παραστατικού" docTypeHint="invoice" onConfirm={onOcr} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1843,6 +1843,12 @@ model ExpensePurchase {
   reconVerdict     PurchaseReconVerdict?
   reconNote        String?
   reconCheckedAt   DateTime?
+  // AI ανάγνωση παραστατικού (OCR) — τι διάβασε το σύστημα από το ίδιο το αρχείο
+  ocrAmount        Decimal?              @db.Decimal(18, 2)
+  ocrSupplier      String?
+  ocrNumber        String?
+  ocrDate          DateTime?
+  ocrCheckedAt     DateTime?
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
 }
