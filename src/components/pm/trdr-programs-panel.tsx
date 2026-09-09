@@ -20,6 +20,8 @@ import {
 } from '@/lib/pm/program-link'
 import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { NewDocumentRequestDialog } from '@/components/pm/new-document-request-dialog'
+import { ObligationsTab } from '@/components/pm/obligations-tab'
+import { EmailHistory } from '@/components/email/email-history'
 import { listApplicationContactOptions, setApplicationContacts, setContactPortalScope, type AppContactOption } from '@/lib/pm/application-contacts'
 import {
   LIFECYCLE_ORDER, LIFECYCLE_COLORS, lifecycleLabel, stageLabel, verdictLabel, obligationStatusLabel, type LifecycleStr,
@@ -195,6 +197,7 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
       {selected && (
         <EvaluationDialog
           card={selected}
+          trdrId={trdrId}
           canManage={canManage}
           open={!!selected}
           onOpenChange={o => { if (!o) setSelected(null) }}
@@ -231,15 +234,24 @@ function CriteriaBadges({ snapshot }: { snapshot: SinglePairEligibility | null }
   )
 }
 
+type DetailTab = 'overview' | 'docs' | 'comm'
+const DETAIL_TABS: { key: DetailTab; label: string }[] = [
+  { key: 'overview', label: 'Επισκόπηση' },
+  { key: 'docs', label: 'Δικαιολογητικά & εργασίες' },
+  { key: 'comm', label: 'Επικοινωνία' },
+]
+
 function EvaluationDialog({
-  card, canManage, open, onOpenChange, onChanged,
+  card, trdrId, canManage, open, onOpenChange, onChanged,
 }: {
   card: TrdrProgramCard
+  trdrId: string
   canManage: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
   onChanged: () => void
 }) {
+  const [tab, setTab] = React.useState<DetailTab>('overview')
   const [busy, setBusy] = React.useState(false)
   const [pending, setPending] = React.useState<ApplicationPending | null>(null)
   const [contacts, setContacts] = React.useState<AppContactOption[] | null>(null)
@@ -313,7 +325,7 @@ function EvaluationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-[560px]">
+      <DialogContent className="glass max-h-[88vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-[840px]">
         <DialogHeader>
           <DialogTitle>{card.programTitle}</DialogTitle>
           <DialogDescription>
@@ -322,6 +334,35 @@ function EvaluationDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Tabs — «τα πάντα από παντού»: επισκόπηση, πλήρης διαχείριση
+            δικαιολογητικών/εργασιών, και επικοινωνία, χωρίς έξοδο από την καρτέλα. */}
+        <div role="tablist" aria-label="Ενότητες έργου" className="flex flex-wrap gap-1 rounded-full bg-muted/50 p-1">
+          {DETAIL_TABS.map(t => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.key}
+              onClick={() => setTab(t.key)}
+              className={`rounded-full px-3 py-1.5 text-[0.75rem] font-semibold whitespace-nowrap transition-colors ${tab === t.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'docs' && (
+          <div className="mt-1">
+            <ObligationsTab applicationId={card.id} canManage={canManage} programId={card.programId} />
+          </div>
+        )}
+        {tab === 'comm' && (
+          <div className="mt-1">
+            <EmailHistory trdrId={trdrId} programId={card.programId} applicationId={card.id} canSend={canManage} />
+          </div>
+        )}
+
+        {tab === 'overview' && (<>
         <CriteriaBadges snapshot={card.snapshot} />
 
         {/* Εκκρεμότητες / δικαιολογητικά — έμφαση στην τρέχουσα φάση */}
@@ -426,6 +467,7 @@ function EvaluationDialog({
             </Select>
           </div>
         )}
+        </>)}
 
         <DialogFooter className="flex-wrap gap-2">
           {canManage && (
