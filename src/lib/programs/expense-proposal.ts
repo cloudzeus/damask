@@ -8,6 +8,8 @@ import { aadeLookup, AadeLookupError } from '@/lib/aade'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { checkBudgetCompliance } from '@/lib/pm/budget-compliance'
+import { deepseekChat } from '@/lib/deepseek'
+import { parseJsonLoose } from '@/lib/ocr/extract'
 
 /**
  * Σχεδιασμός προϋπολογισμού υποβολής — προμηθευτές (με ΑΦΜ μέσω ΑΑΔΕ) + ενυπόγραφη
@@ -30,6 +32,8 @@ export type ProposalExpense = {
   supplierAfm: string | null
   hasQuote: boolean
   quoteName: string | null
+  eligibilityVerdict: string | null
+  eligibilityNote: string | null
 }
 export type ProposalCategory = {
   id: string
@@ -83,7 +87,7 @@ export async function getBudgetProposal(applicationId: string): Promise<BudgetPr
   const rows = await prisma.programExpense.findMany({
     where: { applicationId, status: 'ACTIVE' },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, description: true, amount: true, categoryId: true, confirmed: true, quoteStorageKey: true, quoteName: true, supplier: { select: { NAME: true, AFM: true } }, vendor: true, vendorAfm: true },
+    select: { id: true, description: true, amount: true, categoryId: true, confirmed: true, quoteStorageKey: true, quoteName: true, supplier: { select: { NAME: true, AFM: true } }, vendor: true, vendorAfm: true, eligibilityVerdict: true, eligibilityNote: true },
   })
 
   const cats = app.program.expenseCats.map(c => ({
@@ -110,6 +114,7 @@ export async function getBudgetProposal(applicationId: string): Promise<BudgetPr
     id: r.id, description: r.description, amount: Number(r.amount), categoryId: r.categoryId,
     supplierName: r.supplier?.NAME ?? r.vendor ?? null, supplierAfm: r.supplier?.AFM ?? r.vendorAfm ?? null,
     hasQuote: !!r.quoteStorageKey, quoteName: r.quoteName,
+    eligibilityVerdict: r.eligibilityVerdict, eligibilityNote: r.eligibilityNote,
   }))
 
   return {
@@ -222,4 +227,57 @@ export async function setExpenseSupplier(expenseId: string, supplierTrdrId: stri
     vendor = s?.NAME ?? null; vendorAfm = s?.AFM ?? null
   }
   await prisma.programExpense.update({ where: { id: expenseId }, data: { supplierTrdrId, vendor, vendorAfm } })
+}
+
+// ── Αξιολόγηση επιλεξιμότητας δαπάνης (AI τεκμηρίωση, DeepSeek) ──────────────
+
+export type ExpenseEligibility = { verdict: 'ELIGIBLE' | 'INELIGIBLE' | 'UNCERTAIN'; note: string; checkedAt: string }
+
+/**
+ * Αξιολογεί με DeepSeek αν η δαπάνη είναι ΕΠΙΛΕΞΙΜΗ βάσει των κανόνων της
+ * αποδελτίωσης (κατηγορίες/όρια/όροι επιλεξιμότητας) και παράγει ΤΕΚΜΗΡΙΩΣΗ.
+ * ΒΟΗΘΗΜΑ — ο διαχειριστής αποφασίζει. Αποθηκεύεται στη δαπάνη.
+ */
+export async function evaluateExpenseEligibility(expenseId: string, opts: { userId?: string | null } = {}): Promise<{ ok: boolean; result?: ExpenseEligibility; message?: string }> {
+  await requirePermission('programs.manage')
+  const exp = await prisma.programExpense.findUnique({
+    where: { id: expenseId },
+    select: {
+      description: true, amount: true,
+      category: { select: { name: true, minAmount: true, maxAmount: true, minPercentage: true, maxPercentage: true } },
+      application: { select: { program: { select: { title: true, eligibilityNote: true, expenseCats: { select: { name: true } } } } } },
+    },
+  })
+  if (!exp) return { ok: false, message: 'Η δαπάνη δεν βρέθηκε.' }
+  const prog = exp.application.program
+
+  const rules = [
+    `Πρόγραμμα: ${prog.title}`,
+    prog.eligibilityNote ? `Όροι επιλεξιμότητας: ${prog.eligibilityNote}` : null,
+    `Επιλέξιμες κατηγορίες δαπανών: ${prog.expenseCats.map(c => c.name).join(', ') || '—'}`,
+    exp.category ? `Η δαπάνη έχει καταχωριστεί στην κατηγορία «${exp.category.name}»${exp.category.maxAmount ? ` (όριο ${Number(exp.category.maxAmount)}€)` : ''}.` : 'Η δαπάνη δεν έχει κατηγορία.',
+  ].filter(Boolean).join('\n')
+
+  const messages = [
+    { role: 'system' as const, content: 'Είσαι έμπειρος σύμβουλος ΕΣΠΑ. Αξιολόγησε αν μια δαπάνη είναι ΕΠΙΛΕΞΙΜΗ για χρηματοδότηση βάσει ΜΟΝΟ των κανόνων του προγράμματος που δίνονται. Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"verdict":"ELIGIBLE"|"INELIGIBLE"|"UNCERTAIN","justification":"2-4 προτάσεις τεκμηρίωσης στα ελληνικά, με αναφορά στους κανόνες/κατηγορίες"}. Αν τα στοιχεία δεν επαρκούν, verdict=UNCERTAIN.' },
+    { role: 'user' as const, content: `${rules}\n\nΔΑΠΑΝΗ ΠΡΟΣ ΑΞΙΟΛΟΓΗΣΗ:\n- Περιγραφή: ${exp.description}\n- Ποσό: ${Number(exp.amount)}€` },
+  ]
+
+  let verdict: ExpenseEligibility['verdict'] = 'UNCERTAIN'
+  let note = ''
+  try {
+    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 500, scope: 'OTHER', refType: 'expense-eligibility', refId: expenseId, userId: opts.userId })
+    const p = parseJsonLoose(text) as { verdict?: unknown; justification?: unknown } | null
+    const v = typeof p?.verdict === 'string' ? p.verdict.toUpperCase() : ''
+    verdict = v === 'ELIGIBLE' || v === 'INELIGIBLE' ? v : 'UNCERTAIN'
+    note = typeof p?.justification === 'string' ? p.justification.trim() : ''
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Η αξιολόγηση απέτυχε.' }
+  }
+  if (!note) note = 'Δεν προέκυψε σαφής τεκμηρίωση — έλεγξε χειροκίνητα.'
+
+  const checkedAt = new Date()
+  await prisma.programExpense.update({ where: { id: expenseId }, data: { eligibilityVerdict: verdict, eligibilityNote: note, eligibilityCheckedAt: checkedAt } })
+  revalidatePath('/programs')
+  return { ok: true, result: { verdict, note, checkedAt: checkedAt.toISOString() } }
 }

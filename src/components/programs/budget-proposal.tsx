@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
-  LuPlus, LuLoaderCircle, LuPrinter, LuUpload, LuFileCheck2, LuTriangleAlert, LuSearch, LuCircleCheck,
+  LuPlus, LuLoaderCircle, LuPrinter, LuUpload, LuFileCheck2, LuTriangleAlert, LuSearch, LuCircleCheck, LuSparkles,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,7 @@ import {
 import { cn } from '@/lib/utils'
 import { createExpense } from '@/lib/programs/actions'
 import {
-  getBudgetProposal, findOrCreateSupplierByAfm, listCustomerSuppliers, uploadExpenseQuote,
+  getBudgetProposal, findOrCreateSupplierByAfm, listCustomerSuppliers, uploadExpenseQuote, evaluateExpenseEligibility,
   type BudgetProposal, type ProposalCategory, type SupplierOption,
 } from '@/lib/programs/expense-proposal'
 import { openProposal } from '@/lib/programs/proposal-html'
@@ -146,9 +146,15 @@ function CategoryCard({
   )
 }
 
+const VERDICT_META: Record<string, { label: string; cls: string }> = {
+  ELIGIBLE: { label: 'Επιλέξιμη', cls: 'ok' }, INELIGIBLE: { label: 'ΜΗ επιλέξιμη', cls: 'warn' }, UNCERTAIN: { label: 'Αβέβαιο', cls: 'muted' },
+}
+
 function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expenses'][number]; onReload: () => void }) {
   const fileRef = React.useRef<HTMLInputElement | null>(null)
   const [busy, setBusy] = React.useState(false)
+  const [evaluating, setEvaluating] = React.useState(false)
+  const [showNote, setShowNote] = React.useState(false)
 
   async function upload(file: File) {
     setBusy(true)
@@ -160,20 +166,42 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
     } catch { toast.error('Το ανέβασμα απέτυχε.') } finally { setBusy(false) }
   }
 
+  async function evaluate() {
+    setEvaluating(true)
+    try {
+      const res = await evaluateExpenseEligibility(e.id)
+      if (!res.ok) { toast.error(res.message ?? 'Η αξιολόγηση απέτυχε.'); return }
+      toast.success('Η τεκμηρίωση δημιουργήθηκε.')
+      setShowNote(true)
+      onReload()
+    } catch { toast.error('Η αξιολόγηση απέτυχε.') } finally { setEvaluating(false) }
+  }
+
+  const vm = e.eligibilityVerdict ? VERDICT_META[e.eligibilityVerdict] : null
+
   return (
-    <li className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-card/60 px-2.5 py-1.5 text-[0.78125rem]">
-      <span className="font-medium">{e.description}</span>
-      {e.supplierName && <span className="text-[0.6875rem] text-muted-foreground">· {e.supplierName}{e.supplierAfm ? ` (${e.supplierAfm})` : ''}</span>}
-      <span className="ml-auto font-bold tabular-nums">{EUR2.format(e.amount)} €</span>
-      {e.hasQuote ? (
-        <a href={`/expense-quotes/${e.id}`} className="badge-pill ok shrink-0"><LuFileCheck2 className="size-3" aria-hidden /> προσφορά</a>
-      ) : (
-        <>
-          <input ref={fileRef} type="file" className="hidden" onChange={ev => { const f = ev.target.files?.[0]; if (f) void upload(f); ev.target.value = '' }} />
-          <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="badge-pill warn shrink-0" title="Ανέβασε ενυπόγραφη προσφορά — αλλιώς μένει σε εκκρεμότητα">
-            {busy ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />} λείπει προσφορά
-          </button>
-        </>
+    <li className="rounded-lg bg-card/60 px-2.5 py-1.5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78125rem]">
+        <span className="font-medium">{e.description}</span>
+        {e.supplierName && <span className="text-[0.6875rem] text-muted-foreground">· {e.supplierName}{e.supplierAfm ? ` (${e.supplierAfm})` : ''}</span>}
+        {vm && <button type="button" onClick={() => setShowNote(s => !s)} className={`badge-pill shrink-0 ${vm.cls}`} title="Τεκμηρίωση AI — έλεγξέ τη">{vm.label} ▾</button>}
+        <button type="button" onClick={evaluate} disabled={evaluating} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary" title="Αξιολόγηση επιλεξιμότητας με AI (τεκμηρίωση βάσει αποδελτίωσης)">
+          {evaluating ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {e.eligibilityVerdict ? 'Ξανά' : 'Τεκμηρίωση AI'}
+        </button>
+        <span className="ml-auto font-bold tabular-nums">{EUR2.format(e.amount)} €</span>
+        {e.hasQuote ? (
+          <a href={`/expense-quotes/${e.id}`} className="badge-pill ok shrink-0"><LuFileCheck2 className="size-3" aria-hidden /> προσφορά</a>
+        ) : (
+          <>
+            <input ref={fileRef} type="file" className="hidden" onChange={ev => { const f = ev.target.files?.[0]; if (f) void upload(f); ev.target.value = '' }} />
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="badge-pill warn shrink-0" title="Ανέβασε ενυπόγραφη προσφορά — αλλιώς μένει σε εκκρεμότητα">
+              {busy ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />} λείπει προσφορά
+            </button>
+          </>
+        )}
+      </div>
+      {showNote && e.eligibilityNote && (
+        <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[0.6875rem] text-muted-foreground"><strong>Τεκμηρίωση AI (έλεγξέ τη):</strong> {e.eligibilityNote}</p>
       )}
     </li>
   )

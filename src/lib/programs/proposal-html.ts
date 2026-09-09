@@ -16,8 +16,9 @@ export function buildProposalHtml(p: BudgetProposal): string {
 
   const catBlock = (c: ProposalCategory) => {
     const items = byCat.get(c.id) ?? []
+    const verdictLabel: Record<string, string> = { ELIGIBLE: '✓ επιλέξιμη', INELIGIBLE: '✗ μη επιλέξιμη', UNCERTAIN: '? αβέβαιη' }
     const rows = items.map(e => `<tr>
-      <td>${esc(e.description)}</td>
+      <td>${esc(e.description)}${e.eligibilityNote ? `<div class="just"><b>${e.eligibilityVerdict ? verdictLabel[e.eligibilityVerdict] ?? '' : ''} τεκμηρίωση:</b> ${esc(e.eligibilityNote)}</div>` : ''}</td>
       <td>${esc(e.supplierName ?? '—')}${e.supplierAfm ? ` <span class="afm">(${esc(e.supplierAfm)})</span>` : ''}</td>
       <td class="q">${e.hasQuote ? '✓ προσφορά' : '<span class="miss">λείπει</span>'}</td>
       <td class="num">${EUR.format(e.amount)} €</td>
@@ -57,6 +58,7 @@ export function buildProposalHtml(p: BudgetProposal): string {
   .cat-sum{font-weight:700;font-variant-numeric:tabular-nums;min-width:90px;text-align:right}
   table.items{width:100%;border-collapse:collapse} .items th,.items td{padding:6px 12px;text-align:left;border-top:1px solid var(--rule);font-size:12px} .items th{font-size:10px;text-transform:uppercase;color:var(--muted)}
   .num{text-align:right;font-variant-numeric:tabular-nums} .afm{color:var(--muted);font-size:11px} .q .miss{color:var(--over);font-weight:700} .empty{padding:8px 12px;color:var(--muted);font-size:12px}
+  .just{margin-top:3px;font-size:10px;color:var(--muted);line-height:1.35} .just b{color:var(--ink)}
   .grand{display:flex;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:2px solid var(--navy);font-size:16px;font-weight:700}
   .foot{margin-top:20px;font-size:11px;color:var(--muted)}
   @media print{.bar{display:none} body{background:#fff} .sheet{box-shadow:none;margin:0;max-width:none} @page{margin:12mm}}

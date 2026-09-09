@@ -1599,6 +1599,11 @@ model ProgramExpense {
   quoteStorageKey      String?
   quoteName            String?
   quoteMimeType        String?
+  // Αξιολόγηση επιλεξιμότητας δαπάνης από AI (DeepSeek) βάσει αποδελτίωσης —
+  // ΒΟΗΘΗΜΑ/τεκμηρίωση, ο διαχειριστής αποφασίζει. ELIGIBLE|INELIGIBLE|UNCERTAIN.
+  eligibilityVerdict   String?
+  eligibilityNote      String?
+  eligibilityCheckedAt DateTime?
   docNumber            String?
   suggestedCategoryId  String?
   suggestionReason     String?
