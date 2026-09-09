@@ -15,7 +15,7 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { Columns3, WrapText } from 'lucide-react'
+import { Columns3, WrapText, ChevronRight } from 'lucide-react'
 
 export type DataTableColumn<T> = {
   /** Σταθερό key — χρησιμοποιείται για persistence ορατότητας/πλάτους. */
@@ -66,6 +66,7 @@ export function DataTable<T>({
   bare = false,
   fillHeight = true,
   pageSize = 80,
+  renderExpanded,
 }: {
   tableId: string
   columns: DataTableColumn<T>[]
@@ -89,7 +90,12 @@ export function DataTable<T>({
   /** Cap ορατών γραμμών (client-side) για μεγάλο όγκο — αποφυγή βαρύ DOM. Οι
    * υπόλοιπες φορτώνονται με «Δείξε περισσότερα». */
   pageSize?: number
+  /** Αν οριστεί, κάθε γραμμή αποκτά λαβή ▸ που ανοίγει expanded panel από κάτω
+   * (π.χ. υπο-λίστα). Το περιεχόμενο αποδίδεται lazy μόνο όταν ανοίγει. */
+  renderExpanded?: (row: T) => React.ReactNode
 }) {
+  const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
+  const hasExpand = !!renderExpanded
   const [hidden, setHidden] = React.useState<Set<string>>(new Set())
   const [widths, setWidths] = React.useState<Record<string, number>>({})
   const [sort, setSort] = React.useState<SortState>(initialSort)
@@ -244,12 +250,14 @@ export function DataTable<T>({
       <div className="table-wrap">
         <table className={cn('data-table dt-fixed', wrap && 'dt-wrap')}>
           <colgroup>
+            {hasExpand && <col style={{ width: 40 }} />}
             {visibleColumns.map(c => (
               <col key={c.id} style={{ width: widths[c.id] ?? c.width ?? DEFAULT_WIDTH }} />
             ))}
           </colgroup>
           <thead>
             <tr>
+              {hasExpand && <th className="ctr" aria-hidden />}
               {visibleColumns.map(c => {
                 const sortable = !!c.sortValue
                 const sortedHere = sort?.columnId === c.id
@@ -281,25 +289,58 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {sortedRows.slice(0, visibleCount).map(row => (
-              <tr
-                key={rowKey(row)}
-                className={cn('dotted-row-bottom', onRowClick && 'cursor-pointer', rowClassName?.(row))}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-              >
-                {visibleColumns.map(c => (
-                  <td
-                    key={c.id}
-                    className={cn(c.align === 'center' && 'ctr', c.align === 'right' && 'num', c.nowrap && 'dt-nowrap')}
+            {sortedRows.slice(0, visibleCount).map(row => {
+              const key = rowKey(row)
+              const isOpen = hasExpand && expanded.has(key)
+              return (
+                <React.Fragment key={key}>
+                  <tr
+                    className={cn('dotted-row-bottom', onRowClick && 'cursor-pointer', rowClassName?.(row))}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
                   >
-                    {c.cell(row)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+                    {hasExpand && (
+                      <td className="ctr">
+                        <button
+                          type="button"
+                          aria-expanded={isOpen}
+                          aria-label={isOpen ? 'Σύμπτυξη' : 'Ανάπτυξη'}
+                          className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          onClick={e => {
+                            e.stopPropagation()
+                            setExpanded(prev => {
+                              const next = new Set(prev)
+                              if (next.has(key)) next.delete(key)
+                              else next.add(key)
+                              return next
+                            })
+                          }}
+                        >
+                          <ChevronRight className={cn('size-4 transition-transform', isOpen && 'rotate-90')} aria-hidden />
+                        </button>
+                      </td>
+                    )}
+                    {visibleColumns.map(c => (
+                      <td
+                        key={c.id}
+                        className={cn(c.align === 'center' && 'ctr', c.align === 'right' && 'num', c.nowrap && 'dt-nowrap')}
+                      >
+                        {c.cell(row)}
+                      </td>
+                    ))}
+                  </tr>
+                  {isOpen && (
+                    <tr className="dt-expanded">
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        {renderExpanded!(row)}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
             {sortedRows.length > visibleCount && (
               <tr>
-                <td colSpan={visibleColumns.length} className="py-3 text-center">
+                <td colSpan={visibleColumns.length + (hasExpand ? 1 : 0)} className="py-3 text-center">
                   <button
                     type="button"
                     onClick={() => setVisibleCount(c => c + pageSize)}
@@ -312,7 +353,7 @@ export function DataTable<T>({
             )}
             {sortedRows.length === 0 && (
               <tr>
-                <td colSpan={visibleColumns.length} className="py-8 text-center text-muted-foreground">
+                <td colSpan={visibleColumns.length + (hasExpand ? 1 : 0)} className="py-8 text-center text-muted-foreground">
                   {emptyMessage}
                 </td>
               </tr>

@@ -256,6 +256,29 @@ export async function listEligibleReferralCompanies(): Promise<{
   return { rows, referrers }
 }
 
+/** Επιλέξιμες εταιρίες (status ELIGIBLE, μη αναχθείσες) για ΜΙΑ εταιρία
+ * παραπομπής — για το expandable panel στη λίστα «Παραπομπές». Lazy φόρτωση. */
+export async function listEligibleReferralCompaniesForReferrer(referrerId: string): Promise<EligibleCompanyRow[]> {
+  await requirePermission('programs.manage')
+  const companies = await prisma.referralCompany.findMany({
+    where: { referrerId, status: 'ELIGIBLE', convertedTrdrId: null },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true, afm: true, name: true, email: true, phone: true, city: true,
+      regionName: true, regionConfident: true, referrerId: true,
+      eligiblePrograms: true, existingTrdrId: true, existingIsCustomer: true,
+      referrer: { select: { name: true } },
+    },
+  })
+  return companies.map(c => ({
+    id: c.id, afm: c.afm, name: c.name, email: c.email, phone: c.phone, city: c.city,
+    regionName: c.regionName, regionConfident: c.regionConfident,
+    referrerId: c.referrerId, referrerName: c.referrer?.name ?? '—',
+    eligiblePrograms: (c.eligiblePrograms as unknown as EligibleProgramLite[]) ?? [],
+    existingTrdrId: c.existingTrdrId, existingIsCustomer: c.existingIsCustomer,
+  }))
+}
+
 /**
  * Αναγωγή μιας επιλέξιμης εταιρίας σε δυνητικό πελάτη για τα επιλεγμένα
  * προγράμματα. Εξασφαλίζει Trdr μέσω ΑΦΜ (ΟΧΙ διπλοεγγραφή — reuse υπάρχοντος),

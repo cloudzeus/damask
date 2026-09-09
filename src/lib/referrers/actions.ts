@@ -25,6 +25,8 @@ export type ReferrerRow = {
   active: boolean
   trdrId: string | null
   referredCount: number
+  /** Επιλέξιμες εταιρίες από χαρτογράφηση παραπομπής που περιμένουν αναγωγή σε δυνητικό. */
+  eligiblePending: number
 }
 
 export type ReferrerInput = {
@@ -49,6 +51,13 @@ export async function listReferrers(): Promise<ReferrerRow[]> {
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
     include: { _count: { select: { referred: true } } },
   })
+  // Εκκρεμείς επιλέξιμες εταιρίες ανά παραπομπή (ένα groupBy, όχι N queries).
+  const pending = await prisma.referralCompany.groupBy({
+    by: ['referrerId'],
+    where: { status: 'ELIGIBLE', convertedTrdrId: null },
+    _count: { _all: true },
+  })
+  const pendingMap = new Map(pending.map(p => [p.referrerId, p._count._all]))
   return rows.map(r => ({
     id: r.id,
     name: r.name,
@@ -60,6 +69,7 @@ export async function listReferrers(): Promise<ReferrerRow[]> {
     active: r.active,
     trdrId: r.trdrId,
     referredCount: r._count.referred,
+    eligiblePending: pendingMap.get(r.id) ?? 0,
   }))
 }
 

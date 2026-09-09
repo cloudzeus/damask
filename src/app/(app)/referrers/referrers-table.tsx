@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, LoaderCircle, Building2, User, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, LoaderCircle, Building2, User, Search, MoreVertical, FileSpreadsheet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -11,8 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { createReferrer, updateReferrer, deleteReferrer, lookupReferrerAfm, type ReferrerRow, type ReferrerInput } from '@/lib/referrers/actions'
+import { ReferralEligibilityDialog } from './referral-eligibility-dialog'
+import { ReferrerEligiblePanel } from './referrer-eligible-panel'
 
 type ReferrerTypeValue = 'COMPANY' | 'INDIVIDUAL'
 
@@ -23,6 +28,9 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<ReferrerRow | null>(null)
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
+  const [uploadTarget, setUploadTarget] = React.useState<ReferrerRow | null>(null)
+  // Αυξάνεται μετά από batch/αναγωγή ώστε τα expanded panels να ξαναφορτώσουν.
+  const [refreshToken, setRefreshToken] = React.useState(0)
 
   function openCreate() {
     setEditing(null)
@@ -31,6 +39,10 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
   function openEdit(row: ReferrerRow) {
     setEditing(row)
     setDialogOpen(true)
+  }
+  function refreshEligible() {
+    setRefreshToken(t => t + 1)
+    router.refresh()
   }
 
   async function handleDelete(row: ReferrerRow) {
@@ -75,6 +87,17 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
     { id: 'afm', header: 'ΑΦΜ', width: 120, sortValue: r => r.afm, cell: r => <span className="tabular-nums">{r.afm ?? '—'}</span> },
     { id: 'referred', header: 'Πελάτες', align: 'right', width: 100, sortValue: r => r.referredCount, cell: r => r.referredCount },
     {
+      id: 'eligiblePending',
+      header: 'Προς αναγωγή',
+      headerLabel: 'Επιλέξιμες επαφές προς αναγωγή',
+      align: 'center',
+      width: 130,
+      sortValue: r => r.eligiblePending,
+      cell: r => r.eligiblePending > 0
+        ? <span className="badge-pill warn" title="Επιλέξιμες επαφές που περιμένουν αναγωγή σε δυνητικό — άνοιξε τη γραμμή">{r.eligiblePending}</span>
+        : <span className="text-muted-foreground">—</span>,
+    },
+    {
       id: 'active',
       header: 'Κατάσταση',
       width: 120,
@@ -94,16 +117,28 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
           enableHide: false,
           enableResize: false,
           cell: (r: ReferrerRow) => (
-            <div className="flex items-center justify-center gap-1">
-              <Button type="button" variant="ghost" size="icon-sm" onClick={() => openEdit(r)} aria-label={`Επεξεργασία ${r.name}`}>
-                <Pencil className="size-3.5" aria-hidden />
-              </Button>
-              <Button
-                type="button" variant="ghost" size="icon-sm" disabled={deletingId === r.id}
-                onClick={() => handleDelete(r)} aria-label={`Διαγραφή ${r.name}`}
-              >
-                {deletingId === r.id ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Trash2 className="size-3.5" aria-hidden />}
-              </Button>
+            <div className="flex items-center justify-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <button type="button" aria-label={`Ενέργειες ${r.name}`} disabled={deletingId === r.id} className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50">
+                      {deletingId === r.id ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <MoreVertical className="size-4" aria-hidden />}
+                    </button>
+                  }
+                />
+                <DropdownMenuContent align="end" className="w-max min-w-60">
+                  <DropdownMenuItem onClick={() => setUploadTarget(r)}>
+                    <FileSpreadsheet className="size-3.5" aria-hidden /> Έλεγχος επιλεξιμότητας επαφών (Excel)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => openEdit(r)}>
+                    <Pencil className="size-3.5" aria-hidden /> Επεξεργασία
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDelete(r)} variant="destructive">
+                    <Trash2 className="size-3.5" aria-hidden /> Διαγραφή
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ),
         }]
@@ -126,7 +161,27 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
             </Button>
           ) : undefined
         }
+        renderExpanded={canManage ? (r => (
+          <ReferrerEligiblePanel
+            referrerId={r.id}
+            referrerName={r.name}
+            refreshToken={refreshToken}
+            onRunUpload={() => setUploadTarget(r)}
+            onChanged={refreshEligible}
+          />
+        )) : undefined}
       />
+
+      {canManage && uploadTarget && (
+        <ReferralEligibilityDialog
+          key={uploadTarget.id}
+          open={!!uploadTarget}
+          onOpenChange={open => { if (!open) setUploadTarget(null) }}
+          referrerId={uploadTarget.id}
+          referrerName={uploadTarget.name}
+          onCompleted={refreshEligible}
+        />
+      )}
 
       {canManage && (
         <ReferrerFormDialog
