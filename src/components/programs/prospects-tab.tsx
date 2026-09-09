@@ -282,12 +282,12 @@ export function ProspectsTab({ programId }: { programId: string }) {
     },
     {
       id: 'kads',
-      header: 'ΚΑΔ που ταιριάζει',
-      width: 200,
+      header: 'Δραστηριότητα που ταιριάζει',
+      width: 240,
       cell: row => {
         if (row.matchedKads.length === 0) return <span className="text-muted-foreground">—</span>
         // Κύριος ΚΑΔ → coral (primary-kad) με ★ και πάντα πρώτος· δευτερεύων → πράσινο.
-        // Tooltip (title) = περιγραφή ΚΑΔ.
+        // Δείχνουμε το ΟΝΟΜΑ (περιγραφή) της δραστηριότητας — ο κωδικός στο tooltip.
         const sorted = [...row.matchedKads].sort((a, b) => Number(b.primary) - Number(a.primary))
         return (
           <div className="flex flex-wrap gap-1">
@@ -295,13 +295,13 @@ export function ProspectsTab({ programId }: { programId: string }) {
               <Tooltip key={k.code}>
                 <TooltipTrigger
                   render={
-                    <span className={cn('badge-pill tabular-nums cursor-default', k.primary ? 'primary-kad' : 'ok')}>
-                      {k.primary ? `★ ${k.code}` : k.code}
+                    <span className={cn('badge-pill max-w-[200px] truncate cursor-default', k.primary ? 'primary-kad' : 'ok')}>
+                      {k.primary ? '★ ' : ''}{k.description || k.code}
                     </span>
                   }
                 />
                 <TooltipContent>
-                  {k.code}{k.description ? ` — ${k.description}` : ''}{k.primary ? ' (Κύριος)' : ''}
+                  {k.description ? `${k.description} · ` : ''}ΚΑΔ {k.code}{k.primary ? ' (Κύριος)' : ''}
                 </TooltipContent>
               </Tooltip>
             ))}
