@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- World Wide Associates user manual -->
+<title>Εγχειρίδιο Χρήσης World Wide Associates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --ground:#EDF0F1; --surface:#FFFFFF; --surface-2:#F6F8F8; --line:#D8DEE0;
+    --ink:#0B1E27; --ink-soft:#33474F; --muted:#5E7178;
+    --accent:#16323F; --accent-ink:#FFFFFF; --accent-soft:#E3EBEC;
+    --coral:#E4574D; --coral-soft:#FCEBE9;
+    --amber:#B96A12; --amber-soft:#F8EDDD;
+    --green:#2E7D5B; --green-soft:#E4F1EA;
+    --info:#2F6E8F; --info-soft:#E5EFF3;
+    --shadow:0 1px 2px rgba(11,30,39,.05), 0 6px 20px rgba(11,30,39,.06);
+    --shadow-lift:0 2px 6px rgba(11,30,39,.08), 0 18px 40px rgba(11,30,39,.12);
+  }
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+    --ground:#0B1519; --surface:#111E25; --surface-2:#16262E; --line:#243740;
+    --ink:#E8EEEF; --ink-soft:#B8C6CB; --muted:#8497A0;
+    --accent:#7FB6C7; --accent-ink:#08131A; --accent-soft:#17303A;
+    --coral:#F0857C; --coral-soft:#2C1613; --amber:#E0A24E; --amber-soft:#2A2011;
+    --green:#66C79A; --green-soft:#0F2620; --info:#71B4D2; --info-soft:#122530;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+    --shadow-lift:0 2px 6px rgba(0,0,0,.4), 0 18px 40px rgba(0,0,0,.5);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0B1519; --surface:#111E25; --surface-2:#16262E; --line:#243740;
+    --ink:#E8EEEF; --ink-soft:#B8C6CB; --muted:#8497A0;
+    --accent:#7FB6C7; --accent-ink:#08131A; --accent-soft:#17303A;
+    --coral:#F0857C; --coral-soft:#2C1613; --amber:#E0A24E; --amber-soft:#2A2011;
+    --green:#66C79A; --green-soft:#0F2620; --info:#71B4D2; --info-soft:#122530;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+    --shadow-lift:0 2px 6px rgba(0,0,0,.4), 0 18px 40px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{margin:0; background:var(--ground); color:var(--ink);
+    font-family:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif; font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased;}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  kbd{font-family:"IBM Plex Mono",monospace; font-size:.85em; border:1px solid var(--line); border-radius:5px; padding:1px 6px; background:var(--surface-2)}
+
+  /* Layout: sticky TOC + content */
+  .shell{max-width:1140px; margin:0 auto; padding:0 24px; display:grid; grid-template-columns:230px 1fr; gap:40px; align-items:start}
+  nav.toc{position:sticky; top:20px; align-self:start; max-height:calc(100dvh - 40px); overflow-y:auto; padding:8px 0 20px}
+  nav.toc .brand{font-weight:700; font-size:1.05rem; letter-spacing:-.01em; margin-bottom:4px}
+  nav.toc .brand span{color:var(--accent)}
+  nav.toc .tag{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:16px; display:block}
+  nav.toc a{display:block; padding:4px 10px; border-radius:8px; color:var(--ink-soft); text-decoration:none; font-size:13.5px; border-left:2px solid transparent}
+  nav.toc a:hover{background:var(--surface-2); color:var(--ink)}
+  nav.toc .grp{margin-top:14px; margin-bottom:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding-left:10px}
+  main{min-width:0; padding-bottom:80px}
+
+  header.hero{padding:48px 0 26px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--accent)}
+  h1{font-size:clamp(2rem,4.5vw,2.8rem); line-height:1.05; letter-spacing:-.02em; margin:.3em 0 .3em; text-wrap:balance}
+  .hero p{font-size:1.1rem; color:var(--ink-soft); max-width:60ch; margin:0}
+
+  section{padding:30px 0; scroll-margin-top:20px; border-top:1px solid var(--line)}
+  section:first-of-type{border-top:none}
+  h2{font-size:clamp(1.4rem,2.6vw,1.8rem); letter-spacing:-.015em; margin:0 0 .5em; text-wrap:balance}
+  h3{font-size:1.12rem; margin:1.4em 0 .4em; letter-spacing:-.01em}
+  p{margin:0 0 1em} .lead{font-size:1.05rem; color:var(--ink-soft)}
+  a{color:var(--info)}
+  .num-eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600; color:var(--muted); letter-spacing:.05em}
+
+  /* Steps */
+  ol.steps{list-style:none; counter-reset:s; margin:14px 0; padding:0; display:flex; flex-direction:column; gap:10px}
+  ol.steps li{counter-increment:s; position:relative; padding:12px 16px 12px 52px; background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); font-size:14.5px}
+  ol.steps li::before{content:counter(s); position:absolute; left:14px; top:12px; width:24px; height:24px; border-radius:8px; background:var(--accent); color:var(--accent-ink); font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px; display:grid; place-items:center}
+  ol.steps li strong{color:var(--ink)}
+  .steps .k{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:12px; background:var(--surface-2); border:1px solid var(--line); border-radius:5px; padding:0 6px}
+
+  /* Tips / notes */
+  .tip{display:flex; gap:12px; padding:14px 18px; border-radius:12px; margin:16px 0; font-size:14px; border:1px solid var(--line); background:var(--surface)}
+  .tip .ic{flex:none; width:26px; height:26px; border-radius:8px; display:grid; place-items:center; font-weight:700; font-family:"IBM Plex Mono",monospace}
+  .tip.ai{border-left:4px solid var(--info)} .tip.ai .ic{background:var(--info-soft); color:var(--info)}
+  .tip.warn{border-left:4px solid var(--amber)} .tip.warn .ic{background:var(--amber-soft); color:var(--amber)}
+  .tip.ok{border-left:4px solid var(--green)} .tip.ok .ic{background:var(--green-soft); color:var(--green)}
+  .tip p{margin:0}
+
+  /* Screen illustration frame */
+  .fig{margin:18px 0 8px}
+  .frame{background:var(--accent); border-radius:18px; padding:14px; box-shadow:var(--shadow-lift);
+    --s:#FFFFFF; --g:#EEF2F3; --i:#0B1E27; --m:#647880; --l:#DCE3E5}
+  .win{background:var(--g); border-radius:12px; overflow:hidden; color:var(--i)}
+  .barrow{background:var(--s); border-bottom:1px solid var(--l); display:flex; align-items:center; gap:8px; padding:9px 12px; font-size:12.5px; color:var(--m)}
+  .barrow .pill{background:var(--g); border:1px solid var(--l); border-radius:999px; padding:5px 10px}
+  .barrow .ic{width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:var(--g); border:1px solid var(--l)}
+  .cap{margin:8px 2px 0; font-size:12.5px; color:var(--muted); font-style:italic}
+  /* callout badges */
+  .co{display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:var(--coral); color:#fff; font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; vertical-align:middle; box-shadow:0 0 0 2px var(--s)}
+  .legend{display:flex; flex-direction:column; gap:6px; margin-top:12px}
+  .legend div{display:flex; gap:9px; align-items:baseline; font-size:13.5px}
+  .legend .co{flex:none}
+  /* mini UI atoms inside frame */
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:12px}
+  .kpi{background:var(--s); border:1px solid var(--l); border-radius:10px; padding:10px 12px}
+  .kpi b{display:block; font-family:"IBM Plex Mono",monospace; font-size:1.35rem; line-height:1}
+  .kpi span{display:block; font-size:11px; color:var(--m); margin-top:4px}
+  .kpi.hot b{color:#E4574D}
+  .panel{background:var(--s); border:1px solid var(--l); border-radius:10px; padding:12px; margin:0 12px 12px}
+  .panel h5{margin:0 0 8px; font-size:12px}
+  .ncard{border:1px solid var(--l); border-radius:9px; padding:9px 10px; margin-bottom:8px; background:var(--g)}
+  .ncard:last-child{margin-bottom:0}
+  .ncard .t{font-size:12.5px; font-weight:600} .ncard .d{font-size:11px; color:var(--m); margin:1px 0 7px}
+  .btnrow{display:flex; gap:6px; flex-wrap:wrap}
+  .b{font-size:11.5px; font-weight:600; border-radius:999px; padding:4px 11px; border:1px solid transparent}
+  .b.p{background:#16323F; color:#fff} .b.ok{background:#2E7D5B; color:#fff} .b.no{background:#fff; color:#E4574D; border-color:#E4574D} .b.g{background:#fff; color:#33474F; border-color:var(--l)}
+  .tabs{display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:12px}
+  .tabs .lbl{font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--m); margin:0 2px}
+  .tabs .sep{width:1px; height:16px; background:var(--l); margin:0 4px}
+  .tab{font-size:11.5px; font-weight:600; border-radius:999px; padding:5px 11px; background:transparent; color:var(--m)}
+  .tab.on{background:#16323F; color:#fff}
+  .sidebar{display:grid; grid-template-columns:150px 1fr; gap:0}
+  .sidebar .sb{background:var(--s); border-right:1px solid var(--l); padding:10px}
+  .sb .g{font-size:9px; font-weight:700; text-transform:uppercase; color:var(--m); letter-spacing:.06em; margin:8px 0 3px}
+  .sb .it{font-size:11.5px; padding:4px 6px; border-radius:6px; color:var(--i)}
+  .sb .it.on{background:#16323F; color:#fff}
+  .sidebar .content{padding:14px}
+  .menucol{padding:10px}
+
+  /* glossary */
+  .gloss{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+  .gloss div{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow)}
+  .gloss dt{font-weight:600; font-size:14px}
+  .gloss dd{margin:2px 0 0; font-size:13px; color:var(--muted)}
+
+  /* faq */
+  details{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:0 16px; margin-bottom:10px; box-shadow:var(--shadow)}
+  details summary{cursor:pointer; padding:13px 0; font-weight:600; font-size:14.5px; list-style:none; display:flex; justify-content:space-between; gap:10px}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:"+"; color:var(--muted); font-family:"IBM Plex Mono",monospace}
+  details[open] summary::after{content:"–"}
+  details p{padding:0 0 14px; margin:0; font-size:14px; color:var(--ink-soft)}
+
+  footer{border-top:1px solid var(--line); padding:26px 0 60px; color:var(--muted); font-size:13px}
+
+  @media (max-width:860px){
+    .shell{grid-template-columns:1fr; gap:0}
+    nav.toc{position:static; max-height:none; border-bottom:1px solid var(--line); margin-bottom:12px}
+    nav.toc a{display:inline-block}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .gloss{grid-template-columns:1fr}
+    .sidebar{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="toc">
+    <div class="brand"><span>World Wide Associates</span> · Οδηγός</div>
+    <span class="tag">Εγχειρίδιο χρήσης</span>
+    <a href="#start">Ξεκίνημα σε 1 λεπτό</a>
+    <a href="#flow">Πώς λειτουργεί</a>
+    <a href="#env">Το περιβάλλον</a>
+    <a href="#home">Το Κέντρο ελέγχου</a>
+    <a href="#search">Γρήγορη αναζήτηση</a>
+    <div class="grp">Πώς να…</div>
+    <a href="#t-customer">…καταχωρίσω πελάτη</a>
+    <a href="#t-program">…προσθέσω πρόγραμμα</a>
+    <a href="#t-link">…ξεκινήσω ένα έργο</a>
+    <a href="#t-work">…δουλέψω το έργο</a>
+    <a href="#t-docs">…μαζέψω δικαιολογητικά</a>
+    <a href="#t-expenses">…βάλω δαπάνες</a>
+    <a href="#t-submit">…υποβάλω την πρόταση</a>
+    <a href="#t-pay">…ζητήσω αποπληρωμή</a>
+    <a href="#t-inspect">…ετοιμάσω επιτόπιο έλεγχο</a>
+    <a href="#t-leads">…χειριστώ ενδιαφερόμενους</a>
+    <div class="grp">Αναφορά</div>
+    <a href="#notif">Ειδοποιήσεις</a>
+    <a href="#glossary">Λεξικό όρων</a>
+    <a href="#faq">Συχνές ερωτήσεις</a>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Εγχειρίδιο χρήσης</div>
+      <h1>Ο οδηγός της World Wide Associates</h1>
+      <p>Απλά, βήμα-βήμα. Δεν χρειάζεσαι γνώσεις υπολογιστών — αν ξέρεις να διαβάζεις μια λίστα, ξέρεις να τη χρησιμοποιείς. Κάθε ενότητα σου λέει <strong>τι να πατήσεις</strong> και <strong>τι θα δεις</strong>.</p>
+    </header>
+
+    <section id="start">
+      <div class="num-eyebrow">00</div>
+      <h2>Ξεκίνημα σε 1 λεπτό</h2>
+      <p class="lead">Τρία πράγματα να θυμάσαι και τα καταφέρνεις με όλα:</p>
+      <ol class="steps">
+        <li><strong>Η αρχική («Κέντρο ελέγχου») σου λέει τι να κάνεις σήμερα.</strong> Μπες, κοίτα τα νούμερα και τις ειδοποιήσεις με τα κουμπιά — δράσε από εκεί.</li>
+        <li><strong>Ψάχνεις κάτι; Πάτα <kbd>⌘K</kbd> (ή <kbd>Ctrl</kbd>+<kbd>K</kbd>).</strong> Γράψε όνομα ή ΑΦΜ και πήγαινε κατευθείαν εκεί.</li>
+        <li><strong>Κόλλησες; Πάτα το <kbd>?</kbd> πάνω δεξιά.</strong> Εξηγεί πώς δουλεύει και τι σημαίνουν οι όροι.</li>
+      </ol>
+      <div class="tip ai"><span class="ic">AI</span><p>Όπου βλέπεις κουμπί με <strong>«AI»</strong> ή ✨, το σύστημα σε βοηθά (διαβάζει έγγραφα, προτείνει, συντάσσει email). Πάντα <strong>εσύ αποφασίζεις</strong> — η AI είναι βοηθός, όχι αφεντικό.</p></div>
+    </section>
+
+    <section id="flow">
+      <div class="num-eyebrow">01</div>
+      <h2>Πώς λειτουργεί — η μεγάλη εικόνα</h2>
+      <p class="lead">Κάθε πρόταση ακολουθεί την ίδια πορεία. Αν την έχεις στο μυαλό σου, ξέρεις πάντα «πού είσαι».</p>
+      <div class="fig"><div class="frame"><div class="win" style="padding:16px">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; justify-content:center">
+          <span class="b p">1 · Πελάτης</span><span style="color:var(--m)">→</span>
+          <span class="b p">2 · Πρόγραμμα</span><span style="color:var(--m)">→</span>
+          <span class="b p">3 · Έργο</span><span style="color:var(--m)">→</span>
+          <span class="b p">4 · Δικαιολογητικά &amp; Δαπάνες</span><span style="color:var(--m)">→</span>
+          <span class="b p">5 · Υποβολή</span><span style="color:var(--m)">→</span>
+          <span class="b ok">6 · Έγκριση</span><span style="color:var(--m)">→</span>
+          <span class="b p">7 · Αγορές &amp; Αποπληρωμή</span>
+        </div>
+      </div></div><p class="cap">Η πορεία μιας πρότασης, από την αρχή ως την πληρωμή.</p></div>
+      <p>Με λόγια: καταχωρείς έναν <strong>πελάτη</strong>, προσθέτεις ένα <strong>πρόγραμμα</strong> (προκήρυξη), τα <strong>συνδέεις</strong> και ξεκινά ένα <strong>έργο</strong>. Μέσα στο έργο μαζεύεις <strong>δικαιολογητικά</strong> και φτιάχνεις το <strong>σχέδιο δαπανών</strong>. Όταν όλα είναι έτοιμα, κάνεις <strong>υποβολή</strong> και περιμένεις <strong>έγκριση</strong>. Μετά, ο πελάτης κάνει τις <strong>αγορές</strong> και ζητάς <strong>αποπληρωμή</strong>.</p>
+    </section>
+
+    <section id="env">
+      <div class="num-eyebrow">02</div>
+      <h2>Το περιβάλλον — τι υπάρχει στην οθόνη</h2>
+      <p class="lead">Δύο σταθερά σημεία: η <strong>μπάρα πάνω</strong> (εργαλεία) και το <strong>μενού αριστερά</strong> (πού πας).</p>
+      <div class="fig"><div class="frame"><div class="win">
+        <div class="barrow">
+          <span class="ic">☰</span><span class="co">1</span>
+          <span class="pill" style="flex:1">🔍 Αναζήτηση πελάτη, έργου, προγράμματος… &nbsp;⌘K</span><span class="co">2</span>
+          <span style="margin-left:auto"></span>
+          <span class="ic">?</span><span class="co">3</span>
+          <span class="ic">🔔</span><span class="co">4</span>
+          <span class="ic" style="background:#16323F;color:#fff">GK</span><span class="co">5</span>
+        </div>
+        <div class="sidebar">
+          <div class="sb">
+            <div class="g">Καθημερινά</div><div class="it">Dashboard</div>
+            <div class="g">Ευρωπαϊκά Προγράμματα</div><div class="it">Προγράμματα</div><div class="it on">Έργα</div><div class="it">Leads</div>
+            <div class="g">Πελάτες &amp; Προμηθευτές</div><div class="it">Πελάτες &amp; Προμηθευτές</div>
+          </div>
+          <div class="content" style="color:var(--m); font-size:12px">Εδώ ανοίγει η σελίδα που διάλεξες.</div>
+        </div>
+      </div></div>
+      <div class="legend">
+        <div><span class="co">1</span> <span><strong>Μενού</strong> — άνοιξε/κλείσε το πλαϊνό μενού.</span></div>
+        <div><span class="co">2</span> <span><strong>Αναζήτηση</strong> — βρες οτιδήποτε (ή πάτα <kbd>⌘K</kbd>).</span></div>
+        <div><span class="co">3</span> <span><strong>Βοήθεια</strong> — πώς δουλεύει + λεξικό όρων.</span></div>
+        <div><span class="co">4</span> <span><strong>Ειδοποιήσεις</strong> — τι νέο υπάρχει, με κουμπιά ενεργειών.</span></div>
+        <div><span class="co">5</span> <span><strong>Ο λογαριασμός σου</strong> — ρόλος &amp; αποσύνδεση.</span></div>
+      </div></div>
+      <div class="tip ok"><span class="ic">✓</span><p>Στο μενού, η καθημερινή δουλειά (Προγράμματα, Έργα, Leads, Πελάτες) είναι <strong>ψηλά</strong>. Οι ομάδες κλείνουν/ανοίγουν — άφησε ανοιχτές μόνο όσες χρησιμοποιείς.</p></div>
+    </section>
+
+    <section id="home">
+      <div class="num-eyebrow">03</div>
+      <h2>Το Κέντρο ελέγχου — η αρχική σου</h2>
+      <p class="lead">Ό,τι εκκρεμεί σήμερα, με μια ματιά. Δεν χρειάζεται να ψάχνεις — δρας από εδώ.</p>
+      <div class="fig"><div class="frame"><div class="win">
+        <div class="kpis">
+          <div class="kpi"><b>18</b><span>Ενεργά έργα</span></div>
+          <div class="kpi hot"><b>4</b><span>Εγκρίσεις εκκρεμούν</span></div>
+          <div class="kpi hot"><b>6</b><span>Leads προς επικοινωνία</span></div>
+          <div class="kpi"><b>3</b><span>Προθεσμίες αυτή την εβδομάδα</span></div>
+        </div>
+        <div class="panel"><h5>① Πρώτα βήματα (για νέους)</h5><div style="font-size:11.5px;color:var(--m)">1. Πελάτης · 2. Πρόγραμμα · 3. Σύνδεση · 4. Δούλεψε το έργο — κάθε βήμα ένα κλικ.</div></div>
+        <div class="panel"><h5>② Ειδοποιήσεις — με κουμπιά</h5>
+          <div class="ncard"><div class="t">Δικαιολογητικό προς επιβεβαίωση — DGSOFT</div><div class="d">Ε3 2024</div><div class="btnrow"><span class="b ok">Έγκριση</span><span class="b no">Απόρριψη</span><span class="b g">Προβολή</span></div></div>
+          <div class="ncard"><div class="t">Σου ανατέθηκε lead — MEGA ELECTRICS</div><div class="d">χθες 19:24</div><div class="btnrow"><span class="b p">Επικοινωνία</span><span class="b g">Δες lead</span></div></div>
+        </div>
+      </div></div>
+      <div class="legend">
+        <div><span class="co">1</span> <span><strong>Νούμερα (KPIs)</strong> — πάτησέ τα για να πας στη σχετική λίστα. Τα κόκκινα θέλουν προσοχή.</span></div>
+        <div><span class="co">2</span> <span><strong>Ειδοποιήσεις με κουμπιά</strong> — έγκρινε, επικοινώνησε ή άνοιξε <em>χωρίς να φύγεις</em> από την αρχική.</span></div>
+      </div></div>
+      <h3>Καθημερινή ρουτίνα (πρότασή μας)</h3>
+      <ol class="steps">
+        <li>Κοίτα τα <strong>κόκκινα νούμερα</strong> — αν κάτι εκκρεμεί, πάτησέ το.</li>
+        <li>Στις <strong>«Εγκρίσεις εκκρεμούν»</strong>: για κάθε δικαιολογητικό πάτα <strong>Έγκριση</strong> ή <strong>Απόρριψη</strong>.</li>
+        <li>Στις <strong>ειδοποιήσεις</strong>: για κάθε lead πάτα <strong>Επικοινωνία</strong>· για πελάτη που ζητά επαφή, άνοιξε την καρτέλα.</li>
+      </ol>
+    </section>
+
+    <section id="search">
+      <div class="num-eyebrow">04</div>
+      <h2>Γρήγορη αναζήτηση (⌘K) — βρες οτιδήποτε</h2>
+      <ol class="steps">
+        <li>Πάτα <kbd>⌘K</kbd> (Mac) ή <kbd>Ctrl</kbd>+<kbd>K</kbd> (Windows) — ή κάνε κλικ στο πλαίσιο αναζήτησης πάνω.</li>
+        <li>Γράψε <strong>όνομα εταιρίας</strong> ή <strong>ΑΦΜ</strong> (τουλάχιστον 2 χαρακτήρες).</li>
+        <li>Εμφανίζονται πελάτες, έργα, προγράμματα και leads. Χρησιμοποίησε τα βελάκια <kbd>↑</kbd> <kbd>↓</kbd> και <kbd>Enter</kbd>, ή κάνε κλικ.</li>
+        <li>Σε πηγαίνει <strong>κατευθείαν</strong> εκεί.</li>
+      </ol>
+      <div class="tip"><span class="ic" style="background:var(--info-soft);color:var(--info)">i</span><p>Είναι ο πιο γρήγορος τρόπος όταν διαχειρίζεσαι πολλές προτάσεις. Δεν χρειάζεται να θυμάσαι σε ποιο μενού είναι κάτι — απλά ψάξ' το.</p></div>
+    </section>
+
+    <section id="t-customer">
+      <div class="num-eyebrow">05</div>
+      <h2>Πώς να καταχωρίσω έναν πελάτη</h2>
+      <ol class="steps">
+        <li>Μενού → <strong>Πελάτες &amp; Προμηθευτές</strong>.</li>
+        <li>Πάνω δεξιά, κουμπί <strong>«Νέος πελάτης»</strong> (ή «Καταχώριση»).</li>
+        <li>Γράψε <strong>μόνο το ΑΦΜ</strong> και πάτα αναζήτηση — τα στοιχεία (επωνυμία, διεύθυνση, ΚΑΔ) έρχονται <strong>αυτόματα από την ΑΑΔΕ</strong>.</li>
+        <li>Έλεγξε, συμπλήρωσε ό,τι λείπει, <strong>Αποθήκευση</strong>.</li>
+      </ol>
+      <div class="tip ai"><span class="ic">AI</span><p>Το ΑΦΜ αρκεί — δεν χρειάζεται να πληκτρολογήσεις όλα τα στοιχεία. Το σύστημα τα φέρνει μόνο του.</p></div>
+    </section>
+
+    <section id="t-program">
+      <div class="num-eyebrow">06</div>
+      <h2>Πώς να προσθέσω ένα πρόγραμμα</h2>
+      <ol class="steps">
+        <li>Μενού → <strong>Προγράμματα</strong> → κουμπί <strong>«Νέο πρόγραμμα»</strong>.</li>
+        <li><strong>Ανέβασε την προκήρυξη</strong> (PDF). Η <em>αποδελτίωση</em> διαβάζει το αρχείο και εξάγει μόνη της τίτλο, προϋπολογισμό, προθεσμία, κατηγορίες δαπανών και προτεινόμενα δικαιολογητικά.</li>
+        <li>Έλεγξε τις προτάσεις, διάλεξε τα δικαιολογητικά που θέλεις, <strong>Αποθήκευση</strong>.</li>
+      </ol>
+      <div class="tip warn"><span class="ic">!</span><p>Η αποδελτίωση είναι βοηθός — <strong>πάντα έλεγξε</strong> τα νούμερα (προϋπολογισμό, προθεσμία) πριν αποθηκεύσεις.</p></div>
+    </section>
+
+    <section id="t-link">
+      <div class="num-eyebrow">07</div>
+      <h2>Πώς να ξεκινήσω ένα έργο (σύνδεση πελάτη + προγράμματος)</h2>
+      <ol class="steps">
+        <li>Άνοιξε την <strong>καρτέλα του πελάτη</strong> (από τη λίστα ή με ⌘K).</li>
+        <li>Κάτω, ενότητα <strong>«Ευρωπαϊκά Προγράμματα»</strong> → κουμπί <strong>«Σύνδεση με πρόγραμμα»</strong>.</li>
+        <li>Διάλεξε το πρόγραμμα. Δημιουργείται ένα <strong>έργο</strong> — από εδώ διαχειρίζεσαι όλη την πρόταση.</li>
+      </ol>
+      <div class="tip ok"><span class="ic">✓</span><p>Θυμήσου το μοντέλο: <strong>το πρόγραμμα</strong> ορίζει τους κανόνες, και <strong>σε κάθε πελάτη</strong> διαχειρίζεσαι το δικό του έργο.</p></div>
+    </section>
+
+    <section id="t-work">
+      <div class="num-eyebrow">08</div>
+      <h2>Πώς να δουλέψω ένα έργο — οι φάσεις</h2>
+      <p class="lead">Η καρτέλα του έργου έχει πάνω ένα <strong>stepper</strong> (σε ποιο στάδιο είσαι) και <strong>καρτέλες ομαδοποιημένες σε φάσεις</strong>.</p>
+      <div class="fig"><div class="frame"><div class="win">
+        <div class="tabs">
+          <span class="lbl">Μελέτη</span><span class="tab on">Αξιολόγηση</span><span class="tab">Δικαιολογητικά</span><span class="tab">Δαπάνες &amp; Πλάνο</span><span class="tab">Παραδοτέα</span>
+          <span class="sep"></span><span class="lbl">Υποβολή</span><span class="tab">ΟΠΣΚΕ</span>
+          <span class="sep"></span><span class="lbl">Υλοποίηση</span><span class="tab">Πιστοποίηση</span><span class="tab">Αποπληρωμές</span>
+          <span class="sep"></span><span class="lbl">Οργάνωση</span><span class="tab">Επαφές</span><span class="tab">Επικοινωνία</span>
+        </div>
+      </div></div><p class="cap">Οι καρτέλες ομαδοποιημένες: πρώτα η Μελέτη, μετά Υποβολή, Υλοποίηση, Οργάνωση.</p></div>
+      <p>Δούλεψε <strong>από αριστερά προς τα δεξιά</strong>: πρώτα η <strong>Μελέτη</strong> (αξιολόγηση, δικαιολογητικά, δαπάνες), μετά η <strong>Υποβολή</strong>, μετά η <strong>Υλοποίηση</strong> (αγορές, αποπληρωμή). Δεν χρειάζεται να τα ξέρεις όλα — ακολούθησε τη σειρά.</p>
+      <div class="tip"><span class="ic" style="background:var(--info-soft);color:var(--info)">i</span><p>Άσε τον δείκτη στο ποντίκι πάνω σε μια «δύσκολη» καρτέλα (π.χ. ΟΠΣΚΕ, Πιστοποίηση) — εμφανίζεται μικρή εξήγηση.</p></div>
+    </section>
+
+    <section id="t-docs">
+      <div class="num-eyebrow">09</div>
+      <h2>Πώς να μαζέψω δικαιολογητικά</h2>
+      <ol class="steps">
+        <li>Στην καρτέλα του έργου → φάση <strong>Μελέτη</strong> → καρτέλα <strong>Δικαιολογητικά</strong>.</li>
+        <li>Βλέπεις τι χρειάζεται. Για να ζητήσεις έγγραφα από τον πελάτη, στείλε του <strong>αίτημα</strong> (φτιάχνει έναν σύνδεσμο που ανεβάζει μόνος του τα αρχεία).</li>
+        <li>Όταν ο πελάτης ανεβάσει, το βλέπεις στην αρχική ως <strong>«προς επιβεβαίωση»</strong> → <strong>Έγκριση</strong> ή <strong>Απόρριψη</strong>.</li>
+      </ol>
+      <div class="tip ai"><span class="ic">AI</span><p>Στην <strong>αποθήκη του πελάτη</strong>, όταν ανεβάζεις ένα έγγραφο, πάτα <strong>«AI ανάγνωση»</strong>: το σύστημα αναγνωρίζει <em>τον τύπο</em> (π.χ. φορολογική ενημερότητα) και <em>την ημ. λήξης</em> — και σε ειδοποιεί όταν λήξει.</p></div>
+      <div class="tip warn"><span class="ic">!</span><p>Χωρίς εγκεκριμένα τα υποχρεωτικά δικαιολογητικά, το σύστημα <strong>δεν σε αφήνει</strong> να προχωρήσεις σε επόμενο στάδιο. Είναι σκόπιμο — σε προστατεύει.</p></div>
+    </section>
+
+    <section id="t-expenses">
+      <div class="num-eyebrow">10</div>
+      <h2>Πώς να βάλω δαπάνες &amp; προσφορές</h2>
+      <p class="lead">Στη φάση Μελέτη → καρτέλα <strong>Δαπάνες &amp; Πλάνο</strong>. Οι δαπάνες μπαίνουν <strong>μέσα σε κάθε κατηγορία</strong>, με μπάρα ορίου.</p>
+      <ol class="steps">
+        <li>Άνοιξε μια κατηγορία (κλικ) → <strong>«Προδιαγραφή δαπάνης»</strong>.</li>
+        <li>Γράψε περιγραφή, ποσό, και τον <strong>προμηθευτή (με ΑΦΜ)</strong>. Ανέβασε την <strong>ενυπόγραφη προσφορά</strong>.</li>
+        <li><em>(Προαιρετικά)</em> πάτα <strong>«AI ανάγνωση προσφοράς»</strong> — συμπληρώνει μόνο του ποσό/προμηθευτή από το αρχείο.</li>
+        <li>Η <strong>μπάρα</strong> δείχνει πόσο έχεις καλύψει από το όριο (π.χ. «3.000 από 8.500»). Κόκκινο = υπέρβαση.</li>
+      </ol>
+      <div class="tip ai"><span class="ic">AI</span><p>Δύο κουμπιά-βοηθοί: <strong>«Τεκμηρίωση AI»</strong> (λέει αν μια δαπάνη είναι επιλέξιμη + προτείνει σωστή κατηγορία) και <strong>«AI έλεγχος σχεδίου»</strong> (σαρώνει όλο το σχέδιο για ρίσκα πριν την υποβολή).</p></div>
+      <div class="tip warn"><span class="ic">!</span><p>Μπορείς να βάλεις δαπάνη <strong>χωρίς προσφορά</strong>, αλλά τότε μένει <strong>εκκρεμότητα</strong> μέχρι να την ανεβάσεις.</p></div>
+    </section>
+
+    <section id="t-submit">
+      <div class="num-eyebrow">11</div>
+      <h2>Πώς να υποβάλω την πρόταση</h2>
+      <ol class="steps">
+        <li>Καρτέλα έργου → φάση <strong>Υποβολή</strong> → <strong>ΟΠΣΚΕ</strong>.</li>
+        <li>Το σύστημα κάνει <strong>έλεγχο ετοιμότητας</strong>: αν λείπει κάτι (δικαιολογητικά, υποχρεωτική κατηγορία κενή, υπέρβαση ορίου), το δείχνει με <strong>κόκκινο</strong> και δεν σε αφήνει να υποβάλεις.</li>
+        <li>Όταν όλα είναι πράσινα, πάτα <strong>«Υποβολή πρότασης»</strong>.</li>
+        <li>Μετά περιμένεις. Όταν έρθει η απόφαση, καταχώρισέ την: <strong>Έγκριση</strong> ή <strong>Απόρριψη</strong>. Αν χρειαστεί αλλαγή, κάνε <strong>«Τροποποίηση → νέα υποβολή»</strong>.</li>
+      </ol>
+    </section>
+
+    <section id="t-pay">
+      <div class="num-eyebrow">12</div>
+      <h2>Πώς να καταχωρίσω αγορές &amp; να ζητήσω αποπληρωμή</h2>
+      <p class="lead">Μετά την έγκριση, στην καρτέλα έργου εμφανίζεται η φάση <strong>Υλοποίηση</strong>.</p>
+      <ol class="steps">
+        <li>Στο «Δαπάνες &amp; Πλάνο» (φάση υλοποίησης) → <strong>«Στοιχεία αγορών»</strong>. Για κάθε αγορά ανέβασε τα <strong>3 έγγραφα</strong>: παραστατικό, extrait τράπεζας, βεβαίωση προμηθευτή. Γράψε το πληρωμένο ποσό &amp; serial.</li>
+        <li>Πάτα <strong>«AI ανάγνωση παραστατικού»</strong> (διαβάζει ποσό/προμηθευτή) και <strong>«AI διασταύρωση»</strong> (ελέγχει ότι ταιριάζουν με την εγκεκριμένη δαπάνη).</li>
+        <li>Πήγαινε στην καρτέλα <strong>Αποπληρωμές</strong>, φτιάξε μια <strong>δόση</strong> και πρόσθεσε τις δαπάνες που έχουν <strong>πλήρη έγγραφα</strong> (φαίνεται «3/3»). Υπόβαλε το αίτημα.</li>
+      </ol>
+      <div class="tip warn"><span class="ic">!</span><p>Μια δαπάνη μπαίνει σε αίτημα αποπληρωμής <strong>μόνο</strong> αν έχει και τα 3 έγγραφα. Αλλιώς λέει «λείπουν έγγραφα αγοράς».</p></div>
+    </section>
+
+    <section id="t-inspect">
+      <div class="num-eyebrow">13</div>
+      <h2>Πώς να ετοιμάσω τον επιτόπιο έλεγχο</h2>
+      <p class="lead">Όταν έρχεται ο ελεγκτής να δει το φυσικό αντικείμενο, φτιάχνεις δύο αρχεία με ένα κλικ (φάση Υλοποίηση → «Επιτόπιος έλεγχος»):</p>
+      <ol class="steps">
+        <li><strong>«Excel δαπανών»</strong> — όλες οι δαπάνες με αριθμούς τιμολογίων &amp; serials.</li>
+        <li><strong>«Word παραστατικών»</strong> — όλα τα παραστατικά ως φωτογραφίες (παραστατικό, extrait, φωτο προϊόντος + θέση, βεβαίωση).</li>
+      </ol>
+    </section>
+
+    <section id="t-leads">
+      <div class="num-eyebrow">14</div>
+      <h2>Πώς να χειριστώ ενδιαφερόμενους (leads)</h2>
+      <p class="lead">Τα <strong>leads</strong> είναι όσοι έδειξαν ενδιαφέρον (π.χ. από τη φόρμα επιλεξιμότητας) αλλά δεν είναι ακόμη πελάτες.</p>
+      <ol class="steps">
+        <li>Μενού → <strong>Leads</strong>. Χρησιμοποίησε το <strong>πλαίσιο αναζήτησης</strong> ή τα φίλτρα κατάστασης.</li>
+        <li>Όταν σου ανατεθεί ένα lead, πάτα <strong>Επικοινωνία</strong> και <strong>κατάγραψε το follow-up</strong> (τι είπατε).</li>
+        <li>Αν ενδιαφέρεται, κάνε <strong>Αναγωγή</strong> — γίνεται δυνητικός πελάτης και ξεκινά έργο.</li>
+      </ol>
+    </section>
+
+    <section id="notif">
+      <div class="num-eyebrow">15</div>
+      <h2>Ειδοποιήσεις &amp; εκκρεμότητες</h2>
+      <p>Το <strong>🔔 πάνω δεξιά</strong> δείχνει τι νέο υπάρχει. Οι ειδοποιήσεις στην <strong>αρχική</strong> έχουν <strong>κουμπιά ενεργειών</strong> — δεν χρειάζεται να ψάξεις τι να κάνεις:</p>
+      <div class="gloss">
+        <div><dt>Δικαιολογητικό προς επιβεβαίωση</dt><dd>Κουμπιά: Έγκριση · Απόρριψη · Προβολή.</dd></div>
+        <div><dt>Σου ανατέθηκε lead</dt><dd>Κουμπιά: Επικοινωνία · Δες lead.</dd></div>
+        <div><dt>Πελάτης ζητά επικοινωνία</dt><dd>Κουμπί: άνοιγμα καρτέλας πελάτη.</dd></div>
+        <div><dt>Δικαιολογητικό λήγει</dt><dd>Στείλε αίτημα εγγράφου (με AI-έτοιμο email).</dd></div>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <div class="num-eyebrow">16</div>
+      <h2>Λεξικό όρων</h2>
+      <dl class="gloss">
+        <div><dt>Έργο</dt><dd>Η συμμετοχή ενός πελάτη σε ένα πρόγραμμα — εδώ γίνεται όλη η δουλειά.</dd></div>
+        <div><dt>Δικαιολογητικά</dt><dd>Τα έγγραφα που πρέπει να μαζέψεις (π.χ. φορολογική ενημερότητα).</dd></div>
+        <div><dt>Αποδελτίωση</dt><dd>Το σύστημα διαβάζει την προκήρυξη (PDF) και εξάγει μόνο του τα βασικά.</dd></div>
+        <div><dt>ΟΠΣΚΕ</dt><dd>Το κρατικό σύστημα όπου υποβάλλεται επίσημα η πρόταση.</dd></div>
+        <div><dt>Πιστοποίηση</dt><dd>Η επιβεβαίωση ότι η δαπάνη έγινε πραγματικά (φωτο προϊόντος, θέση).</dd></div>
+        <div><dt>Αποπληρωμή</dt><dd>Το αίτημα να πληρωθεί ο πελάτης για μια εγκεκριμένη δαπάνη.</dd></div>
+        <div><dt>Lead (ενδιαφερόμενος)</dt><dd>Κάποιος που έδειξε ενδιαφέρον αλλά δεν είναι ακόμη πελάτης.</dd></div>
+        <div><dt>ΕΜΕ</dt><dd>Ετήσιες Μονάδες Εργασίας — «πόσους εργαζόμενους πλήρους απασχόλησης» έχει η επιχείρηση.</dd></div>
+      </dl>
+    </section>
+
+    <section id="faq">
+      <div class="num-eyebrow">17</div>
+      <h2>Συχνές ερωτήσεις</h2>
+      <details open><summary>Δεν βρίσκω έναν πελάτη/έργο. Τι κάνω;</summary><p>Πάτα <kbd>⌘K</kbd> και γράψε το όνομα ή το ΑΦΜ. Είναι ο πιο γρήγορος τρόπος — δεν χρειάζεται να θυμάσαι σε ποια λίστα είναι.</p></details>
+      <details><summary>Το σύστημα δεν με αφήνει να προχωρήσω στάδιο. Γιατί;</summary><p>Λείπει κάτι υποχρεωτικό (π.χ. δικαιολογητικά που δεν έχουν εγκριθεί, ή κενή υποχρεωτική κατηγορία δαπανών). Το μήνυμα σου λέει ακριβώς τι. Διόρθωσέ το και ξαναπροσπάθησε.</p></details>
+      <details><summary>Τι σημαίνουν τα κόκκινα νούμερα στην αρχική;</summary><p>Ότι υπάρχει εκκρεμότητα που θέλει προσοχή (π.χ. εγκρίσεις που περιμένουν, leads προς επικοινωνία). Πάτησέ τα για να πας εκεί.</p></details>
+      <details><summary>Μπορώ να εμπιστευτώ τα κουμπιά «AI»;</summary><p>Είναι βοηθοί: διαβάζουν έγγραφα, προτείνουν, συντάσσουν. Πάντα σου δείχνουν τι βρήκαν για να το <strong>ελέγξεις εσύ</strong> πριν αποφασίσεις. Δεν αλλάζουν τίποτα μόνα τους.</p></details>
+      <details><summary>Έκανα λάθος σε μια δαπάνη μετά την έγκριση. Τι κάνω;</summary><p>Στη φάση Υλοποίησης υπάρχει <strong>«Αντικατάσταση»</strong>. Αν χρειάζεται νέα έγκριση, κάνε <strong>«Τροποποίηση → νέα υποβολή»</strong> στο ΟΠΣΚΕ.</p></details>
+    </section>
+
+    <footer>
+      Εγχειρίδιο Χρήσης World Wide Associates · γραμμένο για μη-τεχνικούς χρήστες. Οι απεικονίσεις είναι καθαρές αναπαραστάσεις των οθονών με αριθμημένα σημεία — το πραγματικό περιβάλλον έχει τα ίδια στοιχεία στις ίδιες θέσεις.
+    </footer>
+  </main>
+</div>
+</body>
+</html>

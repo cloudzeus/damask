@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { HelpCircle, Search, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
+import { HelpCircle, Search, ArrowRight, BookOpen } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 /** Ο κύκλος ζωής μιας πρότασης, με απλά λόγια. */
@@ -24,8 +25,8 @@ const GLOSSARY: { term: string; def: string }[] = [
 ]
 
 /**
- * Διακριτικό «?» στο topbar → σύντομη βοήθεια για μη-τεχνικό χρήστη: πώς δουλεύει
- * η εφαρμογή, το ⌘K, και λεξικό όρων. (Το πλήρες εγχειρίδιο έρχεται.)
+ * Διακριτικό «?» στο topbar → σύντομη βοήθεια για μη-τεχνικό χρήστη: σύνδεσμος
+ * προς το πλήρες εγχειρίδιο (/help), το ⌘K, ο κύκλος πρότασης, και λεξικό όρων.
  */
 export function HelpButton() {
   const [open, setOpen] = React.useState(false)
@@ -44,8 +45,18 @@ export function HelpButton() {
         <DialogContent className="glass sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>Βοήθεια — πώς δουλεύει</DialogTitle>
-            <DialogDescription>Τα βασικά με απλά λόγια. Το αναλυτικό εγχειρίδιο έρχεται σύντομα.</DialogDescription>
+            <DialogDescription>Τα βασικά με απλά λόγια. Για όλα τα βήματα, άνοιξε το πλήρες εγχειρίδιο.</DialogDescription>
           </DialogHeader>
+
+          <Link
+            href="/help"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 rounded-xl border border-primary/30 bg-primary/5 px-3 py-3 text-[0.8125rem] font-semibold text-foreground transition-colors hover:bg-primary/10"
+          >
+            <BookOpen className="size-4 shrink-0 text-primary" aria-hidden />
+            <span className="flex-1">Πλήρες εγχειρίδιο χρήσης — αναλυτικά, βήμα-βήμα</span>
+            <ArrowRight className="size-4 shrink-0 text-primary" aria-hidden />
+          </Link>
 
           <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-[0.78125rem]">
             <Search className="size-4 shrink-0 text-primary" aria-hidden />

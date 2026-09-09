@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { BookOpen } from 'lucide-react'
 import { auth, signOut } from '@/auth'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel,
@@ -18,6 +20,14 @@ export async function Topbar() {
       <MobileNavToggle />
       <GlobalSearch />
       <div className="hidden flex-1 sm:block" />
+      <Link
+        href="/help"
+        aria-label="Εγχειρίδιο χρήσης"
+        title="Εγχειρίδιο χρήσης"
+        className="hidden size-[30px] shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:flex"
+      >
+        <BookOpen className="size-[1.15rem]" strokeWidth={1.8} aria-hidden />
+      </Link>
       <HelpButton />
       <NotificationsBell />
       <DropdownMenu>
