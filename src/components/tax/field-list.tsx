@@ -2,12 +2,12 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { LuPlus, LuX, LuFlaskConical } from 'react-icons/lu'
+import { LuPlus, LuX, LuFlaskConical, LuScanLine, LuTrash2 } from 'react-icons/lu'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { testField } from '@/lib/tax/actions'
+import { testField, scanRow } from '@/lib/tax/actions'
 import { cropRegion } from '@/lib/tax/crop'
 import {
   slugFieldKey, regionKeyOf,
@@ -114,12 +114,48 @@ function FieldCard({
   onRemove: () => void
 }) {
   const [testing, setTesting] = React.useState(false)
-  const [result, setResult] = React.useState<{ raw: string | null; value: number | null; model: string } | null>(null)
+  const [scanning, setScanning] = React.useState(false)
+  const [result, setResult] = React.useState<{ raw: string | null; value: number | null; model: string; name?: string | null; code?: string | null } | null>(null)
   const [testError, setTestError] = React.useState<string | null>(null)
 
   const slugPreview = field.fieldKey.trim() || slugFieldKey(field.label) || `field_${index + 1}`
   const regionPage = field.regionHint ? pages[field.regionHint.page] : null
-  const canTest = !!field.regionHint && !!regionPage && !testing
+  const canTest = !!field.regionHint && !!regionPage && !testing && !scanning
+
+  /** Auto-slug: όσο το κλειδί δεν έχει πειραχτεί χειροκίνητα, ακολουθεί την ετικέτα (λατινικά). */
+  function changeLabel(newLabel: string) {
+    const wasAuto = !field.fieldKey.trim() || field.fieldKey === slugFieldKey(field.label)
+    onUpdate(wasAuto ? { label: newLabel, fieldKey: slugFieldKey(newLabel) } : { label: newLabel })
+  }
+
+  async function handleScanRow() {
+    if (!field.regionHint || !regionPage) return
+    setScanning(true)
+    setTestError(null)
+    setResult(null)
+    try {
+      const cropped = await cropRegion(regionPage.base64, regionPage.mimeType, field.regionHint.bbox)
+      const r = await scanRow({ image: { base64: cropped.base64, mimeType: cropped.mimeType }, valueType: field.valueType })
+      const patch: Partial<TemplateField> = {}
+      if (r.name) { patch.label = r.name; patch.fieldKey = slugFieldKey(r.name) }
+      if (r.code) patch.section = r.code
+      if (Object.keys(patch).length > 0) onUpdate(patch)
+      setResult({ raw: r.raw, value: r.value, model: r.model, name: r.name, code: r.code })
+      if (!r.name && !r.code && r.raw == null) toast.warning('Δεν αναγνωρίστηκε όνομα/κωδικός/τιμή — δοκίμασε πιο ακριβή επιλογή γραμμής.')
+      else toast.success('Η γραμμή διαβάστηκε — έλεγξε τα στοιχεία.')
+    } catch {
+      setTestError('Η σάρωση γραμμής απέτυχε.')
+      toast.error('Η σάρωση γραμμής απέτυχε.')
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  function clearRegion() {
+    onUpdate({ regionHint: null })
+    setResult(null)
+    setTestError(null)
+  }
 
   function updateColumn(colIndex: number, value: string) {
     const columns = [...(field.config?.columns ?? [])]
@@ -176,7 +212,7 @@ function FieldCard({
             value={field.label}
             placeholder="π.χ. Κύκλος εργασιών"
             onClick={e => e.stopPropagation()}
-            onChange={e => onUpdate({ label: e.target.value })}
+            onChange={e => changeLabel(e.target.value)}
           />
         </div>
         <button
@@ -289,20 +325,45 @@ function FieldCard({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="flex items-center gap-1.5 text-[0.75rem]" onClick={e => e.stopPropagation()}>
           <input type="checkbox" checked={field.required} onChange={e => onUpdate({ required: e.target.checked })} />
           Υποχρεωτικό
         </label>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!canTest}
-          onClick={e => { e.stopPropagation(); void handleTest() }}
-        >
-          <LuFlaskConical className="size-3.5" aria-hidden /> {testing ? 'Δοκιμή…' : 'Δοκιμή'}
-        </Button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {field.regionHint && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-destructive"
+              disabled={testing || scanning}
+              onClick={e => { e.stopPropagation(); clearRegion() }}
+            >
+              <LuTrash2 className="size-3.5" aria-hidden /> Περιοχή
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canTest}
+            title="Διάβασε ολόκληρη τη γραμμή: όνομα + κωδικός + τιμή"
+            onClick={e => { e.stopPropagation(); void handleScanRow() }}
+          >
+            <LuScanLine className="size-3.5" aria-hidden /> {scanning ? 'Σάρωση…' : 'Σάρωση γραμμής'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canTest}
+            title="Διάβασε μόνο την τιμή της περιοχής"
+            onClick={e => { e.stopPropagation(); void handleTest() }}
+          >
+            <LuFlaskConical className="size-3.5" aria-hidden /> {testing ? 'Δοκιμή…' : 'Τιμή'}
+          </Button>
+        </div>
       </div>
 
       {(result || testError) && (
@@ -311,6 +372,8 @@ function FieldCard({
             <span className="text-destructive">{testError}</span>
           ) : (
             <>
+              {result?.name !== undefined && <div><b>Όνομα:</b> {result?.name ?? '—'}</div>}
+              {result?.code !== undefined && <div><b>Κωδικός:</b> {result?.code ?? '—'}</div>}
               <div><b>Ακατέργαστο:</b> {result?.raw ?? '—'}</div>
               <div><b>Τιμή:</b> {result?.value ?? '—'}</div>
               <div className="text-muted-foreground">Μοντέλο: {result?.model}</div>

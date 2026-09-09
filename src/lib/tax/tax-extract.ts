@@ -50,6 +50,37 @@ function safeParse(s: string): Record<string, unknown> | null { try { return par
 function strOrNull(v: unknown): string | null { if (v == null) return null; const s = String(v).trim(); return s === '' ? null : s }
 function numOrNull(v: unknown): number | null { const n = Number(v); return Number.isFinite(n) ? n : null }
 
+export type ExtractRowResult = { name: string | null; code: string | null; value: string | null; model: string; tokensUsed: number | null }
+
+/**
+ * Διαβάζει ΜΙΑ γραμμή εντύπου (π.χ. «Σύνολο Ακαθάριστων Εσόδων | 047 |
+ * 1.396.990,62») και επιστρέφει τα τρία δομικά μέρη της: όνομα (ελληνική
+ * περιγραφή), κωδικό/ενότητα (2-4 ψηφία) και τιμή. Χρησιμοποιείται από το
+ * «Σάρωση γραμμής» ώστε ο χρήστης να επιλέγει μια σειρά και να συμπληρώνονται
+ * αυτόματα όνομα + ενότητα + τιμή του πεδίου.
+ */
+export async function extractRow(
+  images: { base64: string; mimeType: string }[],
+  opts: { refId?: string | null; userId?: string | null } = {},
+): Promise<ExtractRowResult> {
+  const system = [
+    'You read ONE row from a Greek financial/tax form (Ε3/Ε1 και συναφή).',
+    'A row usually contains: a Greek description/label, an optional code (2-4 digit box number, e.g. 047), and a value (amount or number).',
+    'Respond with a single raw JSON object (no markdown): { "name": "<Greek label text or null>", "code": "<code digits only, or null>", "value": "<the value exactly as printed, or null>" }.',
+    'Keep the value in the exact Greek printed form (e.g. 1.396.990,62). The name is the human-readable Greek description, WITHOUT the code and WITHOUT the value. Do NOT invent anything not visible.',
+  ].join('\n')
+  const parts = [...images.map(im => ({ inlineData: { data: im.base64, mimeType: im.mimeType } })), { text: 'Read the single row and split it into name, code, value.' }]
+  const res = await geminiGenerate({ parts, systemInstruction: system, json: true, scope: 'OCR_VISION', refType: 'taxform', refId: opts.refId, userId: opts.userId })
+  const raw = (safeParse(res.text) ?? {}) as Record<string, unknown>
+  return {
+    name: strOrNull(raw.name),
+    code: strOrNull(raw.code)?.replace(/\D/g, '') || null,
+    value: strOrNull(raw.value),
+    model: res.model,
+    tokensUsed: res.tokensUsed,
+  }
+}
+
 export type ScanTableResult = { columns: string[]; rows: { label: string; values: string[] }[]; model: string; tokensUsed: number | null }
 
 /**

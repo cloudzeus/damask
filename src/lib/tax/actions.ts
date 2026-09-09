@@ -6,7 +6,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { revalidatePath } from 'next/cache'
 import { prepareFieldWrites } from '@/lib/tax/field-prep'
-import { extractFields, scanTable, type SeriesPoint } from '@/lib/tax/tax-extract'
+import { extractFields, extractRow, scanTable, type SeriesPoint } from '@/lib/tax/tax-extract'
 import { coerceFinancialValue } from '@/lib/tax/greek-format'
 import type { TemplateField, RegionHint } from '@/lib/tax/template'
 import { buildOcrCostViewForSession } from '@/lib/ingestion/ocr-cost'
@@ -340,6 +340,27 @@ export async function testField(input: {
   }])
   const raw = r.values[key] ?? null
   return { raw, value: coerceFinancialValue(raw, input.valueType), model: r.model }
+}
+
+/**
+ * «Σάρωση γραμμής»: OCR μιας επιλεγμένης ΓΡΑΜΜΗΣ εντύπου → διασπά όνομα +
+ * κωδικό(ενότητα) + τιμή, ώστε ο χρήστης να συμπληρώνει όλο το πεδίο με ένα
+ * κλικ (π.χ. «Σύνολο Ακαθάριστων Εσόδων» / 047 / 1.396.990,62). Δεν persist-άρει
+ * τίποτα — indicative extraction προς επιβεβαίωση από τον χρήστη.
+ */
+export async function scanRow(input: {
+  image: { base64: string; mimeType: string }
+  valueType?: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+}): Promise<{ name: string | null; code: string | null; raw: string | null; value: number | null; model: string }> {
+  await requirePermission('taxform.manage')
+  const r = await extractRow([input.image])
+  return {
+    name: r.name,
+    code: r.code,
+    raw: r.value,
+    value: coerceFinancialValue(r.value, input.valueType ?? 'CURRENCY'),
+    model: r.model,
+  }
 }
 
 /**
