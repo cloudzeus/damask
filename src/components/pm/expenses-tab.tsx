@@ -8,6 +8,7 @@ import { listApplicationExpenses, type ProgramExpenseItem } from '@/lib/programs
 import { ExpenseList } from '@/components/programs/expense-list'
 import { ProgramInvoiceDialog } from '@/components/invoices/program-invoice-dialog'
 import { BudgetCompliancePanel } from './budget-compliance-panel'
+import { BudgetProposalPanel } from '@/components/programs/budget-proposal'
 import { ReplaceExpenseDialog } from './replace-expense-dialog'
 
 function formatEUR(v: number): string {
@@ -66,6 +67,11 @@ export function ExpensesTab({ applicationId, programId }: { applicationId: strin
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Guided «Οδηγός Προϋπολογισμού Υποβολής» — εύκολη προσθήκη δαπανών/προσφορών
+          ανά κατηγορία με μπάρες ορίου + PDF. Τα παρακάτω panels = προχωρημένη
+          διαχείριση (OCR, αντικατάσταση, live compliance). */}
+      <BudgetProposalPanel applicationId={applicationId} />
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Δαπάνες & Πλάνο

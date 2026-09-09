@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { aadeLookup, AadeLookupError } from '@/lib/aade'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
+import { checkBudgetCompliance } from '@/lib/pm/budget-compliance'
 
 /**
  * Σχεδιασμός προϋπολογισμού υποβολής — προμηθευτές (με ΑΦΜ μέσω ΑΑΔΕ) + ενυπόγραφη
@@ -17,6 +18,105 @@ import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 const SUPPLIER_SODTYPE = 12
 
 export type SupplierOption = { id: string; name: string; afm: string | null }
+
+// ── Πρόταση προϋπολογισμού (guided) ─────────────────────────────────────────
+
+export type ProposalExpense = {
+  id: string
+  description: string
+  amount: number
+  categoryId: string | null
+  supplierName: string | null
+  supplierAfm: string | null
+  hasQuote: boolean
+  quoteName: string | null
+}
+export type ProposalCategory = {
+  id: string
+  name: string
+  mandatory: boolean
+  minAmount: number | null
+  maxAmount: number | null
+  minPercentage: number | null
+  maxPercentage: number | null
+  limitLabel: string
+  spent: number
+  status: 'OK' | 'UNDER' | 'OVER'
+  remaining: number | null // maxAmount - spent (null αν δεν υπάρχει max ποσό)
+}
+export type BudgetProposal = {
+  programTitle: string
+  trdrId: string
+  trdrName: string
+  totalBudget: number | null
+  totalSpent: number
+  categories: ProposalCategory[]
+  expenses: ProposalExpense[]
+  missingQuotes: number
+}
+
+function limitLabel(c: { minAmount: number | null; maxAmount: number | null; minPercentage: number | null; maxPercentage: number | null }): string {
+  const parts: string[] = []
+  if (c.minAmount != null && c.maxAmount != null) parts.push(`${c.minAmount}€–${c.maxAmount}€`)
+  else if (c.maxAmount != null) parts.push(`≤ ${c.maxAmount}€`)
+  else if (c.minAmount != null) parts.push(`≥ ${c.minAmount}€`)
+  if (c.maxPercentage != null) parts.push(`≤ ${c.maxPercentage}%`)
+  else if (c.minPercentage != null) parts.push(`≥ ${c.minPercentage}%`)
+  return parts.join(' · ') || 'χωρίς όριο'
+}
+
+/** Πλήρη δεδομένα «πρότασης προϋπολογισμού» ενός έργου — κατηγορίες με όρια +
+ * δαπάνες (με προμηθευτή/προσφορά) + έλεγχος ορίων. Για το guided UI & το PDF. */
+export async function getBudgetProposal(applicationId: string): Promise<BudgetProposal | null> {
+  await requirePermission('programs.manage')
+  const app = await prisma.programApplication.findUnique({
+    where: { id: applicationId },
+    select: {
+      trdrId: true,
+      trdr: { select: { NAME: true } },
+      program: { select: { title: true, totalBudget: true, expenseCats: { orderBy: { order: 'asc' }, select: { id: true, name: true, mandatory: true, minAmount: true, maxAmount: true, minPercentage: true, maxPercentage: true } } } },
+    },
+  })
+  if (!app) return null
+  const totalBudget = app.program.totalBudget == null ? null : Number(app.program.totalBudget)
+
+  const rows = await prisma.programExpense.findMany({
+    where: { applicationId, status: 'ACTIVE' },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, description: true, amount: true, categoryId: true, confirmed: true, quoteStorageKey: true, quoteName: true, supplier: { select: { NAME: true, AFM: true } }, vendor: true, vendorAfm: true },
+  })
+
+  const cats = app.program.expenseCats.map(c => ({
+    id: c.id, name: c.name, mandatory: c.mandatory,
+    minAmount: c.minAmount == null ? null : Number(c.minAmount),
+    maxAmount: c.maxAmount == null ? null : Number(c.maxAmount),
+    minPercentage: c.minPercentage == null ? null : Number(c.minPercentage),
+    maxPercentage: c.maxPercentage == null ? null : Number(c.maxPercentage),
+  }))
+  const comp = checkBudgetCompliance(
+    rows.map(r => ({ amount: Number(r.amount), categoryId: r.categoryId, confirmed: r.confirmed })),
+    cats,
+    totalBudget,
+  )
+
+  const categories: ProposalCategory[] = comp.categories.map(c => ({
+    id: c.id, name: c.name, mandatory: c.mandatory,
+    minAmount: c.minAmount, maxAmount: c.maxAmount, minPercentage: c.minPercentage, maxPercentage: c.maxPercentage,
+    limitLabel: limitLabel(c),
+    spent: c.spent, status: c.status,
+    remaining: c.maxAmount != null ? c.maxAmount - c.spent : null,
+  }))
+  const expenses: ProposalExpense[] = rows.map(r => ({
+    id: r.id, description: r.description, amount: Number(r.amount), categoryId: r.categoryId,
+    supplierName: r.supplier?.NAME ?? r.vendor ?? null, supplierAfm: r.supplier?.AFM ?? r.vendorAfm ?? null,
+    hasQuote: !!r.quoteStorageKey, quoteName: r.quoteName,
+  }))
+
+  return {
+    programTitle: app.program.title, trdrId: app.trdrId, trdrName: app.trdr.NAME, totalBudget, totalSpent: comp.totalSpent,
+    categories, expenses, missingQuotes: expenses.filter(e => !e.hasQuote).length,
+  }
+}
 
 /** Προμηθευτές του συγκεκριμένου πελάτη (όσοι έχουν χρησιμοποιηθεί στις δαπάνες
  * των έργων του) — «κάθε πελάτης τους δικούς του προμηθευτές». */
