@@ -16,8 +16,8 @@ import {
 import { cn } from '@/lib/utils'
 import { createExpense, confirmExpenseCategory } from '@/lib/programs/actions'
 import {
-  getBudgetProposal, findOrCreateSupplierByAfm, listCustomerSuppliers, uploadExpenseQuote, evaluateExpenseEligibility,
-  type BudgetProposal, type ProposalCategory, type SupplierOption,
+  getBudgetProposal, findOrCreateSupplierByAfm, listCustomerSuppliers, uploadExpenseQuote, evaluateExpenseEligibility, budgetSanityCheck,
+  type BudgetProposal, type ProposalCategory, type SupplierOption, type BudgetSanity,
 } from '@/lib/programs/expense-proposal'
 import { openProposal } from '@/lib/programs/proposal-html'
 
@@ -44,11 +44,22 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
   const [data, setData] = React.useState<BudgetProposal | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [addCat, setAddCat] = React.useState<ProposalCategory | 'none' | null>(null)
+  const [sanity, setSanity] = React.useState<BudgetSanity | null>(null)
+  const [checking, setChecking] = React.useState(false)
 
   const load = React.useCallback(() => {
     getBudgetProposal(applicationId).then(d => setData(d)).catch(() => toast.error('Αποτυχία φόρτωσης.')).finally(() => setLoading(false))
   }, [applicationId])
   React.useEffect(() => { load() }, [load])
+
+  async function runSanity() {
+    setChecking(true)
+    try {
+      const res = await budgetSanityCheck(applicationId)
+      if (!res.ok) { toast.error(res.message); return }
+      setSanity(res.result)
+    } catch { toast.error('Ο έλεγχος απέτυχε.') } finally { setChecking(false) }
+  }
 
   if (loading) return <div className="glass flex items-center justify-center gap-2 rounded-[22px] p-8 text-[0.78125rem] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
   if (!data) return null
@@ -66,10 +77,32 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
             {data.missingQuotes > 0 && <span className="badge-pill warn"><LuTriangleAlert className="size-3" aria-hidden /> {data.missingQuotes} χωρίς προσφορά</span>}
           </div>
         </div>
-        <Button type="button" variant="outline" onClick={() => { if (!openProposal(data)) toast.error('Επίτρεψε τα popups.') }}>
-          <LuPrinter className="size-3.5" aria-hidden /> Εκτύπωση πρότασης
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={runSanity} disabled={checking}>
+            {checking ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuSparkles className="size-3.5" aria-hidden />} AI έλεγχος σχεδίου
+          </Button>
+          <Button type="button" variant="outline" onClick={() => { if (!openProposal(data)) toast.error('Επίτρεψε τα popups.') }}>
+            <LuPrinter className="size-3.5" aria-hidden /> Εκτύπωση πρότασης
+          </Button>
+        </div>
       </div>
+
+      {/* AI έλεγχος σχεδίου — ευρήματα */}
+      {sanity && (
+        <div className={cn('mb-3 rounded-xl border px-3 py-2', sanity.status === 'READY' ? 'border-[color:var(--success)]/30 bg-[color:var(--success)]/5' : 'border-[color:var(--warning)]/40 bg-[color:var(--warning)]/5')}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[0.75rem] font-semibold">
+              {sanity.status === 'READY' ? <><LuCircleCheck className="size-4 text-[color:var(--success)]" aria-hidden /> Το σχέδιο δείχνει εντάξει</> : <><LuTriangleAlert className="size-4 text-[color:var(--warning)]" aria-hidden /> Εντοπίστηκαν σημεία προσοχής</>}
+            </div>
+            <button type="button" onClick={() => setSanity(null)} className="text-muted-foreground hover:text-foreground" title="Κλείσιμο">✕</button>
+          </div>
+          {sanity.findings.length > 0 && (
+            <ul className="mt-1 list-disc pl-6 text-[0.71875rem] text-muted-foreground">
+              {sanity.findings.map((f, i) => <li key={i}>{f}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
 
       <p className="mb-3 text-[0.71875rem] text-muted-foreground">Στο στάδιο της μελέτης <strong>προδιαγράφεις</strong> τις δαπάνες μέσα σε κάθε κατηγορία (άνοιξε την κατηγορία για να τις δεις μία-μία). Η <strong>μπάρα</strong> δείχνει πόσο έχεις καλύψει από το όριο. Κάθε δαπάνη χρειάζεται <strong>ενυπόγραφη προσφορά</strong> — αν λείπει, μπαίνει σε εκκρεμότητα.</p>
 

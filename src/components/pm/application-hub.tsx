@@ -25,6 +25,7 @@ import { FileRequestsReviewTab } from './file-requests-review-tab'
 import { DocFollowupControl } from './doc-followup-control'
 import { ApplicationContactsTab } from './application-contacts-tab'
 import { PortalAccessDialog } from './portal-access-dialog'
+import { FolderStatusDialog } from './folder-status-dialog'
 import { EmailHistory } from '@/components/email/email-history'
 
 /**
@@ -112,6 +113,7 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
           <span className="text-[0.71875rem] font-semibold text-muted-foreground">Διεκπεραιωτής</span>
           <span className="badge-pill muted">{app.processorName ?? '—'}</span>
           <div className="ml-auto flex items-center gap-2">
+            <FolderStatusDialog applicationId={app.id} />
             <PortalAccessDialog applicationId={app.id} />
             {app.canManage && (
               <AssignApplicationDialog

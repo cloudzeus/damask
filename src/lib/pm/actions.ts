@@ -11,8 +11,10 @@ import { computeAssessmentScore } from '@/lib/pm/assessment'
 import { buildObligationRows, buildCriterionScoreRows, buildTaskObligationRows } from '@/lib/pm/obligations-gen'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { applicationDocKey } from '@/lib/pm/doc-prep'
-import { STAGE_ORDER, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr, type TaskAssignToStr } from '@/lib/pm/types'
+import { STAGE_ORDER, stageLabel, type StageStr, type ObligationKindStr, type ObligationStatusStr, type VerdictStr, type TaskAssignToStr } from '@/lib/pm/types'
 import { checkBudgetCompliance, type ComplianceExpense } from '@/lib/pm/budget-compliance'
+import { deepseekChat } from '@/lib/deepseek'
+import { parseJsonLoose } from '@/lib/ocr/extract'
 import { certificationScalarsComplete, certFileKey, certKeyField, CERT_FILE_KINDS, type CertFileKind } from '@/lib/pm/cert-prep'
 import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type PaymentStatusStr } from '@/lib/pm/payment'
 import { newToken } from '@/lib/pm/portal-token'
@@ -2356,4 +2358,49 @@ export async function decideProposal(submissionId: string, approve: boolean, not
   if (approve) await prisma.programApplication.update({ where: { id: sub.applicationId }, data: { lifecycle: 'IMPLEMENTATION' } })
   await logActivity(approve ? 'proposal.approve' : 'proposal.reject', { entityType: 'application', entityId: sub.applicationId, userId: session.user.id })
   revalidatePath(`/pm/applications/${sub.applicationId}`)
+}
+
+// ── Β3: AI Οδηγός φακέλου («τι μου λείπει;» σε φυσική γλώσσα) ─────────────────
+
+export type FolderStatus = { summary: string; nextSteps: string[] }
+
+/** AI σύνοψη κατάστασης φακέλου: σκανάρει στάδιο + δικαιολογητικά + σχέδιο
+ * δαπανών + υποβολή + αγορές και επιστρέφει «πού είσαι / τι λείπει / επόμενα
+ * βήματα» στα ελληνικά. Πατά πάνω σε υπάρχοντα δεδομένα (καμία νέα μόνιμη
+ * αποθήκευση). */
+export async function applicationFolderStatus(applicationId: string): Promise<{ ok: true; result: FolderStatus } | { ok: false; message: string }> {
+  const { app } = await requireVisibleApplication(applicationId)
+  const readiness = await computeSubmissionReadiness(applicationId)
+  const latestSub = await prisma.proposalSubmission.findFirst({ where: { applicationId }, orderBy: { version: 'desc' }, select: { version: true, status: true } })
+  const expenses = await prisma.programExpense.findMany({
+    where: { applicationId, status: 'ACTIVE' },
+    select: { purchase: { select: { invoiceKey: true, bankExtraitKey: true, supplierCertKey: true, reconVerdict: true } } },
+  })
+  const totalExp = expenses.length
+  const fullDocs = expenses.filter(e => e.purchase?.invoiceKey && e.purchase?.bankExtraitKey && e.purchase?.supplierCertKey).length
+  const reconOk = expenses.filter(e => e.purchase?.reconVerdict === 'OK').length
+
+  const facts = [
+    `Τρέχον στάδιο: ${stageLabel(app.stage as StageStr)}`,
+    `Κύκλος ζωής: ${app.lifecycle}`,
+    `Ετοιμότητα υποβολής: ${readiness.ready ? 'ΕΤΟΙΜΗ' : 'ΟΧΙ έτοιμη'}`,
+    readiness.blockers.length ? `Εμπόδια υποβολής: ${readiness.blockers.join(' · ')}` : 'Χωρίς εμπόδια υποβολής.',
+    readiness.warnings.length ? `Προειδοποιήσεις: ${readiness.warnings.join(' · ')}` : null,
+    latestSub ? `Τελευταία υποβολή: έκδοση ${latestSub.version}, κατάσταση ${latestSub.status}` : 'Δεν έχει γίνει καμία υποβολή πρότασης.',
+    `Αγορές: ${fullDocs}/${totalExp} δαπάνες με πλήρη έγγραφα, ${reconOk}/${totalExp} με θετική AI διασταύρωση.`,
+  ].filter(Boolean).join('\n')
+
+  const messages = [
+    { role: 'system' as const, content: 'Είσαι βοηθός διαχείρισης φακέλων ΕΣΠΑ. Με βάση την κατάσταση ενός φακέλου, εξήγησε σύντομα πού βρίσκεται και δώσε τα ΕΠΟΜΕΝΑ ΣΥΓΚΕΚΡΙΜΕΝΑ βήματα κατά προτεραιότητα. Μίλα απλά, σε μη-τεχνικό χρήστη. Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"summary":"1-2 προτάσεις για το πού είναι ο φάκελος","nextSteps":["συγκεκριμένες ενέργειες κατά σειρά προτεραιότητας, στα ελληνικά"]}.' },
+    { role: 'user' as const, content: facts },
+  ]
+  try {
+    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 600, scope: 'OTHER', refType: 'folder-status', refId: applicationId })
+    const p = parseJsonLoose(text) as { summary?: unknown; nextSteps?: unknown } | null
+    const summary = typeof p?.summary === 'string' ? p.summary.trim() : ''
+    const nextSteps = Array.isArray(p?.nextSteps) ? p.nextSteps.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map(x => x.trim()) : []
+    return { ok: true, result: { summary: summary || 'Δεν προέκυψε σύνοψη.', nextSteps } }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Η σύνοψη απέτυχε.' }
+  }
 }

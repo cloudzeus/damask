@@ -315,3 +315,41 @@ export async function evaluateExpenseEligibility(expenseId: string, opts: { user
   revalidatePath('/programs')
   return { ok: true, result: { verdict, note, checkedAt: checkedAt.toISOString(), suggestedCategoryId, suggestedCategoryName } }
 }
+
+// ── Β3: AI έλεγχος σχεδίου δαπανών (budget sanity) ────────────────────────────
+
+export type BudgetSanity = { status: 'READY' | 'RISKS'; findings: string[] }
+
+/** AI έλεγχος όλου του σχεδίου δαπανών: υπερβάσεις ορίων, υποχρεωτικές κενές
+ * κατηγορίες, δαπάνες χωρίς προσφορά, μη-επιλέξιμες δαπάνες → λίστα ευρημάτων
+ * σε φυσική γλώσσα. Πατά πάνω στο getBudgetProposal (καμία νέα άντληση). */
+export async function budgetSanityCheck(applicationId: string): Promise<{ ok: true; result: BudgetSanity } | { ok: false; message: string }> {
+  await requirePermission('programs.manage')
+  const bp = await getBudgetProposal(applicationId)
+  if (!bp) return { ok: false, message: 'Δεν βρέθηκε το έργο.' }
+
+  const eur = (n: number | null) => n == null ? '—' : `${n}€`
+  const catLines = bp.categories.map(c => `- ${c.name}${c.mandatory ? ' (ΥΠΟΧΡΕΩΤΙΚΗ)' : ''}: σχέδιο ${c.spent}€ / όριο ${eur(c.maxEuro)} [${c.status}]`).join('\n')
+  const ineligible = bp.expenses.filter(e => e.eligibilityVerdict === 'INELIGIBLE').map(e => e.description)
+  const facts = [
+    `Προϋπολογισμός προγράμματος: ${eur(bp.totalBudget)}`,
+    `Σύνολο σχεδίου: ${bp.totalSpent}€`,
+    `Δαπάνες χωρίς ενυπόγραφη προσφορά: ${bp.missingQuotes}`,
+    ineligible.length ? `Δαπάνες που το AI έκρινε ΜΗ επιλέξιμες: ${ineligible.join(', ')}` : 'Καμία δαπάνη δεν έχει σημανθεί ΜΗ επιλέξιμη.',
+    `Κατηγορίες (status OK/OVER/UNDER):\n${catLines}`,
+  ].join('\n')
+
+  const messages = [
+    { role: 'system' as const, content: 'Είσαι έμπειρος σύμβουλος ΕΣΠΑ. Έλεγξε ένα σχέδιο δαπανών για κινδύνους πριν την υποβολή. Εντόπισε: υπερβάσεις ορίων (OVER), υποχρεωτικές κατηγορίες χωρίς δαπάνη, δαπάνες χωρίς προσφορά, μη-επιλέξιμες δαπάνες, κατηγορίες κάτω από ελάχιστο (UNDER). Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"status":"READY"|"RISKS","findings":["σύντομες προτάσεις στα ελληνικά, μία ανά εύρημα, με το τι πρέπει να διορθωθεί"]}. status=READY μόνο αν δεν υπάρχει κανένας ουσιαστικός κίνδυνος· αλλιώς RISKS με τα ευρήματα ταξινομημένα κατά σοβαρότητα.' },
+    { role: 'user' as const, content: facts },
+  ]
+  try {
+    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 600, scope: 'OTHER', refType: 'budget-sanity', refId: applicationId })
+    const p = parseJsonLoose(text) as { status?: unknown; findings?: unknown } | null
+    const status = typeof p?.status === 'string' && p.status.toUpperCase() === 'READY' ? 'READY' : 'RISKS'
+    const findings = Array.isArray(p?.findings) ? p.findings.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map(x => x.trim()) : []
+    return { ok: true, result: { status, findings } }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Ο έλεγχος απέτυχε.' }
+  }
+}
