@@ -81,7 +81,7 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
-          Φορολογικά ({records.length})
+          Τιμές εντύπων ({records.length})
         </div>
         <Button type="button" variant="outline" onClick={() => setManualOpen(true)}>
           <LuPlus className="size-3.5" aria-hidden /> Χειροκίνητη τιμή

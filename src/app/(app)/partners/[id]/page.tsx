@@ -181,7 +181,12 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
           }
           kad={<TrdrKadCard kads={kadRows} trdrId={trdr.id} afm={trdr.AFM} canEdit={canEdit} />}
           docs={<TrdrDocumentsCard trdrId={trdr.id} arGemi={trdr.arGemi} documents={documentRows} />}
-          dossier={<TrdrDossier trdrId={trdr.id} canEdit={canEdit} />}
+          dossier={
+            <div className="flex flex-col gap-3">
+              <TrdrDossier trdrId={trdr.id} canEdit={canEdit} />
+              <FinancialsTab trdrId={trdr.id} trdrName={trdr.NAME} />
+            </div>
+          }
           files={<FileBrowser trdrId={trdr.id} canEdit={can(session, 'customer.edit')} />}
           map={
             <PartnerMapCard
@@ -201,10 +206,6 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
             />
           }
         />
-      </div>
-
-      <div className="mt-3">
-        <FinancialsTab trdrId={trdr.id} trdrName={trdr.NAME} />
       </div>
 
       <div className="mt-3">
