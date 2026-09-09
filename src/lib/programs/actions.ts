@@ -304,9 +304,17 @@ export async function createExpense(
     vendor?: string | null
     vendorAfm?: string | null
     docNumber?: string | null
+    categoryId?: string | null
+    supplierTrdrId?: string | null
   },
 ): Promise<{ id: string }> {
   await requirePermission('programs.manage')
+  // Αν δόθηκε προμηθευτής, γράψε και vendor/vendorAfm από τον συναλλασσόμενο.
+  let vendor = input.vendor ?? null, vendorAfm = input.vendorAfm ?? null
+  if (input.supplierTrdrId) {
+    const s = await prisma.trdr.findUnique({ where: { id: input.supplierTrdrId }, select: { NAME: true, AFM: true } })
+    if (s) { vendor = s.NAME; vendorAfm = s.AFM }
+  }
   const row = await prisma.programExpense.create({
     data: {
       applicationId,
@@ -314,11 +322,22 @@ export async function createExpense(
       amount: input.amount,
       vatAmount: input.vatAmount ?? null,
       date: parseDateOrNull(input.date) ?? null,
-      vendor: input.vendor ?? null,
-      vendorAfm: input.vendorAfm ?? null,
+      vendor,
+      vendorAfm,
       docNumber: input.docNumber ?? null,
+      categoryId: input.categoryId ?? null,
+      confirmed: input.categoryId ? true : false,
+      supplierTrdrId: input.supplierTrdrId ?? null,
     },
   })
+
+  // Χωρίς ενυπόγραφη προσφορά → δημιούργησε εκκρεμότητα «Λείπει προσφορά».
+  try {
+    const { ensureExpenseQuoteObligation } = await import('@/lib/programs/expense-proposal')
+    await ensureExpenseQuoteObligation(row.id)
+  } catch (err) {
+    console.error('[createExpense] quote-obligation sync failed', err)
+  }
 
   // C2g (Task 4): materialize per-expense deliverable groups onto the new
   // expense. Non-fatal — mirrors the generateObligations idiom in

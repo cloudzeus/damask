@@ -381,6 +381,7 @@ model Trdr {
   kads                 TrdrKad[]
   documents            TrdrDocument[]
   dossierDocs          TrdrDossierDocument[]
+  supplierExpenses     ProgramExpense[]         @relation("ExpenseSupplier")
   programLeads         ProgramLead[]
   referrerLinks        Referrer[]               @relation("ReferrerTrdr") // Referrer records που δείχνουν σε αυτόν τον Trdr
   publicLeadRequests   PublicLeadRequest[] // αιτήματα από τη δημόσια φόρμα επιλεξιμότητας
@@ -1591,6 +1592,13 @@ model ProgramExpense {
   date                 DateTime?
   vendor               String?
   vendorAfm            String?
+  // Προμηθευτής ως συναλλασσόμενος (SODTYPE 12) — εισαγωγή με ΑΦΜ μέσω ΑΑΔΕ.
+  supplierTrdrId       String?
+  supplier             Trdr?                        @relation("ExpenseSupplier", fields: [supplierTrdrId], references: [id], onDelete: SetNull)
+  // Ενυπόγραφη προσφορά (αρχείο) — BunnyCDN private. Χωρίς προσφορά → εκκρεμότητα.
+  quoteStorageKey      String?
+  quoteName            String?
+  quoteMimeType        String?
   docNumber            String?
   suggestedCategoryId  String?
   suggestionReason     String?
@@ -1615,6 +1623,7 @@ model ProgramExpense {
   @@index([categoryId])
   @@index([status])
   @@index([paymentRequestId])
+  @@index([supplierTrdrId])
 }
 
 model ProgramExpenseCertification {
