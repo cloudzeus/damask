@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation'
 import { LuLoaderCircle } from 'react-icons/lu'
 import { listApplicationExpenseCategories, type ExpenseCategoryOption } from '@/lib/pm/actions'
 import { listApplicationExpenses, type ProgramExpenseItem } from '@/lib/programs/actions'
-import { ExpenseList } from '@/components/programs/expense-list'
 import { ProgramInvoiceDialog } from '@/components/invoices/program-invoice-dialog'
-import { BudgetCompliancePanel } from './budget-compliance-panel'
 import { BudgetProposalPanel } from '@/components/programs/budget-proposal'
 import { ReplaceExpenseDialog } from './replace-expense-dialog'
 
@@ -67,33 +65,25 @@ export function ExpensesTab({ applicationId, programId }: { applicationId: strin
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Guided «Οδηγός Προϋπολογισμού Υποβολής» — εύκολη προσθήκη δαπανών/προσφορών
-          ανά κατηγορία με μπάρες ορίου + PDF. Τα παρακάτω panels = προχωρημένη
-          διαχείριση (OCR, αντικατάσταση, live compliance). */}
-      <BudgetProposalPanel applicationId={applicationId} />
-
+      {/* Ενιαίο panel — expandable κατηγορίες, μέσα οι προδιαγραμμένες δαπάνες μία-μία
+          (περιγραφή/ποσό/προμηθευτής/AI πρόταση/προσφορά) + μπάρες ορίου + PDF.
+          OCR & αντικατάσταση = δευτερεύοντα affordances παρακάτω. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Δαπάνες & Πλάνο
         </span>
-        <ProgramInvoiceDialog applicationId={applicationId} categories={categories} onCreated={refreshExpenses} />
+        {error ? (
+          <span className="text-[0.71875rem] text-coral">{error}</span>
+        ) : loading ? (
+          <LuLoaderCircle className="size-4 animate-spin text-muted-foreground" aria-hidden />
+        ) : (
+          <ProgramInvoiceDialog applicationId={applicationId} categories={categories} onCreated={refreshExpenses} />
+        )}
       </div>
 
-      <BudgetCompliancePanel applicationId={applicationId} refreshKey={refreshKey} />
+      <BudgetProposalPanel key={refreshKey} applicationId={applicationId} />
 
       <ReplaceExpensesSection applicationId={applicationId} refreshKey={refreshKey} onReplaced={refreshExpenses} />
-
-      <section className="glass rounded-[22px] p-4">
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
-            <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
-          </div>
-        ) : error ? (
-          <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
-        ) : (
-          <ExpenseList key={refreshKey} applicationId={applicationId} categories={categories} />
-        )}
-      </section>
     </div>
   )
 }
