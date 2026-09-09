@@ -119,6 +119,7 @@ export function ActivityDashboard({ users }: { users: { id: string; name: string
       </div>
 
       <DataTable
+        fillHeight={false}
         tableId="activity-users"
         columns={userColumns}
         rows={analytics?.users ?? []}
@@ -130,6 +131,7 @@ export function ActivityDashboard({ users }: { users: { id: string; name: string
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <DataTable
+          fillHeight={false}
           tableId="activity-daily"
           columns={dailyColumns}
           rows={analytics?.daily ?? []}
@@ -138,6 +140,7 @@ export function ActivityDashboard({ users }: { users: { id: string; name: string
           footer={<span>Ανά ημέρα</span>}
         />
         <DataTable
+          fillHeight={false}
           tableId="activity-log"
           columns={logColumns}
           rows={log}

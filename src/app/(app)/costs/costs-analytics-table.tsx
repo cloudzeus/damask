@@ -142,6 +142,7 @@ export function CostsAnalyticsTable({ entries, isSuperAdmin }: { entries: Analyt
 
   return (
     <DataTable
+      fillHeight={false}
       tableId="costs-analytics"
       columns={columns}
       rows={entries}

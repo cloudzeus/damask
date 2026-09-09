@@ -64,7 +64,7 @@ export function DataTable<T>({
   rowClassName,
   onRowClick,
   bare = false,
-  fillHeight = false,
+  fillHeight = true,
 }: {
   tableId: string
   columns: DataTableColumn<T>[]
@@ -78,7 +78,9 @@ export function DataTable<T>({
   rowClassName?: (row: T) => string
   /** Χωρίς το glass-card wrapper — για ενσωμάτωση μέσα σε υπάρχον section. */
   bare?: boolean
-  /** Ο πίνακας γεμίζει το διαθέσιμο ύψος (viewport) με sticky header + εσωτερικό scroll. */
+  /** Ο πίνακας γεμίζει το διαθέσιμο ύψος (viewport) με sticky header + εσωτερικό
+   * scroll. Default true — full-height όταν ο πίνακας είναι το τελευταίο pane της
+   * σελίδας· πέρασε `fillHeight={false}` σε σελίδες με πάνελ/πίνακες από κάτω. */
   fillHeight?: boolean
   /** Click σε ολόκληρη τη γραμμή. Κελιά με δικές τους ενέργειες (π.χ. actions
    * menu) πρέπει να κάνουν stopPropagation στο δικό τους wrapper. */

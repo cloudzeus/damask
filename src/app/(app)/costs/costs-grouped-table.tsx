@@ -129,6 +129,7 @@ export function CostsGroupedTable({ grouped, isSuperAdmin, fxLatest, fxDay }: {
 
   return (
     <DataTable
+      fillHeight={false}
       tableId="costs-grouped"
       columns={columns}
       rows={grouped}

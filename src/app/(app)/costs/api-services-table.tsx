@@ -146,6 +146,7 @@ export function ApiServicesTable({ summaries, isSuperAdmin }: { summaries: ApiSe
 
   return (
     <DataTable
+      fillHeight={false}
       tableId="api-services"
       columns={columns}
       rows={summaries}
