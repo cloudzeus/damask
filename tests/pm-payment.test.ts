@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { expenseEligibleForPayment, paymentRequestTotal, canTransition, type PaymentEligibilityInput } from '@/lib/pm/payment'
 
-const e = (o: Partial<PaymentEligibilityInput> = {}): PaymentEligibilityInput => ({ status: 'ACTIVE', confirmed: true, verified: true, paymentRequestId: null, ...o })
+const e = (o: Partial<PaymentEligibilityInput> = {}): PaymentEligibilityInput => ({ status: 'ACTIVE', confirmed: true, verified: true, purchaseComplete: true, paymentRequestId: null, ...o })
 
 describe('expenseEligibleForPayment', () => {
-  it('eligible when active+confirmed+verified+unassigned', () => {
+  it('eligible when active+confirmed+verified+purchase+unassigned', () => {
     expect(expenseEligibleForPayment(e())).toEqual({ eligible: true, reason: null })
   })
   it('REPLACED → not eligible', () => { expect(expenseEligibleForPayment(e({ status: 'REPLACED' })).eligible).toBe(false) })
   it('not confirmed → not eligible', () => { expect(expenseEligibleForPayment(e({ confirmed: false })).reason).toBeTruthy() })
   it('not verified → not eligible', () => { expect(expenseEligibleForPayment(e({ verified: false })).reason).toBeTruthy() })
+  it('purchase docs missing → not eligible', () => { expect(expenseEligibleForPayment(e({ purchaseComplete: false })).reason).toBe('λείπουν έγγραφα αγοράς') })
   it('in another request → not eligible', () => { expect(expenseEligibleForPayment(e({ paymentRequestId: 'other' })).eligible).toBe(false) })
   it('in THIS request → eligible', () => { expect(expenseEligibleForPayment(e({ paymentRequestId: 'r1' }), 'r1').eligible).toBe(true) })
 })

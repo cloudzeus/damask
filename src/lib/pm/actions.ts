@@ -1134,12 +1134,12 @@ export async function listPaymentEligibleExpenses(applicationId: string, request
     orderBy: { createdAt: 'asc' },
   })
   return rows.map(r => {
-    const { eligible, reason } = expenseEligibleForPayment(
-      { status: r.status as 'ACTIVE' | 'REPLACED', confirmed: r.confirmed, verified: r.certification?.verified ?? false, paymentRequestId: r.paymentRequestId },
-      requestId ?? null,
-    )
     const p = r.purchase
     const present = [p?.invoiceKey, p?.bankExtraitKey, p?.supplierCertKey].filter(Boolean).length
+    const { eligible, reason } = expenseEligibleForPayment(
+      { status: r.status as 'ACTIVE' | 'REPLACED', confirmed: r.confirmed, verified: r.certification?.verified ?? false, purchaseComplete: present === 3, paymentRequestId: r.paymentRequestId },
+      requestId ?? null,
+    )
     return {
       id: r.id, description: r.description, amount: Number(r.amount), eligible, reason, inThisRequest: !!requestId && r.paymentRequestId === requestId,
       purchaseDocsComplete: present === 3, purchaseMissing: 3 - present,
@@ -1153,11 +1153,12 @@ export async function addExpenseToRequest(requestId: string, expenseId: string):
   if (req.status !== 'DRAFT') throw new Error('Η δόση δεν είναι πρόχειρη — δεν προστίθενται δαπάνες.')
   const exp = await prisma.programExpense.findUniqueOrThrow({
     where: { id: expenseId },
-    select: { id: true, applicationId: true, confirmed: true, status: true, paymentRequestId: true, certification: { select: { verified: true } } },
+    select: { id: true, applicationId: true, confirmed: true, status: true, paymentRequestId: true, certification: { select: { verified: true } }, purchase: { select: { invoiceKey: true, bankExtraitKey: true, supplierCertKey: true } } },
   })
   if (exp.applicationId !== req.applicationId) throw new Error('Η δαπάνη ανήκει σε άλλο έργο.')
+  const present = [exp.purchase?.invoiceKey, exp.purchase?.bankExtraitKey, exp.purchase?.supplierCertKey].filter(Boolean).length
   const { eligible, reason } = expenseEligibleForPayment(
-    { status: exp.status as 'ACTIVE' | 'REPLACED', confirmed: exp.confirmed, verified: exp.certification?.verified ?? false, paymentRequestId: exp.paymentRequestId },
+    { status: exp.status as 'ACTIVE' | 'REPLACED', confirmed: exp.confirmed, verified: exp.certification?.verified ?? false, purchaseComplete: present === 3, paymentRequestId: exp.paymentRequestId },
     requestId,
   )
   if (!eligible) throw new Error(`Μη επιλέξιμη δαπάνη: ${reason}.`)
