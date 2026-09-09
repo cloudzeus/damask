@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T03:48:32.631Z",
+  "timestamp": "2026-09-09T03:52:47.981Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,13 +22,17 @@
     },
     {
       "status": "M",
-      "path": "src/components/trdr/trdr-dossier.tsx"
+      "path": "src/components/email/compose-email-dialog.tsx"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/actions.ts"
+      "path": "src/components/programs/purchase-docs-panel.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/programs/expense-purchase.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n0169e7b feat(programs): επιτόπιος έλεγχος — εξαγωγές Excel + Word για τον ελεγκτή\n45a3b69 feat(pm): Β4 RV-4 persistence + stage gates\ne816fef feat(pm): σύνδεση αγορών ↔ αίτημα αποπληρωμής\nff2d541 feat(programs): Β3b deep-OCR reconcile — AI ανάγνωση παραστατικού\ne791b05 feat(pm): Β3a AI utilities — έλεγχος σχεδίου (budget sanity) + Οδηγός φακέλου"
+  "context_notes": "Recent commits:\nc153e6b feat(documents): #1 AI classify δικαιολογητικού — τύπος + ημ. λήξης\n0169e7b feat(programs): επιτόπιος έλεγχος — εξαγωγές Excel + Word για τον ελεγκτή\n45a3b69 feat(pm): Β4 RV-4 persistence + stage gates\ne816fef feat(pm): σύνδεση αγορών ↔ αίτημα αποπληρωμής\nff2d541 feat(programs): Β3b deep-OCR reconcile — AI ανάγνωση παραστατικού"
 }

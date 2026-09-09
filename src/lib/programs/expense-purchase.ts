@@ -225,3 +225,54 @@ export async function reconcileExpensePurchase(expenseId: string): Promise<{ ok:
   revalidatePath('/programs')
   return { ok: true, result: { verdict, note } }
 }
+
+// ── #2: AI-drafted email αιτήματος εγγράφων που λείπουν ───────────────────────
+
+export type DocRequestDraft = { subject: string; body: string; trdrId: string }
+
+/** Συντάσσει με AI ένα ευγενικό email προς τον πελάτη που ζητά τα έγγραφα
+ * αγοράς που λείπουν (extrait/παραστατικό/βεβαίωση) για μια δαπάνη. Επιστρέφει
+ * θέμα + σώμα (HTML) — ανοίγει στον composer για έλεγχο & αποστολή. */
+export async function draftDocRequestEmail(expenseId: string): Promise<{ ok: true; result: DocRequestDraft } | { ok: false; message: string }> {
+  await requirePermission('programs.manage')
+  const r = await prisma.programExpense.findUnique({
+    where: { id: expenseId },
+    select: {
+      description: true,
+      supplier: { select: { NAME: true } }, vendor: true,
+      application: { select: { trdrId: true, trdr: { select: { NAME: true } }, program: { select: { title: true } } } },
+      purchase: { select: { invoiceKey: true, bankExtraitKey: true, supplierCertKey: true } },
+    },
+  })
+  if (!r) return { ok: false, message: 'Η δαπάνη δεν βρέθηκε.' }
+  const p = r.purchase
+  const missing = (Object.keys(DOC_FIELDS) as PurchaseDocKind[]).filter(k => {
+    const key = k === 'invoice' ? p?.invoiceKey : k === 'bankExtrait' ? p?.bankExtraitKey : p?.supplierCertKey
+    return !key
+  }).map(k => DOC_FIELDS[k].label)
+  if (missing.length === 0) return { ok: false, message: 'Δεν λείπει κανένα έγγραφο για αυτή τη δαπάνη.' }
+
+  const facts = [
+    `Πελάτης: ${r.application.trdr.NAME}`,
+    `Πρόγραμμα: ${r.application.program.title}`,
+    `Δαπάνη: ${r.description}`,
+    r.supplier?.NAME || r.vendor ? `Προμηθευτής: ${r.supplier?.NAME ?? r.vendor}` : null,
+    `Έγγραφα που λείπουν: ${missing.join(', ')}`,
+  ].filter(Boolean).join('\n')
+
+  const messages = [
+    { role: 'system' as const, content: 'Είσαι σύμβουλος ΕΣΠΑ. Σύνταξε ένα σύντομο, ευγενικό, επαγγελματικό email (πληθυντικός ευγενείας) προς τον πελάτη που ζητά τα έγγραφα αγοράς που λείπουν, ώστε να προχωρήσει το αίτημα αποπληρωμής. Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"subject":"σύντομο θέμα","body":"σώμα email σε απλό κείμενο με παραγράφους (χρησιμοποίησε \\n για αλλαγή γραμμής)"}.' },
+    { role: 'user' as const, content: facts },
+  ]
+  try {
+    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 500, scope: 'OTHER', refType: 'doc-request-email', refId: expenseId })
+    const parsed = parseJsonLoose(text) as { subject?: unknown; body?: unknown } | null
+    const subject = typeof parsed?.subject === 'string' ? parsed.subject.trim() : `Δικαιολογητικά για τη δαπάνη «${r.description}»`
+    const rawBody = typeof parsed?.body === 'string' ? parsed.body.trim() : `Χρειαζόμαστε τα εξής έγγραφα: ${missing.join(', ')}.`
+    // Απλό κείμενο → HTML παράγραφοι για τον rich editor.
+    const body = rawBody.split(/\n{2,}/).map(par => `<p>${par.split('\n').map(l => l.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!))).join('<br>')}</p>`).join('')
+    return { ok: true, result: { subject, body, trdrId: r.application.trdrId } }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Η σύνταξη απέτυχε.' }
+  }
+}

@@ -2,14 +2,15 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { LuLoaderCircle, LuUpload, LuFileCheck2, LuSparkles, LuTriangleAlert, LuCircleCheck, LuX, LuScanText } from 'react-icons/lu'
+import { LuLoaderCircle, LuUpload, LuFileCheck2, LuSparkles, LuTriangleAlert, LuCircleCheck, LuX, LuScanText, LuMail } from 'react-icons/lu'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { OcrUploader } from '@/components/ocr/ocr-uploader'
 import type { ExtractedDocument } from '@/lib/ocr/schema'
+import { ComposeEmailDialog } from '@/components/email/compose-email-dialog'
 import {
-  listExpensePurchases, savePurchaseMeta, uploadPurchaseDoc, removePurchaseDoc, reconcileExpensePurchase, saveInvoiceOcr,
-  type PurchaseItem, type PurchaseDocKind, type PurchaseVerdict,
+  listExpensePurchases, savePurchaseMeta, uploadPurchaseDoc, removePurchaseDoc, reconcileExpensePurchase, saveInvoiceOcr, draftDocRequestEmail,
+  type PurchaseItem, type PurchaseDocKind, type PurchaseVerdict, type DocRequestDraft,
 } from '@/lib/programs/expense-purchase'
 
 const EUR = new Intl.NumberFormat('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -54,19 +55,31 @@ export function PurchaseDocsPanel({ applicationId }: { applicationId: string }) 
         <p className="py-2 text-[0.75rem] text-muted-foreground">Δεν υπάρχουν δαπάνες προς υλοποίηση.</p>
       ) : (
         <div className="flex flex-col gap-2.5">
-          {items.map(it => <PurchaseCard key={it.expenseId} item={it} onReload={load} />)}
+          {items.map(it => <PurchaseCard key={it.expenseId} item={it} applicationId={applicationId} onReload={load} />)}
         </div>
       )}
     </section>
   )
 }
 
-function PurchaseCard({ item: it, onReload }: { item: PurchaseItem; onReload: () => void }) {
+function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseItem; applicationId: string; onReload: () => void }) {
   const [serial, setSerial] = React.useState(it.serial ?? '')
   const [paid, setPaid] = React.useState(it.paidAmount != null ? String(it.paidAmount) : '')
   const [reconciling, setReconciling] = React.useState(false)
   const [showNote, setShowNote] = React.useState(false)
   const [ocrOpen, setOcrOpen] = React.useState(false)
+  const [drafting, setDrafting] = React.useState(false)
+  const [draft, setDraft] = React.useState<DocRequestDraft | null>(null)
+  const [composeOpen, setComposeOpen] = React.useState(false)
+
+  async function draftEmail() {
+    setDrafting(true)
+    try {
+      const res = await draftDocRequestEmail(it.expenseId)
+      if (!res.ok) { toast.error(res.message); return }
+      setDraft(res.result); setComposeOpen(true)
+    } catch { toast.error('Η σύνταξη email απέτυχε.') } finally { setDrafting(false) }
+  }
 
   async function onOcr(data: ExtractedDocument) {
     try {
@@ -156,7 +169,24 @@ function PurchaseCard({ item: it, onReload }: { item: PurchaseItem; onReload: ()
         {vm && <button type="button" onClick={() => setShowNote(s => !s)} className={`badge-pill ${vm.cls} shrink-0`}>{vm.label} ▾</button>}
         {it.missingDocs.length > 0 && <span className="inline-flex items-center gap-1 text-[0.65625rem] text-[color:var(--warning)]"><LuTriangleAlert className="size-3" aria-hidden /> λείπουν: {it.missingDocs.join(', ')}</span>}
         {it.missingDocs.length === 0 && <span className="inline-flex items-center gap-1 text-[0.65625rem] text-[color:var(--success)]"><LuCircleCheck className="size-3" aria-hidden /> όλα τα έγγραφα</span>}
+        {it.missingDocs.length > 0 && (
+          <button type="button" onClick={draftEmail} disabled={drafting} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary disabled:opacity-60" title="AI email που ζητά τα έγγραφα που λείπουν">
+            {drafting ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuMail className="size-3" aria-hidden />} AI email αιτήματος
+          </button>
+        )}
       </div>
+      {draft && (
+        <ComposeEmailDialog
+          key={`${it.expenseId}-${composeOpen}`}
+          open={composeOpen}
+          onOpenChange={setComposeOpen}
+          showTrigger={false}
+          trdrId={draft.trdrId}
+          applicationId={applicationId}
+          defaultSubject={draft.subject}
+          defaultBody={draft.body}
+        />
+      )}
       {showNote && it.reconNote && (
         <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[0.6875rem] text-muted-foreground"><strong>AI τεκμηρίωση:</strong> {it.reconNote}</p>
       )}

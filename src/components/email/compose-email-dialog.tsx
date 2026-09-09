@@ -28,7 +28,7 @@ type RequestItem = { label: string; required: boolean; description?: string | nu
 
 export function ComposeEmailDialog({
   trdrId, programId, applicationId, obligationId,
-  defaultTo = '', defaultSubject = '', threadId,
+  defaultTo = '', defaultSubject = '', defaultBody = '', threadId,
   onSent,
   open: controlledOpen, onOpenChange: controlledOnOpenChange,
   triggerLabel = 'Νέο email',
@@ -41,6 +41,7 @@ export function ComposeEmailDialog({
   obligationId?: string
   defaultTo?: string
   defaultSubject?: string
+  defaultBody?: string
   threadId?: string
   onSent?: () => void
   open?: boolean
@@ -60,7 +61,7 @@ export function ComposeEmailDialog({
   const [to, setTo] = useState(defaultTo)
   const [cc, setCc] = useState('')
   const [subject, setSubject] = useState(defaultSubject)
-  const [bodyHtml, setBodyHtml] = useState('')
+  const [bodyHtml, setBodyHtml] = useState(defaultBody)
   const [attachments, setAttachments] = useState<ComposeAttachment[]>([])
   const [editorKey, setEditorKey] = useState(0)
 
@@ -76,7 +77,7 @@ export function ComposeEmailDialog({
     setTo(defaultTo)
     setCc('')
     setSubject(defaultSubject)
-    setBodyHtml('')
+    setBodyHtml(defaultBody)
     setAttachments([])
     setEditorKey(k => k + 1)
     setWantRequest(false)
@@ -216,7 +217,7 @@ export function ComposeEmailDialog({
 
           <div className="field !mb-0">
             <label htmlFor="compose-body">Μήνυμα</label>
-            <RichTextEditor key={editorKey} value="" onChange={setBodyHtml} disabled={pending} />
+            <RichTextEditor key={editorKey} value={defaultBody} onChange={setBodyHtml} disabled={pending} />
           </div>
 
           <div className="field !mb-0">
