@@ -22,7 +22,7 @@ import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { NewDocumentRequestDialog } from '@/components/pm/new-document-request-dialog'
 import { ObligationsTab } from '@/components/pm/obligations-tab'
 import { EmailHistory } from '@/components/email/email-history'
-import { getApplicationValueChecks, type ValueCheck } from '@/lib/pm/value-checks'
+import { getApplicationValueChecks, saveApplicationValueCheck, type ValueCheck } from '@/lib/pm/value-checks'
 import { listApplicationContactOptions, setApplicationContacts, setContactPortalScope, type AppContactOption } from '@/lib/pm/application-contacts'
 import {
   LIFECYCLE_ORDER, LIFECYCLE_COLORS, lifecycleLabel, stageLabel, verdictLabel, obligationStatusLabel, type LifecycleStr,
@@ -243,13 +243,13 @@ const NUM = new Intl.NumberFormat('el-GR', { maximumFractionDigits: 2 })
  * ΣΚΟΠΙΜΑ ΜΗ-ΑΥΤΟΜΑΤΟ: η ένδειξη είναι ΕΝΔΕΙΚΤΙΚΗ (ευαίσθητο κομμάτι) — ο
  * διαχειριστής επιβεβαιώνει, το σύστημα δεν αποφασίζει επιλεξιμότητα.
  */
-function ValueChecksSection({ trdrId, programId }: { trdrId: string; programId: string }) {
+function ValueChecksSection({ trdrId, programId, applicationId }: { trdrId: string; programId: string; applicationId: string }) {
   const [checks, setChecks] = React.useState<ValueCheck[] | null>(null)
   React.useEffect(() => {
     let cancelled = false
-    getApplicationValueChecks(trdrId, programId).then(c => { if (!cancelled) setChecks(c) }).catch(() => { if (!cancelled) setChecks([]) })
+    getApplicationValueChecks(trdrId, programId, applicationId).then(c => { if (!cancelled) setChecks(c) }).catch(() => { if (!cancelled) setChecks([]) })
     return () => { cancelled = true }
-  }, [trdrId, programId])
+  }, [trdrId, programId, applicationId])
 
   if (!checks || checks.length === 0) return null
 
@@ -259,17 +259,28 @@ function ValueChecksSection({ trdrId, programId }: { trdrId: string; programId: 
         Στοιχεία εταιρίας — για τον έλεγχό σου
       </div>
       <div className="flex flex-col gap-2">
-        {checks.map(c => <ValueCheckRow key={c.key} check={c} />)}
+        {checks.map(c => <ValueCheckRow key={c.key} check={c} applicationId={applicationId} />)}
       </div>
-      <p className="mt-1.5 text-[0.65625rem] text-muted-foreground"><strong>Εσύ επιλέγεις</strong> ποια τιμή θα ελέγξεις — η ένδειξη είναι ενδεικτική. Το σύστημα δεν αποφασίζει επιλεξιμότητα.</p>
+      <p className="mt-1.5 text-[0.65625rem] text-muted-foreground"><strong>Εσύ επιλέγεις</strong> ποια τιμή θα ελέγξεις — η ένδειξη είναι ενδεικτική και <strong>η επιλογή σου αποθηκεύεται</strong>. Το σύστημα δεν αποφασίζει επιλεξιμότητα.</p>
     </div>
   )
 }
 
-function ValueCheckRow({ check: c }: { check: ValueCheck }) {
-  const [year, setYear] = React.useState<string>('')
+function ValueCheckRow({ check: c, applicationId }: { check: ValueCheck; applicationId: string }) {
+  const [year, setYear] = React.useState<string>(c.selectedYear != null ? String(c.selectedYear) : '')
+  const [saved, setSaved] = React.useState(c.selectedYear != null)
   const picked = c.options.find(o => String(o.year) === year) ?? null
   const ok = picked?.value != null && c.requirement != null ? picked.value >= c.requirement : null
+
+  async function pick(v: string) {
+    setYear(v)
+    setSaved(false)
+    const opt = c.options.find(o => String(o.year) === v) ?? null
+    try {
+      await saveApplicationValueCheck(applicationId, c.key, { year: opt ? opt.year : null, value: opt?.value ?? null })
+      setSaved(true)
+    } catch { toast.error('Η αποθήκευση επιλογής απέτυχε.') }
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78125rem]">
@@ -277,7 +288,7 @@ function ValueCheckRow({ check: c }: { check: ValueCheck }) {
       {c.options.length === 0 ? (
         <span className="text-[0.71875rem] text-muted-foreground">— καμία καταχωρημένη τιμή (δες «Τιμές εντύπων»)</span>
       ) : (
-        <Select value={year} onValueChange={v => setYear(v ?? '')}>
+        <Select value={year} onValueChange={v => pick(v ?? '')}>
           <SelectTrigger className="h-8 w-[190px] rounded-full border-border bg-card px-3 text-[0.75rem]">
             <SelectValue placeholder="Διάλεξε τιμή/έτος…" />
           </SelectTrigger>
@@ -292,6 +303,7 @@ function ValueCheckRow({ check: c }: { check: ValueCheck }) {
           {ok ? 'καλύπτει (ενδεικτικά)' : 'κάτω από το ελάχιστο (ενδεικτικά)'}
         </span>
       )}
+      {saved && picked && <span className="text-[0.65625rem] text-[color:var(--success)]" title="Η επιλογή σου αποθηκεύτηκε">αποθηκεύτηκε ✓</span>}
     </div>
   )
 }
@@ -426,7 +438,7 @@ function EvaluationDialog({
 
         {tab === 'overview' && (<>
         <CriteriaBadges snapshot={card.snapshot} />
-        <ValueChecksSection trdrId={trdrId} programId={card.programId} />
+        <ValueChecksSection trdrId={trdrId} programId={card.programId} applicationId={card.id} />
 
         {/* Εκκρεμότητες / δικαιολογητικά — έμφαση στην τρέχουσα φάση */}
         <div className="mt-3 border-t border-border pt-3">

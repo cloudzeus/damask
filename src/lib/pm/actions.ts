@@ -567,22 +567,23 @@ export async function removeApplicationDocument(id: string): Promise<void> {
   revalidatePath(`/pm/applications/${row.applicationId}`)
 }
 
-/** Αλλάζει στάδιο αίτησης· πριν αλλάξει μετράει πόσες mandatory υποχρεώσεις
- * του ΤΡΕΧΟΝΤΟΣ σταδίου είναι ακόμα PENDING — καθαρά ενημερωτικό (δεν μπλοκάρει
- * τη μετάβαση), το UI αποφασίζει αν θα προειδοποιήσει τον χρήστη. */
+/** Αλλάζει στάδιο αίτησης, με HARD GATES (Β4): (1) πέρα από «Δικαιολογητικά»
+ * απαιτούνται ΟΛΑ τα υποχρεωτικά FORM εγκεκριμένα/απαλλαγμένα· (2) για να μπεις
+ * σε «Υποβολή ΟΠΣΚΕ»+ πρέπει η πρόταση να είναι ΕΤΟΙΜΗ (σχέδιο δαπανών + όρια)·
+ * (3) για να μπεις σε «Δελτία ελέγχου»+ (φάση υλοποίησης) πρέπει να υπάρχει
+ * ΕΓΚΕΚΡΙΜΕΝΗ υποβολή. */
 export async function setApplicationStage(
   applicationId: string,
   stage: StageStr,
 ): Promise<{ ok: boolean; blocked?: number; message?: string; pendingMandatory: number }> {
   await requireVisibleApplication(applicationId)
 
-  // HARD GATE δικαιολογητικών: για να προχωρήσεις ΠΕΡΑ από το στάδιο
-  // «Δικαιολογητικά», ΟΛΑ τα υποχρεωτικά δικαιολογητικά (FORM) πρέπει να έχουν
-  // ΕΓΚΡΙΘΕΙ (APPROVED) ή απαλλαγεί (WAIVED). Τα δικαιολογητικά είναι αυτόνομο
-  // κομμάτι όλου του προγράμματος — δεν κλειδώνονται ανά στάδιο, αλλά μπλοκάρουν
-  // τη μετάβαση πέρα από τη συλλογή τους.
   const docsIdx = STAGE_ORDER.indexOf('DOCUMENTS')
+  const opskeIdx = STAGE_ORDER.indexOf('OPSKE_SUBMISSION')
+  const inspectionIdx = STAGE_ORDER.indexOf('INSPECTION')
   const targetIdx = STAGE_ORDER.indexOf(stage)
+
+  // GATE 1 — δικαιολογητικά (πέρα από DOCUMENTS)
   if (targetIdx > docsIdx) {
     const blocked = await prisma.applicationObligation.count({
       where: { applicationId, kind: 'FORM', mandatory: true, status: { notIn: ['APPROVED', 'WAIVED'] } },
@@ -594,6 +595,22 @@ export async function setApplicationStage(
         message: `Δεν μπορείς να προχωρήσεις στο επόμενο στάδιο: ${blocked} υποχρεωτικά δικαιολογητικά δεν έχουν εγκριθεί ακόμη.`,
         pendingMandatory: blocked,
       }
+    }
+  }
+
+  // GATE 2 — ετοιμότητα πρότασης (για να μπεις σε OPSKE_SUBMISSION+)
+  if (targetIdx >= opskeIdx) {
+    const readiness = await computeSubmissionReadiness(applicationId)
+    if (!readiness.ready) {
+      return { ok: false, message: `Δεν μπορείς να προχωρήσεις στην υποβολή: ${readiness.blockers.join(' · ')}`, pendingMandatory: 0 }
+    }
+  }
+
+  // GATE 3 — εγκεκριμένη υποβολή (για να μπεις σε INSPECTION+/υλοποίηση)
+  if (targetIdx >= inspectionIdx) {
+    const approved = await prisma.proposalSubmission.count({ where: { applicationId, status: 'APPROVED' } })
+    if (approved === 0) {
+      return { ok: false, message: 'Δεν μπορείς να προχωρήσεις στην υλοποίηση: δεν υπάρχει εγκεκριμένη υποβολή πρότασης.', pendingMandatory: 0 }
     }
   }
 

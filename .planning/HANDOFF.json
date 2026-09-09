@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T03:19:17.108Z",
+  "timestamp": "2026-09-09T03:28:07.553Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,7 +22,11 @@
     },
     {
       "status": "M",
-      "path": "src/components/pm/payments-tab.tsx"
+      "path": "prisma/schema.prisma"
+    },
+    {
+      "status": "M",
+      "path": "src/components/pm/trdr-programs-panel.tsx"
     },
     {
       "status": "M",
@@ -30,9 +34,13 @@
     },
     {
       "status": "M",
-      "path": "src/lib/programs/expense-purchase.ts"
+      "path": "src/lib/pm/value-checks.ts"
+    },
+    {
+      "status": "??",
+      "path": "prisma/migrations/20260909190000_application_value_check/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nff2d541 feat(programs): Β3b deep-OCR reconcile — AI ανάγνωση παραστατικού\ne791b05 feat(pm): Β3a AI utilities — έλεγχος σχεδίου (budget sanity) + Οδηγός φακέλου\nbb1ab3f feat(programs): Β2 στοιχεία αγοράς ανά δαπάνη + AI διασταύρωση (ExpensePurchase)\nf30da9d feat(pm): Β1 υποβολή πρότασης — versioned ProposalSubmission + readiness gate\n65ccd86 feat(pm): Β0 stage-aware tab «Δαπάνες & Πλάνο» + phase banner"
+  "context_notes": "Recent commits:\ne816fef feat(pm): σύνδεση αγορών ↔ αίτημα αποπληρωμής\nff2d541 feat(programs): Β3b deep-OCR reconcile — AI ανάγνωση παραστατικού\ne791b05 feat(pm): Β3a AI utilities — έλεγχος σχεδίου (budget sanity) + Οδηγός φακέλου\nbb1ab3f feat(programs): Β2 στοιχεία αγοράς ανά δαπάνη + AI διασταύρωση (ExpensePurchase)\nf30da9d feat(pm): Β1 υποβολή πρότασης — versioned ProposalSubmission + readiness gate"
 }

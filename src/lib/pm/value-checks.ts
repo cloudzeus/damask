@@ -20,6 +20,8 @@ export type ValueCheck = {
   /** Όλες οι καταχωρημένες τιμές του πελάτη (ανά έτος) — ο διαχειριστής ΕΠΙΛΕΓΕΙ
    * ποια θα συγκρίνει. Σκόπιμα ΧΩΡΙΣ αυτόματη επιλογή (ευαίσθητο κομμάτι). */
   options: ValueOption[]
+  /** Αποθηκευμένη ΧΕΙΡΟΚΙΝΗΤΗ επιλογή του διαχειριστή (RV-4 persistence). */
+  selectedYear: number | null
 }
 
 /** Ζεύγη «fieldKey τιμής → αριθμητικό κριτήριο προγράμματος». */
@@ -27,7 +29,7 @@ const PAIRS: { key: string; label: string; fieldKeys: string[]; programField: 'm
   { key: 'eme', label: 'Ετήσιες Μονάδες Εργασίας (ΕΜΕ)', fieldKeys: ['eme'], programField: 'minEmployeesFte', requirementLabel: 'ελάχιστες ΕΜΕ' },
 ]
 
-export async function getApplicationValueChecks(trdrId: string, programId: string): Promise<ValueCheck[]> {
+export async function getApplicationValueChecks(trdrId: string, programId: string, applicationId?: string): Promise<ValueCheck[]> {
   await requirePermission('customer.view')
   const program = await prisma.program.findUnique({ where: { id: programId }, select: { minEmployeesFte: true } })
   if (!program) return []
@@ -38,6 +40,12 @@ export async function getApplicationValueChecks(trdrId: string, programId: strin
     orderBy: { year: 'desc' },
     select: { fieldKey: true, value: true, year: true },
   })
+  // Αποθηκευμένες χειροκίνητες επιλογές (RV-4 persistence) ανά fieldKey.
+  const selectedByKey = new Map<string, number>()
+  if (applicationId) {
+    const saved = await prisma.applicationValueCheck.findMany({ where: { applicationId }, select: { fieldKey: true, selectedYear: true } })
+    for (const s of saved) { if (s.selectedYear != null) selectedByKey.set(s.fieldKey, s.selectedYear) }
+  }
   // Όλες οι τιμές ανά fieldKey (ανά έτος) — προς επιλογή από τον διαχειριστή.
   const byKey = new Map<string, ValueOption[]>()
   for (const v of values) {
@@ -54,7 +62,26 @@ export async function getApplicationValueChecks(trdrId: string, programId: strin
     options.sort((a, b) => b.year - a.year)
     // Δείξε μόνο αν υπάρχει κριτήριο Ή έστω μία τιμή.
     if (requirement == null && options.length === 0) continue
-    out.push({ key: p.key, label: p.label, requirement, requirementLabel: p.requirementLabel, options })
+    // Η επιλογή αποθηκεύεται ανά key (πρώτο fieldKey του ζεύγους).
+    const selectedYear = p.fieldKeys.map(fk => selectedByKey.get(fk)).find(y => y != null) ?? null
+    out.push({ key: p.key, label: p.label, requirement, requirementLabel: p.requirementLabel, options, selectedYear })
   }
   return out
+}
+
+/** RV-4 persistence — αποθήκευση της ΧΕΙΡΟΚΙΝΗΤΗΣ επιλογής τιμής του διαχειριστή
+ * (ποιο έτος/τιμή επέλεξε να ελέγξει). Δεν αποφασίζει επιλεξιμότητα το σύστημα. */
+export async function saveApplicationValueCheck(
+  applicationId: string,
+  fieldKey: string,
+  input: { year: number | null; value: number | null },
+): Promise<{ ok: boolean }> {
+  await requirePermission('customer.edit')
+  const data = { selectedYear: input.year, selectedValue: input.value }
+  await prisma.applicationValueCheck.upsert({
+    where: { applicationId_fieldKey: { applicationId, fieldKey } },
+    create: { applicationId, fieldKey, ...data },
+    update: data,
+  })
+  return { ok: true }
 }

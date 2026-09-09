@@ -1551,6 +1551,7 @@ model ProgramApplication {
   criterionScores     ApplicationCriterionScore[]
   paymentRequests     PaymentRequest[]
   proposalSubmissions ProposalSubmission[]
+  valueChecks         ApplicationValueCheck[]
   documentRequests    DocumentRequest[]
   expenseDeliverables ExpenseDeliverable[]
   contactLinks        ApplicationContact[]
@@ -1851,6 +1852,25 @@ model ExpensePurchase {
   ocrCheckedAt     DateTime?
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
+}
+
+// Β4 — RV-4 persistence: η ΧΕΙΡΟΚΙΝΗΤΗ επιλογή τιμής επιλεξιμότητας του
+// διαχειριστή ανά κριτήριο (fieldKey) & αίτηση. ΔΕΝ αποφασίζει το σύστημα —
+// απλώς θυμάται τι επέλεξε ο άνθρωπος (ευαίσθητο κομμάτι, καμία αυτοματοποίηση).
+model ApplicationValueCheck {
+  id            String             @id @default(cuid())
+  applicationId String
+  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fieldKey      String // π.χ. 'eme'
+  selectedYear  Int?
+  selectedValue Decimal?           @db.Decimal(18, 2)
+  note          String?
+  decidedById   String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@unique([applicationId, fieldKey])
+  @@index([applicationId])
 }
 
 model ApplicationObligation {
