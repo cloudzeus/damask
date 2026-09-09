@@ -168,7 +168,7 @@ export async function createTemplate(input: { code: string; name: string; year?:
 
 export async function updateTemplateMeta(
   id: string,
-  input: { name?: string; year?: number | null; description?: string | null; status?: 'DRAFT' | 'READY' },
+  input: { name?: string; year?: number | null; description?: string | null; status?: 'DRAFT' | 'READY'; documentTypeId?: string | null },
 ): Promise<void> {
   await requirePermission('taxform.manage')
   await prisma.taxFormTemplate.update({
@@ -178,6 +178,7 @@ export async function updateTemplateMeta(
       ...(input.year !== undefined ? { year: input.year } : {}),
       ...(input.description !== undefined ? { description: input.description?.trim() || null } : {}),
       ...(input.status ? { status: input.status } : {}),
+      ...(input.documentTypeId !== undefined ? { documentTypeId: input.documentTypeId } : {}),
     },
   })
   revalidatePath(`/tax-templates/${id}`)

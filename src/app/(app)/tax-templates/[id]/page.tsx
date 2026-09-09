@@ -31,6 +31,7 @@ export default async function TaxTemplateDetailPage({ params }: { params: Promis
     status: template.status,
     sampleStorageKey: template.sampleStorageKey,
     samplePageCount: template.samplePageCount,
+    documentTypeId: template.documentTypeId,
   }
 
   const fields: TemplateField[] = template.fields.map(f => ({

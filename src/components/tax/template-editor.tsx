@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LuTag, LuCalendar, LuUpload } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RegionEditor } from './region-editor'
 import { FieldList } from './field-list'
 import { updateTemplateMeta, uploadSample, saveFields } from '@/lib/tax/actions'
+import { listDocumentTypes, createDocumentType, type DocumentTypeOption } from '@/lib/documents/actions'
 import { regionKeyOf, type TemplateField, type Bbox } from '@/lib/tax/template'
 import { isPdfFile, imageFileToPage, rasterizePdf, type RasterizedPage } from '@/lib/ocr/rasterize'
 
@@ -21,9 +24,12 @@ export type TemplateMeta = {
   status: 'DRAFT' | 'READY'
   sampleStorageKey: string | null
   samplePageCount: number | null
+  documentTypeId: string | null
 }
 
 const STATUS_LABELS: Record<TemplateMeta['status'], string> = { DRAFT: 'Πρόχειρο', READY: 'Έτοιμο' }
+const NONE_DOCTYPE = '__nodoctype__'
+const NEW_DOCTYPE = '__newdoctype__'
 
 /** File (PDF ή εικόνα) → rasterized σελίδες — ίδιο idiom με τον OCR uploader
  * (src/components/ocr/ocr-uploader.tsx): PDF περνάει από pdfjs, εικόνα απλά
@@ -74,7 +80,18 @@ export function TemplateEditor({ template, fields: initialFields }: { template: 
   const [name, setName] = React.useState(template.name)
   const [year, setYear] = React.useState(template.year != null ? String(template.year) : '')
   const [status, setStatus] = React.useState<TemplateMeta['status']>(template.status)
+  const [docTypeId, setDocTypeId] = React.useState<string>(template.documentTypeId ?? NONE_DOCTYPE)
+  const [docTypes, setDocTypes] = React.useState<DocumentTypeOption[]>([])
+  const [newTypeName, setNewTypeName] = React.useState('')
+  const [newTypeExpires, setNewTypeExpires] = React.useState(false)
   const [uploading, setUploading] = React.useState(false)
+
+  React.useEffect(() => {
+    let cancelled = false
+    listDocumentTypes().then(t => { if (!cancelled) setDocTypes(t) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+  const creatingType = docTypeId === NEW_DOCTYPE
   const [savingMeta, startSaveMeta] = React.useTransition()
   const [savingFields, startSaveFields] = React.useTransition()
 
@@ -126,7 +143,15 @@ export function TemplateEditor({ template, fields: initialFields }: { template: 
     }
     startSaveMeta(async () => {
       try {
-        await updateTemplateMeta(template.id, { name: name.trim(), year: yearNum, status })
+        let documentTypeId: string | null = docTypeId === NONE_DOCTYPE || docTypeId === NEW_DOCTYPE ? null : docTypeId
+        if (creatingType) {
+          if (!newTypeName.trim()) { toast.error('Δώσε όνομα νέου τύπου.'); return }
+          const t = await createDocumentType(newTypeName.trim(), newTypeExpires)
+          documentTypeId = t.id
+          setDocTypes(prev => [...prev.filter(x => x.id !== t.id), t].sort((a, b) => a.name.localeCompare(b.name, 'el')))
+          setDocTypeId(t.id); setNewTypeName(''); setNewTypeExpires(false)
+        }
+        await updateTemplateMeta(template.id, { name: name.trim(), year: yearNum, status, documentTypeId })
         toast.success('Τα στοιχεία αποθηκεύτηκαν.')
         router.refresh()
       } catch {
@@ -180,6 +205,30 @@ export function TemplateEditor({ template, fields: initialFields }: { template: 
     <div className="flex flex-col gap-4">
       {/* Στοιχεία εντύπου + ανέβασμα δείγματος */}
       <div className="glass rounded-[22px] p-4">
+        {/* DocumentType-first: ο τύπος δικαιολογητικού στον οποίο ανήκει αυτός ο
+            Οδηγός τιμών — ενοποιεί με την αποθήκη/μητρώο δικαιολογητικών. */}
+        <div className="field !mb-3">
+          <label htmlFor="tm-doctype">Τύπος δικαιολογητικού (Οδηγός τιμών)</label>
+          <Select value={docTypeId} onValueChange={v => setDocTypeId(v ?? NONE_DOCTYPE)}>
+            <SelectTrigger id="tm-doctype" className="h-11 w-full rounded-full border-border bg-card px-4 sm:max-w-[420px]" disabled={savingMeta}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE_DOCTYPE}>— (κανένας) —</SelectItem>
+              {docTypes.map(d => <SelectItem key={d.id} value={d.id}>{d.name}{d.expires ? ' · (λήγει)' : ''}</SelectItem>)}
+              <SelectItem value={NEW_DOCTYPE}>+ Νέος τύπος…</SelectItem>
+            </SelectContent>
+          </Select>
+          {creatingType && (
+            <div className="mt-2 flex flex-wrap items-center gap-2.5 rounded-[14px] border border-border bg-muted/40 p-2.5 sm:max-w-[420px]">
+              <Input value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="Όνομα νέου τύπου (π.χ. Ισολογισμός)" autoComplete="off" disabled={savingMeta} className="flex-1" />
+              <label className="flex items-center gap-1.5 text-[0.78125rem] font-semibold whitespace-nowrap">
+                <Switch checked={newTypeExpires} onCheckedChange={setNewTypeExpires} disabled={savingMeta} /> Λήγει
+              </label>
+            </div>
+          )}
+          <p className="mt-1 text-[0.65625rem] text-muted-foreground">Ο τύπος στον οποίο ανήκει αυτός ο οδηγός εξαγωγής τιμών — τον επιλέγεις πρώτο, μετά ορίζεις τιμές &amp; περιοχές.</p>
+        </div>
         <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[2fr_130px_170px_auto]">
           <div className="field !mb-0">
             <label htmlFor="tm-name">Όνομα</label>

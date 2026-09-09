@@ -1080,12 +1080,17 @@ model TaxFormTemplate {
   createdById      String?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
+  // Σύνδεση με τύπο δικαιολογητικού (region-values): ο τύπος «έχει» έναν Οδηγό
+  // τιμών προς εξαγωγή. DocumentType-first ροή.
+  documentTypeId   String?
+  documentType     DocumentType?          @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
   fields           TaxFormTemplateField[]
   records          TrdrFormRecord[]
   requiredForms    ProgramRequiredForm[]
 
   @@unique([code, year])
   @@index([status])
+  @@index([documentTypeId])
 }
 
 model TaxFormTemplateField {
@@ -2090,6 +2095,7 @@ model DocumentType {
   createdAt     DateTime              @default(now())
   dossierDocs   TrdrDossierDocument[]
   requiredForms ProgramRequiredForm[]
+  templates     TaxFormTemplate[]
 }
 
 /// Αποθήκη δικαιολογητικών ανά πελάτη (Trdr) — ανεξάρτητα προγράμματος. Ό,τι
