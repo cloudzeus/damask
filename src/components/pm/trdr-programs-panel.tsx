@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Plus, LoaderCircle, Landmark, ExternalLink, Trash2, CircleCheck, CircleX, Search, MoreVertical, ClipboardCheck, MailPlus, Users } from 'lucide-react'
+import { Plus, LoaderCircle, Landmark, ExternalLink, Trash2, CircleCheck, CircleX, Search, MoreVertical, ClipboardCheck, MailPlus, Users, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
@@ -22,7 +22,7 @@ import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { NewDocumentRequestDialog } from '@/components/pm/new-document-request-dialog'
 import { ObligationsTab } from '@/components/pm/obligations-tab'
 import { EmailHistory } from '@/components/email/email-history'
-import { getApplicationValueChecks, saveApplicationValueCheck, type ValueCheck } from '@/lib/pm/value-checks'
+import { getApplicationValueChecks, saveApplicationValueCheck, assessClientEligibility, type ValueCheck } from '@/lib/pm/value-checks'
 import { listApplicationContactOptions, setApplicationContacts, setContactPortalScope, type AppContactOption } from '@/lib/pm/application-contacts'
 import {
   LIFECYCLE_ORDER, LIFECYCLE_COLORS, lifecycleLabel, stageLabel, verdictLabel, obligationStatusLabel, type LifecycleStr,
@@ -245,22 +245,44 @@ const NUM = new Intl.NumberFormat('el-GR', { maximumFractionDigits: 2 })
  */
 function ValueChecksSection({ trdrId, programId, applicationId }: { trdrId: string; programId: string; applicationId: string }) {
   const [checks, setChecks] = React.useState<ValueCheck[] | null>(null)
+  const [assessing, setAssessing] = React.useState(false)
+  const [observations, setObservations] = React.useState<string[] | null>(null)
   React.useEffect(() => {
     let cancelled = false
     getApplicationValueChecks(trdrId, programId, applicationId).then(c => { if (!cancelled) setChecks(c) }).catch(() => { if (!cancelled) setChecks([]) })
     return () => { cancelled = true }
   }, [trdrId, programId, applicationId])
 
+  async function assess() {
+    setAssessing(true)
+    try {
+      const res = await assessClientEligibility(trdrId, programId, applicationId)
+      if (!res.ok) { toast.error(res.message); return }
+      setObservations(res.result.observations)
+    } catch { toast.error('Η ανάλυση απέτυχε.') } finally { setAssessing(false) }
+  }
+
   if (!checks || checks.length === 0) return null
 
   return (
     <div className="mt-3 border-t border-border pt-3">
-      <div className="mb-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
-        Στοιχεία εταιρίας — για τον έλεγχό σου
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Στοιχεία εταιρίας — για τον έλεγχό σου</div>
+        <button type="button" onClick={assess} disabled={assessing} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary disabled:opacity-60" title="ΕΝΔΕΙΚΤΙΚΕΣ AI παρατηρήσεις — το σύστημα ΔΕΝ αποφασίζει">
+          {assessing ? <LoaderCircle className="size-3 animate-spin" aria-hidden /> : <Sparkles className="size-3" aria-hidden />} AI παρατηρήσεις (ενδεικτικά)
+        </button>
       </div>
       <div className="flex flex-col gap-2">
         {checks.map(c => <ValueCheckRow key={c.key} check={c} applicationId={applicationId} />)}
       </div>
+      {observations && (
+        <div className="mt-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+          <div className="mb-1 text-[0.65625rem] font-bold uppercase tracking-wide text-primary">AI παρατηρήσεις — ενδεικτικά (εσύ αποφασίζεις)</div>
+          <ul className="list-disc pl-5 text-[0.71875rem] text-muted-foreground">
+            {observations.map((o, i) => <li key={i}>{o}</li>)}
+          </ul>
+        </div>
+      )}
       <p className="mt-1.5 text-[0.65625rem] text-muted-foreground"><strong>Εσύ επιλέγεις</strong> ποια τιμή θα ελέγξεις — η ένδειξη είναι ενδεικτική και <strong>η επιλογή σου αποθηκεύεται</strong>. Το σύστημα δεν αποφασίζει επιλεξιμότητα.</p>
     </div>
   )

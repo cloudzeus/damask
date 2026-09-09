@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
+import { deepseekChat } from '@/lib/deepseek'
+import { parseJsonLoose } from '@/lib/ocr/extract'
 
 /**
  * RV-4 — «auto-fill» των αποθηκευμένων τιμών του πελάτη (TrdrFinancialValue) στην
@@ -84,4 +86,44 @@ export async function saveApplicationValueCheck(
     update: data,
   })
   return { ok: true }
+}
+
+// ── #4: AI ΕΝΔΕΙΚΤΙΚΕΣ παρατηρήσεις επιλεξιμότητας πελάτη ──────────────────────
+// ΠΟΛΥ ευαίσθητο: το AI ΔΕΝ αποφασίζει επιλεξιμότητα. Δίνει μόνο παρατηρήσεις/
+// σημεία προσοχής προς έλεγχο από τον διαχειριστή (ο άνθρωπος αποφασίζει).
+
+export type EligibilityObservations = { observations: string[] }
+
+export async function assessClientEligibility(trdrId: string, programId: string, applicationId: string): Promise<{ ok: true; result: EligibilityObservations } | { ok: false; message: string }> {
+  await requirePermission('customer.view')
+  const program = await prisma.program.findUnique({ where: { id: programId }, select: { title: true, eligibilityNote: true } })
+  if (!program) return { ok: false, message: 'Δεν βρέθηκε το πρόγραμμα.' }
+  const checks = await getApplicationValueChecks(trdrId, programId, applicationId)
+  const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { eligibilitySnapshot: true } })
+
+  const checkLines = checks.map(c => {
+    const picked = c.selectedYear != null ? c.options.find(o => o.year === c.selectedYear) : null
+    const val = picked?.value ?? null
+    return `- ${c.label}: επιλεγμένη τιμή ${val != null ? val : '(δεν έχει επιλεγεί)'}${c.requirement != null ? ` / απαιτούμενο ≥ ${c.requirement}` : ''}`
+  }).join('\n')
+
+  const facts = [
+    `Πρόγραμμα: ${program.title}`,
+    program.eligibilityNote ? `Όροι επιλεξιμότητας: ${program.eligibilityNote}` : null,
+    checkLines ? `Τιμές που επέλεξε ο διαχειριστής να ελέγξει:\n${checkLines}` : 'Δεν υπάρχουν αριθμητικά κριτήρια προς έλεγχο.',
+    app?.eligibilitySnapshot ? `Στοιχεία ένταξης (snapshot): ${JSON.stringify(app.eligibilitySnapshot).slice(0, 800)}` : null,
+  ].filter(Boolean).join('\n')
+
+  const messages = [
+    { role: 'system' as const, content: 'Είσαι βοηθός συμβούλου ΕΣΠΑ. Δώσε ΜΟΝΟ ΕΝΔΕΙΚΤΙΚΕΣ παρατηρήσεις για να βοηθήσεις τον διαχειριστή να ελέγξει την επιλεξιμότητα ενός πελάτη. ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ: ΔΕΝ αποφασίζεις εσύ αν είναι επιλέξιμος — ο άνθρωπος αποφασίζει. Επισήμανε σημεία προσοχής, πιθανά ρίσκα, τι πρέπει να ελεγχθεί/τεκμηριωθεί, τυχόν αποκλίσεις από τα κριτήρια. Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"observations":["σύντομες παρατηρήσεις στα ελληνικά, ενδεικτικές, χωρίς τελική ετυμηγορία επιλεξιμότητας"]}.' },
+    { role: 'user' as const, content: facts },
+  ]
+  try {
+    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 600, scope: 'OTHER', refType: 'client-eligibility', refId: applicationId })
+    const p = parseJsonLoose(text) as { observations?: unknown } | null
+    const observations = Array.isArray(p?.observations) ? p.observations.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map(x => x.trim()) : []
+    return { ok: true, result: { observations: observations.length ? observations : ['Δεν προέκυψαν παρατηρήσεις — έλεγξε χειροκίνητα.'] } }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Η ανάλυση απέτυχε.' }
+  }
 }
