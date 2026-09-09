@@ -105,7 +105,7 @@ function CategoryCard({
   onReload: () => void
 }) {
   const spent = expenses.reduce((s, e) => s + e.amount, 0)
-  const max = c?.maxAmount ?? null
+  const max = c?.maxEuro ?? null
   const pctUsed = max && max > 0 ? Math.min(100, (spent / max) * 100) : null
   const over = c?.status === 'OVER'
   const under = c?.status === 'UNDER'
@@ -150,19 +150,24 @@ function CategoryCard({
               {missing > 0 && <span className="badge-pill warn shrink-0"><LuTriangleAlert className="size-3" aria-hidden /> {missing} χωρίς προσφορά</span>}
               {c && <span className="text-[0.6875rem] text-muted-foreground">όριο: {c.limitLabel}</span>}
             </div>
-            {/* Μπάρα ορίου — ορατή και κλειστή, ως σύνοψη */}
-            {pctUsed != null && (
+            {/* Μπάρα ορίου — «άθροισμα € / όριο €», ορατή και κλειστή */}
+            {pctUsed != null ? (
               <div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <div className={cn('h-full rounded-full transition-all', over ? 'bg-[color:var(--coral)]' : 'bg-[color:var(--success)]')} style={{ width: `${pctUsed}%` }} />
                 </div>
-                <div className="mt-0.5 flex items-center justify-between text-[0.65625rem]">
-                  <span className={cn(over ? 'font-bold text-[color:var(--coral)]' : under ? 'text-[color:var(--warning)]' : 'text-muted-foreground')}>
-                    {over ? 'Υπέρβαση ορίου!' : under ? 'Κάτω από το ελάχιστο' : `μένουν ${EUR2.format(Math.max(0, (max ?? 0) - spent))} €`}
+                <div className="mt-0.5 flex items-center justify-between gap-2 text-[0.65625rem]">
+                  <span className="font-medium tabular-nums">
+                    {EUR2.format(spent)} € <span className="font-normal text-muted-foreground">από</span> {EUR2.format(max ?? 0)} €
                   </span>
-                  <span className="text-muted-foreground">{Math.round(pctUsed)}% του ορίου</span>
+                  <span className={cn(over ? 'font-bold text-[color:var(--coral)]' : under ? 'text-[color:var(--warning)]' : 'text-muted-foreground')}>
+                    {over ? 'Υπέρβαση ορίου!' : under ? 'Κάτω από το ελάχιστο' : `μένουν ${EUR2.format(Math.max(0, (max ?? 0) - spent))} € · ${Math.round(pctUsed)}%`}
+                  </span>
                 </div>
               </div>
+            ) : (
+              // Χωρίς όριο σε € (π.χ. μόνο ελάχιστο ή καθόλου όριο) — δείξε μόνο το άθροισμα.
+              <div className="text-[0.65625rem] tabular-nums text-muted-foreground">Άθροισμα: <span className="font-medium text-foreground">{EUR2.format(spent)} €</span></div>
             )}
           </div>
           <span className="shrink-0 text-[0.8125rem] font-bold tabular-nums">{EUR2.format(spent)} €</span>

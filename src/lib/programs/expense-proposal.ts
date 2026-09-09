@@ -44,9 +44,10 @@ export type ProposalCategory = {
   minPercentage: number | null
   maxPercentage: number | null
   limitLabel: string
+  maxEuro: number | null   // δεσμευτικό ανώτατο όριο σε € (min ποσού & ποσοστού×προϋπολογισμού)
   spent: number
   status: 'OK' | 'UNDER' | 'OVER'
-  remaining: number | null // maxAmount - spent (null αν δεν υπάρχει max ποσό)
+  remaining: number | null // maxEuro - spent (null αν δεν υπάρχει όριο σε €)
 }
 export type BudgetProposal = {
   programTitle: string
@@ -67,6 +68,16 @@ function limitLabel(c: { minAmount: number | null; maxAmount: number | null; min
   if (c.maxPercentage != null) parts.push(`≤ ${c.maxPercentage}%`)
   else if (c.minPercentage != null) parts.push(`≥ ${c.minPercentage}%`)
   return parts.join(' · ') || 'χωρίς όριο'
+}
+
+/** Δεσμευτικό ανώτατο όριο κατηγορίας σε €: το μικρότερο από (ρητό ποσό) και
+ * (ποσοστό × συνολικό προϋπολογισμό). null αν δεν ορίζεται όριο ή λείπει ο
+ * προϋπολογισμός για να μετατραπεί το ποσοστό σε €. */
+function maxEuroCap(c: { maxAmount: number | null; maxPercentage: number | null }, totalBudget: number | null): number | null {
+  const caps: number[] = []
+  if (c.maxAmount != null) caps.push(c.maxAmount)
+  if (c.maxPercentage != null && totalBudget != null) caps.push((totalBudget * c.maxPercentage) / 100)
+  return caps.length ? Math.min(...caps) : null
 }
 
 /** Πλήρη δεδομένα «πρότασης προϋπολογισμού» ενός έργου — κατηγορίες με όρια +
@@ -103,13 +114,17 @@ export async function getBudgetProposal(applicationId: string): Promise<BudgetPr
     totalBudget,
   )
 
-  const categories: ProposalCategory[] = comp.categories.map(c => ({
-    id: c.id, name: c.name, mandatory: c.mandatory,
-    minAmount: c.minAmount, maxAmount: c.maxAmount, minPercentage: c.minPercentage, maxPercentage: c.maxPercentage,
-    limitLabel: limitLabel(c),
-    spent: c.spent, status: c.status,
-    remaining: c.maxAmount != null ? c.maxAmount - c.spent : null,
-  }))
+  const categories: ProposalCategory[] = comp.categories.map(c => {
+    const maxEuro = maxEuroCap(c, totalBudget)
+    return {
+      id: c.id, name: c.name, mandatory: c.mandatory,
+      minAmount: c.minAmount, maxAmount: c.maxAmount, minPercentage: c.minPercentage, maxPercentage: c.maxPercentage,
+      limitLabel: limitLabel(c),
+      maxEuro,
+      spent: c.spent, status: c.status,
+      remaining: maxEuro != null ? maxEuro - c.spent : null,
+    }
+  })
   const expenses: ProposalExpense[] = rows.map(r => ({
     id: r.id, description: r.description, amount: Number(r.amount), categoryId: r.categoryId,
     supplierName: r.supplier?.NAME ?? r.vendor ?? null, supplierAfm: r.supplier?.AFM ?? r.vendorAfm ?? null,
