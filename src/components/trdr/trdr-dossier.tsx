@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { LuPlus, LuUpload, LuLoaderCircle, LuTrash2, LuDownload, LuFileCheck2, LuTriangleAlert, LuCalendarClock } from 'react-icons/lu'
+import { LuPlus, LuUpload, LuLoaderCircle, LuTrash2, LuDownload, LuFileCheck2, LuTriangleAlert, LuCalendarClock, LuScanText } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -11,9 +11,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import {
-  listTrdrDossier, listDocumentTypes, createDocumentType, uploadTrdrDossierDoc, updateTrdrDossierDoc, removeTrdrDossierDoc,
+  listTrdrDossier, listDocumentTypes, createDocumentType, uploadTrdrDossierDoc, updateTrdrDossierDoc, removeTrdrDossierDoc, classifyDossierDocument,
   type DossierDocItem, type DocumentTypeOption,
 } from '@/lib/documents/actions'
+import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType, MAX_RASTERIZE_PAGES } from '@/lib/ocr/rasterize'
+import { runOcrExtraction } from '@/lib/ocr/actions'
 
 /**
  * Αποθήκη δικαιολογητικών ανά πελάτη — ό,τι έχει ήδη η εταιρία (τύπος + αρχείο +
@@ -193,6 +195,8 @@ function UploadDialog({
   const [file, setFile] = React.useState<File | null>(null)
   const [expiresAt, setExpiresAt] = React.useState('')
   const [saving, setSaving] = React.useState(false)
+  const [reading, setReading] = React.useState(false)
+  const [aiHint, setAiHint] = React.useState<string | null>(null)
   // inline νέος τύπος
   const [newTypeName, setNewTypeName] = React.useState('')
   const [newTypeExpires, setNewTypeExpires] = React.useState(false)
@@ -202,7 +206,48 @@ function UploadDialog({
   const typeExpires = creatingType ? newTypeExpires : (selectedType?.expires ?? false)
 
   function reset() {
-    setTypeId(''); setFile(null); setExpiresAt(''); setNewTypeName(''); setNewTypeExpires(false)
+    setTypeId(''); setFile(null); setExpiresAt(''); setNewTypeName(''); setNewTypeExpires(false); setAiHint(null)
+  }
+
+  /** AI ανάγνωση του επιλεγμένου αρχείου → πρόταση τύπου + ημ. λήξης (ενδεικτικά,
+   * ο χρήστης επιβεβαιώνει). Rasterize client-side → OCR → classify. */
+  async function aiRead() {
+    if (!file) { toast.error('Επίλεξε πρώτα αρχείο.'); return }
+    setReading(true); setAiHint(null)
+    try {
+      let images: { base64: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }[] = []
+      let digitalText = ''
+      if (isPdfFile(file)) {
+        const { pages, text } = await rasterizePdf(file, { maxPages: MAX_RASTERIZE_PAGES })
+        images = pages.map(p => ({ base64: p.base64, mimeType: p.mimeType }))
+        digitalText = text ?? ''
+      } else if (normalizeImageMimeType(file)) {
+        const page = await imageFileToPage(file)
+        images = [{ base64: page.base64, mimeType: page.mimeType }]
+      } else {
+        toast.error('Μη υποστηριζόμενο αρχείο για AI ανάγνωση (JPG/PNG/WebP/PDF).'); return
+      }
+      const ocr = await runOcrExtraction({ images, text: digitalText || undefined, docType: 'auto' })
+      if (!ocr.ok) { toast.error(ocr.message); return }
+      const d = ocr.data
+      const summary = [
+        d.issuer?.name ? `Εκδότης: ${d.issuer.name}` : null,
+        d.documentNumber ? `Αριθμός: ${d.documentNumber}` : null,
+        d.date ? `Ημερομηνία: ${d.date}` : null,
+        d.notes ? `Σημειώσεις: ${d.notes}` : null,
+        digitalText ? `Κείμενο: ${digitalText.slice(0, 2500)}` : null,
+      ].filter(Boolean).join('\n')
+      const cls = await classifyDossierDocument({ summary, types: types.map(t => ({ name: t.name, expires: t.expires })) })
+      if (!cls.ok) { toast.error(cls.message); return }
+      const matched = cls.result.typeName ? types.find(t => t.name === cls.result.typeName) : null
+      if (matched) setTypeId(matched.id)
+      if (cls.result.expiresAt) setExpiresAt(cls.result.expiresAt)
+      const parts = [matched ? `τύπος: ${matched.name}` : 'δεν βρέθηκε τύπος', cls.result.expiresAt ? `λήξη: ${cls.result.expiresAt}` : null].filter(Boolean)
+      setAiHint(parts.join(' · '))
+      toast.success('Η AI ανάγνωση ολοκληρώθηκε — έλεγξε & επιβεβαίωσε.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Η AI ανάγνωση απέτυχε.')
+    } finally { setReading(false) }
   }
   function handleOpenChange(next: boolean) {
     if (saving) return
@@ -282,10 +327,18 @@ function UploadDialog({
             <input
               id="dsr-file"
               type="file"
-              onChange={e => setFile(e.target.files?.[0] ?? null)}
+              onChange={e => { setFile(e.target.files?.[0] ?? null); setAiHint(null) }}
               disabled={saving}
               className="block w-full text-[0.78125rem] file:mr-3 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-[0.78125rem] file:font-semibold file:text-primary-foreground"
             />
+            {file && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={aiRead} disabled={reading || saving}>
+                  {reading ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuScanText className="size-3.5" aria-hidden />} AI ανάγνωση (τύπος + λήξη)
+                </Button>
+                {aiHint && <span className="text-[0.6875rem] text-[color:var(--success)]">AI: {aiHint} — έλεγξε & επιβεβαίωσε</span>}
+              </div>
+            )}
           </div>
 
           {typeExpires && (

@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
+import { deepseekChat } from '@/lib/deepseek'
+import { parseJsonLoose } from '@/lib/ocr/extract'
 
 /**
  * Τύποι δικαιολογητικών (ελαφρύς κατάλογος) + αποθήκη δικαιολογητικών ανά πελάτη.
@@ -133,4 +135,35 @@ export async function removeTrdrDossierDoc(id: string): Promise<void> {
   const row = await prisma.trdrDossierDocument.findUniqueOrThrow({ where: { id }, select: { trdrId: true } })
   await prisma.trdrDossierDocument.delete({ where: { id } })
   revalidatePath(`/partners/${row.trdrId}`)
+}
+
+// ── #1: AI classify δικαιολογητικού (τύπος + ημ. λήξης) ───────────────────────
+
+export type DossierClassify = { typeName: string | null; expiresAt: string | null }
+
+/** Διαβάζει την OCR σύνοψη ενός ανεβασμένου δικαιολογητικού και προτείνει (α)
+ * τον τύπο από τον κατάλογο και (β) την ημ. λήξης (για τύπους που λήγουν, π.χ.
+ * φορολογική/ασφαλιστική ενημερότητα). Ενδεικτικό — ο χρήστης επιβεβαιώνει. */
+export async function classifyDossierDocument(
+  input: { summary: string; types: { name: string; expires: boolean }[] },
+): Promise<{ ok: true; result: DossierClassify } | { ok: false; message: string }> {
+  await requirePermission('customer.edit')
+  const names = input.types.map(t => `${t.name}${t.expires ? ' (λήγει)' : ''}`).join(', ')
+  const messages = [
+    { role: 'system' as const, content: `Είσαι βοηθός αναγνώρισης ελληνικών επιχειρηματικών δικαιολογητικών. Με βάση τη σύνοψη ενός εγγράφου, εντόπισε (α) τον τύπο του από τον κατάλογο και (β) την ημερομηνία λήξης/ισχύος (μόνο αν ο τύπος λήγει — π.χ. φορολογική/ασφαλιστική ενημερότητα· ψάξε «ισχύει έως», «λήγει», «έως»). Διαθέσιμοι τύποι: ${names}. Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"type":"ακριβές όνομα τύπου από τον κατάλογο ή null","expiresAt":"YYYY-MM-DD ή null"}.` },
+    { role: 'user' as const, content: input.summary.slice(0, 4000) },
+  ]
+  try {
+    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 300, scope: 'OTHER', refType: 'dossier-classify' })
+    const p = parseJsonLoose(text) as { type?: unknown; expiresAt?: unknown } | null
+    // Αφαίρεση τυχόν annotation «(λήγει)» που echo-άρει το μοντέλο από τη λίστα.
+    const rawType = (typeof p?.type === 'string' ? p.type : '').replace(/\s*\([^)]*\)\s*$/, '').trim()
+    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9α-ω]+/gi, ' ').trim()
+    const hit = rawType ? input.types.find(t => norm(t.name) === norm(rawType)) : null
+    const rawExp = typeof p?.expiresAt === 'string' ? p.expiresAt.trim() : ''
+    const expiresAt = /^\d{4}-\d{2}-\d{2}$/.test(rawExp) ? rawExp : null
+    return { ok: true, result: { typeName: hit?.name ?? null, expiresAt } }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Η αναγνώριση απέτυχε.' }
+  }
 }
