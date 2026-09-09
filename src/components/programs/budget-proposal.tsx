@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
-  LuPlus, LuLoaderCircle, LuPrinter, LuUpload, LuFileCheck2, LuTriangleAlert, LuSearch, LuCircleCheck, LuSparkles,
+  LuPlus, LuLoaderCircle, LuPrinter, LuUpload, LuFileCheck2, LuTriangleAlert, LuSearch, LuCircleCheck, LuSparkles, LuArrowRightLeft,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { createExpense } from '@/lib/programs/actions'
+import { createExpense, confirmExpenseCategory } from '@/lib/programs/actions'
 import {
   getBudgetProposal, findOrCreateSupplierByAfm, listCustomerSuppliers, uploadExpenseQuote, evaluateExpenseEligibility,
   type BudgetProposal, type ProposalCategory, type SupplierOption,
@@ -155,6 +155,8 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
   const [busy, setBusy] = React.useState(false)
   const [evaluating, setEvaluating] = React.useState(false)
   const [showNote, setShowNote] = React.useState(false)
+  const [suggestion, setSuggestion] = React.useState<{ id: string; name: string } | null>(null)
+  const [moving, setMoving] = React.useState(false)
 
   async function upload(file: File) {
     setBusy(true)
@@ -171,10 +173,24 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
     try {
       const res = await evaluateExpenseEligibility(e.id)
       if (!res.ok) { toast.error(res.message ?? 'Η αξιολόγηση απέτυχε.'); return }
+      setSuggestion(res.result.suggestedCategoryId && res.result.suggestedCategoryName
+        ? { id: res.result.suggestedCategoryId, name: res.result.suggestedCategoryName }
+        : null)
       toast.success('Η τεκμηρίωση δημιουργήθηκε.')
       setShowNote(true)
       onReload()
     } catch { toast.error('Η αξιολόγηση απέτυχε.') } finally { setEvaluating(false) }
+  }
+
+  async function moveToSuggested() {
+    if (!suggestion) return
+    setMoving(true)
+    try {
+      await confirmExpenseCategory(e.id, suggestion.id)
+      toast.success(`Μετακινήθηκε στην «${suggestion.name}».`)
+      setSuggestion(null)
+      onReload()
+    } catch { toast.error('Η μετακίνηση απέτυχε.') } finally { setMoving(false) }
   }
 
   const vm = e.eligibilityVerdict ? VERDICT_META[e.eligibilityVerdict] : null
@@ -202,6 +218,15 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
       </div>
       {showNote && e.eligibilityNote && (
         <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[0.6875rem] text-muted-foreground"><strong>Τεκμηρίωση AI (έλεγξέ τη):</strong> {e.eligibilityNote}</p>
+      )}
+      {suggestion && (
+        <div className="mt-1 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-[0.6875rem]">
+          <span className="text-muted-foreground">Το AI προτείνει κατηγορία: <strong className="text-foreground">{suggestion.name}</strong></span>
+          <button type="button" onClick={moveToSuggested} disabled={moving} className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60" title="Μετακίνησε τη δαπάνη στην προτεινόμενη κατηγορία">
+            {moving ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuArrowRightLeft className="size-3" aria-hidden />} Μετακίνησε εκεί
+          </button>
+          <button type="button" onClick={() => setSuggestion(null)} className="shrink-0 text-muted-foreground hover:text-foreground" title="Απόρριψη πρότασης">✕</button>
+        </div>
       )}
     </li>
   )
