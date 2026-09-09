@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { LuScanText, LuFileText, LuLoaderCircle, LuPlus, LuCheck, LuTrash2 } from 'react-icons/lu'
+import { LuScanText, LuFileText, LuLoaderCircle, LuPlus, LuCheck, LuTrash2, LuEye } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -17,6 +17,7 @@ import {
   type TrdrFormRecordItem, type TrdrFinancialValueItem,
 } from '@/lib/tax/actions'
 import { ScanFormDialog } from './scan-form-dialog'
+import { RecordPreviewDialog } from './record-preview-dialog'
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   EXTRACTED: { label: 'Εξήχθη', cls: 'ok' },
@@ -47,6 +48,7 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
   const [scanOpen, setScanOpen] = React.useState(false)
   const [manualOpen, setManualOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<TrdrFinancialValueItem | null>(null)
+  const [previewRec, setPreviewRec] = React.useState<TrdrFormRecordItem | null>(null)
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -124,6 +126,14 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
                       <span>{new Date(r.createdAt).toLocaleDateString('el-GR')}</span>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewRec(r)}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[0.6875rem] font-semibold text-foreground transition-colors hover:border-primary hover:text-primary"
+                    title="Προεπισκόπηση περιοχών & τιμών πάνω στο έντυπο"
+                  >
+                    <LuEye className="size-3.5" aria-hidden /> Προεπισκόπηση
+                  </button>
                 </div>
               ))}
             </div>
@@ -177,6 +187,17 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
       <ScanFormDialog trdrId={trdrId} trdrName={trdrName} open={scanOpen} onOpenChange={setScanOpen} onSaved={handleSaved} />
       <ManualAddDialog trdrId={trdrId} open={manualOpen} onOpenChange={setManualOpen} onDone={load} />
       {editing && <ValueEditDialog key={editing.id} value={editing} onClose={() => setEditing(null)} onDone={load} />}
+      {previewRec && (
+        <RecordPreviewDialog
+          key={previewRec.id}
+          trdrId={trdrId}
+          recordId={previewRec.id}
+          templateId={previewRec.templateId}
+          title={`${previewRec.name} — ${previewRec.templateName} · ${previewRec.year}`}
+          valueByKey={new Map(values.filter(v => v.year === previewRec.year).map(v => [v.fieldKey, displayValue(v)]))}
+          onClose={() => setPreviewRec(null)}
+        />
+      )}
     </div>
   )
 }
