@@ -528,6 +528,35 @@ export async function listProgramRequiredForms(programId: string): Promise<Progr
   }))
 }
 
+export type ProgramBasics = {
+  title: string
+  referenceCode: string | null
+  totalBudget: number | null
+  fundingRate: number | null
+  submissionEnd: string | null
+  durationMonths: number | null
+  extractStatus: string
+}
+
+/** Βασικά στοιχεία προγράμματος — για το βήμα «Τα βασικά» του Οδηγού. */
+export async function getProgramBasics(programId: string): Promise<ProgramBasics | null> {
+  await requirePermission('programs.manage')
+  const p = await prisma.program.findUnique({
+    where: { id: programId },
+    select: { title: true, referenceCode: true, totalBudget: true, fundingRate: true, submissionEnd: true, durationMonths: true, extractStatus: true },
+  })
+  if (!p) return null
+  return {
+    title: p.title,
+    referenceCode: p.referenceCode,
+    totalBudget: p.totalBudget == null ? null : Number(p.totalBudget),
+    fundingRate: p.fundingRate == null ? null : Number(p.fundingRate),
+    submissionEnd: p.submissionEnd ? p.submissionEnd.toISOString() : null,
+    durationMonths: p.durationMonths,
+    extractStatus: p.extractStatus,
+  }
+}
+
 // ── Προτάσεις δικαιολογητικών από την αποδελτίωση (scan προγράμματος) ─────────
 
 export type FormProposal = {

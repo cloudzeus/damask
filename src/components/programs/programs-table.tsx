@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { deleteProgram, type ProgramListItem } from '@/lib/programs/actions'
-import { NewProgramDialog } from './new-program-dialog'
+import { ProgramWizard } from './program-wizard'
 
 const EXTRACT_META: Record<string, { label: string; badgeClass: string; style?: React.CSSProperties; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING: { label: 'Εκκρεμεί', badgeClass: 'badge-pill warn', icon: LuClock3 },
@@ -134,7 +134,7 @@ export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
           <div className="mb-3 text-[0.8125rem] text-muted-foreground">
             Δεν υπάρχουν ακόμη προγράμματα — δημιούργησε το πρώτο ανεβάζοντας την προκήρυξή του.
           </div>
-          <NewProgramDialog />
+          <ProgramWizard />
         </div>
       }
       footer={<span>{rows.length} {rows.length === 1 ? 'πρόγραμμα' : 'προγράμματα'}</span>}
