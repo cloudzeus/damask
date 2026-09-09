@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T03:28:07.553Z",
+  "timestamp": "2026-09-09T03:38:44.967Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,25 +22,21 @@
     },
     {
       "status": "M",
-      "path": "prisma/schema.prisma"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/trdr-programs-panel.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/value-checks.ts"
+      "path": "src/components/pm/expenses-tab.tsx"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20260909190000_application_value_check/"
+      "path": "src/app/(app)/inspection-report/"
+    },
+    {
+      "status": "??",
+      "path": "src/components/programs/inspection-export-panel.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/programs/inspection-xlsx.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ne816fef feat(pm): σύνδεση αγορών ↔ αίτημα αποπληρωμής\nff2d541 feat(programs): Β3b deep-OCR reconcile — AI ανάγνωση παραστατικού\ne791b05 feat(pm): Β3a AI utilities — έλεγχος σχεδίου (budget sanity) + Οδηγός φακέλου\nbb1ab3f feat(programs): Β2 στοιχεία αγοράς ανά δαπάνη + AI διασταύρωση (ExpensePurchase)\nf30da9d feat(pm): Β1 υποβολή πρότασης — versioned ProposalSubmission + readiness gate"
+  "context_notes": "Recent commits:\n45a3b69 feat(pm): Β4 RV-4 persistence + stage gates\ne816fef feat(pm): σύνδεση αγορών ↔ αίτημα αποπληρωμής\nff2d541 feat(programs): Β3b deep-OCR reconcile — AI ανάγνωση παραστατικού\ne791b05 feat(pm): Β3a AI utilities — έλεγχος σχεδίου (budget sanity) + Οδηγός φακέλου\nbb1ab3f feat(programs): Β2 στοιχεία αγοράς ανά δαπάνη + AI διασταύρωση (ExpensePurchase)"
 }

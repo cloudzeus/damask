@@ -9,6 +9,7 @@ import { STAGE_ORDER, type StageStr } from '@/lib/pm/types'
 import { ProgramInvoiceDialog } from '@/components/invoices/program-invoice-dialog'
 import { BudgetProposalPanel } from '@/components/programs/budget-proposal'
 import { PurchaseDocsPanel } from '@/components/programs/purchase-docs-panel'
+import { InspectionExportPanel } from '@/components/programs/inspection-export-panel'
 import { ReplaceExpenseDialog } from './replace-expense-dialog'
 
 function formatEUR(v: number): string {
@@ -110,6 +111,9 @@ export function ExpensesTab({ applicationId, programId, stage }: { applicationId
 
       {/* Στοιχεία αγορών & τεκμηρίωση — μόνο post-approval (φάση υλοποίησης). */}
       {isImplementation && <PurchaseDocsPanel key={`p-${refreshKey}`} applicationId={applicationId} />}
+
+      {/* Επιτόπιος έλεγχος — εξαγωγές Excel/Word για τον ελεγκτή. */}
+      {isImplementation && <InspectionExportPanel applicationId={applicationId} />}
 
       {/* Αντικατάσταση δαπανών — μόνο post-approval (φάση υλοποίησης). */}
       {isImplementation && (
