@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T03:52:47.981Z",
+  "timestamp": "2026-09-09T03:53:48.643Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,24 +15,7 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [
-    {
-      "status": "M",
-      "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "src/components/email/compose-email-dialog.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/programs/purchase-docs-panel.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/programs/expense-purchase.ts"
-    }
-  ],
+  "uncommitted_files": [],
   "next_action": null,
-  "context_notes": "Recent commits:\nc153e6b feat(documents): #1 AI classify δικαιολογητικού — τύπος + ημ. λήξης\n0169e7b feat(programs): επιτόπιος έλεγχος — εξαγωγές Excel + Word για τον ελεγκτή\n45a3b69 feat(pm): Β4 RV-4 persistence + stage gates\ne816fef feat(pm): σύνδεση αγορών ↔ αίτημα αποπληρωμής\nff2d541 feat(programs): Β3b deep-OCR reconcile — AI ανάγνωση παραστατικού"
+  "context_notes": "Recent commits:\n070ba55 feat(programs): #2 AI-drafted email αιτήματος εγγράφων που λείπουν\nc153e6b feat(documents): #1 AI classify δικαιολογητικού — τύπος + ημ. λήξης\n0169e7b feat(programs): επιτόπιος έλεγχος — εξαγωγές Excel + Word για τον ελεγκτή\n45a3b69 feat(pm): Β4 RV-4 persistence + stage gates\ne816fef feat(pm): σύνδεση αγορών ↔ αίτημα αποπληρωμής"
 }

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
-  LuPlus, LuLoaderCircle, LuPrinter, LuUpload, LuFileCheck2, LuTriangleAlert, LuSearch, LuCircleCheck, LuSparkles, LuArrowRightLeft, LuChevronRight, LuEllipsisVertical,
+  LuPlus, LuLoaderCircle, LuPrinter, LuUpload, LuFileCheck2, LuTriangleAlert, LuSearch, LuCircleCheck, LuSparkles, LuArrowRightLeft, LuChevronRight, LuEllipsisVertical, LuScanText,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,8 @@ import {
   type BudgetProposal, type ProposalCategory, type SupplierOption, type BudgetSanity,
 } from '@/lib/programs/expense-proposal'
 import { openProposal } from '@/lib/programs/proposal-html'
+import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType, MAX_RASTERIZE_PAGES } from '@/lib/ocr/rasterize'
+import { runOcrExtraction } from '@/lib/ocr/actions'
 
 /**
  * «Οδηγός Προϋπολογισμού Υποβολής» — εύκολο UX για μη-τεχνικό χρήστη
@@ -349,7 +351,43 @@ function AddExpenseDialog({
   const [quote, setQuote] = React.useState<File | null>(null)
   const [lookingUp, setLookingUp] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
+  const [readingQuote, setReadingQuote] = React.useState(false)
   const quoteRef = React.useRef<HTMLInputElement | null>(null)
+
+  /** AI ανάγνωση της προσφοράς → prefill ποσό/προμηθευτή/περιγραφή (κενά μόνο). */
+  async function readQuote() {
+    if (!quote) return
+    setReadingQuote(true)
+    try {
+      let images: { base64: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }[] = []
+      let digitalText = ''
+      if (isPdfFile(quote)) {
+        const { pages, text } = await rasterizePdf(quote, { maxPages: MAX_RASTERIZE_PAGES })
+        images = pages.map(p => ({ base64: p.base64, mimeType: p.mimeType })); digitalText = text ?? ''
+      } else if (normalizeImageMimeType(quote)) {
+        const page = await imageFileToPage(quote); images = [{ base64: page.base64, mimeType: page.mimeType }]
+      } else { toast.error('Μη υποστηριζόμενο αρχείο (JPG/PNG/WebP/PDF).'); return }
+      const ocr = await runOcrExtraction({ images, text: digitalText || undefined, docType: 'invoice' })
+      if (!ocr.ok) { toast.error(ocr.message); return }
+      const d = ocr.data
+      const gross = d.totals.gross ?? d.totals.net
+      if (!amount.trim() && gross != null) setAmount(String(gross).replace('.', ','))
+      if (!description.trim()) {
+        const desc = d.lines?.[0]?.description || d.notes || (d.issuer?.name ? `Προσφορά ${d.issuer.name}` : '')
+        if (desc) setDescription(desc.slice(0, 120))
+      }
+      if (!supplier && d.issuer?.afm) {
+        const clean = d.issuer.afm.replace(/\D/g, '')
+        if (clean.length === 9) {
+          const res = await findOrCreateSupplierByAfm(clean)
+          if (res.ok && res.supplier) setSupplier(res.supplier)
+        }
+      }
+      toast.success('Η προσφορά διαβάστηκε — έλεγξε & συμπλήρωσε.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Η AI ανάγνωση απέτυχε.')
+    } finally { setReadingQuote(false) }
+  }
 
   React.useEffect(() => {
     let cancelled = false
@@ -436,6 +474,11 @@ function AddExpenseDialog({
             <LuUpload className="size-3.5 shrink-0" aria-hidden />
             <span className="truncate">{quote ? quote.name : 'Ανέβασε την προσφορά… (αν λείπει, μπαίνει σε εκκρεμότητα)'}</span>
           </button>
+          {quote && (
+            <Button type="button" variant="outline" size="sm" className="mt-1.5" onClick={readQuote} disabled={readingQuote || saving}>
+              {readingQuote ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuScanText className="size-3.5" aria-hidden />} AI ανάγνωση προσφοράς (ποσό/προμηθευτής)
+            </Button>
+          )}
         </div>
 
         <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
