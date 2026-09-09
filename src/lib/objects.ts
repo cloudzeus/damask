@@ -171,13 +171,21 @@ export function effectiveEnabledKeys(stored: string[]): Set<string> {
 export type NavModule = { group: string; items: { href: string; label: string; icon: LucideIcon }[] }
 
 /** Sidebar nav: modules→items filtered by (enabled OR core) AND permission; empty modules dropped. */
+// Σειρά εμφάνισης groups στο ΜΕΝΟΥ (όχι στο registry) — η καθημερινή δουλειά
+// (Ευρωπαϊκά Προγράμματα, Πελάτες) ανεβαίνει ψηλά, τα υπόλοιπα μένουν στη σειρά
+// του registry. Αφορά μόνο το sidebar· ο object-catalog admin παραμένει ως έχει.
+const MENU_GROUP_PRIORITY: Record<string, number> = {
+  daily: 0, 'eu-programs': 1, partners: 2, importing: 3,
+}
 export function buildNav(effective: Set<string>, permissions: string[]): NavModule[] {
-  return OBJECT_REGISTRY.map(m => ({
-    group: m.label,
-    items: m.items
-      .filter(i => (i.core || effective.has(i.key)) && (i.menuPermission === null || permissions.includes(i.menuPermission)))
-      .map(i => ({ href: i.href, label: i.label, icon: i.icon })),
-  })).filter(m => m.items.length > 0)
+  return [...OBJECT_REGISTRY]
+    .sort((a, b) => (MENU_GROUP_PRIORITY[a.key] ?? 50) - (MENU_GROUP_PRIORITY[b.key] ?? 50))
+    .map(m => ({
+      group: m.label,
+      items: m.items
+        .filter(i => (i.core || effective.has(i.key)) && (i.menuPermission === null || permissions.includes(i.menuPermission)))
+        .map(i => ({ href: i.href, label: i.label, icon: i.icon })),
+    })).filter(m => m.items.length > 0)
 }
 
 export type PermGroup = { label: string; items: PermissionDef[] }

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T04:39:52.034Z",
+  "timestamp": "2026-09-09T04:42:09.424Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,17 +22,9 @@
     },
     {
       "status": "M",
-      "path": "src/app/(app)/leads/leads-client.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/ui/data-table.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/ui/page-header.tsx"
+      "path": "src/lib/objects.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n3d197a7 feat(ux): Φάση Β — ομαδοποίηση tabs έργου σε φάσεις + tooltips ορολογίας\n071da66 feat(ux): Φάση Β (μέρος) — καθοδήγηση: πρώτα βήματα, βοήθεια, empty states, ετικέτες\n9fd3d6d feat(ux): Φάση Α — Κέντρο ελέγχου + actionable ειδοποιήσεις + καθολική αναζήτηση ⌘K\n31b6345 feat(pm): #5 έγγραφα αγοράς ως πραγματικό gate αποπληρωμής\n90f7368 feat(pm): #4 AI ΕΝΔΕΙΚΤΙΚΕΣ παρατηρήσεις επιλεξιμότητας (RV-4, χωρίς απόφαση)"
+  "context_notes": "Recent commits:\nf6640b3 feat(ux): Φάση Γ (μέρος) — DataTable cap, αναζήτηση Leads, clickable breadcrumbs\n3d197a7 feat(ux): Φάση Β — ομαδοποίηση tabs έργου σε φάσεις + tooltips ορολογίας\n071da66 feat(ux): Φάση Β (μέρος) — καθοδήγηση: πρώτα βήματα, βοήθεια, empty states, ετικέτες\n9fd3d6d feat(ux): Φάση Α — Κέντρο ελέγχου + actionable ειδοποιήσεις + καθολική αναζήτηση ⌘K\n31b6345 feat(pm): #5 έγγραφα αγοράς ως πραγματικό gate αποπληρωμής"
 }
