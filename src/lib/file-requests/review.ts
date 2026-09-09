@@ -6,6 +6,23 @@ import { revalidatePath } from 'next/cache'
 import { logActivity } from '@/lib/activity/log'
 import { createNotification } from '@/lib/notifications/service'
 import { deliverCustomerEmail } from '@/lib/email/deliver'
+import { bunnyDeleteOne } from '@/lib/bunny-storage'
+
+/** Απόρριψη = το αρχείο είναι λάθος → διαγραφή του από το Bunny CDN + καθάρισμα
+ * των pointers ώστε το δικαιολογητικό να δείχνει «χωρίς αρχείο» (για επανυποβολή).
+ * Non-fatal: αν αποτύχει η διαγραφή στο Bunny, η απόρριψη προχωρά κανονικά. */
+async function purgeRejectedItemFile(item: { id: string; fileKey: string | null; mediaAssetId: string | null }): Promise<void> {
+  // Σβήνουμε το Bunny object ΜΟΝΟ όταν είναι απευθείας upload (fileKey) και ΟΧΙ
+  // κοινόχρηστο media-library asset (mediaAssetId) — αλλιώς θα «έσπαγε» η βιβλιοθήκη.
+  if (item.fileKey && !item.mediaAssetId) {
+    try { await bunnyDeleteOne(item.fileKey) }
+    catch (err) { console.error('bunnyDeleteOne (reject) failed:', err) }
+  }
+  await prisma.fileRequestItem.update({
+    where: { id: item.id },
+    data: { fileKey: null, fileUrl: null, mimeType: null },
+  })
+}
 
 /**
  * Επιβεβαίωση (accept/reject) ανεβασμένων δικαιολογητικών από τον manager ή τους
@@ -146,6 +163,9 @@ export async function reviewFileRequestItem(itemId: string, decision: 'ACCEPTED'
     data: { status: decision, reviewedById: session.user.id, reviewedAt: new Date(), reviewNote: note?.trim() || null },
   })
 
+  // Απόρριψη → σβήσε το λάθος αρχείο από το Bunny.
+  if (decision === 'REJECTED') await purgeRejectedItemFile(item)
+
   await createNotification({
     type: 'GENERIC',
     title: `${decision === 'ACCEPTED' ? 'Εγκρίθηκε' : 'Απορρίφθηκε'} δικαιολογητικό — ${item.label}`,
@@ -187,11 +207,12 @@ export async function rejectAndResendFileRequestItem(
     return { ok: false, error: 'Δεν έχεις δικαίωμα επιβεβαίωσης για αυτό το έργο.' }
   }
 
-  // 1) Απόρριψη με αιτιολογία.
+  // 1) Απόρριψη με αιτιολογία + διαγραφή του λάθους αρχείου από το Bunny.
   await prisma.fileRequestItem.update({
     where: { id: itemId },
     data: { status: 'REJECTED', reviewedById: session.user.id, reviewedAt: new Date(), reviewNote: note },
   })
+  await purgeRejectedItemFile(item)
 
   await createNotification({
     type: 'GENERIC',
