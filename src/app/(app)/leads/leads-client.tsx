@@ -61,16 +61,21 @@ function SourceBadge({ source }: { source: string }) {
 export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff: Staff; canAssign: boolean }) {
   const router = useRouter()
   const [statusFilter, setStatusFilter] = React.useState<string>('ALL')
+  const [query, setQuery] = React.useState('')
   const [assigning, setAssigning] = React.useState<LeadRow | null>(null)
   const [logging, setLogging] = React.useState<LeadRow | null>(null)
   const [promoting, setPromoting] = React.useState<LeadRow | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [acting, startActing] = React.useTransition()
 
-  const filtered = React.useMemo(
-    () => (statusFilter === 'ALL' ? rows : rows.filter(r => r.status === statusFilter)),
-    [rows, statusFilter],
-  )
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return rows.filter(r => {
+      if (statusFilter !== 'ALL' && r.status !== statusFilter) return false
+      if (!q) return true
+      return [r.companyName, r.afm, r.email, r.phone].some(v => v?.toLowerCase().includes(q))
+    })
+  }, [rows, statusFilter, query])
 
   function markNotInterested(row: LeadRow) {
     setBusyId(row.id)
@@ -168,6 +173,13 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <Input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Αναζήτηση: επωνυμία, ΑΦΜ, email…"
+          className="h-8 w-full max-w-[280px] rounded-full text-[0.78125rem]"
+          autoComplete="off"
+        />
         {['ALL', 'NEW', 'ASSIGNED', 'IN_PROGRESS', 'CONVERTED', 'NOT_INTERESTED'].map(s => (
           <button
             key={s}

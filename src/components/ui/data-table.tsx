@@ -65,6 +65,7 @@ export function DataTable<T>({
   onRowClick,
   bare = false,
   fillHeight = true,
+  pageSize = 80,
 }: {
   tableId: string
   columns: DataTableColumn<T>[]
@@ -85,11 +86,15 @@ export function DataTable<T>({
   /** Click σε ολόκληρη τη γραμμή. Κελιά με δικές τους ενέργειες (π.χ. actions
    * menu) πρέπει να κάνουν stopPropagation στο δικό τους wrapper. */
   onRowClick?: (row: T) => void
+  /** Cap ορατών γραμμών (client-side) για μεγάλο όγκο — αποφυγή βαρύ DOM. Οι
+   * υπόλοιπες φορτώνονται με «Δείξε περισσότερα». */
+  pageSize?: number
 }) {
   const [hidden, setHidden] = React.useState<Set<string>>(new Set())
   const [widths, setWidths] = React.useState<Record<string, number>>({})
   const [sort, setSort] = React.useState<SortState>(initialSort)
   const [wrap, setWrap] = React.useState(false)
+  const [visibleCount, setVisibleCount] = React.useState(pageSize)
   const [colsOpen, setColsOpen] = React.useState(false)
   const hydrated = React.useRef(false)
 
@@ -276,7 +281,7 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {sortedRows.map(row => (
+            {sortedRows.slice(0, visibleCount).map(row => (
               <tr
                 key={rowKey(row)}
                 className={cn('dotted-row-bottom', onRowClick && 'cursor-pointer', rowClassName?.(row))}
@@ -292,6 +297,19 @@ export function DataTable<T>({
                 ))}
               </tr>
             ))}
+            {sortedRows.length > visibleCount && (
+              <tr>
+                <td colSpan={visibleColumns.length} className="py-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(c => c + pageSize)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-1.5 text-[0.78125rem] font-semibold text-foreground transition-colors hover:bg-muted"
+                  >
+                    Δείξε περισσότερα ({sortedRows.length - visibleCount})
+                  </button>
+                </td>
+              </tr>
+            )}
             {sortedRows.length === 0 && (
               <tr>
                 <td colSpan={visibleColumns.length} className="py-8 text-center text-muted-foreground">
