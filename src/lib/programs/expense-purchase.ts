@@ -1,0 +1,189 @@
+'use server'
+
+import crypto from 'node:crypto'
+import { prisma } from '@/lib/prisma'
+import { requirePermission } from '@/lib/rbac-server'
+import { revalidatePath } from 'next/cache'
+import { bunnyUploadPrivate } from '@/lib/bunny-storage'
+import { deepseekChat } from '@/lib/deepseek'
+import { parseJsonLoose } from '@/lib/ocr/extract'
+
+/**
+ * Β2 — Στοιχεία πραγματικής αγοράς ανά δαπάνη (φάση υλοποίησης): παραστατικό +
+ * extrait τράπεζας + serial + βεβαίωση προμηθευτή, με AI διασταύρωση απέναντι
+ * στην εγκεκριμένη δαπάνη. Ξεχωριστό από το physical-object certification.
+ */
+
+export type PurchaseDocKind = 'invoice' | 'bankExtrait' | 'supplierCert'
+const DOC_FIELDS: Record<PurchaseDocKind, { keyField: 'invoiceKey' | 'bankExtraitKey' | 'supplierCertKey'; nameField: 'invoiceName' | 'bankExtraitName' | 'supplierCertName'; label: string }> = {
+  invoice: { keyField: 'invoiceKey', nameField: 'invoiceName', label: 'Παραστατικό' },
+  bankExtrait: { keyField: 'bankExtraitKey', nameField: 'bankExtraitName', label: 'Extrait τράπεζας' },
+  supplierCert: { keyField: 'supplierCertKey', nameField: 'supplierCertName', label: 'Βεβαίωση προμηθευτή' },
+}
+
+export type PurchaseVerdict = 'OK' | 'MISMATCH' | 'UNCERTAIN'
+export type PurchaseItem = {
+  expenseId: string
+  description: string
+  amount: number
+  categoryName: string | null
+  supplierName: string | null
+  supplierAfm: string | null
+  serial: string | null
+  invoiceNumber: string | null
+  invoiceDate: string | null
+  paidAmount: number | null
+  docs: Record<PurchaseDocKind, { has: boolean; name: string | null }>
+  missingDocs: string[]
+  reconVerdict: PurchaseVerdict | null
+  reconNote: string | null
+}
+
+function docsOf(p: { invoiceKey: string | null; invoiceName: string | null; bankExtraitKey: string | null; bankExtraitName: string | null; supplierCertKey: string | null; supplierCertName: string | null } | null): PurchaseItem['docs'] {
+  return {
+    invoice: { has: !!p?.invoiceKey, name: p?.invoiceName ?? null },
+    bankExtrait: { has: !!p?.bankExtraitKey, name: p?.bankExtraitName ?? null },
+    supplierCert: { has: !!p?.supplierCertKey, name: p?.supplierCertName ?? null },
+  }
+}
+
+/** Λίστα αγορών (ACTIVE δαπάνες + purchase) ενός έργου. */
+export async function listExpensePurchases(applicationId: string): Promise<PurchaseItem[]> {
+  await requirePermission('programs.manage')
+  const rows = await prisma.programExpense.findMany({
+    where: { applicationId, status: 'ACTIVE' },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true, description: true, amount: true,
+      category: { select: { name: true } },
+      supplier: { select: { NAME: true, AFM: true } }, vendor: true, vendorAfm: true,
+      purchase: true,
+    },
+  })
+  return rows.map(r => {
+    const p = r.purchase
+    const docs = docsOf(p)
+    const missingDocs = (Object.keys(DOC_FIELDS) as PurchaseDocKind[]).filter(k => !docs[k].has).map(k => DOC_FIELDS[k].label)
+    return {
+      expenseId: r.id, description: r.description, amount: Number(r.amount),
+      categoryName: r.category?.name ?? null,
+      supplierName: r.supplier?.NAME ?? r.vendor ?? null, supplierAfm: r.supplier?.AFM ?? r.vendorAfm ?? null,
+      serial: p?.serial ?? null, invoiceNumber: p?.invoiceNumber ?? null,
+      invoiceDate: p?.invoiceDate?.toISOString() ?? null,
+      paidAmount: p?.paidAmount != null ? Number(p.paidAmount) : null,
+      docs, missingDocs,
+      reconVerdict: (p?.reconVerdict ?? null) as PurchaseVerdict | null,
+      reconNote: p?.reconNote ?? null,
+    }
+  })
+}
+
+async function ensurePurchase(expenseId: string): Promise<void> {
+  await prisma.expensePurchase.upsert({ where: { expenseId }, create: { expenseId }, update: {} })
+}
+
+export async function savePurchaseMeta(
+  expenseId: string,
+  input: { serial?: string | null; invoiceNumber?: string | null; invoiceDate?: string | null; paidAmount?: number | null },
+): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  const data: Record<string, unknown> = {}
+  if (input.serial !== undefined) data.serial = input.serial?.trim() || null
+  if (input.invoiceNumber !== undefined) data.invoiceNumber = input.invoiceNumber?.trim() || null
+  if (input.invoiceDate !== undefined) { const d = input.invoiceDate ? new Date(input.invoiceDate) : null; data.invoiceDate = d && !Number.isNaN(d.getTime()) ? d : null }
+  if (input.paidAmount !== undefined) data.paidAmount = input.paidAmount
+  await prisma.expensePurchase.upsert({ where: { expenseId }, create: { expenseId, ...data }, update: data })
+  revalidatePath('/programs')
+  return { ok: true }
+}
+
+export async function uploadPurchaseDoc(
+  expenseId: string,
+  kind: PurchaseDocKind,
+  input: { name: string; base64: string; mimeType: string; ext: string },
+): Promise<{ ok: boolean }> {
+  await requirePermission('programs.manage')
+  const f = DOC_FIELDS[kind]
+  if (!f) return { ok: false }
+  const id = crypto.randomUUID()
+  const ext = (input.ext || 'bin').replace(/[^a-z0-9]/gi, '').toLowerCase() || 'bin'
+  const key = `expense-purchases/${expenseId}/${kind}-${id}.${ext}`
+  await bunnyUploadPrivate({ key, body: Buffer.from(input.base64, 'base64'), contentType: input.mimeType })
+  await prisma.expensePurchase.upsert({
+    where: { expenseId },
+    create: { expenseId, [f.keyField]: key, [f.nameField]: input.name.trim() || f.label },
+    update: { [f.keyField]: key, [f.nameField]: input.name.trim() || f.label },
+  })
+  revalidatePath('/programs')
+  return { ok: true }
+}
+
+export async function removePurchaseDoc(expenseId: string, kind: PurchaseDocKind): Promise<void> {
+  await requirePermission('programs.manage')
+  const f = DOC_FIELDS[kind]
+  if (!f) return
+  await ensurePurchase(expenseId)
+  await prisma.expensePurchase.update({ where: { expenseId }, data: { [f.keyField]: null, [f.nameField]: null } })
+  revalidatePath('/programs')
+}
+
+export type PurchaseReconResult = { verdict: PurchaseVerdict; note: string }
+
+/** AI διασταύρωση αγοράς ↔ εγκεκριμένης δαπάνης: ελέγχει ποσό (paidAmount vs
+ * εγκεκριμένο), προμηθευτή, πληρότητα των 3 εγγράφων. DeepSeek δίνει verdict +
+ * τεκμηρίωση στα ελληνικά. (Deep OCR των αρχείων → Β3.) */
+export async function reconcileExpensePurchase(expenseId: string): Promise<{ ok: true; result: PurchaseReconResult } | { ok: false; message: string }> {
+  await requirePermission('programs.manage')
+  const r = await prisma.programExpense.findUnique({
+    where: { id: expenseId },
+    select: {
+      description: true, amount: true, docNumber: true,
+      supplier: { select: { NAME: true, AFM: true } }, vendor: true, vendorAfm: true,
+      purchase: true,
+    },
+  })
+  if (!r) return { ok: false, message: 'Η δαπάνη δεν βρέθηκε.' }
+  const p = r.purchase
+  const approvedAmount = Number(r.amount)
+  const supplierName = r.supplier?.NAME ?? r.vendor ?? null
+  const docs = docsOf(p)
+  const missing = (Object.keys(DOC_FIELDS) as PurchaseDocKind[]).filter(k => !docs[k].has).map(k => DOC_FIELDS[k].label)
+
+  const facts = [
+    `Εγκεκριμένη δαπάνη: «${r.description}»`,
+    `Εγκεκριμένο ποσό: ${approvedAmount}€`,
+    supplierName ? `Προμηθευτής: ${supplierName}${r.supplier?.AFM ?? r.vendorAfm ? ` (ΑΦΜ ${r.supplier?.AFM ?? r.vendorAfm})` : ''}` : 'Προμηθευτής: —',
+    p?.paidAmount != null ? `Πραγματικά πληρωμένο ποσό: ${Number(p.paidAmount)}€` : 'Πραγματικά πληρωμένο ποσό: δεν καταχωρίστηκε',
+    p?.invoiceNumber ? `Αρ. παραστατικού: ${p.invoiceNumber}` : 'Αρ. παραστατικού: —',
+    p?.serial ? `Serial: ${p.serial}` : 'Serial: —',
+    `Έγγραφα που έχουν ανέβει: ${(Object.keys(DOC_FIELDS) as PurchaseDocKind[]).filter(k => docs[k].has).map(k => DOC_FIELDS[k].label).join(', ') || 'κανένα'}`,
+    `Έγγραφα που λείπουν: ${missing.join(', ') || 'κανένα'}`,
+  ].join('\n')
+
+  const messages = [
+    { role: 'system' as const, content: 'Είσαι έμπειρος σύμβουλος αποπληρωμής ΕΣΠΑ. Έλεγξε αν μια πραγματική αγορά αντιστοιχεί στην εγκεκριμένη δαπάνη και αν είναι πλήρης για αίτημα αποπληρωμής. Κανόνες: το πραγματικά πληρωμένο ποσό δεν πρέπει να ξεπερνά το εγκεκριμένο (μικρή απόκλιση προς τα κάτω επιτρέπεται)· χρειάζονται και τα 3 έγγραφα (Παραστατικό, Extrait τράπεζας, Βεβαίωση προμηθευτή). Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"verdict":"OK"|"MISMATCH"|"UNCERTAIN","note":"2-4 προτάσεις στα ελληνικά με τα ευρήματα"}. OK μόνο αν ταιριάζει το ποσό/προμηθευτής ΚΑΙ υπάρχουν και τα 3 έγγραφα. MISMATCH αν ποσό ξεπερνά το εγκεκριμένο ή λείπουν έγγραφα. UNCERTAIN αν τα στοιχεία δεν επαρκούν.' },
+    { role: 'user' as const, content: facts },
+  ]
+
+  let verdict: PurchaseVerdict = 'UNCERTAIN'
+  let note = ''
+  try {
+    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 400, scope: 'OTHER', refType: 'purchase-reconcile', refId: expenseId })
+    const parsed = parseJsonLoose(text) as { verdict?: unknown; note?: unknown } | null
+    const v = typeof parsed?.verdict === 'string' ? parsed.verdict.toUpperCase() : ''
+    verdict = v === 'OK' || v === 'MISMATCH' ? v : 'UNCERTAIN'
+    note = typeof parsed?.note === 'string' ? parsed.note.trim() : ''
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Η διασταύρωση απέτυχε.' }
+  }
+  if (!note) note = 'Δεν προέκυψε σαφής τεκμηρίωση — έλεγξε χειροκίνητα.'
+
+  const checkedAt = new Date()
+  await prisma.expensePurchase.upsert({
+    where: { expenseId },
+    create: { expenseId, reconVerdict: verdict, reconNote: note, reconCheckedAt: checkedAt },
+    update: { reconVerdict: verdict, reconNote: note, reconCheckedAt: checkedAt },
+  })
+  revalidatePath('/programs')
+  return { ok: true, result: { verdict, note } }
+}

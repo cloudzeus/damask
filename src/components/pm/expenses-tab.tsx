@@ -8,6 +8,7 @@ import { listApplicationExpenses, type ProgramExpenseItem } from '@/lib/programs
 import { STAGE_ORDER, type StageStr } from '@/lib/pm/types'
 import { ProgramInvoiceDialog } from '@/components/invoices/program-invoice-dialog'
 import { BudgetProposalPanel } from '@/components/programs/budget-proposal'
+import { PurchaseDocsPanel } from '@/components/programs/purchase-docs-panel'
 import { ReplaceExpenseDialog } from './replace-expense-dialog'
 
 function formatEUR(v: number): string {
@@ -106,6 +107,9 @@ export function ExpensesTab({ applicationId, programId, stage }: { applicationId
 
       {/* Σχέδιο δαπανών — expandable κατηγορίες, δαπάνες μία-μία + όρια + PDF. */}
       <BudgetProposalPanel key={refreshKey} applicationId={applicationId} />
+
+      {/* Στοιχεία αγορών & τεκμηρίωση — μόνο post-approval (φάση υλοποίησης). */}
+      {isImplementation && <PurchaseDocsPanel key={`p-${refreshKey}`} applicationId={applicationId} />}
 
       {/* Αντικατάσταση δαπανών — μόνο post-approval (φάση υλοποίησης). */}
       {isImplementation && (

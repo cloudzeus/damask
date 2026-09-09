@@ -1473,6 +1473,12 @@ enum ProposalSubmissionStatus {
   REJECTED
 }
 
+enum PurchaseReconVerdict {
+  OK
+  MISMATCH
+  UNCERTAIN
+}
+
 enum ReminderStatus {
   SENT
   FAILED
@@ -1625,6 +1631,7 @@ model ProgramExpense {
   replaces             ProgramExpense?              @relation("ExpenseReplacement", fields: [replacesExpenseId], references: [id], onDelete: SetNull)
   replacedBy           ProgramExpense?              @relation("ExpenseReplacement")
   certification        ProgramExpenseCertification?
+  purchase             ExpensePurchase?
   paymentRequestId     String?
   paymentRequest       PaymentRequest?              @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
   createdById          String?
@@ -1814,6 +1821,30 @@ model ProposalSubmission {
 
   @@unique([applicationId, version])
   @@index([applicationId])
+}
+
+// Β2 — Στοιχεία πραγματικής αγοράς ανά δαπάνη (φάση υλοποίησης), ξεχωριστά
+// από το physical-object certification: παραστατικό + extrait τράπεζας + serial
+// + βεβαίωση προμηθευτή + AI διασταύρωση με την εγκεκριμένη δαπάνη.
+model ExpensePurchase {
+  id               String                @id @default(cuid())
+  expenseId        String                @unique
+  expense          ProgramExpense        @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  serial           String? // σειριακός αριθμός (αν έχει)
+  invoiceNumber    String?
+  invoiceDate      DateTime?
+  paidAmount       Decimal?              @db.Decimal(18, 2) // πραγματικά πληρωμένο ποσό
+  invoiceKey       String? // παραστατικό (Bunny key)
+  invoiceName      String?
+  bankExtraitKey   String? // extrait τράπεζας
+  bankExtraitName  String?
+  supplierCertKey  String? // βεβαίωση προμηθευτή
+  supplierCertName String?
+  reconVerdict     PurchaseReconVerdict?
+  reconNote        String?
+  reconCheckedAt   DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 }
 
 model ApplicationObligation {

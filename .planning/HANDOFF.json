@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T02:48:41.605Z",
+  "timestamp": "2026-09-09T03:01:08.703Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,21 +26,25 @@
     },
     {
       "status": "M",
-      "path": "src/lib/activity/registry.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/actions.ts"
+      "path": "src/components/pm/expenses-tab.tsx"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20260909160000_proposal_submission/"
+      "path": "prisma/migrations/20260909170000_expense_purchase/"
     },
     {
       "status": "??",
-      "path": "src/components/pm/submission-panel.tsx"
+      "path": "src/app/(app)/expense-purchase/"
+    },
+    {
+      "status": "??",
+      "path": "src/components/programs/purchase-docs-panel.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/programs/expense-purchase.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n65ccd86 feat(pm): Β0 stage-aware tab «Δαπάνες & Πλάνο» + phase banner\n80448e3 feat(programs): όριο κατηγορίας σε € — «άθροισμα δαπανών / δεσμευτικό όριο»\n59809f7 feat(programs): expandable κατηγορίες δαπανών με ⋮ actions + framing μελέτης\nf2c947b feat(programs): AI εισήγηση σωστής κατηγορίας δαπάνης στην αξιολόγηση επιλεξιμότητας\nb98c43d feat(expenses): AI αξιολόγηση επιλεξιμότητας δαπάνης + τεκμηρίωση (DeepSeek)"
+  "context_notes": "Recent commits:\nf30da9d feat(pm): Β1 υποβολή πρότασης — versioned ProposalSubmission + readiness gate\n65ccd86 feat(pm): Β0 stage-aware tab «Δαπάνες & Πλάνο» + phase banner\n80448e3 feat(programs): όριο κατηγορίας σε € — «άθροισμα δαπανών / δεσμευτικό όριο»\n59809f7 feat(programs): expandable κατηγορίες δαπανών με ⋮ actions + framing μελέτης\nf2c947b feat(programs): AI εισήγηση σωστής κατηγορίας δαπάνης στην αξιολόγηση επιλεξιμότητας"
 }
