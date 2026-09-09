@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { CorrectionGrid, type GridRow } from './correction-grid'
+import { RegionPreview, type PreviewRegion } from './region-preview'
 import { listReadyTemplates, getTemplateFields, scanForm } from '@/lib/tax/actions'
 import { cropRegion } from '@/lib/tax/crop'
 import { isPdfFile, imageFileToPage, rasterizePdf, type RasterizedPage } from '@/lib/ocr/rasterize'
@@ -91,6 +92,9 @@ export function ScanFormDialog({
   const [result, setResult] = React.useState<{ recordId: string; grid: GridRow[]; cost: OcrCostView } | null>(null)
   const [resultTemplateId, setResultTemplateId] = React.useState('')
   const [resultYear, setResultYear] = React.useState(CURRENT_YEAR)
+  // RV-2: το δείγμα + τα marks των περιοχών, ώστε να φαίνεται ΠΟΥ βρέθηκε κάθε τιμή.
+  const [previewPages, setPreviewPages] = React.useState<RasterizedPage[]>([])
+  const [previewRegions, setPreviewRegions] = React.useState<PreviewRegion[]>([])
 
   // Φόρτωμα των ΕΤΟΙΜΩΝ οδηγών κάθε φορά που ανοίγει το dialog.
   React.useEffect(() => {
@@ -117,6 +121,8 @@ export function ScanFormDialog({
     setProgressLabel('')
     setError(null)
     setResult(null)
+    setPreviewPages([])
+    setPreviewRegions([])
   }
 
   function handleOpenChange(next: boolean) {
@@ -250,6 +256,14 @@ export function ScanFormDialog({
       setResult(res)
       setResultTemplateId(t.id)
       setResultYear(yearNum)
+      // RV-2 preview: marks όλων των χαρτογραφημένων περιοχών + η εξαγόμενη τιμή.
+      const rawByKey = new Map(res.grid.map(g => [g.fieldKey, g.raw]))
+      setPreviewPages(pages)
+      setPreviewRegions(
+        [...scannable, ...scannableTables]
+          .filter(f => !!f.regionHint)
+          .map(f => ({ page: f.regionHint!.page, bbox: f.regionHint!.bbox, label: f.label, value: rawByKey.get(f.fieldKey) ?? null })),
+      )
       setPhase('grid')
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'Η σάρωση απέτυχε.'
@@ -279,15 +293,25 @@ export function ScanFormDialog({
         </DialogHeader>
 
         {phase === 'grid' && result ? (
-          <CorrectionGrid
-            grid={result.grid}
-            cost={result.cost}
-            trdrId={trdrId}
-            templateId={resultTemplateId}
-            year={resultYear}
-            recordId={result.recordId}
-            onSaved={handleGridSaved}
-          />
+          <div className="flex flex-col gap-3">
+            {previewRegions.length > 0 && (
+              <div>
+                <div className="dotted-leader mb-2 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+                  Προεπισκόπηση — περιοχές &amp; τιμές πάνω στο έντυπο
+                </div>
+                <RegionPreview pages={previewPages} regions={previewRegions} />
+              </div>
+            )}
+            <CorrectionGrid
+              grid={result.grid}
+              cost={result.cost}
+              trdrId={trdrId}
+              templateId={resultTemplateId}
+              year={resultYear}
+              recordId={result.recordId}
+              onSaved={handleGridSaved}
+            />
+          </div>
         ) : (
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
