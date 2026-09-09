@@ -69,12 +69,16 @@ export type TrdrFormRecordItem = {
 }
 
 export type TrdrFinancialValueItem = {
+  id: string
   fieldKey: string
+  label: string
   year: number
   value: number | null
   valueText: string | null
   kind: string
   valueType: string
+  verified: boolean
+  source: string
 }
 
 /**
@@ -100,6 +104,14 @@ export async function listTrdrFinancials(trdrId: string): Promise<{
       orderBy: [{ fieldKey: 'asc' }, { year: 'desc' }],
     }),
   ])
+  // Human labels ανά fieldKey από τα TaxFormTemplateField (best-effort — ο ίδιος
+  // fieldKey σπάνια διαφέρει μεταξύ templates· fallback στο fieldKey).
+  const fieldKeys = [...new Set(values.map(v => v.fieldKey))]
+  const labelByKey = new Map<string, string>()
+  if (fieldKeys.length) {
+    const defs = await prisma.taxFormTemplateField.findMany({ where: { fieldKey: { in: fieldKeys } }, select: { fieldKey: true, label: true } })
+    for (const d of defs) if (!labelByKey.has(d.fieldKey)) labelByKey.set(d.fieldKey, d.label)
+  }
   return {
     records: records.map(r => ({
       id: r.id,
@@ -112,14 +124,85 @@ export async function listTrdrFinancials(trdrId: string): Promise<{
       createdAt: r.createdAt.toISOString(),
     })),
     values: values.map(v => ({
+      id: v.id,
       fieldKey: v.fieldKey,
+      label: labelByKey.get(v.fieldKey) ?? v.fieldKey,
       year: v.year,
       value: v.value != null ? Number(v.value) : null,
       valueText: v.valueText,
       kind: v.kind,
       valueType: v.valueType,
+      verified: v.verified,
+      source: v.source,
     })),
   }
+}
+
+// ── RV-3: διαχείριση τιμών (edit/verify/manual/delete) ───────────────────────
+
+const VALUE_TYPES = ['CURRENCY', 'NUMBER', 'PERCENT', 'INTEGER', 'DATE', 'BOOLEAN'] as const
+type ValueTypeStr = (typeof VALUE_TYPES)[number]
+
+/** Επεξεργασία τιμής (raw → value/valueText βάσει valueType). Μαρκάρει MANUAL +
+ * unverified (χρειάζεται νέα επαλήθευση μετά τη χειροκίνητη αλλαγή). */
+export async function updateFinancialValue(id: string, raw: string): Promise<void> {
+  await requirePermission('taxform.manage')
+  const row = await prisma.trdrFinancialValue.findUniqueOrThrow({ where: { id }, select: { trdrId: true, valueType: true } })
+  const vt = row.valueType as ValueTypeStr
+  const isText = vt === 'DATE'
+  await prisma.trdrFinancialValue.update({
+    where: { id },
+    data: {
+      valueText: raw.trim() || null,
+      value: isText ? null : coerceFinancialValue(raw, vt),
+      source: 'MANUAL',
+      verified: false,
+      verifiedById: null,
+    },
+  })
+  revalidatePath(`/partners/${row.trdrId}`)
+}
+
+/** Επαλήθευση/αναίρεση επαλήθευσης τιμής (καταγράφει ΠΟΙΟΣ). */
+export async function setFinancialValueVerified(id: string, verified: boolean): Promise<void> {
+  const session = await requirePermission('taxform.manage')
+  const row = await prisma.trdrFinancialValue.findUniqueOrThrow({ where: { id }, select: { trdrId: true } })
+  await prisma.trdrFinancialValue.update({
+    where: { id },
+    data: { verified, verifiedById: verified ? session.user.id : null },
+  })
+  revalidatePath(`/partners/${row.trdrId}`)
+}
+
+export async function deleteFinancialValue(id: string): Promise<void> {
+  await requirePermission('taxform.manage')
+  const row = await prisma.trdrFinancialValue.findUniqueOrThrow({ where: { id }, select: { trdrId: true } })
+  await prisma.trdrFinancialValue.delete({ where: { id } })
+  revalidatePath(`/partners/${row.trdrId}`)
+}
+
+/** Χειροκίνητη προσθήκη/ενημέρωση τιμής (χωρίς σάρωση) — upsert σε trdr×fieldKey×year. */
+export async function addManualFinancialValue(input: {
+  trdrId: string; fieldKey: string; year: number; valueType: string; raw: string
+}): Promise<void> {
+  await requirePermission('taxform.manage')
+  const fieldKey = input.fieldKey.trim()
+  if (!fieldKey) throw new Error('Ο κωδικός πεδίου είναι υποχρεωτικός.')
+  const vt = (VALUE_TYPES.includes(input.valueType as ValueTypeStr) ? input.valueType : 'CURRENCY') as ValueTypeStr
+  const isText = vt === 'DATE'
+  await prisma.trdrFinancialValue.upsert({
+    where: { trdrId_fieldKey_year: { trdrId: input.trdrId, fieldKey, year: input.year } },
+    create: {
+      trdrId: input.trdrId, fieldKey, year: input.year, valueType: vt, kind: 'SINGLE',
+      valueText: input.raw.trim() || null, value: isText ? null : coerceFinancialValue(input.raw, vt),
+      source: 'MANUAL', verified: false,
+    },
+    update: {
+      valueType: vt, valueText: input.raw.trim() || null, value: isText ? null : coerceFinancialValue(input.raw, vt),
+      source: 'MANUAL', verified: false, verifiedById: null,
+    },
+  })
+  revalidatePath(`/partners/${input.trdrId}`)
 }
 
 /**
