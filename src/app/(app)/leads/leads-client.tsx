@@ -4,10 +4,11 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  MoreVertical, UserCog, Phone, MessageSquarePlus, Sparkles, XCircle, ExternalLink, LoaderCircle, History,
+  MoreVertical, UserCog, Phone, MessageSquarePlus, Sparkles, XCircle, ExternalLink, LoaderCircle, History, UserPlus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
@@ -185,7 +186,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
         rows={filtered}
         rowKey={r => r.id}
         initialSort={{ columnId: 'createdAt', dir: 'desc' }}
-        emptyMessage="Δεν υπάρχουν leads."
+        emptyMessage={<EmptyState icon={UserPlus} title="Καμία εγγραφή ενδιαφέροντος ακόμη" hint="Τα leads έρχονται αυτόματα από τη δημόσια φόρμα επιλεξιμότητας. Μόλις κάποιος υποβάλει το ΑΦΜ του, θα εμφανιστεί εδώ για ανάθεση και επικοινωνία." />}
         fillHeight
         footer={<span>{filtered.length} {filtered.length === 1 ? 'ενδιαφερόμενος' : 'ενδιαφερόμενοι'}</span>}
       />

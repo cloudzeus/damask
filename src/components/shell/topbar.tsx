@@ -7,6 +7,7 @@ import { SignOutMenuItem } from './sign-out-item'
 import { MobileNavToggle } from './mobile-nav'
 import { NotificationsBell } from './notifications-bell'
 import { GlobalSearch } from './global-search'
+import { HelpButton } from './help-button'
 
 export async function Topbar() {
   const session = await auth()
@@ -17,6 +18,7 @@ export async function Topbar() {
       <MobileNavToggle />
       <GlobalSearch />
       <div className="hidden flex-1 sm:block" />
+      <HelpButton />
       <NotificationsBell />
       <DropdownMenu>
         <DropdownMenuTrigger

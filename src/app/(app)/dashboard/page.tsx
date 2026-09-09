@@ -6,6 +6,7 @@ import { getDashboardSummary } from '@/lib/dashboard/summary'
 import { notifActions } from '@/lib/notifications/targets'
 import { relativeTime } from '@/lib/relative-time'
 import { PendingReviews } from '@/components/pm/pending-reviews'
+import { FirstSteps } from '@/components/dashboard/first-steps'
 
 /** KPI πλακίδιο — clickable, πάει στη σχετική οθόνη. Το χρώμα «alert» τραβά το
  * μάτι όταν υπάρχει εκκρεμότητα (αριθμός > 0). */
@@ -43,6 +44,9 @@ export default async function DashboardPage() {
         title="Κέντρο ελέγχου"
         subtitle="Τι εκκρεμεί σήμερα και ποια είναι η επόμενη ενέργεια — όλα από εδώ."
       />
+
+      {/* Καθοδήγηση για νέους — κλείνει & θυμάται */}
+      <FirstSteps />
 
       {/* KPIs — η κατάσταση με μια ματιά */}
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">

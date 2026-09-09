@@ -41,8 +41,8 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
       { key: 'unit.manage', description: 'Διαχείριση μονάδων μέτρησης' },
     ] },
   ] },
-  { key: 'partners', label: 'Συναλλασσόμενοι', items: [
-    { key: 'partners', href: '/partners', label: 'Συναλλασσόμενοι', icon: Handshake, menuPermission: 'customer.view', softone: { object: 'TRDR' }, permissions: [
+  { key: 'partners', label: 'Πελάτες & Προμηθευτές', items: [
+    { key: 'partners', href: '/partners', label: 'Πελάτες & Προμηθευτές', icon: Handshake, menuPermission: 'customer.view', softone: { object: 'TRDR' }, permissions: [
       { key: 'customer.view', description: 'Προβολή πελατών' },
       { key: 'customer.edit', description: 'Επεξεργασία πελατών/επαφών' },
     ] },
