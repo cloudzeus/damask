@@ -22,6 +22,7 @@ import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { NewDocumentRequestDialog } from '@/components/pm/new-document-request-dialog'
 import { ObligationsTab } from '@/components/pm/obligations-tab'
 import { EmailHistory } from '@/components/email/email-history'
+import { getApplicationValueChecks, type ValueCheck } from '@/lib/pm/value-checks'
 import { listApplicationContactOptions, setApplicationContacts, setContactPortalScope, type AppContactOption } from '@/lib/pm/application-contacts'
 import {
   LIFECYCLE_ORDER, LIFECYCLE_COLORS, lifecycleLabel, stageLabel, verdictLabel, obligationStatusLabel, type LifecycleStr,
@@ -234,6 +235,67 @@ function CriteriaBadges({ snapshot }: { snapshot: SinglePairEligibility | null }
   )
 }
 
+const NUM = new Intl.NumberFormat('el-GR', { maximumFractionDigits: 2 })
+
+/**
+ * RV-4 — «Στοιχεία εταιρίας για τον έλεγχό σου»: εμφανίζει τις αποθηκευμένες
+ * τιμές του πελάτη (π.χ. ΕΜΕ) δίπλα στα αριθμητικά κριτήρια του προγράμματος.
+ * ΣΚΟΠΙΜΑ ΜΗ-ΑΥΤΟΜΑΤΟ: η ένδειξη είναι ΕΝΔΕΙΚΤΙΚΗ (ευαίσθητο κομμάτι) — ο
+ * διαχειριστής επιβεβαιώνει, το σύστημα δεν αποφασίζει επιλεξιμότητα.
+ */
+function ValueChecksSection({ trdrId, programId }: { trdrId: string; programId: string }) {
+  const [checks, setChecks] = React.useState<ValueCheck[] | null>(null)
+  React.useEffect(() => {
+    let cancelled = false
+    getApplicationValueChecks(trdrId, programId).then(c => { if (!cancelled) setChecks(c) }).catch(() => { if (!cancelled) setChecks([]) })
+    return () => { cancelled = true }
+  }, [trdrId, programId])
+
+  if (!checks || checks.length === 0) return null
+
+  return (
+    <div className="mt-3 border-t border-border pt-3">
+      <div className="mb-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        Στοιχεία εταιρίας — για τον έλεγχό σου
+      </div>
+      <div className="flex flex-col gap-2">
+        {checks.map(c => <ValueCheckRow key={c.key} check={c} />)}
+      </div>
+      <p className="mt-1.5 text-[0.65625rem] text-muted-foreground"><strong>Εσύ επιλέγεις</strong> ποια τιμή θα ελέγξεις — η ένδειξη είναι ενδεικτική. Το σύστημα δεν αποφασίζει επιλεξιμότητα.</p>
+    </div>
+  )
+}
+
+function ValueCheckRow({ check: c }: { check: ValueCheck }) {
+  const [year, setYear] = React.useState<string>('')
+  const picked = c.options.find(o => String(o.year) === year) ?? null
+  const ok = picked?.value != null && c.requirement != null ? picked.value >= c.requirement : null
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78125rem]">
+      <span className="font-medium">{c.label}:</span>
+      {c.options.length === 0 ? (
+        <span className="text-[0.71875rem] text-muted-foreground">— καμία καταχωρημένη τιμή (δες «Τιμές εντύπων»)</span>
+      ) : (
+        <Select value={year} onValueChange={v => setYear(v ?? '')}>
+          <SelectTrigger className="h-8 w-[190px] rounded-full border-border bg-card px-3 text-[0.75rem]">
+            <SelectValue placeholder="Διάλεξε τιμή/έτος…" />
+          </SelectTrigger>
+          <SelectContent>
+            {c.options.map(o => <SelectItem key={o.year} value={String(o.year)}>{o.value != null ? NUM.format(o.value) : '—'} · έτος {o.year}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      )}
+      {c.requirement != null && <span className="text-[0.71875rem] text-muted-foreground">· ζητά {c.requirementLabel}: ≥ {NUM.format(c.requirement)}</span>}
+      {ok != null && (
+        <span className="badge-pill muted shrink-0" title="Ενδεικτικό — επιβεβαίωσε. Το σύστημα δεν αποφασίζει επιλεξιμότητα.">
+          {ok ? 'καλύπτει (ενδεικτικά)' : 'κάτω από το ελάχιστο (ενδεικτικά)'}
+        </span>
+      )}
+    </div>
+  )
+}
+
 type DetailTab = 'overview' | 'docs' | 'comm'
 const DETAIL_TABS: { key: DetailTab; label: string }[] = [
   { key: 'overview', label: 'Επισκόπηση' },
@@ -364,6 +426,7 @@ function EvaluationDialog({
 
         {tab === 'overview' && (<>
         <CriteriaBadges snapshot={card.snapshot} />
+        <ValueChecksSection trdrId={trdrId} programId={card.programId} />
 
         {/* Εκκρεμότητες / δικαιολογητικά — έμφαση στην τρέχουσα φάση */}
         <div className="mt-3 border-t border-border pt-3">
