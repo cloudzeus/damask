@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T04:31:10.320Z",
+  "timestamp": "2026-09-09T04:33:39.951Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,33 +22,9 @@
     },
     {
       "status": "M",
-      "path": "src/app/(app)/dashboard/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(app)/leads/leads-client.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/shell/topbar.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/objects.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/components/dashboard/"
-    },
-    {
-      "status": "??",
-      "path": "src/components/shell/help-button.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/components/ui/empty-state.tsx"
+      "path": "src/components/pm/application-hub.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n9fd3d6d feat(ux): Φάση Α — Κέντρο ελέγχου + actionable ειδοποιήσεις + καθολική αναζήτηση ⌘K\n31b6345 feat(pm): #5 έγγραφα αγοράς ως πραγματικό gate αποπληρωμής\n90f7368 feat(pm): #4 AI ΕΝΔΕΙΚΤΙΚΕΣ παρατηρήσεις επιλεξιμότητας (RV-4, χωρίς απόφαση)\nd16147d feat(programs): #3 quote-OCR prefill στην προσθήκη δαπάνης (φάση μελέτης)\n070ba55 feat(programs): #2 AI-drafted email αιτήματος εγγράφων που λείπουν"
+  "context_notes": "Recent commits:\n071da66 feat(ux): Φάση Β (μέρος) — καθοδήγηση: πρώτα βήματα, βοήθεια, empty states, ετικέτες\n9fd3d6d feat(ux): Φάση Α — Κέντρο ελέγχου + actionable ειδοποιήσεις + καθολική αναζήτηση ⌘K\n31b6345 feat(pm): #5 έγγραφα αγοράς ως πραγματικό gate αποπληρωμής\n90f7368 feat(pm): #4 AI ΕΝΔΕΙΚΤΙΚΕΣ παρατηρήσεις επιλεξιμότητας (RV-4, χωρίς απόφαση)\nd16147d feat(programs): #3 quote-OCR prefill στην προσθήκη δαπάνης (φάση μελέτης)"
 }

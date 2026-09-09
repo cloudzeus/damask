@@ -53,7 +53,8 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
   // Αρχικό tab από ?tab= (π.χ. deep-link «Επαφές έργου» από τα «Έργα»).
   const [activeTab, setActiveTab] = React.useState<TabKey>(() => {
     const t = searchParams.get('tab')
-    return t && TABS.some(x => x.key === t) ? (t as TabKey) : 'assessment'
+    const valid = TAB_GROUPS.some(g => g.tabs.some(x => x.key === t))
+    return t && valid ? (t as TabKey) : 'assessment'
   })
   const [changingStage, setChangingStage] = React.useState(false)
 
@@ -270,40 +271,58 @@ function StageStepper({ stage }: { stage: StageStr }) {
  * active, χωρίς Tabs primitive). ── */
 type TabKey = 'assessment' | 'obligations' | 'expenses' | 'deliverables' | 'certification' | 'gantt' | 'docrequests' | 'filereq' | 'contacts' | 'payments' | 'opske' | 'comm'
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'assessment', label: 'Αξιολόγηση' },
-  { key: 'obligations', label: 'Εργασίες & Υποχρεώσεις' },
-  { key: 'expenses', label: 'Δαπάνες & Πλάνο' },
-  { key: 'deliverables', label: 'Παραδοτέα' },
-  { key: 'certification', label: 'Φάκελος & Πιστοποίηση' },
-  { key: 'gantt', label: 'Gantt' },
-  { key: 'docrequests', label: 'Αιτήματα εγγράφων' },
-  { key: 'filereq', label: 'Δικαιολογητικά' },
-  { key: 'contacts', label: 'Επαφές' },
-  { key: 'payments', label: 'Αποπληρωμές' },
-  { key: 'opske', label: 'ΟΠΣΚΕ' },
-  { key: 'comm', label: 'Επικοινωνία' },
+type TabDef = { key: TabKey; label: string; hint?: string }
+/* Ομαδοποίηση των 12 tabs στις φάσεις του έργου — μειώνει το γνωσιακό φορτίο:
+ * ο χρήστης βλέπει «πού ανήκει τι» αντί για 12 ισότιμα κουμπιά στη σειρά. */
+const TAB_GROUPS: { label: string; tabs: TabDef[] }[] = [
+  { label: 'Μελέτη', tabs: [
+    { key: 'assessment', label: 'Αξιολόγηση' },
+    { key: 'filereq', label: 'Δικαιολογητικά', hint: 'Τα έγγραφα που πρέπει να μαζέψεις από τον πελάτη.' },
+    { key: 'expenses', label: 'Δαπάνες & Πλάνο' },
+    { key: 'deliverables', label: 'Παραδοτέα' },
+  ] },
+  { label: 'Υποβολή', tabs: [
+    { key: 'opske', label: 'ΟΠΣΚΕ', hint: 'Υποβολή της πρότασης στο κρατικό σύστημα ΟΠΣΚΕ.' },
+  ] },
+  { label: 'Υλοποίηση', tabs: [
+    { key: 'certification', label: 'Φάκελος & Πιστοποίηση', hint: 'Επιβεβαίωση ότι οι δαπάνες έγιναν πραγματικά.' },
+    { key: 'payments', label: 'Αποπληρωμές' },
+  ] },
+  { label: 'Οργάνωση', tabs: [
+    { key: 'obligations', label: 'Εργασίες & Υποχρεώσεις' },
+    { key: 'gantt', label: 'Gantt', hint: 'Χρονοδιάγραμμα σταδίων & προθεσμιών.' },
+    { key: 'docrequests', label: 'Αιτήματα εγγράφων' },
+    { key: 'contacts', label: 'Επαφές' },
+    { key: 'comm', label: 'Επικοινωνία' },
+  ] },
 ]
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
   return (
-    <div role="tablist" aria-label="Ενότητες έργου" className="glass flex flex-wrap gap-1 rounded-full p-1.5">
-      {TABS.map(t => (
-        <button
-          key={t.key}
-          type="button"
-          role="tab"
-          aria-selected={active === t.key}
-          onClick={() => onChange(t.key)}
-          className={cn(
-            'rounded-full px-4 py-2 text-[0.78125rem] font-semibold whitespace-nowrap transition-colors',
-            active === t.key
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-          )}
-        >
-          {t.label}
-        </button>
+    <div role="tablist" aria-label="Ενότητες έργου" className="glass flex flex-wrap items-center gap-x-1 gap-y-1.5 rounded-[22px] p-2">
+      {TAB_GROUPS.map((g, gi) => (
+        <div key={g.label} className="flex items-center gap-1">
+          {gi > 0 && <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden />}
+          <span className="mr-0.5 hidden text-[0.5625rem] font-bold uppercase tracking-[0.08em] text-muted-foreground lg:inline">{g.label}</span>
+          {g.tabs.map(t => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={active === t.key}
+              title={t.hint}
+              onClick={() => onChange(t.key)}
+              className={cn(
+                'rounded-full px-3.5 py-1.5 text-[0.78125rem] font-semibold whitespace-nowrap transition-colors',
+                active === t.key
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       ))}
     </div>
   )
