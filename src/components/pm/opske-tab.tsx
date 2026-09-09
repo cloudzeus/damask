@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { updateOpske } from '@/lib/pm/actions'
+import { SubmissionPanel } from './submission-panel'
 
 /** opskeStatus είναι ελεύθερο String στο schema (χωρίς enum) — δίνουμε ένα
  * κλειστό σύνολο συνηθισμένων καταστάσεων ΟΠΣΚΕ ως Select ώστε να μένει
@@ -66,9 +67,13 @@ export function OpskeTab({
   }
 
   return (
+    <div className="flex flex-col gap-4">
+      {/* Β1: Υποβολή πρότασης (readiness + state machine) */}
+      <SubmissionPanel applicationId={applicationId} canManage={canManage} />
+
     <section className="glass rounded-[22px] p-4">
       <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
-        ΟΠΣΚΕ
+        Στοιχεία ΟΠΣΚΕ
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -119,5 +124,6 @@ export function OpskeTab({
         </div>
       )}
     </section>
+    </div>
   )
 }

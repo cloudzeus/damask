@@ -2227,3 +2227,133 @@ export async function removeTaskDependency(id: string): Promise<void> {
   await prisma.deliverableDependency.delete({ where: { id } })
   revalidatePath(`/pm/applications/${applicationId}`)
 }
+
+// ── Β1: Υποβολή πρότασης (versioned ProposalSubmission) ───────────────────────
+// Κάθε υποβολή = νέα έκδοση (version) με δικό της status. Υποστηρίζει
+// τροποποίηση→επανυποβολή: μετά από APPROVED, νέα υποβολή δημιουργεί επόμενη
+// έκδοση. Ένα readiness-gate (δικαιολογητικά + σχέδιο δαπανών + όρια) εμποδίζει
+// πρόωρη υποβολή.
+
+export type ProposalSubmissionStatusStr = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'
+export type ProposalSubmissionItem = {
+  id: string
+  version: number
+  status: ProposalSubmissionStatusStr
+  opskeRef: string | null
+  totalAmount: number | null
+  note: string | null
+  submittedAt: string | null
+  decidedAt: string | null
+}
+export type SubmissionReadiness = {
+  ready: boolean
+  blockers: string[]
+  warnings: string[]
+  totalPlanned: number
+  missingQuotes: number
+}
+export type ProposalSubmissionView = {
+  current: ProposalSubmissionItem | null
+  history: ProposalSubmissionItem[]
+  readiness: SubmissionReadiness
+  canSubmit: boolean
+  canModify: boolean
+}
+
+/** Ελεγχος ετοιμότητας υποβολής: δικαιολογητικά (υποχρεωτικά FORM εγκεκριμένα) +
+ * σχέδιο δαπανών (τουλάχιστον μία δαπάνη, υποχρεωτικές κατηγορίες γεμάτες) +
+ * όρια (καμία υπέρβαση). Οι δαπάνες χωρίς προσφορά είναι warning, όχι blocker. */
+async function computeSubmissionReadiness(applicationId: string): Promise<SubmissionReadiness> {
+  const blockedForms = await prisma.applicationObligation.count({
+    where: { applicationId, kind: 'FORM', mandatory: true, status: { notIn: ['APPROVED', 'WAIVED'] } },
+  })
+  const app = await prisma.programApplication.findUnique({
+    where: { id: applicationId },
+    select: { program: { select: { totalBudget: true, expenseCats: { select: { id: true, name: true, mandatory: true, minAmount: true, maxAmount: true, minPercentage: true, maxPercentage: true } } } } },
+  })
+  const rows = await prisma.programExpense.findMany({
+    where: { applicationId, status: 'ACTIVE' },
+    select: { amount: true, categoryId: true, confirmed: true, quoteStorageKey: true },
+  })
+  const totalBudget = app?.program.totalBudget != null ? Number(app.program.totalBudget) : null
+  const cats = (app?.program.expenseCats ?? []).map(c => ({
+    id: c.id, name: c.name, mandatory: c.mandatory,
+    minAmount: c.minAmount == null ? null : Number(c.minAmount),
+    maxAmount: c.maxAmount == null ? null : Number(c.maxAmount),
+    minPercentage: c.minPercentage == null ? null : Number(c.minPercentage),
+    maxPercentage: c.maxPercentage == null ? null : Number(c.maxPercentage),
+  }))
+  const comp = checkBudgetCompliance(
+    rows.map<ComplianceExpense>(r => ({ amount: Number(r.amount), categoryId: r.categoryId, confirmed: r.confirmed })),
+    cats,
+    totalBudget,
+  )
+
+  const blockers: string[] = []
+  const warnings: string[] = []
+  if (blockedForms > 0) blockers.push(`${blockedForms} υποχρεωτικά δικαιολογητικά δεν έχουν εγκριθεί`)
+  if (rows.filter(r => r.categoryId).length === 0) blockers.push('Δεν έχει καταχωριστεί καμία δαπάνη στο σχέδιο')
+  for (const c of comp.categories) {
+    if (c.status === 'OVER') blockers.push(`Υπέρβαση ορίου στην κατηγορία «${c.name}»`)
+    if (c.mandatory && c.spent === 0) blockers.push(`Υποχρεωτική κατηγορία «${c.name}» χωρίς δαπάνη`)
+    if (c.status === 'UNDER') warnings.push(`Η κατηγορία «${c.name}» είναι κάτω από το ελάχιστο όριο`)
+  }
+  const missingQuotes = rows.filter(r => !r.quoteStorageKey).length
+  if (missingQuotes > 0) warnings.push(`${missingQuotes} δαπάνες χωρίς ενυπόγραφη προσφορά`)
+
+  return { ready: blockers.length === 0, blockers, warnings, totalPlanned: comp.totalSpent, missingQuotes }
+}
+
+function mapSubmission(s: { id: string; version: number; status: ProposalSubmissionStatusStr; opskeRef: string | null; totalAmount: unknown; note: string | null; submittedAt: Date | null; decidedAt: Date | null }): ProposalSubmissionItem {
+  return {
+    id: s.id, version: s.version, status: s.status, opskeRef: s.opskeRef,
+    totalAmount: s.totalAmount != null ? Number(s.totalAmount) : null,
+    note: s.note, submittedAt: s.submittedAt?.toISOString() ?? null, decidedAt: s.decidedAt?.toISOString() ?? null,
+  }
+}
+
+export async function getProposalSubmissions(applicationId: string): Promise<ProposalSubmissionView> {
+  await requireVisibleApplication(applicationId)
+  const subs = await prisma.proposalSubmission.findMany({ where: { applicationId }, orderBy: { version: 'desc' } })
+  const history = subs.map(mapSubmission)
+  const current = history[0] ?? null
+  const readiness = await computeSubmissionReadiness(applicationId)
+  const pending = current?.status === 'SUBMITTED'
+  return { current, history, readiness, canSubmit: !pending && readiness.ready, canModify: current?.status === 'APPROVED' }
+}
+
+export async function submitProposal(applicationId: string, input: { opskeRef?: string | null; note?: string | null } = {}): Promise<{ id: string; version: number }> {
+  const { session } = await requireVisibleApplication(applicationId)
+  const latest = await prisma.proposalSubmission.findFirst({ where: { applicationId }, orderBy: { version: 'desc' }, select: { version: true, status: true } })
+  if (latest?.status === 'SUBMITTED') throw new Error('Υπάρχει ήδη υποβολή σε αναμονή έγκρισης.')
+  const readiness = await computeSubmissionReadiness(applicationId)
+  if (!readiness.ready) throw new Error(`Δεν είναι έτοιμη η υποβολή: ${readiness.blockers.join(' · ')}`)
+  const version = (latest?.version ?? 0) + 1
+  const sub = await prisma.proposalSubmission.create({
+    data: {
+      applicationId, version, status: 'SUBMITTED', submittedAt: new Date(),
+      opskeRef: input.opskeRef?.trim() || null, note: input.note?.trim() || null,
+      totalAmount: readiness.totalPlanned, createdById: session.user.id,
+    },
+  })
+  await prisma.programApplication.update({
+    where: { id: applicationId },
+    data: { lifecycle: 'SUBMITTING', opskeSubmittedAt: new Date(), ...(input.opskeRef ? { opskeRef: input.opskeRef.trim() } : {}) },
+  })
+  await logActivity('proposal.submit', { entityType: 'application', entityId: applicationId, userId: session.user.id })
+  revalidatePath(`/pm/applications/${applicationId}`)
+  return { id: sub.id, version }
+}
+
+export async function decideProposal(submissionId: string, approve: boolean, note?: string | null): Promise<void> {
+  const sub = await prisma.proposalSubmission.findUniqueOrThrow({ where: { id: submissionId }, select: { applicationId: true, status: true } })
+  const { session } = await requireVisibleApplication(sub.applicationId)
+  if (sub.status !== 'SUBMITTED') throw new Error('Μόνο υποβληθείσα πρόταση εγκρίνεται ή απορρίπτεται.')
+  await prisma.proposalSubmission.update({
+    where: { id: submissionId },
+    data: { status: approve ? 'APPROVED' : 'REJECTED', decidedAt: new Date(), decidedById: session.user.id, ...(note !== undefined ? { note: note?.trim() || null } : {}) },
+  })
+  if (approve) await prisma.programApplication.update({ where: { id: sub.applicationId }, data: { lifecycle: 'IMPLEMENTATION' } })
+  await logActivity(approve ? 'proposal.approve' : 'proposal.reject', { entityType: 'application', entityId: sub.applicationId, userId: session.user.id })
+  revalidatePath(`/pm/applications/${sub.applicationId}`)
+}

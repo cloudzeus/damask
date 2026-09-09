@@ -60,6 +60,9 @@ export const ACTIONS = {
   'application.create': { category: 'APPLICATION', label: 'Δημιουργία έργου (ένταξη)', weight: 3 },
   'application.stage': { category: 'APPLICATION', label: 'Αλλαγή σταδίου PM', weight: 1 },
   'opportunity.create': { category: 'APPLICATION', label: 'Δημιουργία ευκαιρίας', weight: 2 },
+  'proposal.submit': { category: 'APPLICATION', label: 'Υποβολή πρότασης', weight: 3 },
+  'proposal.approve': { category: 'APPLICATION', label: 'Έγκριση πρότασης', weight: 3 },
+  'proposal.reject': { category: 'APPLICATION', label: 'Απόρριψη πρότασης', weight: 2 },
 } satisfies Record<string, ActionDef>
 
 export type ActivityAction = keyof typeof ACTIONS

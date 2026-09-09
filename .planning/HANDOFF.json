@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-06T17:01:49.694Z",
+  "timestamp": "2026-09-09T02:48:41.605Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,29 +26,21 @@
     },
     {
       "status": "M",
-      "path": "src/components/programs/program-editor.tsx"
+      "path": "src/lib/activity/registry.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/programs/actions.ts"
+      "path": "src/lib/pm/actions.ts"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20260906165014_program_cms_content/"
+      "path": "prisma/migrations/20260909160000_proposal_submission/"
     },
     {
       "status": "??",
-      "path": "src/components/programs/cms-tab.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/programs/cms-prompt.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/programs/cms.ts"
+      "path": "src/components/pm/submission-panel.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nd5070ea feat(eligibility): υπάρχων-πελάτης handling + όριο 4/μήνα/email + ΑΑΔΕ μετά το OTP\nffdab87 feat(public+email): eligibility modal με preloader + WWA email redesign + λογότυπο/unsubscribe\nc690ec9 fix(public): fluid μέγεθος γραμμάτων στο top menu (ίδια λογική με admin) — μία γραμμή μέχρι το mobile bp\na17b6df feat(public): WWA public front-end (design system) — isolated από το admin\n063b3b1 feat(comm): ενοποιημένο ιστορικό επικοινωνίας πελάτη + employee score"
+  "context_notes": "Recent commits:\n65ccd86 feat(pm): Β0 stage-aware tab «Δαπάνες & Πλάνο» + phase banner\n80448e3 feat(programs): όριο κατηγορίας σε € — «άθροισμα δαπανών / δεσμευτικό όριο»\n59809f7 feat(programs): expandable κατηγορίες δαπανών με ⋮ actions + framing μελέτης\nf2c947b feat(programs): AI εισήγηση σωστής κατηγορίας δαπάνης στην αξιολόγηση επιλεξιμότητας\nb98c43d feat(expenses): AI αξιολόγηση επιλεξιμότητας δαπάνης + τεκμηρίωση (DeepSeek)"
 }
