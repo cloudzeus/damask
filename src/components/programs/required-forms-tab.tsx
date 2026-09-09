@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/dialog'
 import {
   listProgramRequiredForms, addRequiredForm, updateRequiredForm, removeRequiredForm, listTaxTemplateOptions,
-  listReusableFormCatalog, addReusableFormToProgram,
-  type ProgramRequiredFormItem, type TaxTemplateOption, type ReusableFormItem,
+  listReusableFormCatalog, addReusableFormToProgram, listFormProposals, addFormProposals,
+  type ProgramRequiredFormItem, type TaxTemplateOption, type ReusableFormItem, type FormProposal,
 } from '@/lib/programs/actions'
 import { listDocumentTypes, createDocumentType, type DocumentTypeOption } from '@/lib/documents/actions'
 import { DELIVERABLE_PHASE_ORDER, deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/deliverable-phases'
@@ -41,11 +41,13 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
 
   // Manual reload — καλείται από handlers (μετά από save/create/delete), όπου το
   // synchronous setState επιτρέπεται.
+  const [proposals, setProposals] = React.useState<FormProposal[]>([])
+
   const load = React.useCallback(() => {
     setLoading(true)
     setError(null)
-    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions(), listDocumentTypes()])
-      .then(([f, t, d]) => { setForms(f); setTemplates(t); setDocTypes(d) })
+    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions(), listDocumentTypes(), listFormProposals(programId)])
+      .then(([f, t, d, p]) => { setForms(f); setTemplates(t); setDocTypes(d); setProposals(p) })
       .catch(() => setError('Η φόρτωση των εντύπων απέτυχε.'))
       .finally(() => setLoading(false))
   }, [programId])
@@ -53,8 +55,8 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
   // Αρχική φόρτωση — setState ΜΕΤΑ το await (react-hooks/set-state-in-effect).
   React.useEffect(() => {
     let cancelled = false
-    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions(), listDocumentTypes()])
-      .then(([f, t, d]) => { if (!cancelled) { setForms(f); setTemplates(t); setDocTypes(d) } })
+    Promise.all([listProgramRequiredForms(programId), listTaxTemplateOptions(), listDocumentTypes(), listFormProposals(programId)])
+      .then(([f, t, d, p]) => { if (!cancelled) { setForms(f); setTemplates(t); setDocTypes(d); setProposals(p) } })
       .catch(() => { if (!cancelled) setError('Η φόρτωση των εντύπων απέτυχε.') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -158,6 +160,10 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
         </div>
         <AddRequiredFormDialog programId={programId} onCreated={load} docTypes={docTypes} onTypesChanged={setDocTypes} />
       </div>
+
+      {proposals.length > 0 && (
+        <ProposalsPanel programId={programId} proposals={proposals} onAdded={load} />
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
@@ -474,5 +480,73 @@ function AddRequiredFormDialog({
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+/**
+ * «Προτάσεις από αποδελτίωση» — τα δικαιολογητικά που εντόπισε το scan του
+ * προγράμματος και ΔΕΝ έχουν προστεθεί ακόμη. Ο διαχειριστής επιλέγει ποια θα
+ * προσθέσει (με προτεινόμενη αντιστοίχιση τύπου).
+ */
+function ProposalsPanel({
+  programId, proposals, onAdded,
+}: {
+  programId: string
+  proposals: FormProposal[]
+  onAdded: () => void
+}) {
+  const [selected, setSelected] = React.useState<Set<string>>(() => new Set(proposals.map(p => p.name)))
+  const [saving, setSaving] = React.useState(false)
+
+  function toggle(name: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name); else next.add(name)
+      return next
+    })
+  }
+
+  async function handleAdd() {
+    const items = proposals.filter(p => selected.has(p.name)).map(p => ({
+      name: p.name, mandatory: p.mandatory, notes: p.notes, documentTypeId: p.suggestedDocumentTypeId,
+    }))
+    if (items.length === 0) { toast.error('Επίλεξε τουλάχιστον ένα δικαιολογητικό.'); return }
+    setSaving(true)
+    try {
+      const res = await addFormProposals(programId, items)
+      toast.success(`Προστέθηκαν ${res.added} δικαιολογητικά.`)
+      onAdded()
+    } catch {
+      toast.error('Η προσθήκη απέτυχε.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mb-3 rounded-[16px] border border-dashed border-border bg-muted/30 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[0.71875rem] font-semibold text-foreground">
+          <LuFileText className="size-3.5 text-muted-foreground" aria-hidden />
+          Προτάσεις από αποδελτίωση ({proposals.length}) — επίλεξε ποια θα προσθέσεις
+        </div>
+        <Button type="button" size="sm" onClick={handleAdd} disabled={saving || selected.size === 0}>
+          {saving ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuPlus className="size-3.5" aria-hidden />}
+          Προσθήκη επιλεγμένων ({selected.size})
+        </Button>
+      </div>
+      <div className="flex flex-col gap-1">
+        {proposals.map(p => (
+          <label key={p.name} className="flex cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-[0.78125rem] hover:bg-muted">
+            <input type="checkbox" checked={selected.has(p.name)} onChange={() => toggle(p.name)} className="size-4 shrink-0 accent-[color:var(--primary)]" />
+            <span className="font-semibold">{p.name}</span>
+            {p.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>}
+            {p.suggestedDocumentTypeName
+              ? <span className="badge-pill ok shrink-0">τύπος: {p.suggestedDocumentTypeName}</span>
+              : <span className="badge-pill muted shrink-0">χωρίς αντιστοίχιση τύπου</span>}
+          </label>
+        ))}
+      </div>
+    </div>
   )
 }

@@ -14,6 +14,7 @@ import { expenseCatInput } from '@/lib/programs/expense-prep'
 import { buildOcrCostViewForSession, type OcrCostView } from '@/lib/ingestion/ocr-cost'
 import { logActivity } from '@/lib/activity/log'
 import { propagateRequiredFormObligation, removeFormObligations } from '@/lib/pm/form-obligations'
+import { normalizeTypeName } from '@/lib/programs/persist'
 
 /**
  * Server orchestration για τη διαχείριση Προγραμμάτων Χρηματοδότησης
@@ -524,6 +525,77 @@ export async function listProgramRequiredForms(programId: string): Promise<Progr
     documentTypeId: r.documentTypeId,
     documentTypeName: r.documentType?.name ?? null,
   }))
+}
+
+// ── Προτάσεις δικαιολογητικών από την αποδελτίωση (scan προγράμματος) ─────────
+
+export type FormProposal = {
+  name: string
+  mandatory: boolean
+  notes: string | null
+  suggestedDocumentTypeId: string | null
+  suggestedDocumentTypeName: string | null
+}
+
+/** Τα δικαιολογητικά που πρότεινε η αποδελτίωση (extractedData.requiredForms) και
+ * ΔΕΝ έχουν προστεθεί ακόμη (dedup ανά normalized όνομα) — για να τα ΕΠΙΛΕΞΕΙ ο
+ * διαχειριστής. Προτείνει και αντιστοίχιση σε υπάρχοντα τύπο δικαιολογητικού. */
+export async function listFormProposals(programId: string): Promise<FormProposal[]> {
+  await requirePermission('programs.manage')
+  const program = await prisma.program.findUnique({ where: { id: programId }, select: { extractedData: true } })
+  const raw = (program?.extractedData as { requiredForms?: unknown } | null)?.requiredForms
+  if (!Array.isArray(raw)) return []
+
+  const existing = await prisma.programRequiredForm.findMany({ where: { programId }, select: { name: true } })
+  const existingNorm = new Set(existing.map(e => normalizeTypeName(e.name)))
+  const docTypes = await prisma.documentType.findMany({ where: { active: true }, select: { id: true, name: true } })
+  const byNorm = new Map(docTypes.map(t => [normalizeTypeName(t.name), { id: t.id, name: t.name }]))
+
+  const seen = new Set<string>()
+  const out: FormProposal[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const name = typeof (item as { name?: unknown }).name === 'string' ? (item as { name: string }).name.trim() : ''
+    if (!name) continue
+    const norm = normalizeTypeName(name)
+    if (existingNorm.has(norm) || seen.has(norm)) continue // ήδη προστέθηκε ή διπλότυπο
+    seen.add(norm)
+    const dt = byNorm.get(norm)
+    out.push({
+      name,
+      mandatory: (item as { mandatory?: unknown }).mandatory !== false,
+      notes: typeof (item as { notes?: unknown }).notes === 'string' ? (item as { notes: string }).notes : null,
+      suggestedDocumentTypeId: dt?.id ?? null,
+      suggestedDocumentTypeName: dt?.name ?? null,
+    })
+  }
+  return out
+}
+
+/** Προσθέτει τα ΕΠΙΛΕΓΜΕΝΑ προτεινόμενα δικαιολογητικά ως ProgramRequiredForm
+ * (+ διάδοση εκκρεμοτήτων). Idempotent στο normalized όνομα. */
+export async function addFormProposals(
+  programId: string,
+  items: { name: string; mandatory: boolean; notes?: string | null; documentTypeId?: string | null }[],
+): Promise<{ added: number }> {
+  await requirePermission('programs.manage')
+  if (items.length === 0) return { added: 0 }
+  const existing = await prisma.programRequiredForm.findMany({ where: { programId }, select: { name: true } })
+  const existingNorm = new Set(existing.map(e => normalizeTypeName(e.name)))
+  let count = await prisma.programRequiredForm.count({ where: { programId } })
+  let added = 0
+  for (const it of items) {
+    const name = it.name.trim()
+    if (!name || existingNorm.has(normalizeTypeName(name))) continue
+    const row = await prisma.programRequiredForm.create({
+      data: { programId, name, mandatory: it.mandatory, notes: it.notes ?? null, documentTypeId: it.documentTypeId ?? null, order: count++ },
+    })
+    existingNorm.add(normalizeTypeName(name))
+    await propagateRequiredFormObligation(row.id)
+    added++
+  }
+  revalidatePath(`/programs/${programId}`)
+  return { added }
 }
 
 export async function addRequiredForm(

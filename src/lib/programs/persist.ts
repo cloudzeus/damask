@@ -11,7 +11,7 @@ export { parseIsoDate, toProgramScalars, toRelatedRows } from '@/lib/programs/pe
 
 /** Κανονικοποίηση ονόματος τύπου δικαιολογητικού για matching (lowercase, χωρίς
  * τόνους, χωρίς διπλά κενά/σημεία στίξης). Συντηρητικό — μόνο exact normalized. */
-function normalizeTypeName(s: string): string {
+export function normalizeTypeName(s: string): string {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9α-ω]+/gi, ' ').trim()
 }
 
@@ -53,7 +53,10 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
     await tx.programPhase.deleteMany({ where: { programId } })
     await tx.programRegion.deleteMany({ where: { programId } })
     await tx.programEligibleLegalForm.deleteMany({ where: { programId } })
-    await tx.programRequiredForm.deleteMany({ where: { programId } })
+    // ΣΗΜ.: Τα requiredForms ΔΕΝ διαγράφονται/επαναδημιουργούνται εδώ — τα
+    // εξαγόμενα δικαιολογητικά μένουν ΠΡΟΤΑΣΕΙΣ στο extractedData και ο admin
+    // επιλέγει ποια θα προσθέσει από το «Έντυπα» tab (listFormProposals/
+    // addFormProposals). Έτσι η επιμέλεια του admin δεν χάνεται σε re-extraction.
 
     if (rows.expenseCats.length) {
       await tx.programExpenseCategory.createMany({
@@ -78,18 +81,7 @@ export async function persistExtractedProgram(programId: string, e: ExtractedPro
     if (rows.legalForms.length) {
       await tx.programEligibleLegalForm.createMany({ data: rows.legalForms.map(f => ({ ...f, programId })) })
     }
-    if (rows.requiredForms.length) {
-      // NOTE: extraction never sets templateId — the user links a required
-      // form to a «Οδηγός Εντύπου» (TaxFormTemplate) later via updateRequiredForm.
-      // Φάση 3 — auto-mapping σε τύπο δικαιολογητικού (DocumentType) βάσει
-      // normalized ονόματος: ΜΟΝΟ σε ΥΠΑΡΧΟΝΤΕΣ τύπους (όχι auto-create OCR
-      // θορύβου). Ό,τι δεν ταιριάξει μένει null → ο admin το χαρτογραφεί στο UI.
-      const docTypes = await tx.documentType.findMany({ where: { active: true }, select: { id: true, name: true } })
-      const byNorm = new Map(docTypes.map(t => [normalizeTypeName(t.name), t.id]))
-      await tx.programRequiredForm.createMany({
-        data: rows.requiredForms.map(r => ({ ...r, programId, documentTypeId: byNorm.get(normalizeTypeName(r.name)) ?? null })),
-      })
-    }
+    // requiredForms: βλ. σχόλιο πάνω — προτάσεις στο extractedData, όχι auto-create.
 
     if (rows.deliverableGroups.length) {
       for (const g of rows.deliverableGroups) {
