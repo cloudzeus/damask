@@ -15,6 +15,7 @@ import { buildOcrCostViewForSession, type OcrCostView } from '@/lib/ingestion/oc
 import { logActivity } from '@/lib/activity/log'
 import { propagateRequiredFormObligation, removeFormObligations } from '@/lib/pm/form-obligations'
 import { normalizeTypeName } from '@/lib/programs/persist'
+import { matchDocumentType } from '@/lib/documents/type-match'
 
 /**
  * Server orchestration για τη διαχείριση Προγραμμάτων Χρηματοδότησης
@@ -535,6 +536,8 @@ export type FormProposal = {
   notes: string | null
   suggestedDocumentTypeId: string | null
   suggestedDocumentTypeName: string | null
+  /** true = fuzzy πρόταση (διαφορετική διατύπωση) — χρειάζεται επιβεβαίωση. */
+  suggestionFuzzy: boolean
 }
 
 /** Τα δικαιολογητικά που πρότεινε η αποδελτίωση (extractedData.requiredForms) και
@@ -549,7 +552,6 @@ export async function listFormProposals(programId: string): Promise<FormProposal
   const existing = await prisma.programRequiredForm.findMany({ where: { programId }, select: { name: true } })
   const existingNorm = new Set(existing.map(e => normalizeTypeName(e.name)))
   const docTypes = await prisma.documentType.findMany({ where: { active: true }, select: { id: true, name: true } })
-  const byNorm = new Map(docTypes.map(t => [normalizeTypeName(t.name), { id: t.id, name: t.name }]))
 
   const seen = new Set<string>()
   const out: FormProposal[] = []
@@ -560,13 +562,15 @@ export async function listFormProposals(programId: string): Promise<FormProposal
     const norm = normalizeTypeName(name)
     if (existingNorm.has(norm) || seen.has(norm)) continue // ήδη προστέθηκε ή διπλότυπο
     seen.add(norm)
-    const dt = byNorm.get(norm)
+    // Exact → fuzzy («πρόταση») αντιστοίχιση τύπου.
+    const match = matchDocumentType(name, docTypes)
     out.push({
       name,
       mandatory: (item as { mandatory?: unknown }).mandatory !== false,
       notes: typeof (item as { notes?: unknown }).notes === 'string' ? (item as { notes: string }).notes : null,
-      suggestedDocumentTypeId: dt?.id ?? null,
-      suggestedDocumentTypeName: dt?.name ?? null,
+      suggestedDocumentTypeId: match?.id ?? null,
+      suggestedDocumentTypeName: match?.name ?? null,
+      suggestionFuzzy: match?.fuzzy ?? false,
     })
   }
   return out

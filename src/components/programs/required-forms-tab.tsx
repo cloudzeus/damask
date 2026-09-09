@@ -542,7 +542,9 @@ function ProposalsPanel({
             <span className="font-semibold">{p.name}</span>
             {p.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>}
             {p.suggestedDocumentTypeName
-              ? <span className="badge-pill ok shrink-0">τύπος: {p.suggestedDocumentTypeName}</span>
+              ? p.suggestionFuzzy
+                ? <span className="badge-pill warn shrink-0" title="Πρόταση βάσει παρόμοιας διατύπωσης — επιβεβαίωσε πριν την προσθήκη">τύπος (πρόταση): {p.suggestedDocumentTypeName}</span>
+                : <span className="badge-pill ok shrink-0">τύπος: {p.suggestedDocumentTypeName}</span>
               : <span className="badge-pill muted shrink-0">χωρίς αντιστοίχιση τύπου</span>}
           </label>
         ))}
