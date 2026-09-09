@@ -21,6 +21,7 @@ const DOC_LABELS: { kind: PurchaseDocKind; label: string }[] = [
 const VERDICT_META: Record<PurchaseVerdict, { label: string; cls: string }> = {
   OK: { label: 'Τεκμηριωμένη', cls: 'ok' }, MISMATCH: { label: 'Ασυμφωνία', cls: 'warn' }, UNCERTAIN: { label: 'Αβέβαιο', cls: 'muted' },
 }
+const PAYMENT_STATUS_LABEL: Record<string, string> = { DRAFT: 'Πρόχειρη', SUBMITTED: 'Υποβλήθηκε', APPROVED: 'Εγκρίθηκε', PAID: 'Πληρώθηκε', REJECTED: 'Απορρίφθηκε' }
 
 function readFileBase64(file: File): Promise<{ base64: string; ext: string }> {
   return new Promise((resolve, reject) => {
@@ -106,6 +107,11 @@ function PurchaseCard({ item: it, onReload }: { item: PurchaseItem; onReload: ()
         <span className="font-semibold">{it.description}</span>
         {it.categoryName && <span className="badge-pill muted shrink-0">{it.categoryName}</span>}
         {it.supplierName && <span className="text-[0.6875rem] text-muted-foreground">· {it.supplierName}{it.supplierAfm ? ` (${it.supplierAfm})` : ''}</span>}
+        {it.inRequest ? (
+          <span className="badge-pill ok shrink-0" title="Έχει ενταχθεί σε αίτημα αποπληρωμής">δόση #{it.inRequest.ordinal} · {PAYMENT_STATUS_LABEL[it.inRequest.status] ?? it.inRequest.status}</span>
+        ) : (
+          <span className="badge-pill muted shrink-0" title="Δεν έχει ενταχθεί σε δόση αποπληρωμής — δες tab «Αποπληρωμές»">εκτός δόσης</span>
+        )}
         <span className="ml-auto tabular-nums font-bold">εγκεκριμένο {EUR.format(it.amount)} €</span>
       </div>
 

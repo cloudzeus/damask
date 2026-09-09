@@ -38,6 +38,7 @@ export type PurchaseItem = {
   reconVerdict: PurchaseVerdict | null
   reconNote: string | null
   ocr: { amount: number | null; supplier: string | null; number: string | null } | null
+  inRequest: { ordinal: number; status: string } | null
 }
 
 function docsOf(p: { invoiceKey: string | null; invoiceName: string | null; bankExtraitKey: string | null; bankExtraitName: string | null; supplierCertKey: string | null; supplierCertName: string | null } | null): PurchaseItem['docs'] {
@@ -59,6 +60,7 @@ export async function listExpensePurchases(applicationId: string): Promise<Purch
       category: { select: { name: true } },
       supplier: { select: { NAME: true, AFM: true } }, vendor: true, vendorAfm: true,
       purchase: true,
+      paymentRequest: { select: { ordinal: true, status: true } },
     },
   })
   return rows.map(r => {
@@ -76,6 +78,7 @@ export async function listExpensePurchases(applicationId: string): Promise<Purch
       reconVerdict: (p?.reconVerdict ?? null) as PurchaseVerdict | null,
       reconNote: p?.reconNote ?? null,
       ocr: p?.ocrCheckedAt ? { amount: p.ocrAmount != null ? Number(p.ocrAmount) : null, supplier: p.ocrSupplier ?? null, number: p.ocrNumber ?? null } : null,
+      inRequest: r.paymentRequest ? { ordinal: r.paymentRequest.ordinal, status: r.paymentRequest.status } : null,
     }
   })
 }

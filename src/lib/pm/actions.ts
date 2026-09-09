@@ -1102,13 +1102,18 @@ export async function setPaymentRequestStatus(id: string, to: PaymentStatusStr, 
   revalidatePath(`/pm/applications/${req.applicationId}`)
 }
 
-export type PaymentEligibleExpenseItem = { id: string; description: string; amount: number; eligible: boolean; reason: string | null; inThisRequest: boolean }
+export type PaymentEligibleExpenseItem = {
+  id: string; description: string; amount: number; eligible: boolean; reason: string | null; inThisRequest: boolean
+  // Ετοιμότητα αγοράς (Β3b): έγγραφα αγοράς + AI διασταύρωση — δείχνει αν η
+  // δαπάνη έχει τα δικαιολογητικά αποπληρωμής, ανεξάρτητα από την πιστοποίηση.
+  purchaseDocsComplete: boolean; purchaseMissing: number; purchaseReconVerdict: 'OK' | 'MISMATCH' | 'UNCERTAIN' | null
+}
 
 export async function listPaymentEligibleExpenses(applicationId: string, requestId?: string | null): Promise<PaymentEligibleExpenseItem[]> {
   await requireVisibleApplication(applicationId)
   const rows = await prisma.programExpense.findMany({
     where: { applicationId, status: 'ACTIVE' },
-    select: { id: true, description: true, amount: true, confirmed: true, status: true, paymentRequestId: true, certification: { select: { verified: true } } },
+    select: { id: true, description: true, amount: true, confirmed: true, status: true, paymentRequestId: true, certification: { select: { verified: true } }, purchase: { select: { invoiceKey: true, bankExtraitKey: true, supplierCertKey: true, reconVerdict: true } } },
     orderBy: { createdAt: 'asc' },
   })
   return rows.map(r => {
@@ -1116,7 +1121,13 @@ export async function listPaymentEligibleExpenses(applicationId: string, request
       { status: r.status as 'ACTIVE' | 'REPLACED', confirmed: r.confirmed, verified: r.certification?.verified ?? false, paymentRequestId: r.paymentRequestId },
       requestId ?? null,
     )
-    return { id: r.id, description: r.description, amount: Number(r.amount), eligible, reason, inThisRequest: !!requestId && r.paymentRequestId === requestId }
+    const p = r.purchase
+    const present = [p?.invoiceKey, p?.bankExtraitKey, p?.supplierCertKey].filter(Boolean).length
+    return {
+      id: r.id, description: r.description, amount: Number(r.amount), eligible, reason, inThisRequest: !!requestId && r.paymentRequestId === requestId,
+      purchaseDocsComplete: present === 3, purchaseMissing: 3 - present,
+      purchaseReconVerdict: (p?.reconVerdict ?? null) as 'OK' | 'MISMATCH' | 'UNCERTAIN' | null,
+    }
   })
 }
 

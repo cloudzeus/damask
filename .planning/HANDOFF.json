@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T03:14:05.524Z",
+  "timestamp": "2026-09-09T03:19:17.108Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,21 +22,17 @@
     },
     {
       "status": "M",
-      "path": "prisma/schema.prisma"
+      "path": "src/components/pm/payments-tab.tsx"
     },
     {
       "status": "M",
-      "path": "src/components/programs/purchase-docs-panel.tsx"
+      "path": "src/lib/pm/actions.ts"
     },
     {
       "status": "M",
       "path": "src/lib/programs/expense-purchase.ts"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20260909180000_expense_purchase_ocr/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ne791b05 feat(pm): Β3a AI utilities — έλεγχος σχεδίου (budget sanity) + Οδηγός φακέλου\nbb1ab3f feat(programs): Β2 στοιχεία αγοράς ανά δαπάνη + AI διασταύρωση (ExpensePurchase)\nf30da9d feat(pm): Β1 υποβολή πρότασης — versioned ProposalSubmission + readiness gate\n65ccd86 feat(pm): Β0 stage-aware tab «Δαπάνες & Πλάνο» + phase banner\n80448e3 feat(programs): όριο κατηγορίας σε € — «άθροισμα δαπανών / δεσμευτικό όριο»"
+  "context_notes": "Recent commits:\nff2d541 feat(programs): Β3b deep-OCR reconcile — AI ανάγνωση παραστατικού\ne791b05 feat(pm): Β3a AI utilities — έλεγχος σχεδίου (budget sanity) + Οδηγός φακέλου\nbb1ab3f feat(programs): Β2 στοιχεία αγοράς ανά δαπάνη + AI διασταύρωση (ExpensePurchase)\nf30da9d feat(pm): Β1 υποβολή πρότασης — versioned ProposalSubmission + readiness gate\n65ccd86 feat(pm): Β0 stage-aware tab «Δαπάνες & Πλάνο» + phase banner"
 }

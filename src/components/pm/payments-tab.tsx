@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { LuPlus, LuTrash2, LuLoaderCircle, LuWallet, LuChevronDown, LuChevronUp, LuLock } from 'react-icons/lu'
+import { LuPlus, LuTrash2, LuLoaderCircle, LuWallet, LuChevronDown, LuChevronUp, LuLock, LuFileCheck2, LuTriangleAlert, LuSparkles } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -321,9 +321,10 @@ function ExpensePicker({
           <div className="flex flex-col gap-1">
             {included.map(i => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5">
-                <span className="min-w-0 truncate text-[0.75rem]">
+                <span className="min-w-0 flex-1 truncate text-[0.75rem]">
                   {i.description} <span className="text-muted-foreground">{formatEUR(i.amount)}</span>
                 </span>
+                <PurchaseBadge item={i} />
                 <Button type="button" size="sm" variant="outline" onClick={() => handleRemove(i.id)} disabled={pending === i.id}>
                   Αφαίρεση
                 </Button>
@@ -341,9 +342,10 @@ function ExpensePicker({
           <div className="flex flex-col gap-1">
             {available.map(i => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5">
-                <span className="min-w-0 truncate text-[0.75rem]">
+                <span className="min-w-0 flex-1 truncate text-[0.75rem]">
                   {i.description} <span className="text-muted-foreground">{formatEUR(i.amount)}</span>
                 </span>
+                <PurchaseBadge item={i} />
                 <Button type="button" size="sm" onClick={() => handleAdd(i.id)} disabled={pending === i.id}>
                   Προσθήκη
                 </Button>
@@ -371,6 +373,25 @@ function ExpensePicker({
         </div>
       )}
     </div>
+  )
+}
+
+/** Ετοιμότητα εγγράφων αγοράς (Β3b) για μια δαπάνη μέσα στο payment picker:
+ * πληρότητα 3 εγγράφων + AI διασταύρωση. Δείχνει αν η αγορά έχει τα
+ * δικαιολογητικά αποπληρωμής. */
+function PurchaseBadge({ item }: { item: PaymentEligibleExpenseItem }) {
+  const recon = item.purchaseReconVerdict
+  return (
+    <span className="flex shrink-0 items-center gap-1">
+      {item.purchaseDocsComplete ? (
+        <span className="inline-flex items-center gap-1 text-[0.625rem] font-semibold text-[color:var(--success)]" title="Όλα τα έγγραφα αγοράς"><LuFileCheck2 className="size-3" aria-hidden /> έγγραφα 3/3</span>
+      ) : (
+        <span className="inline-flex items-center gap-1 text-[0.625rem] font-semibold text-[color:var(--warning)]" title="Λείπουν έγγραφα αγοράς"><LuTriangleAlert className="size-3" aria-hidden /> έγγραφα {3 - item.purchaseMissing}/3</span>
+      )}
+      {recon && (
+        <span className={`badge-pill shrink-0 ${recon === 'OK' ? 'ok' : recon === 'MISMATCH' ? 'warn' : 'muted'}`} title="AI διασταύρωση αγοράς"><LuSparkles className="size-3" aria-hidden /> {recon === 'OK' ? 'ΟΚ' : recon === 'MISMATCH' ? 'ασυμφωνία' : 'αβέβαιο'}</span>
+      )}
+    </span>
   )
 }
 
