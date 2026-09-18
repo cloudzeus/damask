@@ -17,6 +17,7 @@ import {
 import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType, MAX_RASTERIZE_PAGES } from '@/lib/ocr/rasterize'
 import { runOcrExtraction } from '@/lib/ocr/actions'
 import { ScanFormDialog } from '@/components/tax/scan-form-dialog'
+import { DocumentPreviewButton } from '@/components/ui/document-preview'
 
 /**
  * Αποθήκη δικαιολογητικών ανά πελάτη — ό,τι έχει ήδη η εταιρία (τύπος + αρχείο +
@@ -154,6 +155,7 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
                       />
                     </label>
                   )}
+                  <DocumentPreviewButton url={`/partners/${trdrId}/dossier/${doc.id}`} name={doc.name} mimeType={doc.mimeType} />
                   <a
                     href={`/partners/${trdrId}/dossier/${doc.id}`}
                     className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

@@ -9,6 +9,7 @@ import {
   type ApplicationDocumentItem,
 } from '@/lib/pm/actions'
 import { listDocumentTypes, type DocumentTypeOption } from '@/lib/documents/actions'
+import { DocumentPreviewButton } from '@/components/ui/document-preview'
 
 /**
  * Μετατρέπει ArrayBuffer → base64 σε chunks (32KB) — ίδιο idiom με
@@ -74,7 +75,7 @@ export function ApplicationDocuments({
       .finally(() => setLoading(false))
   }, [applicationId, obligationId])
 
-  React.useEffect(() => { load() }, [load])
+  React.useEffect(() => { const t = setTimeout(load, 0); return () => clearTimeout(t) }, [load])
   React.useEffect(() => {
     let cancelled = false
     listDocumentTypes().then(t => { if (!cancelled) setTypes(t) }).catch(() => {})
@@ -176,9 +177,15 @@ export function ApplicationDocuments({
               <span className="min-w-0 truncate font-semibold" title={doc.name}>{doc.name}</span>
               {doc.typeName && <span className="badge-pill muted shrink-0">{doc.typeName}</span>}
               <span className="shrink-0 text-[0.6875rem] text-muted-foreground">{formatSize(doc.size)}</span>
+              <DocumentPreviewButton
+                url={`/programs/${programId}/applications/${appId}/documents/${doc.id}`}
+                name={doc.name}
+                mimeType={doc.mimeType}
+                className="ml-auto !size-5"
+              />
               <a
                 href={`/programs/${programId}/applications/${appId}/documents/${doc.id}`}
-                className="ml-auto inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label={`Λήψη — ${doc.name}`}
                 title="Λήψη"
               >
