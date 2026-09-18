@@ -75,6 +75,7 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   newsletter: 'Διαχείριση',
   activity: 'Διαχείριση',
   taxform: 'Διαχείριση',
+  doctype: 'Διαχείριση',
   programs: 'Ευρωπαϊκά Προγράμματα',
   pm: 'Ευρωπαϊκά Προγράμματα',
   application: 'Ευρωπαϊκά Προγράμματα',

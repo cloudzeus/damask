@@ -4,7 +4,7 @@ import {
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
   Cookie, CreditCard, ScanText, Coins, FileText, Landmark, FolderKanban,
   MapPin, Tags, MailCheck, UserPlus, Activity, Mails, UsersRound, Gauge,
-  Sparkles,
+  Sparkles, FileCheck,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -140,6 +140,9 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     { key: 'settings', href: '/settings', label: 'Ρυθμίσεις', icon: Settings, menuPermission: 'settings.manage', core: true, permissions: [
       { key: 'settings.manage', description: 'Ρυθμίσεις συστήματος' },
       { key: 'sync.run', description: 'Εκτέλεση sync με SoftOne' },
+    ] },
+    { key: 'document-types', href: '/document-types', label: 'Τύποι Δικαιολογητικών', icon: FileCheck, menuPermission: 'doctype.manage', core: true, permissions: [
+      { key: 'doctype.manage', description: 'Διαχείριση τύπων δικαιολογητικών (όνομα/λήξη/σάρωση + σύνδεση Οδηγού Εντύπων)' },
     ] },
     { key: 'form-guides', href: '/tax-templates', label: 'Οδηγοί Εντύπων', icon: FileText, menuPermission: 'taxform.manage', permissions: [
       { key: 'taxform.manage', description: 'Διαχείριση οδηγών εντύπων' },
