@@ -27,6 +27,8 @@ export type ReferrerRow = {
   referredCount: number
   /** Επιλέξιμες εταιρίες από χαρτογράφηση παραπομπής που περιμένουν αναγωγή σε δυνητικό. */
   eligiblePending: number
+  /** Πλήθος επαφών (ReferrerContact) — κυρίως για εταιρίες-παραπομπές. */
+  contactCount: number
 }
 
 export type ReferrerInput = {
@@ -49,7 +51,7 @@ export async function listReferrers(): Promise<ReferrerRow[]> {
   await requirePermission('referrer.view')
   const rows = await prisma.referrer.findMany({
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
-    include: { _count: { select: { referred: true } } },
+    include: { _count: { select: { referred: true, contacts: true } } },
   })
   // Εκκρεμείς επιλέξιμες εταιρίες ανά παραπομπή (ένα groupBy, όχι N queries).
   const pending = await prisma.referralCompany.groupBy({
@@ -70,7 +72,66 @@ export async function listReferrers(): Promise<ReferrerRow[]> {
     trdrId: r.trdrId,
     referredCount: r._count.referred,
     eligiblePending: pendingMap.get(r.id) ?? 0,
+    contactCount: r._count.contacts,
   }))
+}
+
+// ── Επαφές εταιρίας-παραπομπής ───────────────────────────────────────────────
+
+export type ReferrerContactRow = {
+  id: string
+  name: string
+  role: string | null
+  email: string | null
+  phone: string | null
+  notes: string | null
+}
+
+export type ReferrerContactInput = {
+  name: string
+  role?: string | null
+  email?: string | null
+  phone?: string | null
+  notes?: string | null
+}
+
+export async function listReferrerContacts(referrerId: string): Promise<ReferrerContactRow[]> {
+  await requirePermission('referrer.view')
+  const rows = await prisma.referrerContact.findMany({
+    where: { referrerId },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, name: true, role: true, email: true, phone: true, notes: true },
+  })
+  return rows
+}
+
+export async function addReferrerContact(referrerId: string, input: ReferrerContactInput): Promise<{ id: string }> {
+  await requirePermission('referrer.manage')
+  const name = (input.name ?? '').trim()
+  if (!name) throw new Error('Το όνομα επαφής είναι υποχρεωτικό.')
+  const row = await prisma.referrerContact.create({
+    data: { referrerId, name, role: s(input.role), email: s(input.email), phone: s(input.phone), notes: s(input.notes) },
+    select: { id: true },
+  })
+  revalidatePath('/referrers')
+  return row
+}
+
+export async function updateReferrerContact(id: string, input: ReferrerContactInput): Promise<void> {
+  await requirePermission('referrer.manage')
+  const name = (input.name ?? '').trim()
+  if (!name) throw new Error('Το όνομα επαφής είναι υποχρεωτικό.')
+  await prisma.referrerContact.update({
+    where: { id },
+    data: { name, role: s(input.role), email: s(input.email), phone: s(input.phone), notes: s(input.notes) },
+  })
+  revalidatePath('/referrers')
+}
+
+export async function removeReferrerContact(id: string): Promise<void> {
+  await requirePermission('referrer.manage')
+  await prisma.referrerContact.delete({ where: { id } })
+  revalidatePath('/referrers')
 }
 
 /** Ενεργοί συστήστες ως {value,label} για το searchable combobox στην καρτέλα πελάτη. */

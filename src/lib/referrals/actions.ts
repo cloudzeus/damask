@@ -9,6 +9,7 @@ import { extractKadRule } from '@/lib/prospects/evaluate-pair'
 import { regionFromZip } from '@/lib/referrals/region-from-zip'
 import { associateTrdrPrograms } from '@/lib/pm/program-link'
 import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
+import { deriveHierarchyFromMap, type RegionNodeLookup } from '@/lib/registries/regions-tree'
 
 /**
  * Batch χαρτογράφησης επιλεξιμότητας ανά εταιρία παραπομπής: Excel (ΑΦΜ/email/
@@ -205,6 +206,72 @@ export async function runReferralBatch(
   revalidatePath('/referrals/eligible')
 
   return { ok: true, batchId: batch.id, companies: results, total: clean.length, eligible: eligibleCount }
+}
+
+// ── Συσχετισμένες εταιρίες παραπομπής + έλεγχος επιλεξιμότητας ────────────────
+
+export type ReferrerLinkedCompany = {
+  trdrId: string
+  name: string
+  afm: string | null
+  isCustomer: boolean // ISPROSP===0 → πελάτης· αλλιώς δυνητικός
+  regionName: string | null
+  currentProgramIds: string[] // ήδη συνδεδεμένα προγράμματα (ProgramApplication)
+  eligiblePrograms: EligibleProgramLite[] // επιλέξιμα ΝΕΑ προγράμματα (εκτός των ήδη συνδεδεμένων)
+}
+
+/**
+ * Οι ήδη-καταχωρημένες εταιρίες (Trdr) που έφερε μια παραπομπή — ενεργοί πελάτες
+ * ή δυνητικοί — μαζί με **έλεγχο επιλεξιμότητας** έναντι των ενεργών προγραμμάτων
+ * (βάσει αποθηκευμένων ΚΑΔ/Περιφέρειας/νομικής μορφής, χωρίς ΑΑΔΕ). Χρησιμοποιεί
+ * την ίδια λογική με findProspects/computeSinglePair. Παραλείπει προγράμματα στα
+ * οποία η εταιρία είναι ήδη ενταγμένη.
+ */
+export async function listReferrerLinkedCompanies(referrerId: string): Promise<ReferrerLinkedCompany[]> {
+  await requirePermission('programs.manage')
+  const [trdrs, programs, regions] = await Promise.all([
+    prisma.trdr.findMany({
+      where: { referrerId },
+      orderBy: { NAME: 'asc' },
+      select: {
+        id: true, NAME: true, AFM: true, ISPROSP: true, appLegalForm: true, regionCode: true,
+        kads: { select: { code: true } },
+        programApplications: { select: { programId: true } },
+      },
+    }),
+    loadActivePrograms(),
+    prisma.region.findMany({ select: { code: true, nameEL: true, level: true, parentCode: true } }),
+  ])
+  const regionMap = new Map<string, RegionNodeLookup>(regions.map(r => [r.code, r]))
+
+  return trdrs.map(t => {
+    const regionName = t.regionCode ? (deriveHierarchyFromMap(t.regionCode, regionMap).region?.nameEL ?? null) : null
+    const current = new Set(t.programApplications.map(a => a.programId))
+    const eligiblePrograms: EligibleProgramLite[] = []
+    for (const prog of programs) {
+      if (current.has(prog.id)) continue
+      const r = evaluateTrdrEligibility(
+        { trdrCodes: t.kads.map(k => k.code), legalForm: t.appLegalForm, regionName },
+        { kadRule: prog.kadRule, kads: prog.kads, regionNames: prog.regionNames, legalFormNames: prog.legalFormNames },
+        { kad: true, region: regionName != null, legalForm: true },
+      )
+      if (r.eligible) eligiblePrograms.push({ programId: prog.id, title: prog.title, fundingRate: prog.fundingRate })
+    }
+    return {
+      trdrId: t.id, name: t.NAME, afm: t.AFM, isCustomer: t.ISPROSP === 0, regionName,
+      currentProgramIds: [...current], eligiblePrograms,
+    }
+  })
+}
+
+/** Ένταξη υπάρχουσας εταιρίας (Trdr) σε επιλεγμένα προγράμματα (ProgramApplication POTENTIAL). */
+export async function linkReferrerCompanyToPrograms(trdrId: string, programIds: string[]): Promise<{ ok: boolean; linked?: number; message?: string }> {
+  await requirePermission('programs.manage')
+  if (programIds.length === 0) return { ok: false, message: 'Επίλεξε τουλάχιστον ένα πρόγραμμα.' }
+  const res = await associateTrdrPrograms(trdrId, programIds)
+  revalidatePath('/referrers')
+  revalidatePath(`/partners/${trdrId}`)
+  return { ok: true, linked: res.linked }
 }
 
 // ── Επιλέξιμοι ανά παραπομπή ────────────────────────────────────────────────

@@ -17,7 +17,7 @@ import {
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { createReferrer, updateReferrer, deleteReferrer, lookupReferrerAfm, type ReferrerRow, type ReferrerInput } from '@/lib/referrers/actions'
 import { ReferralEligibilityDialog } from './referral-eligibility-dialog'
-import { ReferrerEligiblePanel } from './referrer-eligible-panel'
+import { ReferrerExpandPanel } from './referrer-expand-panel'
 
 type ReferrerTypeValue = 'COMPANY' | 'INDIVIDUAL'
 
@@ -162,9 +162,10 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
           ) : undefined
         }
         renderExpanded={canManage ? (r => (
-          <ReferrerEligiblePanel
+          <ReferrerExpandPanel
             referrerId={r.id}
             referrerName={r.name}
+            referrerType={r.type as 'COMPANY' | 'INDIVIDUAL'}
             refreshToken={refreshToken}
             onRunUpload={() => setUploadTarget(r)}
             onChanged={refreshEligible}

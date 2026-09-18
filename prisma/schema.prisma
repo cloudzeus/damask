@@ -417,11 +417,29 @@ model Referrer {
   referred  Trdr[]       @relation("TrdrReferrer") // πελάτες που έφερε
   batches   ReferralBatch[]
   mapped    ReferralCompany[]
+  contacts  ReferrerContact[] // πολλαπλές επαφές (κυρίως όταν type=COMPANY)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
   @@index([active])
   @@index([trdrId])
+}
+
+// Επαφές μιας εταιρίας-παραπομπής (όταν ο συστήστης είναι COMPANY, έχει πολλά
+// πρόσωπα επικοινωνίας). Ο μονός email/phone του Referrer παραμένει για γρήγορη
+// αναφορά· εδώ κρατάμε το πλήρες βιβλίο επαφών.
+model ReferrerContact {
+  id         String   @id @default(cuid())
+  referrerId String
+  referrer   Referrer @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+  name       String
+  role       String? // θέση/ρόλος (π.χ. Λογιστήριο, Διευθυντής)
+  email      String?
+  phone      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([referrerId])
 }
 
 /// Batch χαρτογράφησης επιλεξιμότητας: ο διαχειριστής ανεβάζει Excel (ΑΦΜ/email/
