@@ -216,6 +216,7 @@ export type ReferrerLinkedCompany = {
   afm: string | null
   isCustomer: boolean // ISPROSP===0 → πελάτης· αλλιώς δυνητικός
   regionName: string | null
+  kadCount: number // πλήθος αποθηκευμένων ΚΑΔ — αν 0, δεν μπορεί να ταιριάξει σε ONLY_LISTED προγράμματα
   currentProgramIds: string[] // ήδη συνδεδεμένα προγράμματα (ProgramApplication)
   eligiblePrograms: EligibleProgramLite[] // επιλέξιμα ΝΕΑ προγράμματα (εκτός των ήδη συνδεδεμένων)
 }
@@ -259,7 +260,7 @@ export async function listReferrerLinkedCompanies(referrerId: string): Promise<R
     }
     return {
       trdrId: t.id, name: t.NAME, afm: t.AFM, isCustomer: t.ISPROSP === 0, regionName,
-      currentProgramIds: [...current], eligiblePrograms,
+      kadCount: t.kads.length, currentProgramIds: [...current], eligiblePrograms,
     }
   })
 }

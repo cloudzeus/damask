@@ -91,6 +91,7 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
   }
 
   const eligibleCount = rows.reduce((n, r) => n + (r.eligiblePrograms.length > 0 ? 1 : 0), 0)
+  const noKadCount = rows.reduce((n, r) => n + (r.kadCount === 0 ? 1 : 0), 0)
 
   return (
     <section className="rounded-2xl border border-border bg-card/60 p-3">
@@ -100,6 +101,7 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
         </span>
         <div className="flex items-center gap-2">
           {!loading && rows.length > 0 && <span className="badge-pill ok">{eligibleCount} με νέα επιλέξιμα</span>}
+          {!loading && noKadCount > 0 && <span className="badge-pill warn" title="Εταιρίες χωρίς αποθηκευμένους ΚΑΔ — τρέξε «Μαζικός εντοπισμός ΚΑΔ» (ΑΑΔΕ) στους δυνητικούς/πελάτες για να ελεγχθεί η επιλεξιμότητα">{noKadCount} χωρίς ΚΑΔ</span>}
           <Button type="button" variant="outline" size="sm" onClick={reload} disabled={loading}>
             <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} aria-hidden /> Έλεγχος επιλεξιμότητας
           </Button>
@@ -145,7 +147,9 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
                   <td className="py-2 pr-3 whitespace-nowrap">{r.regionName ?? '—'}</td>
                   <td className="py-2 pr-3">
                     {r.eligiblePrograms.length === 0
-                      ? <span className="text-muted-foreground">{r.currentProgramIds.length > 0 ? 'ήδη ενταγμένη' : '—'}</span>
+                      ? (r.kadCount === 0
+                          ? <span className="badge-pill warn" title="Δεν υπάρχουν αποθηκευμένοι ΚΑΔ — δεν μπορεί να ελεγχθεί η επιλεξιμότητα. Τρέξε «Μαζικός εντοπισμός ΚΑΔ» (ΑΑΔΕ).">χωρίς ΚΑΔ</span>
+                          : <span className="text-muted-foreground">{r.currentProgramIds.length > 0 ? 'ήδη ενταγμένη' : '—'}</span>)
                       : (
                         <div className="flex flex-wrap gap-1">
                           {r.eligiblePrograms.map(p => (
