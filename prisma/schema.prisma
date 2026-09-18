@@ -1907,6 +1907,8 @@ model ApplicationDocument {
   application   ProgramApplication     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   obligationId  String?
   obligation    ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
+  documentTypeId String?
+  documentType   DocumentType?         @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
   name          String
   storageKey    String
   mimeType      String?
@@ -1918,6 +1920,7 @@ model ApplicationDocument {
 
   @@index([applicationId])
   @@index([obligationId])
+  @@index([documentTypeId])
 }
 
 model ApplicationCriterionScore {
@@ -2197,6 +2200,7 @@ model DocumentType {
   dossierDocs   TrdrDossierDocument[]
   requiredForms ProgramRequiredForm[]
   templates     TaxFormTemplate[]
+  applicationDocs ApplicationDocument[]
 }
 
 /// Αποθήκη δικαιολογητικών ανά πελάτη (Trdr) — ανεξάρτητα προγράμματος. Ό,τι

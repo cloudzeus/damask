@@ -183,7 +183,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
           docs={<TrdrDocumentsCard trdrId={trdr.id} arGemi={trdr.arGemi} documents={documentRows} />}
           dossier={
             <div className="flex flex-col gap-3">
-              <TrdrDossier trdrId={trdr.id} canEdit={canEdit} />
+              <TrdrDossier trdrId={trdr.id} trdrName={trdr.NAME} canEdit={canEdit} />
               <FinancialsTab trdrId={trdr.id} trdrName={trdr.NAME} />
             </div>
           }

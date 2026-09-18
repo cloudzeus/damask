@@ -508,7 +508,7 @@ export async function waiveObligation(id: string): Promise<void> {
 export async function uploadApplicationDocument(
   applicationId: string,
   obligationId: string | null,
-  input: { name: string; base64: string; mimeType: string; ext: string; expiresAt?: string | null },
+  input: { name: string; base64: string; mimeType: string; ext: string; expiresAt?: string | null; documentTypeId?: string | null },
 ): Promise<{ id: string }> {
   const { session } = await requireVisibleApplication(applicationId)
   const id = crypto.randomUUID()
@@ -520,6 +520,7 @@ export async function uploadApplicationDocument(
       id,
       applicationId,
       obligationId: obligationId ?? null,
+      documentTypeId: input.documentTypeId ?? null,
       name: input.name.trim(),
       storageKey: key,
       mimeType: input.mimeType,
@@ -535,6 +536,8 @@ export async function uploadApplicationDocument(
 export type ApplicationDocumentItem = {
   id: string
   obligationId: string | null
+  documentTypeId: string | null
+  typeName: string | null
   name: string
   mimeType: string | null
   size: number | null
@@ -546,10 +549,13 @@ export async function listApplicationDocuments(applicationId: string, obligation
   const rows = await prisma.applicationDocument.findMany({
     where: { applicationId, ...(obligationId !== undefined ? { obligationId } : {}) },
     orderBy: { uploadedAt: 'desc' },
+    include: { documentType: { select: { name: true } } },
   })
   return rows.map(r => ({
     id: r.id,
     obligationId: r.obligationId,
+    documentTypeId: r.documentTypeId,
+    typeName: r.documentType?.name ?? null,
     name: r.name,
     mimeType: r.mimeType,
     size: r.size,

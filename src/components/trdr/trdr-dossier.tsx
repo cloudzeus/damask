@@ -16,6 +16,7 @@ import {
 } from '@/lib/documents/actions'
 import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType, MAX_RASTERIZE_PAGES } from '@/lib/ocr/rasterize'
 import { runOcrExtraction } from '@/lib/ocr/actions'
+import { ScanFormDialog } from '@/components/tax/scan-form-dialog'
 
 /**
  * Αποθήκη δικαιολογητικών ανά πελάτη — ό,τι έχει ήδη η εταιρία (τύπος + αρχείο +
@@ -39,11 +40,12 @@ function readFileBase64(file: File): Promise<{ base64: string; ext: string }> {
   })
 }
 
-export function TrdrDossier({ trdrId, canEdit }: { trdrId: string; canEdit: boolean }) {
+export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trdrName: string; canEdit: boolean }) {
   const [docs, setDocs] = React.useState<DossierDocItem[]>([])
   const [types, setTypes] = React.useState<DocumentTypeOption[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
+  const [scanOpen, setScanOpen] = React.useState(false)
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -94,8 +96,22 @@ export function TrdrDossier({ trdrId, canEdit }: { trdrId: string; canEdit: bool
         <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Δικαιολογητικά εταιρίας ({docs.length})
         </div>
-        {canEdit && <UploadDialog trdrId={trdrId} types={types} onDone={load} onTypesChanged={setTypes} />}
+        {canEdit && (
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setScanOpen(true)}
+              title="Σάρωση συμπληρωμένου εντύπου (Οδηγός Εντύπων) → αποθήκευση τιμών"
+            >
+              <LuScanText className="size-3.5" aria-hidden /> Σάρωση τιμών
+            </Button>
+            <UploadDialog trdrId={trdrId} types={types} onDone={load} onTypesChanged={setTypes} />
+          </div>
+        )}
       </div>
+      {canEdit && <ScanFormDialog trdrId={trdrId} trdrName={trdrName} open={scanOpen} onOpenChange={setScanOpen} onSaved={load} />}
 
       <p className="mb-3 text-[0.71875rem] text-muted-foreground">
         Ό,τι δικαιολογητικά έχει ήδη η εταιρία (με ημ. λήξης όπου ισχύει). Στην ένταξη σε πρόγραμμα, όσα υπάρχουν <strong>σε ισχύ</strong> δεν ξαναζητούνται.

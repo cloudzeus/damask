@@ -8,6 +8,7 @@ import {
   listApplicationDocuments, uploadApplicationDocument, removeApplicationDocument,
   type ApplicationDocumentItem,
 } from '@/lib/pm/actions'
+import { listDocumentTypes, type DocumentTypeOption } from '@/lib/documents/actions'
 
 /**
  * Μετατρέπει ArrayBuffer → base64 σε chunks (32KB) — ίδιο idiom με
@@ -57,9 +58,13 @@ export function ApplicationDocuments({
   const router = useRouter()
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
   const [docs, setDocs] = React.useState<ApplicationDocumentItem[]>([])
+  const [types, setTypes] = React.useState<DocumentTypeOption[]>([])
   const [loading, setLoading] = React.useState(true)
   const [uploading, setUploading] = React.useState(false)
   const [expiresAt, setExpiresAt] = React.useState('')
+  const [typeId, setTypeId] = React.useState('')
+
+  const selectedType = types.find(t => t.id === typeId) ?? null
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -70,6 +75,11 @@ export function ApplicationDocuments({
   }, [applicationId, obligationId])
 
   React.useEffect(() => { load() }, [load])
+  React.useEffect(() => {
+    let cancelled = false
+    listDocumentTypes().then(t => { if (!cancelled) setTypes(t) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null
@@ -85,9 +95,11 @@ export function ApplicationDocuments({
         mimeType: file.type || 'application/octet-stream',
         ext: extOf(file.name),
         expiresAt: expiresAt || null,
+        documentTypeId: typeId || null,
       })
       toast.success('Το έγγραφο ανέβηκε.')
       setExpiresAt('')
+      setTypeId('')
       load()
       router.refresh()
     } catch {
@@ -124,8 +136,26 @@ export function ApplicationDocuments({
           {uploading ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />}
           {uploading ? 'Ανέβασμα…' : 'Ανέβασμα εγγράφου'}
         </button>
-        <label className="inline-flex items-center gap-1 text-[0.65625rem] text-muted-foreground" title="Ημ. λήξης δικαιολογητικού (προαιρετικό — π.χ. φορολογική/ασφαλιστική ενημερότητα)">
-          λήξη:
+        {types.length > 0 && (
+          <label className="inline-flex items-center gap-1 text-[0.65625rem] text-muted-foreground" title="Τύπος δικαιολογητικού (προαιρετικό)">
+            τύπος:
+            <select
+              value={typeId}
+              onChange={e => setTypeId(e.target.value)}
+              disabled={uploading}
+              aria-label="Τύπος δικαιολογητικού (προαιρετικό)"
+              className="max-w-[150px] rounded-full border border-border bg-card px-2 py-0.5 text-[0.65625rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+            >
+              <option value="">— (κανένας) —</option>
+              {types.map(t => <option key={t.id} value={t.id}>{t.name}{t.expires ? ' ⏱' : ''}</option>)}
+            </select>
+          </label>
+        )}
+        <label
+          className="inline-flex items-center gap-1 text-[0.65625rem] text-muted-foreground"
+          title={selectedType?.expires ? 'Αυτός ο τύπος έχει ημ. λήξης — όρισέ την' : 'Ημ. λήξης δικαιολογητικού (προαιρετικό — π.χ. φορολογική/ασφαλιστική ενημερότητα)'}
+        >
+          λήξη{selectedType?.expires ? <span className="text-[color:var(--amber)]"> *</span> : ''}:
           <input
             type="date"
             value={expiresAt}
@@ -144,6 +174,7 @@ export function ApplicationDocuments({
             <li key={doc.id} className="flex min-w-0 items-center gap-1.5 text-[0.75rem]">
               <LuFile className="size-3 shrink-0 text-muted-foreground" aria-hidden />
               <span className="min-w-0 truncate font-semibold" title={doc.name}>{doc.name}</span>
+              {doc.typeName && <span className="badge-pill muted shrink-0">{doc.typeName}</span>}
               <span className="shrink-0 text-[0.6875rem] text-muted-foreground">{formatSize(doc.size)}</span>
               <a
                 href={`/programs/${programId}/applications/${appId}/documents/${doc.id}`}
