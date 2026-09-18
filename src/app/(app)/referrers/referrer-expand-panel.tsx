@@ -144,7 +144,11 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
                   <td className="py-2 pr-3">
                     <span className={cn('badge-pill', r.isCustomer ? 'ok' : 'muted')}>{r.isCustomer ? 'Πελάτης' : 'Δυνητικός'}</span>
                   </td>
-                  <td className="py-2 pr-3 whitespace-nowrap">{r.regionName ?? '—'}</td>
+                  <td className="py-2 pr-3 whitespace-nowrap">
+                    {r.regionName
+                      ? <span className="badge-pill muted text-[0.65625rem]" title={r.regionName}>{r.regionName}</span>
+                      : <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="py-2 pr-3">
                     {r.eligiblePrograms.length === 0
                       ? (r.kadCount === 0
@@ -153,8 +157,13 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
                       : (
                         <div className="flex flex-wrap gap-1">
                           {r.eligiblePrograms.map(p => (
-                            <span key={p.programId} className="badge-pill ok shrink-0">
-                              {p.title}{p.fundingRate != null ? ` · ${p.fundingRate}%` : ''}
+                            <span
+                              key={p.programId}
+                              className="badge-pill ok shrink-0 max-w-[220px] gap-1"
+                              title={`${p.title}${p.fundingRate != null ? ` · ${p.fundingRate}%` : ''}`}
+                            >
+                              <span className="truncate">{p.title.length > 20 ? `${p.title.slice(0, 20)}…` : p.title}</span>
+                              {p.fundingRate != null ? <span className="shrink-0">· {p.fundingRate}%</span> : null}
                             </span>
                           ))}
                         </div>
