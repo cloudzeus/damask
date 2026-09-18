@@ -46,11 +46,11 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
   }
 
   async function handleDelete(row: ReferrerRow) {
-    if (!window.confirm(`Διαγραφή της παραπομπής «${row.name}»;\nΟι πελάτες που συνδέονται θα αποσυνδεθούν (δεν διαγράφονται).`)) return
+    if (!window.confirm(`Διαγραφή της σύστασης «${row.name}»;\nΟι πελάτες που συνδέονται θα αποσυνδεθούν (δεν διαγράφονται).`)) return
     setDeletingId(row.id)
     try {
       await deleteReferrer(row.id)
-      toast.success('Η παραπομπή διαγράφηκε.')
+      toast.success('Η σύσταση διαγράφηκε.')
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Η διαγραφή απέτυχε.')
@@ -152,12 +152,12 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
         columns={columns}
         rows={rows}
         rowKey={r => r.id}
-        emptyMessage="Δεν υπάρχουν παραπομπές ακόμη."
-        footer={<span>{rows.length} {rows.length === 1 ? 'παραπομπή' : 'παραπομπές'}</span>}
+        emptyMessage="Δεν υπάρχουν συστάσεις ακόμη."
+        footer={<span>{rows.length} {rows.length === 1 ? 'σύσταση' : 'συστάσεις'}</span>}
         toolbarExtras={
           canManage ? (
             <Button type="button" size="sm" onClick={openCreate}>
-              <Plus className="size-3.5" aria-hidden /> Νέα παραπομπή
+              <Plus className="size-3.5" aria-hidden /> Νέα σύσταση
             </Button>
           ) : undefined
         }
@@ -247,7 +247,7 @@ function ReferrerFormDialog({
     try {
       if (editing) await updateReferrer(editing.id, input)
       else await createReferrer(input)
-      toast.success(editing ? 'Η παραπομπή ενημερώθηκε.' : 'Η παραπομπή δημιουργήθηκε.')
+      toast.success(editing ? 'Η σύσταση ενημερώθηκε.' : 'Η σύσταση δημιουργήθηκε.')
       onSaved()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Η αποθήκευση απέτυχε.')
@@ -260,7 +260,7 @@ function ReferrerFormDialog({
     <Dialog open={open} onOpenChange={next => { if (!saving) onOpenChange(next) }}>
       <DialogContent className="glass sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>{editing ? 'Επεξεργασία παραπομπής' : 'Νέα παραπομπή'}</DialogTitle>
+          <DialogTitle>{editing ? 'Επεξεργασία σύστασης' : 'Νέα σύσταση'}</DialogTitle>
           <DialogDescription>Ποιος έφερε τον πελάτη — εταιρία/συνεργάτης ή ιδιώτης.</DialogDescription>
         </DialogHeader>
 

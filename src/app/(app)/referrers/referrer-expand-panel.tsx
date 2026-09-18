@@ -57,14 +57,16 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
   const router = useRouter()
   const [loading, setLoading] = React.useState(true)
   const [rows, setRows] = React.useState<ReferrerLinkedCompany[]>([])
+  const [error, setError] = React.useState<string | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
 
   const reload = React.useCallback(() => {
     const t = setTimeout(() => {
       setLoading(true)
+      setError(null)
       listReferrerLinkedCompanies(referrerId)
         .then(r => { setRows(r); setLoading(false) })
-        .catch(() => { setRows([]); setLoading(false) })
+        .catch((e: unknown) => { setError(e instanceof Error ? e.message : 'Ο έλεγχος επιλεξιμότητας απέτυχε.'); setRows([]); setLoading(false) })
     }, 0)
     return () => clearTimeout(t)
   }, [referrerId])
@@ -108,9 +110,13 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
         <div className="flex items-center gap-2 py-5 text-[0.78125rem] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Έλεγχος…
         </div>
+      ) : error ? (
+        <p className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-[0.75rem] text-destructive">
+          {error}
+        </p>
       ) : rows.length === 0 ? (
         <p className="py-4 text-[0.75rem] text-muted-foreground">
-          Καμία καταχωρημένη εταιρία (πελάτης ή δυνητικός) δεν έχει συσχετιστεί με αυτή την παραπομπή ακόμη.
+          Καμία καταχωρημένη εταιρία (πελάτης ή δυνητικός) δεν έχει συσχετιστεί με αυτή τη σύσταση ακόμη.
         </p>
       ) : (
         <div className="overflow-x-auto">

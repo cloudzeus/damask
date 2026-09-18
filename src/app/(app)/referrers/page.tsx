@@ -13,7 +13,7 @@ export default async function ReferrersPage() {
     <div>
       <PageHeader
         breadcrumb={<>Συναλλασσόμενοι <span aria-hidden>›</span></>}
-        title="Παραπομπές"
+        title="Συστάσεις"
       />
 
       <ReferrersTable rows={rows} canManage={canManage} />
