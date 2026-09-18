@@ -1,9 +1,13 @@
+'use client'
+
 import Link from 'next/link'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 
 /**
  * Funnel newsletters ανά πρόγραμμα από ProgramLead (τοπικά δεδομένα —
  * ανεξάρτητο από το αν έχει ρυθμιστεί Mailgun). Το «κλικ» εδώ είναι το δικό
  * μας /go/[token] tracking (εκδήλωση ενδιαφέροντος), όχι το click του Mailgun.
+ * Πίνακας μέσω του κοινού DataTable engine (resize/επιλογή στηλών/sorting).
  */
 
 export type ProgramFunnelRow = {
@@ -23,48 +27,34 @@ function pct(numerator: number, denominator: number): string {
   return `${NUM.format(Math.round((numerator / denominator) * 1000) / 10)}%`
 }
 
+function dispatchedOf(r: ProgramFunnelRow): number { return r.sent + r.clicked }
+
 export function MailFunnelTable({ rows }: { rows: ProgramFunnelRow[] }) {
-  if (rows.length === 0) {
-    return (
-      <div className="py-4 text-[0.8125rem] text-muted-foreground">
-        Δεν υπάρχουν ακόμα newsletters — στείλε το πρώτο από την καρτέλα «Δυνητικοί» ενός προγράμματος.
-      </div>
-    )
-  }
+  const columns: DataTableColumn<ProgramFunnelRow>[] = [
+    {
+      id: 'title', header: 'Πρόγραμμα', width: 280, enableHide: false, sortValue: r => r.title || r.programId,
+      cell: r => (
+        <Link href={`/programs/${r.programId}`} className="hover:underline underline-offset-2">
+          {r.title || r.programId}
+        </Link>
+      ),
+    },
+    { id: 'total', header: 'Υποψήφιοι', align: 'right', width: 110, nowrap: true, sortValue: r => r.total, cell: r => <span className="tabular-nums">{NUM.format(r.total)}</span> },
+    { id: 'sent', header: 'Εστάλησαν', align: 'right', width: 110, nowrap: true, sortValue: dispatchedOf, cell: r => <span className="tabular-nums">{NUM.format(dispatchedOf(r))}</span> },
+    { id: 'clicked', header: 'Κλικ', align: 'right', width: 90, nowrap: true, sortValue: r => r.clicked, cell: r => <span className="tabular-nums">{NUM.format(r.clicked)}</span> },
+    { id: 'failed', header: 'Απέτυχαν', align: 'right', width: 100, nowrap: true, sortValue: r => r.failed, cell: r => <span className="tabular-nums">{r.failed > 0 ? NUM.format(r.failed) : '—'}</span> },
+    { id: 'ctr', header: 'CTR', align: 'right', width: 90, nowrap: true, sortValue: r => (dispatchedOf(r) > 0 ? r.clicked / dispatchedOf(r) : -1), cell: r => <span className="font-semibold tabular-nums">{pct(r.clicked, dispatchedOf(r))}</span> },
+  ]
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-[0.8125rem]">
-        <thead>
-          <tr className="border-b text-left text-[0.71875rem] font-bold text-muted-foreground">
-            <th className="py-1.5 pr-3 font-bold">Πρόγραμμα</th>
-            <th className="px-2 py-1.5 text-right font-bold">Υποψήφιοι</th>
-            <th className="px-2 py-1.5 text-right font-bold">Εστάλησαν</th>
-            <th className="px-2 py-1.5 text-right font-bold">Κλικ</th>
-            <th className="px-2 py-1.5 text-right font-bold">Απέτυχαν</th>
-            <th className="py-1.5 pl-2 text-right font-bold">CTR</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(row => {
-            const dispatched = row.sent + row.clicked
-            return (
-              <tr key={row.programId} className="border-b border-dashed last:border-0">
-                <td className="max-w-[260px] truncate py-2 pr-3">
-                  <Link href={`/programs/${row.programId}`} className="hover:underline underline-offset-2">
-                    {row.title || row.programId}
-                  </Link>
-                </td>
-                <td className="px-2 py-2 text-right tabular-nums">{NUM.format(row.total)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{NUM.format(dispatched)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{NUM.format(row.clicked)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{row.failed > 0 ? NUM.format(row.failed) : '—'}</td>
-                <td className="py-2 pl-2 text-right font-semibold tabular-nums">{pct(row.clicked, dispatched)}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      tableId="mail-funnel"
+      columns={columns}
+      rows={rows}
+      rowKey={r => r.programId}
+      bare
+      fillHeight={false}
+      emptyMessage="Δεν υπάρχουν ακόμα newsletters — στείλε το πρώτο από την καρτέλα «Δυνητικοί» ενός προγράμματος."
+    />
   )
 }

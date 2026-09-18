@@ -311,6 +311,31 @@ export function ProspectsTab({ programId }: { programId: string }) {
     },
   ]
 
+  const leadColumns: DataTableColumn<ProgramLeadRow>[] = [
+    { id: 'name', header: 'Επωνυμία', width: 240, enableHide: false, sortValue: l => l.name, cell: l => <span className="font-semibold">{l.name}</span> },
+    { id: 'email', header: 'Email', width: 220, sortValue: l => l.email ?? '', cell: l => <span className="text-muted-foreground">{l.email ?? '—'}</span> },
+    {
+      id: 'status', header: 'Κατάσταση', width: 130, sortValue: l => l.status,
+      cell: l => { const meta = LEAD_STATUS_META[l.status] ?? LEAD_STATUS_META.PENDING; return <span className={meta.badgeClass} style={meta.style}>{meta.label}</span> },
+    },
+    { id: 'sentAt', header: 'Απεστάλη', width: 150, nowrap: true, sortValue: l => l.sentAt ?? '', cell: l => <span className="text-muted-foreground">{formatDateTime(l.sentAt)}</span> },
+    { id: 'clickedAt', header: 'Έδειξε ενδιαφέρον', width: 170, nowrap: true, sortValue: l => l.clickedAt ?? '', cell: l => <span className="text-muted-foreground">{formatDateTime(l.clickedAt)}</span> },
+    {
+      id: 'actions', header: '⋯', headerLabel: 'Ενέργειες', align: 'center', width: 180, enableHide: false, enableResize: false,
+      cell: l => {
+        if (l.status !== 'CLICKED') return null
+        const appId = createdApps[l.id]
+        return appId
+          ? <Link href={`/programs/${programId}/applications/${appId}`} className="inline-flex items-center gap-1.5 text-[0.78125rem] font-semibold text-primary hover:underline"><LuExternalLink className="size-3.5" aria-hidden /> Άνοιγμα έργου</Link>
+          : (
+            <Button type="button" size="sm" variant="outline" onClick={() => handleCreateOpportunity(l)} disabled={creatingLeadId === l.id}>
+              {creatingLeadId === l.id ? (<><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Δημιουργία…</>) : (<><LuFolderKanban className="size-3.5" aria-hidden /> Δημιουργία έργου</>)}
+            </Button>
+          )
+      },
+    },
+  ]
+
   return (
     <>
       {/* Κριτήρια + αναζήτηση δυνητικών πελατών */}
@@ -420,48 +445,14 @@ export function ProspectsTab({ programId }: { programId: string }) {
             Δεν έχει σταλεί ακόμη καμία ενημέρωση για αυτό το πρόγραμμα.
           </p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Επωνυμία</th>
-                  <th>Email</th>
-                  <th>Κατάσταση</th>
-                  <th>Απεστάλη</th>
-                  <th>Έδειξε ενδιαφέρον</th>
-                  <th aria-hidden />
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map(lead => {
-                  const meta = LEAD_STATUS_META[lead.status] ?? LEAD_STATUS_META.PENDING
-                  const appId = createdApps[lead.id]
-                  return (
-                    <tr key={lead.id} className="dotted-row-bottom">
-                      <td className="font-semibold">{lead.name}</td>
-                      <td className="text-muted-foreground">{lead.email ?? '—'}</td>
-                      <td><span className={meta.badgeClass} style={meta.style}>{meta.label}</span></td>
-                      <td className="text-muted-foreground">{formatDateTime(lead.sentAt)}</td>
-                      <td className="text-muted-foreground">{formatDateTime(lead.clickedAt)}</td>
-                      <td className="ctr">
-                        {lead.status === 'CLICKED' && (
-                          appId ? (
-                            <Link href={`/programs/${programId}/applications/${appId}`} className="inline-flex items-center gap-1.5 text-[0.78125rem] font-semibold text-primary hover:underline">
-                              <LuExternalLink className="size-3.5" aria-hidden /> Άνοιγμα έργου
-                            </Link>
-                          ) : (
-                            <Button type="button" size="sm" variant="outline" onClick={() => handleCreateOpportunity(lead)} disabled={creatingLeadId === lead.id}>
-                              {creatingLeadId === lead.id ? (<><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Δημιουργία…</>) : (<><LuFolderKanban className="size-3.5" aria-hidden /> Δημιουργία έργου</>)}
-                            </Button>
-                          )
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            tableId="program-leads"
+            columns={leadColumns}
+            rows={leads}
+            rowKey={l => l.id}
+            bare
+            fillHeight={false}
+          />
         )}
       </section>
 

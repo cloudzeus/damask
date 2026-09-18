@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import {
   listReferrerLinkedCompanies, linkReferrerCompanyToPrograms, type ReferrerLinkedCompany,
 } from '@/lib/referrals/actions'
@@ -93,6 +94,64 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
   const eligibleCount = rows.reduce((n, r) => n + (r.eligiblePrograms.length > 0 ? 1 : 0), 0)
   const noKadCount = rows.reduce((n, r) => n + (r.kadCount === 0 ? 1 : 0), 0)
 
+  const columns: DataTableColumn<ReferrerLinkedCompany>[] = [
+    {
+      id: 'name', header: 'Εταιρία', width: 260, enableHide: false, sortValue: r => r.name,
+      cell: r => (
+        <div>
+          <Link href={`/partners/${r.trdrId}`} className="inline-flex items-center gap-1.5 font-semibold hover:underline">
+            <Building2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden /> {r.name}
+          </Link>
+          {r.afm && <div className="text-[0.6875rem] text-muted-foreground tabular-nums">{r.afm}</div>}
+        </div>
+      ),
+    },
+    {
+      id: 'status', header: 'Κατάσταση', width: 120, sortValue: r => (r.isCustomer ? 0 : 1),
+      cell: r => <span className={cn('badge-pill', r.isCustomer ? 'ok' : 'muted')}>{r.isCustomer ? 'Πελάτης' : 'Δυνητικός'}</span>,
+    },
+    {
+      id: 'region', header: 'Περιοχή', width: 190, sortValue: r => r.regionName ?? '',
+      cell: r => r.regionName
+        ? <span className="badge-pill muted text-[0.65625rem]" title={r.regionName}>{r.regionName}</span>
+        : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      id: 'eligible', header: 'Νέα επιλέξιμα προγράμματα', width: 300, sortValue: r => r.eligiblePrograms.length,
+      cell: r => r.eligiblePrograms.length === 0
+        ? (r.kadCount === 0
+            ? <span className="badge-pill warn" title="Δεν υπάρχουν αποθηκευμένοι ΚΑΔ — δεν μπορεί να ελεγχθεί η επιλεξιμότητα. Τρέξε «Μαζικός εντοπισμός ΚΑΔ» (ΑΑΔΕ).">χωρίς ΚΑΔ</span>
+            : <span className="text-muted-foreground">{r.currentProgramIds.length > 0 ? 'ήδη ενταγμένη' : '—'}</span>)
+        : (
+          <div className="flex flex-wrap gap-1">
+            {r.eligiblePrograms.map(p => (
+              <span key={p.programId} className="badge-pill ok shrink-0 max-w-[220px] gap-1" title={`${p.title}${p.fundingRate != null ? ` · ${p.fundingRate}%` : ''}`}>
+                <span className="truncate">{p.title.length > 20 ? `${p.title.slice(0, 20)}…` : p.title}</span>
+                {p.fundingRate != null ? <span className="shrink-0">· {p.fundingRate}%</span> : null}
+              </span>
+            ))}
+          </div>
+        ),
+    },
+    {
+      id: 'actions', header: '⋯', headerLabel: 'Ενέργειες', align: 'right', width: 150, enableHide: false, enableResize: false,
+      cell: r => (
+        <div className="flex items-center justify-end whitespace-nowrap">
+          {r.eligiblePrograms.length > 0 && (
+            <Button type="button" size="sm" disabled={busyId === r.trdrId} onClick={() => linkAll(r)}>
+              {busyId === r.trdrId
+                ? <><LoaderCircle className="size-3.5 animate-spin" aria-hidden /> Ένταξη…</>
+                : <><UserPlus className="size-3.5" aria-hidden /> Ένταξη</>}
+            </Button>
+          )}
+          <Link href={`/partners/${r.trdrId}`} className="ml-1 inline-flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground" title="Άνοιγμα καρτέλας">
+            <ExternalLink className="size-3.5" aria-hidden />
+          </Link>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <section className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -121,71 +180,15 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
           Καμία καταχωρημένη εταιρία (πελάτης ή δυνητικός) δεν έχει συσχετιστεί με αυτή τη σύσταση ακόμη.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-[0.78125rem]">
-            <thead>
-              <tr className="text-left text-[0.6875rem] font-bold text-muted-foreground uppercase">
-                <th className="py-1.5 pr-3">Εταιρία</th>
-                <th className="py-1.5 pr-3">Κατάσταση</th>
-                <th className="py-1.5 pr-3">Περιοχή</th>
-                <th className="py-1.5 pr-3">Νέα επιλέξιμα προγράμματα</th>
-                <th className="py-1.5 pr-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(r => (
-                <tr key={r.trdrId} className="border-t border-border align-top">
-                  <td className="py-2 pr-3">
-                    <Link href={`/partners/${r.trdrId}`} className="inline-flex items-center gap-1.5 font-semibold hover:underline">
-                      <Building2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden /> {r.name}
-                    </Link>
-                    {r.afm && <div className="text-[0.6875rem] text-muted-foreground tabular-nums">{r.afm}</div>}
-                  </td>
-                  <td className="py-2 pr-3">
-                    <span className={cn('badge-pill', r.isCustomer ? 'ok' : 'muted')}>{r.isCustomer ? 'Πελάτης' : 'Δυνητικός'}</span>
-                  </td>
-                  <td className="py-2 pr-3 whitespace-nowrap">
-                    {r.regionName
-                      ? <span className="badge-pill muted text-[0.65625rem]" title={r.regionName}>{r.regionName}</span>
-                      : <span className="text-muted-foreground">—</span>}
-                  </td>
-                  <td className="py-2 pr-3">
-                    {r.eligiblePrograms.length === 0
-                      ? (r.kadCount === 0
-                          ? <span className="badge-pill warn" title="Δεν υπάρχουν αποθηκευμένοι ΚΑΔ — δεν μπορεί να ελεγχθεί η επιλεξιμότητα. Τρέξε «Μαζικός εντοπισμός ΚΑΔ» (ΑΑΔΕ).">χωρίς ΚΑΔ</span>
-                          : <span className="text-muted-foreground">{r.currentProgramIds.length > 0 ? 'ήδη ενταγμένη' : '—'}</span>)
-                      : (
-                        <div className="flex flex-wrap gap-1">
-                          {r.eligiblePrograms.map(p => (
-                            <span
-                              key={p.programId}
-                              className="badge-pill ok shrink-0 max-w-[220px] gap-1"
-                              title={`${p.title}${p.fundingRate != null ? ` · ${p.fundingRate}%` : ''}`}
-                            >
-                              <span className="truncate">{p.title.length > 20 ? `${p.title.slice(0, 20)}…` : p.title}</span>
-                              {p.fundingRate != null ? <span className="shrink-0">· {p.fundingRate}%</span> : null}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                  </td>
-                  <td className="py-2 pr-3 text-right whitespace-nowrap">
-                    {r.eligiblePrograms.length > 0 && (
-                      <Button type="button" size="sm" disabled={busyId === r.trdrId} onClick={() => linkAll(r)}>
-                        {busyId === r.trdrId
-                          ? <><LoaderCircle className="size-3.5 animate-spin" aria-hidden /> Ένταξη…</>
-                          : <><UserPlus className="size-3.5" aria-hidden /> Ένταξη</>}
-                      </Button>
-                    )}
-                    <Link href={`/partners/${r.trdrId}`} className="ml-1 inline-flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground" title="Άνοιγμα καρτέλας">
-                      <ExternalLink className="size-3.5" aria-hidden />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          tableId="referrer-linked-companies"
+          columns={columns}
+          rows={rows}
+          rowKey={r => r.trdrId}
+          bare
+          fillHeight={false}
+          initialSort={{ columnId: 'eligible', dir: 'desc' }}
+        />
       )}
     </section>
   )

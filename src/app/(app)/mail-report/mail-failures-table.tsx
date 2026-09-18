@@ -1,6 +1,10 @@
-import type { MailFailure } from '@/lib/mailgun-stats'
+'use client'
 
-/** Πρόσφατα failed/rejected/complained events από το Mailgun Events API, με λόγο. */
+import type { MailFailure } from '@/lib/mailgun-stats'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
+
+/** Πρόσφατα failed/rejected/complained events από το Mailgun Events API, με λόγο.
+ *  Μέσω του κοινού DataTable engine (resize/επιλογή στηλών/sorting). */
 
 const AT_FMT = new Intl.DateTimeFormat('el-GR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
@@ -10,43 +14,37 @@ const EVENT_LABEL: Record<string, string> = {
   complained: 'Παράπονο',
 }
 
+type Row = MailFailure & { _key: string }
+
 export function MailFailuresTable({ failures }: { failures: MailFailure[] }) {
-  if (failures.length === 0) {
-    return <div className="py-4 text-[0.8125rem] text-muted-foreground">Καμία αποτυχία ή παράπονο πρόσφατα. 🎉</div>
-  }
+  const rows: Row[] = failures.map((f, i) => ({ ...f, _key: `${f.at}-${f.recipient}-${i}` }))
+
+  const columns: DataTableColumn<Row>[] = [
+    {
+      id: 'at', header: 'Πότε', width: 120, nowrap: true, sortValue: r => r.at ?? '',
+      cell: r => <span className="tabular-nums text-muted-foreground">{r.at ? AT_FMT.format(new Date(r.at)) : '—'}</span>,
+    },
+    { id: 'recipient', header: 'Παραλήπτης', width: 200, sortValue: r => r.recipient ?? '', cell: r => <span className="truncate">{r.recipient || '—'}</span> },
+    {
+      id: 'event', header: 'Τύπος', width: 140, nowrap: true, sortValue: r => r.event,
+      cell: r => (
+        <span className="rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold" style={{ background: 'var(--mr-failed-soft)', color: 'var(--mr-failed)' }}>
+          {EVENT_LABEL[r.event] ?? r.event}{r.severity === 'temporary' ? ' (προσωρινή)' : ''}
+        </span>
+      ),
+    },
+    { id: 'reason', header: 'Λόγος', width: 320, sortValue: r => r.reason ?? '', cell: r => <span className="text-[0.78125rem] text-muted-foreground">{r.reason}</span> },
+  ]
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-[0.8125rem]">
-        <thead>
-          <tr className="border-b text-left text-[0.71875rem] font-bold text-muted-foreground">
-            <th className="py-1.5 pr-3 font-bold">Πότε</th>
-            <th className="px-2 py-1.5 font-bold">Παραλήπτης</th>
-            <th className="px-2 py-1.5 font-bold">Τύπος</th>
-            <th className="py-1.5 pl-2 font-bold">Λόγος</th>
-          </tr>
-        </thead>
-        <tbody>
-          {failures.map((f, i) => (
-            <tr key={`${f.at}-${f.recipient}-${i}`} className="border-b border-dashed align-top last:border-0">
-              <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-muted-foreground">
-                {f.at ? AT_FMT.format(new Date(f.at)) : '—'}
-              </td>
-              <td className="max-w-[180px] truncate px-2 py-2">{f.recipient || '—'}</td>
-              <td className="px-2 py-2 whitespace-nowrap">
-                <span
-                  className="rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold"
-                  style={{ background: 'var(--mr-failed-soft)', color: 'var(--mr-failed)' }}
-                >
-                  {EVENT_LABEL[f.event] ?? f.event}
-                  {f.severity === 'temporary' ? ' (προσωρινή)' : ''}
-                </span>
-              </td>
-              <td className="max-w-[280px] py-2 pl-2 text-[0.78125rem] text-muted-foreground">{f.reason}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      tableId="mail-failures"
+      columns={columns}
+      rows={rows}
+      rowKey={r => r._key}
+      bare
+      fillHeight={false}
+      emptyMessage="Καμία αποτυχία ή παράπονο πρόσφατα. 🎉"
+    />
   )
 }

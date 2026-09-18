@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { RefreshCw, BadgeCheck, Download, Trash2, ScanEye, LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { removeTrdrDocument } from '@/lib/trdr/enrich-actions'
 import { GemiSyncConfirmDialog } from './gemi-sync-dialog'
 import { AadeCheckDialog } from './aade-check-dialog'
@@ -98,6 +99,28 @@ export function TrdrKadCard({
   canEdit: boolean
 }) {
   const [checkOpen, setCheckOpen] = React.useState(false)
+
+  const columns: DataTableColumn<TrdrKadRow>[] = [
+    {
+      id: 'code', header: 'Κωδικός', width: 130, enableHide: false, nowrap: true, sortValue: k => k.code,
+      cell: k => <span className="tabular-nums">{k.code}</span>,
+    },
+    {
+      id: 'description', header: 'Περιγραφή', width: 320, sortValue: k => k.description,
+      cell: k => k.description,
+    },
+    {
+      id: 'flags', header: 'Επισημάνσεις', align: 'center', width: 200,
+      sortValue: k => `${k.kind === 'PRIMARY' ? '0' : '1'}${k.licensed ? '0' : '1'}`,
+      cell: k => (
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          {k.kind === 'PRIMARY' && <span className="badge-pill ok">Πρωτεύων</span>}
+          {k.licensed && <span className="badge-pill warn">Άδεια λειτουργίας</span>}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
@@ -108,35 +131,15 @@ export function TrdrKadCard({
           <BadgeCheck className="size-3.5" aria-hidden /> Έλεγχος για νέους ΚΑΔ
         </Button>
       </div>
-      {kads.length === 0 ? (
-        <p className="py-4 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν καταχωρημένοι ΚΑΔ.</p>
-      ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Κωδικός</th>
-                <th>Περιγραφή</th>
-                <th className="ctr">Επισημάνσεις</th>
-              </tr>
-            </thead>
-            <tbody>
-              {kads.map(k => (
-                <tr key={k.id} className="dotted-row-bottom">
-                  <td className="tabular-nums">{k.code}</td>
-                  <td>{k.description}</td>
-                  <td className="ctr">
-                    <div className="flex flex-wrap items-center justify-end gap-1.5">
-                      {k.kind === 'PRIMARY' && <span className="badge-pill ok">Πρωτεύων</span>}
-                      {k.licensed && <span className="badge-pill warn">Άδεια λειτουργίας</span>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        tableId="trdr-enrich-kad"
+        columns={columns}
+        rows={kads}
+        rowKey={k => k.id}
+        bare
+        fillHeight={false}
+        emptyMessage="Δεν υπάρχουν καταχωρημένοι ΚΑΔ."
+      />
 
       <AadeKadCheckDialog trdrId={trdrId} afm={afm} canEdit={canEdit} open={checkOpen} onOpenChange={setCheckOpen} />
     </div>
