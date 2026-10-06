@@ -101,7 +101,7 @@ export function PartnersTable({ partners, referrerOptions }: { partners: Partner
     },
     {
       id: 'referrer',
-      header: 'Παραπομπή',
+      header: 'Σύσταση',
       width: 150,
       sortValue: p => p.referrerName,
       cell: p => (p.referrerName ? <span className="badge-pill info">{p.referrerName}</span> : <span className="text-muted-foreground">—</span>),

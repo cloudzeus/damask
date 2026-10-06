@@ -9,7 +9,7 @@ import type { ActivityCategory } from '@prisma/client'
 
 export const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   PARTNER: 'Πελάτες',
-  REFERRER: 'Παραπομπές',
+  REFERRER: 'Συστάσεις',
   PROGRAM: 'Προγράμματα',
   PROSPECT: 'Δυνητικοί',
   APPLICATION: 'Συμμετοχές / Έργα',

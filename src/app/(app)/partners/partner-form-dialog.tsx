@@ -372,7 +372,7 @@ export function PartnerFormDialog({
 
             <S1SearchableSelect
               id="partner-form-referrer"
-              label="Παραπομπή (ποιος τον έφερε)"
+              label="Σύσταση (ποιος τον έφερε)"
               options={formOptions.referrer}
               value={values.referrerId || null}
               onChange={v => set('referrerId', v ?? '')}

@@ -1877,3 +1877,23 @@ input[type='checkbox'] {
 
 .dt-search { flex: 0 1 260px; min-width: 180px; height: 32px; }
 .dt-search input::-webkit-search-cancel-button { display: none; }
+
+/* DataTable χωρίς οριζόντιο scroll: στήλες που δεν χωρούν → ▸ panel ανά γραμμή. */
+.dt-measure { width: 100%; height: 0; }
+.dt-overflow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0.625rem 0.875rem 0.75rem 3rem;
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+}
+.dt-overflow-item { min-width: 0; }
+.dt-overflow-item dt {
+  font-size: 0.65625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.dt-overflow-item dd { margin: 0.125rem 0 0; min-width: 0; overflow-wrap: anywhere; font-size: 0.8125rem; }

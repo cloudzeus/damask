@@ -56,6 +56,7 @@ type PersistShape = {
 }
 
 const DEFAULT_WIDTH = 160
+const EXPAND_COL = 40
 const MIN_WIDTH = 60
 
 export function DataTable<T>({
@@ -232,11 +233,44 @@ export function DataTable<T>({
     return c.headerLabel ?? (typeof c.header === 'string' ? c.header : c.id)
   }
 
+  // ── Χωρίς οριζόντιο scroll: ό,τι δεν χωράει πάει στο expandable panel ──────
+  // Μετράμε το διαθέσιμο πλάτος· η 1η στήλη, οι ενέργειες και όσες έχουν
+  // enableHide:false μένουν πάντα ορατές. Οι υπόλοιπες μπαίνουν με τη σειρά τους
+  // όσο χωράνε· από την πρώτη που δεν χωρά και μετά εμφανίζονται στο ▸ panel.
+  const measureRef = React.useRef<HTMLDivElement>(null)
+  const [avail, setAvail] = React.useState<number | null>(null)
+  React.useEffect(() => {
+    const el = measureRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => setAvail(Math.floor(entries[0].contentRect.width)))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const widthOf = React.useCallback((c: DataTableColumn<T>) => widths[c.id] ?? c.width ?? DEFAULT_WIDTH, [widths])
+  const { shownColumns, collapsedColumns } = React.useMemo(() => {
+    const total = visibleColumns.reduce((n, c) => n + widthOf(c), 0) + (hasExpand ? EXPAND_COL : 0)
+    if (avail == null || total <= avail) return { shownColumns: visibleColumns, collapsedColumns: [] as DataTableColumn<T>[] }
+    const pinned = (c: DataTableColumn<T>, i: number) => i === 0 || c.enableHide === false || c.id === 'actions' || c.id === 'select'
+    let budget = avail - EXPAND_COL - visibleColumns.reduce((n, c, i) => n + (pinned(c, i) ? widthOf(c) : 0), 0)
+    let overflowing = false
+    const keep = new Set<string>()
+    visibleColumns.forEach((c, i) => {
+      if (pinned(c, i)) { keep.add(c.id); return }
+      if (!overflowing && widthOf(c) <= budget) { budget -= widthOf(c); keep.add(c.id); return }
+      overflowing = true
+    })
+    return {
+      shownColumns: visibleColumns.filter(c => keep.has(c.id)),
+      collapsedColumns: visibleColumns.filter(c => !keep.has(c.id)),
+    }
+  }, [visibleColumns, avail, widthOf, hasExpand])
+  const showExpand = hasExpand || collapsedColumns.length > 0
+
   // Κοινό colgroup για τον sticky πίνακα-επικεφαλίδα ΚΑΙ τον πίνακα-σώμα.
   const colgroup = (
     <colgroup>
-      {hasExpand && <col style={{ width: 40 }} />}
-      {visibleColumns.map(c => (
+      {showExpand && <col style={{ width: EXPAND_COL }} />}
+      {shownColumns.map(c => (
         <col key={c.id} style={{ width: widths[c.id] ?? c.width ?? DEFAULT_WIDTH }} />
       ))}
     </colgroup>
@@ -250,6 +284,7 @@ export function DataTable<T>({
 
   return (
     <div className={cn(bare ? 'dt-bare' : 'glass table-card stagger', className)}>
+      <div ref={measureRef} className="dt-measure" aria-hidden />
       <div className="table-toolbar">
         {showSearch && (
           <label className="search dt-search">
@@ -319,8 +354,8 @@ export function DataTable<T>({
           {colgroup}
           <thead>
             <tr>
-              {hasExpand && <th className="ctr" aria-hidden />}
-              {visibleColumns.map(c => {
+              {showExpand && <th className="ctr" aria-hidden />}
+              {shownColumns.map(c => {
                 const sortable = !!c.sortValue
                 const sortedHere = sort?.columnId === c.id
                 return (
@@ -359,14 +394,14 @@ export function DataTable<T>({
           <tbody>
             {sortedRows.slice(0, visibleCount).map(row => {
               const key = rowKey(row)
-              const isOpen = hasExpand && expanded.has(key)
+              const isOpen = showExpand && expanded.has(key)
               return (
                 <React.Fragment key={key}>
                   <tr
                     className={cn('dotted-row-bottom', onRowClick && 'cursor-pointer', rowClassName?.(row))}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                   >
-                    {hasExpand && (
+                    {showExpand && (
                       <td className="ctr">
                         <button
                           type="button"
@@ -387,7 +422,7 @@ export function DataTable<T>({
                         </button>
                       </td>
                     )}
-                    {visibleColumns.map(c => (
+                    {shownColumns.map(c => (
                       <td
                         key={c.id}
                         className={cn(c.align === 'center' && 'ctr', c.align === 'right' && 'num', c.nowrap && 'dt-nowrap')}
@@ -398,8 +433,18 @@ export function DataTable<T>({
                   </tr>
                   {isOpen && (
                     <tr className="dt-expanded">
-                      <td colSpan={visibleColumns.length + 1} className="p-0">
-                        {renderExpanded!(row)}
+                      <td colSpan={shownColumns.length + 1} className="p-0">
+                        {collapsedColumns.length > 0 && (
+                          <dl className="dt-overflow">
+                            {collapsedColumns.map(c => (
+                              <div key={c.id} className="dt-overflow-item">
+                                <dt>{labelFor(c)}</dt>
+                                <dd>{c.cell(row)}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        )}
+                        {renderExpanded?.(row)}
                       </td>
                     </tr>
                   )}
@@ -408,7 +453,7 @@ export function DataTable<T>({
             })}
             {sortedRows.length > visibleCount && (
               <tr>
-                <td colSpan={visibleColumns.length + (hasExpand ? 1 : 0)} className="py-3 text-center">
+                <td colSpan={shownColumns.length + (showExpand ? 1 : 0)} className="py-3 text-center">
                   <button
                     type="button"
                     onClick={() => setVisibleCount(c => c + pageSize)}
@@ -421,7 +466,7 @@ export function DataTable<T>({
             )}
             {sortedRows.length === 0 && (
               <tr>
-                <td colSpan={visibleColumns.length + (hasExpand ? 1 : 0)} className="py-8 text-center text-muted-foreground">
+                <td colSpan={shownColumns.length + (showExpand ? 1 : 0)} className="py-8 text-center text-muted-foreground">
                   {query.trim() && rows.length > 0 ? `Κανένα αποτέλεσμα για «${query.trim()}».` : emptyMessage}
                 </td>
               </tr>
