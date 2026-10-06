@@ -395,30 +395,43 @@ export function DataTable<T>({
             {sortedRows.slice(0, visibleCount).map(row => {
               const key = rowKey(row)
               const isOpen = showExpand && expanded.has(key)
+              const toggle = () =>
+                setExpanded(prev => {
+                  const next = new Set(prev)
+                  if (next.has(key)) next.delete(key)
+                  else next.add(key)
+                  return next
+                })
+              // Χωρίς δικό του onRowClick, κλικ οπουδήποτε στη γραμμή ανοίγει τις λεπτομέρειες
+              // (εκτός από links/κουμπιά/inputs μέσα στα κελιά).
+              const rowClick = onRowClick
+                ? () => onRowClick(row)
+                : collapsedColumns.length > 0
+                  ? (e: React.MouseEvent) => {
+                      if ((e.target as HTMLElement).closest('a,button,input,select,textarea,label,[role="menuitem"]')) return
+                      toggle()
+                    }
+                  : undefined
               return (
                 <React.Fragment key={key}>
                   <tr
-                    className={cn('dotted-row-bottom', onRowClick && 'cursor-pointer', rowClassName?.(row))}
-                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    className={cn('dotted-row-bottom', rowClick && 'cursor-pointer', isOpen && 'dt-row-open', rowClassName?.(row))}
+                    onClick={rowClick}
                   >
                     {showExpand && (
                       <td className="ctr">
                         <button
                           type="button"
                           aria-expanded={isOpen}
-                          aria-label={isOpen ? 'Σύμπτυξη' : 'Ανάπτυξη'}
-                          className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          onClick={e => {
-                            e.stopPropagation()
-                            setExpanded(prev => {
-                              const next = new Set(prev)
-                              if (next.has(key)) next.delete(key)
-                              else next.add(key)
-                              return next
-                            })
-                          }}
+                          aria-label={isOpen ? 'Απόκρυψη λεπτομερειών' : 'Εμφάνιση λεπτομερειών'}
+                          title={isOpen ? 'Απόκρυψη λεπτομερειών' : collapsedColumns.length > 0 ? `${collapsedColumns.length} ακόμη πεδία` : 'Λεπτομέρειες'}
+                          className={cn('dt-expand-btn', isOpen && 'open')}
+                          onClick={e => { e.stopPropagation(); toggle() }}
                         >
-                          <ChevronRight className={cn('size-4 transition-transform', isOpen && 'rotate-90')} aria-hidden />
+                          <ChevronRight className="size-3.5" strokeWidth={2.4} aria-hidden />
+                          {!renderExpanded && collapsedColumns.length > 0 && !isOpen && (
+                            <span className="dt-expand-count">+{collapsedColumns.length}</span>
+                          )}
                         </button>
                       </td>
                     )}
@@ -434,16 +447,7 @@ export function DataTable<T>({
                   {isOpen && (
                     <tr className="dt-expanded">
                       <td colSpan={shownColumns.length + 1} className="p-0">
-                        {collapsedColumns.length > 0 && (
-                          <dl className="dt-overflow">
-                            {collapsedColumns.map(c => (
-                              <div key={c.id} className="dt-overflow-item">
-                                <dt>{labelFor(c)}</dt>
-                                <dd>{c.cell(row)}</dd>
-                              </div>
-                            ))}
-                          </dl>
-                        )}
+                        {collapsedColumns.length > 0 && <OverflowDetails row={row} columns={collapsedColumns} labelFor={labelFor} />}
                         {renderExpanded?.(row)}
                       </td>
                     </tr>
@@ -476,6 +480,44 @@ export function DataTable<T>({
       </div>
 
       {footer && <div className="table-foot dotted-row-top">{footer}</div>}
+    </div>
+  )
+}
+
+/** Πεδία που δεν χώρεσαν σε στήλες — κάρτα «ετικέτα | τιμή». Τα κενά πεδία
+ * (sortValue/searchValue κενό) δεν πιάνουν γραμμή: συνοψίζονται σε μία σημείωση. */
+function OverflowDetails<T>({
+  row, columns, labelFor,
+}: {
+  row: T
+  columns: DataTableColumn<T>[]
+  labelFor: (c: DataTableColumn<T>) => string
+}) {
+  const isEmpty = (c: DataTableColumn<T>) => {
+    const get = c.searchValue ?? c.sortValue
+    if (!get) return false
+    const v = get(row)
+    return v == null || v === '' || v === '—'
+  }
+  const filled = columns.filter(c => !isEmpty(c))
+  const empty = columns.filter(isEmpty)
+  return (
+    <div className="dt-details">
+      {filled.length > 0 && (
+        <dl className="dt-details-grid">
+          {filled.map(c => (
+            <div key={c.id} className="dt-details-item">
+              <dt>{labelFor(c)}</dt>
+              <dd>{c.cell(row)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {empty.length > 0 && (
+        <p className="dt-details-empty">
+          {filled.length === 0 ? 'Χωρίς συμπληρωμένα στοιχεία' : 'Χωρίς τιμή'}: {empty.map(labelFor).join(' · ')}
+        </p>
+      )}
     </div>
   )
 }
