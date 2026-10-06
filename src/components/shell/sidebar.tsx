@@ -178,9 +178,12 @@ export function Sidebar({
           })}
         </nav>
 
-        <div
+        <Link
+          href="/account"
+          title="Ο λογαριασμός μου"
+          onClick={() => setOpen(false)}
           className={cn(
-            'mt-auto flex items-center gap-2.5 rounded-[18px] border border-[var(--glass-border)] bg-[var(--glass-strong)] px-3 py-2.5',
+            'mt-auto flex items-center gap-2.5 rounded-[18px] border border-[var(--glass-border)] bg-[var(--glass-strong)] px-3 py-2.5 transition-colors hover:border-primary/40',
             rail && 'lg:justify-center lg:px-2',
           )}
         >
@@ -194,7 +197,7 @@ export function Sidebar({
             style={{ background: 'var(--success)', color: 'var(--success)' }}
             aria-hidden
           />
-        </div>
+        </Link>
       </aside>
     </>
   )

@@ -201,6 +201,12 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
               lng={trdr.appLng}
               maptilerApiKey={mapsConfig.maptilerApiKey}
               editable={canEdit}
+              address={
+                [trdr.ADDRESS, [trdr.ZIP, trdr.CITY].filter(Boolean).join(' '), trdr.DISTRICT]
+                  .map(v => v?.trim())
+                  .filter(Boolean)
+                  .join(', ') || trdr.geocodedAddress
+              }
             />
           }
           contacts={<ContactsPanel trdrId={trdr.id} contacts={contactRows} />}

@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, UserRound } from 'lucide-react'
 import { auth, signOut } from '@/auth'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SignOutMenuItem } from './sign-out-item'
 import { MobileNavToggle } from './mobile-nav'
@@ -41,8 +41,18 @@ export async function Topbar() {
         />
         <DropdownMenuContent align="end">
           <DropdownMenuGroup>
-            <DropdownMenuLabel>{session?.user?.role}</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              <span className="block truncate text-foreground">{name}</span>
+              <span className="block truncate font-medium">{session?.user?.role}</span>
+            </DropdownMenuLabel>
           </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/account" />}>
+            <UserRound className="size-4" aria-hidden /> Ο λογαριασμός μου
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/help" />}>
+            <BookOpen className="size-4" aria-hidden /> Εγχειρίδιο χρήσης
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <SignOutMenuItem action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }} />
         </DropdownMenuContent>

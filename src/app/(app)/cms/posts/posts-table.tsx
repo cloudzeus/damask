@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Search, Sparkles, CircleDashed, Clock3, CheckCircle2, Archive } from 'lucide-react'
 import type { PostStatus } from '@prisma/client'
 import { cn } from '@/lib/utils'
@@ -48,7 +49,7 @@ export function PostsTable({ posts, canEdit }: { posts: PostRow[]; canEdit: bool
       sortValue: p => p.titleEl,
       cell: p => (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="font-semibold">{p.titleEl}</span>
+          <Link href={`/cms/posts/${p.id}/edit`} className="font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline">{p.titleEl}</Link>
           {p.aiGenerated && (
             <span className="badge-pill info" title="Δημιουργήθηκε με AI">
               <Sparkles className="size-3" strokeWidth={2.2} aria-hidden />
