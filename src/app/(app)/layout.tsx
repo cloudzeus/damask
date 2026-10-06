@@ -18,16 +18,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <MobileNavProvider>
       <div className="app-canvas">
-        {/* Fixed-height shell: το ΠΕΡΙΕΧΟΜΕΝΟ κάνει scroll, όχι όλη η σελίδα —
-            έτσι το scrollbar δεν εκτείνεται σε όλο το ύψος (και στο sidebar). */}
-        <div className="flex h-dvh overflow-hidden">
+        {/* ΕΝΑΣ μόνο κάθετος scroller: αυτός της σελίδας (document). Ούτε το
+            περιεχόμενο, ούτε οι πίνακες, ούτε το sidebar έχουν δικό τους κάθετο
+            scroll· το sidebar είναι «smart sticky» (βλ. sidebar.tsx) και το
+            topbar sticky. items-start: απαραίτητο για να δουλέψει το sticky. */}
+        <div className="flex min-h-dvh items-start">
           <Sidebar
             enabledKeys={[...enabled]}
             permissions={session.user.permissions}
             userName={session.user.name ?? ''}
             userRole={session.user.role}
           />
-          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+          <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
             <Topbar />
             <main className="flex-1 px-3.5 pb-16">
               <PageTransition>{children}</PageTransition>

@@ -16,7 +16,8 @@ export async function Topbar() {
   const name = session?.user?.name ?? ''
   const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
   return (
-    <header className="glass mx-3.5 mt-3.5 mb-4 flex h-[54px] items-center gap-2.5 rounded-full py-0 pr-2 pl-2.5 sm:pl-4.5">
+    // sticky: με το document ως μοναδικό scroller, το topbar μένει ορατό στην κορυφή.
+    <header className="glass sticky top-3.5 z-40 mx-3.5 mt-3.5 mb-4 flex h-[54px] items-center gap-2.5 rounded-full py-0 pr-2 pl-2.5 sm:pl-4.5">
       <MobileNavToggle />
       <GlobalSearch />
       <div className="hidden flex-1 sm:block" />

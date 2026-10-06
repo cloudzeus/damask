@@ -37,6 +37,32 @@ export function Sidebar({
   // Rail collapse (desktop mini) — πλήρες logo ανοιχτό / σήμα κλειστό, icon-only.
   const [rail, setRail] = React.useState(false)
 
+  // «Smart sticky» (μόνο desktop): top = min(14px, ύψος οθόνης − ύψος sidebar − 14px).
+  // Αν χωράει → κολλάει πάνω. Αν είναι ψηλότερο → αρνητικό top, οπότε κυλάει ΜΑΖΙ
+  // με τη σελίδα μέχρι να φανεί το κάτω μέρος του και μετά κολλάει. Έτσι ο μόνος
+  // κάθετος scroller είναι της σελίδας. Γράφουμε απευθείας style (χωρίς state/re-render).
+  const asideRef = React.useRef<HTMLElement>(null)
+  React.useEffect(() => {
+    const el = asideRef.current
+    if (!el) return
+    const GAP = 14
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = () => {
+      if (!mq.matches) { el.style.top = ''; return }
+      el.style.top = `${Math.min(GAP, window.innerHeight - el.offsetHeight - GAP)}px`
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    window.addEventListener('resize', update)
+    mq.addEventListener('change', update)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', update)
+      mq.removeEventListener('change', update)
+    }
+  }, [])
+
   React.useEffect(() => {
     const restore = () => {
       try {
@@ -80,9 +106,10 @@ export function Sidebar({
         <div className="fixed inset-0 z-[55] bg-black/45 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
       )}
       <aside
+        ref={asideRef}
         className={cn(
           'glass fixed inset-y-0 left-0 z-[60] flex w-64 max-w-[85vw] shrink-0 flex-col rounded-none p-2.5 transition-[transform,width] duration-200',
-          'lg:sticky lg:top-3.5 lg:z-auto lg:my-3.5 lg:ml-3.5 lg:h-[calc(100vh-28px)] lg:max-w-none lg:rounded-[26px] lg:!translate-x-0',
+          'lg:sticky lg:z-auto lg:my-3.5 lg:ml-3.5 lg:min-h-[calc(100dvh-28px)] lg:max-w-none lg:rounded-[26px] lg:!translate-x-0',
           rail ? 'lg:w-[72px]' : 'lg:w-56',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
@@ -106,7 +133,9 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav className="mt-3 flex flex-1 flex-col gap-0.5 overflow-y-auto">
+        {/* Σε desktop ΧΩΡΙΣ δικό του scroll (μοναδικός scroller = σελίδα)· στο
+            mobile drawer (fixed overlay) το scroll χρειάζεται. */}
+        <nav className="mt-3 flex flex-1 flex-col gap-0.5 overflow-y-auto lg:overflow-visible">
           {nav.map(section => {
             const hasActive = section.items.some(i => pathname === i.href || pathname.startsWith(`${i.href}/`))
             const groupOpen = hasActive || !collapsed.has(section.group)

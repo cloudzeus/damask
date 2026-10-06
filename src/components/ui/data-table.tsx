@@ -64,7 +64,8 @@ export function DataTable<T>({
   rowClassName,
   onRowClick,
   bare = false,
-  fillHeight = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- deprecated no-op (βλ. τύπο)
+  fillHeight: _fillHeight,
   pageSize = 80,
   renderExpanded,
 }: {
@@ -80,9 +81,9 @@ export function DataTable<T>({
   rowClassName?: (row: T) => string
   /** Χωρίς το glass-card wrapper — για ενσωμάτωση μέσα σε υπάρχον section. */
   bare?: boolean
-  /** Ο πίνακας γεμίζει το διαθέσιμο ύψος (viewport) με sticky header + εσωτερικό
-   * scroll. Default true — full-height όταν ο πίνακας είναι το τελευταίο pane της
-   * σελίδας· πέρασε `fillHeight={false}` σε σελίδες με πάνελ/πίνακες από κάτω. */
+  /** @deprecated No-op. Οι πίνακες ΔΕΝ έχουν πλέον δικό τους κάθετο scroll — απλώνονται
+   * σε όλο τους το ύψος και ο μόνος κάθετος scroller είναι της σελίδας (απαίτηση
+   * χρήστη). Κρατιέται μόνο για συμβατότητα με τις υπάρχουσες κλήσεις. */
   fillHeight?: boolean
   /** Click σε ολόκληρη τη γραμμή. Κελιά με δικές τους ενέργειες (π.χ. actions
    * menu) πρέπει να κάνουν stopPropagation στο δικό τους wrapper. */
@@ -203,7 +204,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={cn(bare ? 'dt-bare' : 'glass table-card stagger', fillHeight && 'dt-fill', className)}>
+    <div className={cn(bare ? 'dt-bare' : 'glass table-card stagger', className)}>
       <div className="table-toolbar">
         {toolbarExtras}
         <div className="flex-1" />
