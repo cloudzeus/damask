@@ -32,9 +32,16 @@ export type MassUploaderProps = {
   maxConcurrent?: number
   /** Media Gallery: φάκελος προορισμού (MediaFolder.id) — προαιρετικό, default κανένας (ρίζα) */
   folderId?: string | null
-  /** Αρχεία που μπαίνουν αμέσως στην ουρά κατά το mount (π.χ. full-screen drop). */
-  initialFiles?: File[]
+  /** Αρχεία που προστίθενται «απ' έξω» (π.χ. full-screen drop). Κάθε νέο `id`
+   * βάζει τα `files` στην ουρά μία φορά. */
+  incoming?: { id: number; files: File[] } | null
+  /** Χωρίς το dropzone — μόνο η λίστα προόδου (π.χ. αιωρούμενο panel). */
+  hideDropzone?: boolean
+  /** Συνοπτική κατάσταση για εξωτερικό header (σύνολο/πρόοδος). */
+  onStateChange?: (s: UploaderSummary) => void
 }
+
+export type UploaderSummary = { total: number; done: number; errors: number; inProgress: boolean; progress: number }
 
 type UploadStatus = 'queued' | 'converting' | 'uploading' | 'done' | 'error'
 
@@ -77,7 +84,7 @@ function greekUploadError(status: number, body: unknown): string {
   return 'Η μεταφόρτωση απέτυχε.'
 }
 
-export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, maxConcurrent = 3, folderId = null, initialFiles }: MassUploaderProps) {
+export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, maxConcurrent = 3, folderId = null, incoming, hideDropzone = false, onStateChange }: MassUploaderProps) {
   const [items, setItems] = useState<QueueItem[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -214,15 +221,16 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
     pump()
   }
 
-  // Μία φορά ανά mount: τα αρχεία του full-screen drop μπαίνουν στην ουρά. Μέσω
-  // microtask (όχι σύγχρονο setState στο σώμα του effect — react-hooks lint).
-  const seededRef = useRef(false)
+  // Εξωτερικά αρχεία (full-screen drop): κάθε νέο incoming.id μπαίνει στην ουρά μία
+  // φορά. Μέσω microtask (όχι σύγχρονο setState στο σώμα του effect — react-hooks lint).
+  const seenIncomingRef = useRef<number | null>(null)
   useEffect(() => {
-    if (seededRef.current || !initialFiles?.length) return
-    seededRef.current = true
-    queueMicrotask(() => addFiles(initialFiles))
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- σκόπιμα μόνο στο mount
-  }, [])
+    if (!incoming || incoming.id === seenIncomingRef.current || incoming.files.length === 0) return
+    seenIncomingRef.current = incoming.id
+    const files = incoming.files
+    queueMicrotask(() => addFiles(files))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- addFiles είναι σταθερό ως προς τη χρήση του
+  }, [incoming])
 
   function retry(id: string) {
     notifiedRef.current = false
@@ -240,6 +248,11 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
     const sum = items.reduce((acc, it) => acc + (it.status === 'done' ? 100 : it.status === 'error' ? 0 : it.progress), 0)
     return Math.round(sum / total)
   }, [items, total])
+
+  useEffect(() => {
+    onStateChange?.({ total, done: doneCount, errors: errorCount, inProgress, progress: overallProgress })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- callback του γονέα
+  }, [total, doneCount, errorCount, inProgress, overallProgress])
 
   useEffect(() => {
     if (total === 0 || inProgress || notifiedRef.current) return
@@ -276,6 +289,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
 
   return (
     <div className="flex flex-col gap-4">
+      {!hideDropzone && (
       <div
         role="button"
         tabIndex={0}
@@ -310,20 +324,21 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
           onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }}
         />
       </div>
+      )}
 
       {total > 0 && (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
+          {!hideDropzone && <div className="flex items-center gap-3">
             <Progress value={overallProgress} className="flex-1" />
             <span className="shrink-0 text-[0.78125rem] tabular-nums text-muted-foreground">
               {doneCount}/{total} ολοκληρώθηκαν{errorCount > 0 ? ` · ${errorCount} σφάλματα` : ''}
             </span>
-          </div>
+          </div>}
 
           <ul className="flex flex-col divide-y divide-border rounded-lg border bg-card">
             {items.map(item => (
               <li key={item.id} className="flex min-w-0 items-center gap-3 px-3 py-2">
-                <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+                <div className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
                   {item.previewUrl ? (
                     // width/height attrs: δεσμεύουν διαστάσεις πριν φορτώσει το blob, ώστε
                     // μια φωτογραφία 4000px να μην «σπρώξει» προσωρινά το πλάτος του modal.
@@ -336,6 +351,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
                   ) : (
                     <FileIcon className="size-5 text-muted-foreground" strokeWidth={1.75} />
                   )}
+                  <ProgressRing status={item.status} progress={item.progress} />
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -409,4 +425,36 @@ function StatusBadge({ status }: { status: UploadStatus }) {
         </Badge>
       )
   }
+}
+
+/** Preloader πάνω στη μικρογραφία: δακτύλιος προόδου + % (σε αναμονή/μετατροπή
+ * περιστρεφόμενος), ✓ όταν ολοκληρωθεί. */
+function ProgressRing({ status, progress }: { status: UploadStatus; progress: number }) {
+  if (status === 'error') return null
+  if (status === 'done') {
+    return (
+      <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+        <CheckCircle2 className="size-5 text-white" strokeWidth={2.2} aria-hidden />
+      </span>
+    )
+  }
+  const R = 15
+  const C = 2 * Math.PI * R
+  const indeterminate = status === 'queued' || status === 'converting'
+  const pct = Math.max(0, Math.min(100, Math.round(progress)))
+  return (
+    <span className="absolute inset-0 flex items-center justify-center bg-black/45" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={indeterminate ? undefined : pct}>
+      <svg viewBox="0 0 36 36" className={cn('absolute size-10', indeterminate && 'animate-spin')} aria-hidden>
+        <circle cx="18" cy="18" r={R} fill="none" stroke="rgb(255 255 255 / 30%)" strokeWidth="3" />
+        <circle
+          cx="18" cy="18" r={R} fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={indeterminate ? C * 0.72 : C * (1 - pct / 100)}
+          transform="rotate(-90 18 18)"
+          style={{ transition: 'stroke-dashoffset .2s ease' }}
+        />
+      </svg>
+      {!indeterminate && <span className="relative text-[0.625rem] font-extrabold text-white tabular-nums">{pct}%</span>}
+    </span>
+  )
 }

@@ -8,6 +8,7 @@ import { FolderPanel } from './folder-panel'
 import { AssetToolbar } from './asset-toolbar'
 import { AssetGrid } from './asset-grid'
 import { UploadDialog } from './upload-dialog'
+import { UploadTray } from './upload-tray'
 import { BulkActionBar } from './bulk-action-bar'
 import { MediaLightbox } from './media-lightbox'
 import { MediaPicker } from '@/components/media/media-picker'
@@ -38,7 +39,7 @@ export function MediaGallery({
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
   const [uploadOpen, setUploadOpen] = useState(false)
-  const [droppedFiles, setDroppedFiles] = useState<File[] | undefined>(undefined)
+  const [dropped, setDropped] = useState<{ id: number; files: File[]; folderId: string | null } | null>(null)
   const [dragActive, setDragActive] = useState(false)
 
   // Full-screen drag & drop: αρχεία που σέρνονται ΟΠΟΥΔΗΠΟΤΕ στη σελίδα → overlay,
@@ -72,8 +73,8 @@ export function MediaGallery({
       setDragActive(false)
       const files = Array.from(e.dataTransfer?.files ?? [])
       if (files.length === 0) return
-      setDroppedFiles(files)
-      setUploadOpen(true)
+      // Προορισμός = ο τρέχων φάκελος. Αν άλλαξε φάκελος, το panel ξαναστήνεται (key) για τον νέο.
+      setDropped({ id: Date.now(), files, folderId: selectedFolderId })
     }
     window.addEventListener('dragenter', onEnter)
     window.addEventListener('dragover', onOver)
@@ -85,7 +86,7 @@ export function MediaGallery({
       window.removeEventListener('dragleave', onLeave)
       window.removeEventListener('drop', onDrop)
     }
-  }, [uploadOpen])
+  }, [uploadOpen, selectedFolderId])
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickedImages, setPickedImages] = useState<CollectionImage[]>([])
 
@@ -245,12 +246,22 @@ export function MediaGallery({
 
       <UploadDialog
         open={uploadOpen}
-        onOpenChange={o => { setUploadOpen(o); if (!o) setDroppedFiles(undefined) }}
+        onOpenChange={setUploadOpen}
         folderId={selectedFolderId}
         folderLabel={selectedFolder?.name ?? 'Όλα τα αρχεία'}
         onUploaded={refresh}
-        initialFiles={droppedFiles}
       />
+
+      {dropped && (
+        <UploadTray
+          key={dropped.folderId ?? 'root'}
+          incoming={dropped}
+          folderId={dropped.folderId}
+          folderLabel={folders.find(f => f.id === dropped.folderId)?.name ?? 'Όλα τα αρχεία'}
+          onUploaded={refresh}
+          onClose={() => setDropped(null)}
+        />
+      )}
 
       {/* Portal: ένα fixed μέσα στο page-transition transform θα «παγιδευόταν» (βλ. bulk-action-bar). */}
       {dragActive && !uploadOpen && createPortal(
