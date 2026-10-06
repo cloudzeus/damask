@@ -1082,6 +1082,21 @@
 /* (Το fillHeight / .dt-fill καταργήθηκε: οι πίνακες δεν έχουν δικό τους κάθετο
    scroll — μοναδικός κάθετος scroller είναι η σελίδα.) */
 
+/* Sticky επικεφαλίδα DataTable (ξεχωριστός πίνακας, βλ. data-table.tsx): κολλάει
+   ακριβώς κάτω από το sticky topbar (top 14px + ύψος 54px + κενό). Μέσα σε
+   dialog ο scroller είναι το ίδιο το dialog → offset 0. */
+:root { --dt-sticky-top: 74px; }
+[role="dialog"], [role="alertdialog"] { --dt-sticky-top: 0px; }
+.dt-sticky-head {
+  position: sticky;
+  top: var(--dt-sticky-top);
+  z-index: 5;
+  overflow: hidden;
+  background: var(--card);
+  border-radius: 10px;
+  box-shadow: 0 1px 0 var(--border);
+}
+
 /* scoped table chrome — NOT a bare `table`/`th`/`td` selector, so it never
    leaks onto unrelated tables elsewhere in the app. */
 .data-table {

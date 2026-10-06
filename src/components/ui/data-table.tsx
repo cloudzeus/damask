@@ -203,6 +203,22 @@ export function DataTable<T>({
     return c.headerLabel ?? (typeof c.header === 'string' ? c.header : c.id)
   }
 
+  // Κοινό colgroup για τον sticky πίνακα-επικεφαλίδα ΚΑΙ τον πίνακα-σώμα.
+  const colgroup = (
+    <colgroup>
+      {hasExpand && <col style={{ width: 40 }} />}
+      {visibleColumns.map(c => (
+        <col key={c.id} style={{ width: widths[c.id] ?? c.width ?? DEFAULT_WIDTH }} />
+      ))}
+    </colgroup>
+  )
+
+  const headWrapRef = React.useRef<HTMLDivElement>(null)
+  const bodyWrapRef = React.useRef<HTMLDivElement>(null)
+  function syncHeadScroll() {
+    if (headWrapRef.current && bodyWrapRef.current) headWrapRef.current.scrollLeft = bodyWrapRef.current.scrollLeft
+  }
+
   return (
     <div className={cn(bare ? 'dt-bare' : 'glass table-card stagger', className)}>
       <div className="table-toolbar">
@@ -248,14 +264,13 @@ export function DataTable<T>({
         </div>
       </div>
 
-      <div className="table-wrap">
+      {/* Sticky επικεφαλίδα σε ΞΕΧΩΡΙΣΤΟ πίνακα: το .table-wrap έχει overflow-x
+          (για φαρδιούς πίνακες), που το κάνει scroll container — ένα sticky thead
+          μέσα του θα κολλούσε σε αυτό, όχι στη σελίδα. Ίδιο colgroup + fixed
+          layout ⇒ οι στήλες στοιχίζονται ακριβώς· το οριζόντιο scroll συγχρονίζεται. */}
+      <div className="dt-sticky-head" ref={headWrapRef}>
         <table className={cn('data-table dt-fixed', wrap && 'dt-wrap')}>
-          <colgroup>
-            {hasExpand && <col style={{ width: 40 }} />}
-            {visibleColumns.map(c => (
-              <col key={c.id} style={{ width: widths[c.id] ?? c.width ?? DEFAULT_WIDTH }} />
-            ))}
-          </colgroup>
+          {colgroup}
           <thead>
             <tr>
               {hasExpand && <th className="ctr" aria-hidden />}
@@ -289,6 +304,12 @@ export function DataTable<T>({
               })}
             </tr>
           </thead>
+        </table>
+      </div>
+
+      <div className="table-wrap" ref={bodyWrapRef} onScroll={syncHeadScroll}>
+        <table className={cn('data-table dt-fixed', wrap && 'dt-wrap')}>
+          {colgroup}
           <tbody>
             {sortedRows.slice(0, visibleCount).map(row => {
               const key = rowKey(row)
