@@ -237,7 +237,7 @@ export async function listTrdrTree(trdrId: string, path = ''): Promise<TrdrTreeL
   // ── Δικαιολογητικά: φάκελοι ─────────────────────────────────────────────
   if (p === '@dossier') {
     const [generalCount, apps] = await Promise.all([
-      prisma.trdrDossierDocument.count({ where: { trdrId } }),
+      prisma.trdrDossierDocument.count({ where: { trdrId, OR: [{ programId: null }, { reusable: true }] } }),
       prisma.programApplication.findMany({
         where: { trdrId },
         orderBy: { createdAt: 'desc' },
@@ -264,15 +264,51 @@ export async function listTrdrTree(trdrId: string, path = ''): Promise<TrdrTreeL
     }
   }
 
+  // Εταιρικά: όσα δεν αφορούν συγκεκριμένο πρόγραμμα ή χρησιμοποιούνται και αλλού,
+  // σε υποφακέλους ανά τύπο δικαιολογητικού.
+  const generalWhere = { trdrId, OR: [{ programId: null }, { reusable: true }] }
+  const generalCrumb = { label: 'Εταιρικά δικαιολογητικά', path: '@dossier/general' }
+
   if (p === '@dossier/general') {
-    const docs = await prisma.trdrDossierDocument.findMany({
-      where: { trdrId },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, sizeBytes: true, mimeType: true, createdAt: true, expiresAt: true, documentType: { select: { name: true } } },
+    const groups = await prisma.trdrDossierDocument.groupBy({ by: ['documentTypeId'], where: generalWhere, _count: { _all: true } })
+    const typeRows = await prisma.documentType.findMany({
+      where: { id: { in: groups.map(g => g.documentTypeId) } },
+      select: { id: true, name: true },
     })
+    const nameOf = new Map(typeRows.map(t => [t.id, t.name]))
     return {
       path: p,
-      crumbs: [rootCrumb, dossierCrumb, { label: 'Εταιρικά δικαιολογητικά', path: p }],
+      crumbs: [rootCrumb, dossierCrumb, generalCrumb],
+      folders: groups
+        .map(g => ({
+          name: g.documentTypeId,
+          path: `@dossier/general/${g.documentTypeId}`,
+          label: nameOf.get(g.documentTypeId) ?? 'Δικαιολογητικό',
+          virtual: true,
+          hint: `${g._count._all} ${g._count._all === 1 ? 'έγγραφο' : 'έγγραφα'}`,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'el')),
+      files: [],
+      uploadSubPath: null,
+      uploadHint: 'Τα δικαιολογητικά μεταφορτώνονται από την καρτέλα «Δικαιολογητικά» — η AI αναγνωρίζει τύπο, πρόγραμμα και λήξη.',
+      canCreateFolder: false,
+    }
+  }
+
+  const typeMatch = /^@dossier\/general\/([^/]+)$/.exec(p)
+  if (typeMatch) {
+    const docs = await prisma.trdrDossierDocument.findMany({
+      where: { ...generalWhere, documentTypeId: typeMatch[1] },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, name: true, sizeBytes: true, mimeType: true, createdAt: true, expiresAt: true,
+        documentType: { select: { name: true } }, program: { select: { title: true } },
+      },
+    })
+    const typeName = docs[0]?.documentType.name ?? (await prisma.documentType.findUnique({ where: { id: typeMatch[1] }, select: { name: true } }))?.name ?? 'Δικαιολογητικό'
+    return {
+      path: p,
+      crumbs: [rootCrumb, dossierCrumb, generalCrumb, { label: typeName, path: p }],
       folders: [],
       files: docs.map(d => ({
         name: d.name,
@@ -282,10 +318,10 @@ export async function listTrdrTree(trdrId: string, path = ''): Promise<TrdrTreeL
         downloadUrl: `/partners/${trdrId}/dossier/${d.id}`,
         kind: 'record' as const,
         mimeType: d.mimeType,
-        meta: [d.documentType.name, d.expiresAt && `λήγει ${fmtDate(d.expiresAt)}`].filter(Boolean).join(' · '),
+        meta: [d.program?.title && `από ${d.program.title}`, d.expiresAt && `λήγει ${fmtDate(d.expiresAt)}`].filter(Boolean).join(' · '),
       })),
       uploadSubPath: null,
-      uploadHint: 'Τα εταιρικά δικαιολογητικά μεταφορτώνονται από την καρτέλα «Δικαιολογητικά» (με τύπο & λήξη).',
+      uploadHint: 'Τα δικαιολογητικά μεταφορτώνονται από την καρτέλα «Δικαιολογητικά» — η AI αναγνωρίζει τύπο, πρόγραμμα και λήξη.',
       canCreateFolder: false,
     }
   }
@@ -329,7 +365,12 @@ export async function listTrdrTree(trdrId: string, path = ''): Promise<TrdrTreeL
 
     const seg = programFolderSegment(app.program)
     const rawSub = `${SUBFOLDER.euPrograms}/${seg}`
-    const [docs, delivCount, raw] = await Promise.all([
+    const [dossierDocs, docs, delivCount, raw] = await Promise.all([
+      prisma.trdrDossierDocument.findMany({
+        where: { trdrId, programId: app.programId },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true, sizeBytes: true, mimeType: true, createdAt: true, expiresAt: true, documentType: { select: { name: true } } },
+      }),
       prisma.applicationDocument.findMany({
         where: { applicationId: appId },
         orderBy: { uploadedAt: 'desc' },
@@ -347,6 +388,16 @@ export async function listTrdrTree(trdrId: string, path = ''): Promise<TrdrTreeL
         ...r.folders,
       ],
       files: [
+        ...dossierDocs.map(d => ({
+          name: d.name,
+          key: `dossier:${d.id}`,
+          size: d.sizeBytes ?? 0,
+          lastChanged: iso(d.createdAt),
+          downloadUrl: `/partners/${trdrId}/dossier/${d.id}`,
+          kind: 'record' as const,
+          mimeType: d.mimeType,
+          meta: [d.documentType.name, d.expiresAt && `λήγει ${fmtDate(d.expiresAt)}`].filter(Boolean).join(' · '),
+        })),
         ...docs.map(d => ({
           name: d.name,
           key: `appdoc:${d.id}`,

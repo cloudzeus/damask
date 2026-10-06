@@ -404,22 +404,22 @@ enum ReferrerType {
 }
 
 model Referrer {
-  id        String       @id @default(cuid())
+  id        String            @id @default(cuid())
   name      String
-  type      ReferrerType @default(COMPANY)
+  type      ReferrerType      @default(COMPANY)
   email     String?
   phone     String?
   afm       String?
   notes     String?
-  active    Boolean      @default(true)
+  active    Boolean           @default(true)
   trdrId    String? // αν ο συστήστης είναι ήδη συναλλασσόμενος
-  trdr      Trdr?        @relation("ReferrerTrdr", fields: [trdrId], references: [id], onDelete: SetNull)
-  referred  Trdr[]       @relation("TrdrReferrer") // πελάτες που έφερε
+  trdr      Trdr?             @relation("ReferrerTrdr", fields: [trdrId], references: [id], onDelete: SetNull)
+  referred  Trdr[]            @relation("TrdrReferrer") // πελάτες που έφερε
   batches   ReferralBatch[]
   mapped    ReferralCompany[]
   contacts  ReferrerContact[] // πολλαπλές επαφές (κυρίως όταν type=COMPANY)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@index([active])
   @@index([trdrId])
@@ -462,28 +462,28 @@ model ReferralBatch {
 /// Μία εταιρία του batch με τα στοιχεία ΑΑΔΕ + το αποτέλεσμα επιλεξιμότητας ανά
 /// πρόγραμμα. Όταν επιλεγεί από τη λίστα → δημιουργείται δυνητικός πελάτης (Trdr).
 model ReferralCompany {
-  id               String         @id @default(cuid())
-  batchId          String
-  batch            ReferralBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  referrerId       String
-  referrer         Referrer       @relation(fields: [referrerId], references: [id], onDelete: Cascade)
-  afm              String
-  name             String?
-  email            String?
-  phone            String?
-  legalForm        String?
-  city             String?
-  zip              String?
-  regionName       String? // best-effort από ΤΚ/πόλη
-  regionConfident  Boolean        @default(false)
-  kads             Json? // string[] ΚΑΔ codes
-  eligiblePrograms Json? // [{ programId, title, fundingRate }]
-  status           String         @default("PENDING") // ELIGIBLE / INELIGIBLE / ERROR / NOT_FOUND
-  error            String?
-  existingTrdrId   String? // αν το ΑΦΜ είναι ΗΔΗ συναλλασσόμενος (αποφυγή διπλοεγγραφής)
-  existingIsCustomer Boolean      @default(false) // true = πελάτης (ISPROSP=0), false = δυνητικός/άλλο
-  convertedTrdrId  String? // ο δυνητικός πελάτης που δημιουργήθηκε (αν επιλέχθηκε)
-  createdAt        DateTime       @default(now())
+  id                 String        @id @default(cuid())
+  batchId            String
+  batch              ReferralBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  referrerId         String
+  referrer           Referrer      @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+  afm                String
+  name               String?
+  email              String?
+  phone              String?
+  legalForm          String?
+  city               String?
+  zip                String?
+  regionName         String? // best-effort από ΤΚ/πόλη
+  regionConfident    Boolean       @default(false)
+  kads               Json? // string[] ΚΑΔ codes
+  eligiblePrograms   Json? // [{ programId, title, fundingRate }]
+  status             String        @default("PENDING") // ELIGIBLE / INELIGIBLE / ERROR / NOT_FOUND
+  error              String?
+  existingTrdrId     String? // αν το ΑΦΜ είναι ΗΔΗ συναλλασσόμενος (αποφυγή διπλοεγγραφής)
+  existingIsCustomer Boolean       @default(false) // true = πελάτης (ISPROSP=0), false = δυνητικός/άλλο
+  convertedTrdrId    String? // ο δυνητικός πελάτης που δημιουργήθηκε (αν επιλέχθηκε)
+  createdAt          DateTime      @default(now())
 
   @@index([referrerId])
   @@index([batchId])
@@ -492,31 +492,31 @@ model ReferralCompany {
 }
 
 model Contact {
-  id               String               @id @default(cuid())
-  trdrId           String
-  trdr             Trdr                 @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  id                String               @id @default(cuid())
+  trdrId            String
+  trdr              Trdr                 @relation(fields: [trdrId], references: [id], onDelete: Cascade)
   /// Mirror CUSPRSN/SUPPRSN pattern (S1 person-on-trader link) — PRSN = S1
   /// person id (PRSN→PRSNOUT στο S1 export), TRDBRANCH/LINENUM = θέση μέσα
   /// στην CUSPRSN/SUPPRSN γραμμή, COMMENTS = παρατηρήσεις S1.
-  PRSN             Int?
-  TRDBRANCH        Int?
-  LINENUM          Int?
-  COMMENTS         String?
-  name             String
-  position         String?
-  email            String?
-  phone            String?
-  mobile           String?
-  isPrimary        Boolean              @default(false)
+  PRSN              Int?
+  TRDBRANCH         Int?
+  LINENUM           Int?
+  COMMENTS          String?
+  name              String
+  position          String?
+  email             String?
+  phone             String?
+  mobile            String?
+  isPrimary         Boolean              @default(false)
   /// Portal scope: true = «κεντρική» επαφή (βλέπει ΟΛΑ τα προγράμματα του πελάτη),
   /// false = βλέπει ΜΟΝΟ τα προγράμματα στα οποία είναι συνδεδεμένη (ApplicationContact).
-  portalAllPrograms Boolean             @default(false)
+  portalAllPrograms Boolean              @default(false)
   /// Σύνδεση με User όταν εγκρίνεται το αίτημα πρόσβασης της επαφής (βλ.
   /// approveAccessRequest, src/app/(app)/users/actions.ts) — ίδιο idiom με
   /// ArchitectProfile.userId παρακάτω.
-  userId           String?              @unique
-  user             User?                @relation(fields: [userId], references: [id])
-  applicationLinks ApplicationContact[]
+  userId            String?              @unique
+  user              User?                @relation(fields: [userId], references: [id])
+  applicationLinks  ApplicationContact[]
 
   @@index([trdrId])
 }
@@ -1284,6 +1284,7 @@ model Program {
   taskTemplates        ProgramTaskTemplate[]
   deliverableTemplates ProgramDeliverableTemplate[]
   leads                ProgramLead[]
+  dossierDocs          TrdrDossierDocument[]
 
   @@index([status])
   @@index([extractStatus])
@@ -1400,22 +1401,22 @@ model ProgramEligibleLegalForm {
 }
 
 model ProgramRequiredForm {
-  id         String           @id @default(cuid())
-  programId  String
-  program    Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
-  name       String // π.χ. «Ε3», «Βεβαίωση έναρξης» (from extraction or manual)
-  mandatory  Boolean          @default(true)
-  notes      String?
-  order      Int              @default(0)
-  phase      DeliverablePhase? // ανάθεση εντύπου σε φάση του προγράμματος
-  reusable   Boolean          @default(false) // επαναχρησιμοποιήσιμο και σε άλλα έργα/προγράμματα
-  templateId String? // optional link to a «Οδηγός Εντύπου» (TaxFormTemplate)
-  template   TaxFormTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  id             String            @id @default(cuid())
+  programId      String
+  program        Program           @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name           String // π.χ. «Ε3», «Βεβαίωση έναρξης» (from extraction or manual)
+  mandatory      Boolean           @default(true)
+  notes          String?
+  order          Int               @default(0)
+  phase          DeliverablePhase? // ανάθεση εντύπου σε φάση του προγράμματος
+  reusable       Boolean           @default(false) // επαναχρησιμοποιήσιμο και σε άλλα έργα/προγράμματα
+  templateId     String? // optional link to a «Οδηγός Εντύπου» (TaxFormTemplate)
+  template       TaxFormTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
   // Τύπος δικαιολογητικού — matching με την αποθήκη πελάτη (TrdrDossierDocument):
   // στην ένταξη, valid έγγραφο ίδιου τύπου δεν ξαναζητείται.
   documentTypeId String?
-  documentType   DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
-  createdAt  DateTime         @default(now())
+  documentType   DocumentType?     @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
+  createdAt      DateTime          @default(now())
 
   @@index([programId])
   @@index([templateId])
@@ -1920,21 +1921,21 @@ model ApplicationObligation {
 }
 
 model ApplicationDocument {
-  id            String                 @id @default(cuid())
-  applicationId String
-  application   ProgramApplication     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  obligationId  String?
-  obligation    ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
+  id             String                 @id @default(cuid())
+  applicationId  String
+  application    ProgramApplication     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  obligationId   String?
+  obligation     ApplicationObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
   documentTypeId String?
-  documentType   DocumentType?         @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
-  name          String
-  storageKey    String
-  mimeType      String?
-  size          Int?
-  expiresAt     DateTime? // ημ. λήξης δικαιολογητικού (π.χ. φορολογική/ασφαλιστική ενημερότητα)
-  uploadedById  String?
-  uploadedAt    DateTime               @default(now())
-  requestUpload DocumentRequest?       @relation("RequestUpload")
+  documentType   DocumentType?          @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
+  name           String
+  storageKey     String
+  mimeType       String?
+  size           Int?
+  expiresAt      DateTime? // ημ. λήξης δικαιολογητικού (π.χ. φορολογική/ασφαλιστική ενημερότητα)
+  uploadedById   String?
+  uploadedAt     DateTime               @default(now())
+  requestUpload  DocumentRequest?       @relation("RequestUpload")
 
   @@index([applicationId])
   @@index([obligationId])
@@ -2209,16 +2210,39 @@ model TrdrDocument {
 /// τύπος έχει ημερομηνία λήξης (π.χ. φορολογική/ασφαλιστική ενημερότητα).
 /// Δημιουργείται inline (modal) — όχι βαρύ ξεχωριστό μενού.
 model DocumentType {
-  id          String                @id @default(cuid())
-  name        String                @unique
-  expires     Boolean               @default(false)
-  active      Boolean               @default(true)
-  notes         String?
-  createdAt     DateTime              @default(now())
-  dossierDocs   TrdrDossierDocument[]
-  requiredForms ProgramRequiredForm[]
-  templates     TaxFormTemplate[]
+  id              String                          @id @default(cuid())
+  name            String                          @unique
+  expires         Boolean                         @default(false)
+  active          Boolean                         @default(true)
+  notes           String?
+  createdAt       DateTime                        @default(now())
+  dossierDocs     TrdrDossierDocument[]
+  requiredForms   ProgramRequiredForm[]
+  templates       TaxFormTemplate[]
   applicationDocs ApplicationDocument[]
+  learnedExamples DocumentClassificationExample[]
+}
+
+/// «Μνήμη» της αυτόματης αναγνώρισης τύπου δικαιολογητικού: κάθε επιβεβαίωση ή
+/// διόρθωση χρήστη κατά το upload γίνεται παράδειγμα (όνομα αρχείου + απόσπασμα
+/// κειμένου → τελικός τύπος). Τα παραδείγματα (α) ταιριάζουν απευθείας νέα όμοια
+/// έγγραφα χωρίς κλήση AI και (β) μπαίνουν ως few-shot στο prompt — έτσι η
+/// αναγνώριση βελτιώνεται με τον καιρό.
+model DocumentClassificationExample {
+  id              String       @id @default(cuid())
+  documentTypeId  String
+  documentType    DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  /// Ο τύπος που είχε προτείνει το σύστημα (null = καμία πρόταση).
+  predictedTypeId String?
+  /// true = ο χρήστης κράτησε την πρόταση· false = τη διόρθωσε (πιο πολύτιμο παράδειγμα).
+  wasCorrect      Boolean      @default(true)
+  fileName        String
+  snippet         String       @db.Text
+  trdrId          String?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+
+  @@index([documentTypeId, createdAt])
 }
 
 /// Αποθήκη δικαιολογητικών ανά πελάτη (Trdr) — ανεξάρτητα προγράμματος. Ό,τι
@@ -2236,11 +2260,17 @@ model TrdrDossierDocument {
   sizeBytes      Int?
   issuedAt       DateTime?
   expiresAt      DateTime? // null = δεν λήγει· διαφορετικά «αναφορά λήξης»
+  /// Πρόγραμμα στο οποίο αναφέρεται (null = γενικό/εταιρικό).
+  programId      String?
+  program        Program?     @relation(fields: [programId], references: [id], onDelete: SetNull)
+  /// Μπορεί να χρησιμοποιηθεί και σε άλλα προγράμματα (π.χ. ενημερότητες) ή μόνο στο δικό του.
+  reusable       Boolean      @default(true)
   uploadedById   String?
   createdAt      DateTime     @default(now())
 
   @@index([trdrId])
   @@index([documentTypeId])
+  @@index([programId])
 }
 
 // ============================================================

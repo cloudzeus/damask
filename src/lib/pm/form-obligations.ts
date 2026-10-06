@@ -57,7 +57,12 @@ export async function propagateRequiredFormObligation(formId: string): Promise<{
   const dossierByTrdr = new Map<string, { name: string; storageKey: string; mimeType: string | null; sizeBytes: number | null; expiresAt: Date | null }>()
   if (form.documentTypeId) {
     const dossierDocs = await prisma.trdrDossierDocument.findMany({
-      where: { trdrId: { in: newApps.map(a => a.trdrId) }, documentTypeId: form.documentTypeId },
+      // Έγγραφα «μόνο για άλλο πρόγραμμα» (reusable=false) δεν καλύπτουν αυτό.
+      where: {
+        trdrId: { in: newApps.map(a => a.trdrId) },
+        documentTypeId: form.documentTypeId,
+        OR: [{ reusable: true }, { programId: null }, { programId: form.programId }],
+      },
       orderBy: { createdAt: 'desc' },
       select: { trdrId: true, name: true, storageKey: true, mimeType: true, sizeBytes: true, expiresAt: true },
     })
@@ -139,7 +144,12 @@ export async function seedFormObligationsForApplication(applicationId: string, p
   const dossierByType = new Map<string, { name: string; storageKey: string; mimeType: string | null; sizeBytes: number | null; expiresAt: Date | null }>()
   if (dossierTypeIds.length) {
     const dossierDocs = await prisma.trdrDossierDocument.findMany({
-      where: { trdrId: app.trdrId, documentTypeId: { in: dossierTypeIds } },
+      // Έγγραφα «μόνο για άλλο πρόγραμμα» (reusable=false) δεν καλύπτουν αυτό.
+      where: {
+        trdrId: app.trdrId,
+        documentTypeId: { in: dossierTypeIds },
+        OR: [{ reusable: true }, { programId: null }, { programId }],
+      },
       orderBy: { createdAt: 'desc' },
       select: { documentTypeId: true, name: true, storageKey: true, mimeType: true, sizeBytes: true, expiresAt: true },
     })

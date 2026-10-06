@@ -5,8 +5,6 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
-import { deepseekChat } from '@/lib/deepseek'
-import { parseJsonLoose } from '@/lib/ocr/extract'
 
 /**
  * Τύποι δικαιολογητικών (ελαφρύς κατάλογος) + αποθήκη δικαιολογητικών ανά πελάτη.
@@ -55,6 +53,9 @@ export type DossierDocItem = {
   /** παράγωγο: έχει λήξει (expiresAt < σήμερα). */
   expired: boolean
   createdAt: string
+  programId: string | null
+  programTitle: string | null
+  reusable: boolean
 }
 
 export async function listTrdrDossier(trdrId: string): Promise<DossierDocItem[]> {
@@ -62,7 +63,7 @@ export async function listTrdrDossier(trdrId: string): Promise<DossierDocItem[]>
   const rows = await prisma.trdrDossierDocument.findMany({
     where: { trdrId },
     orderBy: { createdAt: 'desc' },
-    include: { documentType: { select: { name: true, expires: true } } },
+    include: { documentType: { select: { name: true, expires: true } }, program: { select: { title: true } } },
   })
   const now = Date.now()
   return rows.map(r => ({
@@ -77,12 +78,22 @@ export async function listTrdrDossier(trdrId: string): Promise<DossierDocItem[]>
     expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
     expired: r.expiresAt ? r.expiresAt.getTime() < now : false,
     createdAt: r.createdAt.toISOString(),
+    programId: r.programId,
+    programTitle: r.program?.title ?? null,
+    reusable: r.reusable,
   }))
 }
 
 export async function uploadTrdrDossierDoc(
   trdrId: string,
-  input: { documentTypeId: string; name: string; base64: string; mimeType: string; ext: string; issuedAt?: string | null; expiresAt?: string | null },
+  input: {
+    documentTypeId: string; name: string; base64: string; mimeType: string; ext: string
+    issuedAt?: string | null; expiresAt?: string | null
+    programId?: string | null; reusable?: boolean
+    /** Από την έξυπνη αναγνώριση: τι είχε προταθεί + απόσπασμα κειμένου → γίνεται
+     * παράδειγμα εκμάθησης (επιβεβαίωση ή διόρθωση). */
+    learn?: { predictedTypeId: string | null; snippet: string; fileName: string } | null
+  },
 ): Promise<{ id: string }> {
   const session = await requirePermission('customer.edit')
   const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { id: true } })
@@ -105,16 +116,31 @@ export async function uploadTrdrDossierDoc(
       sizeBytes: Buffer.byteLength(body),
       issuedAt: input.issuedAt ? new Date(input.issuedAt) : null,
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+      programId: input.programId || null,
+      reusable: input.reusable ?? true,
       uploadedById: session.user.id,
     },
   })
+  if (input.learn && (input.learn.snippet.trim() || input.learn.fileName.trim())) {
+    await prisma.documentClassificationExample.create({
+      data: {
+        documentTypeId: input.documentTypeId,
+        predictedTypeId: input.learn.predictedTypeId,
+        wasCorrect: input.learn.predictedTypeId === input.documentTypeId,
+        fileName: input.learn.fileName.slice(0, 200),
+        snippet: input.learn.snippet.slice(0, 1500),
+        trdrId,
+        createdById: session.user.id,
+      },
+    }).catch(() => { /* η εκμάθηση δεν μπλοκάρει ποτέ την αποθήκευση */ })
+  }
   revalidatePath(`/partners/${trdrId}`)
   return { id }
 }
 
 export async function updateTrdrDossierDoc(
   id: string,
-  input: { documentTypeId?: string; name?: string; issuedAt?: string | null; expiresAt?: string | null },
+  input: { documentTypeId?: string; name?: string; issuedAt?: string | null; expiresAt?: string | null; programId?: string | null; reusable?: boolean },
 ): Promise<void> {
   await requirePermission('customer.edit')
   const row = await prisma.trdrDossierDocument.findUniqueOrThrow({ where: { id }, select: { trdrId: true } })
@@ -125,6 +151,8 @@ export async function updateTrdrDossierDoc(
       ...(input.name !== undefined ? { name: input.name.trim() || 'Δικαιολογητικό' } : {}),
       ...(input.issuedAt !== undefined ? { issuedAt: input.issuedAt ? new Date(input.issuedAt) : null } : {}),
       ...(input.expiresAt !== undefined ? { expiresAt: input.expiresAt ? new Date(input.expiresAt) : null } : {}),
+      ...(input.programId !== undefined ? { programId: input.programId || null } : {}),
+      ...(input.reusable !== undefined ? { reusable: input.reusable } : {}),
     },
   })
   revalidatePath(`/partners/${row.trdrId}`)
@@ -137,33 +165,13 @@ export async function removeTrdrDossierDoc(id: string): Promise<void> {
   revalidatePath(`/partners/${row.trdrId}`)
 }
 
-// ── #1: AI classify δικαιολογητικού (τύπος + ημ. λήξης) ───────────────────────
-
-export type DossierClassify = { typeName: string | null; expiresAt: string | null }
-
-/** Διαβάζει την OCR σύνοψη ενός ανεβασμένου δικαιολογητικού και προτείνει (α)
- * τον τύπο από τον κατάλογο και (β) την ημ. λήξης (για τύπους που λήγουν, π.χ.
- * φορολογική/ασφαλιστική ενημερότητα). Ενδεικτικό — ο χρήστης επιβεβαιώνει. */
-export async function classifyDossierDocument(
-  input: { summary: string; types: { name: string; expires: boolean }[] },
-): Promise<{ ok: true; result: DossierClassify } | { ok: false; message: string }> {
-  await requirePermission('customer.edit')
-  const names = input.types.map(t => `${t.name}${t.expires ? ' (λήγει)' : ''}`).join(', ')
-  const messages = [
-    { role: 'system' as const, content: `Είσαι βοηθός αναγνώρισης ελληνικών επιχειρηματικών δικαιολογητικών. Με βάση τη σύνοψη ενός εγγράφου, εντόπισε (α) τον τύπο του από τον κατάλογο και (β) την ημερομηνία λήξης/ισχύος (μόνο αν ο τύπος λήγει — π.χ. φορολογική/ασφαλιστική ενημερότητα· ψάξε «ισχύει έως», «λήγει», «έως»). Διαθέσιμοι τύποι: ${names}. Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"type":"ακριβές όνομα τύπου από τον κατάλογο ή null","expiresAt":"YYYY-MM-DD ή null"}.` },
-    { role: 'user' as const, content: input.summary.slice(0, 4000) },
-  ]
-  try {
-    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 300, scope: 'OTHER', refType: 'dossier-classify' })
-    const p = parseJsonLoose(text) as { type?: unknown; expiresAt?: unknown } | null
-    // Αφαίρεση τυχόν annotation «(λήγει)» που echo-άρει το μοντέλο από τη λίστα.
-    const rawType = (typeof p?.type === 'string' ? p.type : '').replace(/\s*\([^)]*\)\s*$/, '').trim()
-    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9α-ω]+/gi, ' ').trim()
-    const hit = rawType ? input.types.find(t => norm(t.name) === norm(rawType)) : null
-    const rawExp = typeof p?.expiresAt === 'string' ? p.expiresAt.trim() : ''
-    const expiresAt = /^\d{4}-\d{2}-\d{2}$/.test(rawExp) ? rawExp : null
-    return { ok: true, result: { typeName: hit?.name ?? null, expiresAt } }
-  } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : 'Η αναγνώριση απέτυχε.' }
-  }
+/** Προγράμματα του πελάτη (για επιλογή «σε ποιο πρόγραμμα αναφέρεται»). */
+export async function listTrdrProgramsForDossier(trdrId: string): Promise<{ id: string; title: string }[]> {
+  await requirePermission('customer.view')
+  const apps = await prisma.programApplication.findMany({
+    where: { trdrId },
+    orderBy: { createdAt: 'desc' },
+    select: { program: { select: { id: true, title: true } } },
+  })
+  return apps.map(a => a.program)
 }
