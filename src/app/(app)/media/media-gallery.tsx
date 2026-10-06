@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
-import { Wand2 } from 'lucide-react'
+import { Wand2, UploadCloud } from 'lucide-react'
 import { FolderPanel } from './folder-panel'
 import { AssetToolbar } from './asset-toolbar'
 import { AssetGrid } from './asset-grid'
@@ -37,6 +38,54 @@ export function MediaGallery({
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [droppedFiles, setDroppedFiles] = useState<File[] | undefined>(undefined)
+  const [dragActive, setDragActive] = useState(false)
+
+  // Full-screen drag & drop: αρχεία που σέρνονται ΟΠΟΥΔΗΠΟΤΕ στη σελίδα → overlay,
+  // και στο drop ανοίγει η μεταφόρτωση στον τρέχοντα φάκελο. Μετρητής depth γιατί
+  // τα dragenter/dragleave πυροδοτούνται σε κάθε παιδί. Ανενεργό όταν είναι ήδη
+  // ανοιχτό το dialog (εκεί δουλεύει το δικό του dropzone).
+  useEffect(() => {
+    if (uploadOpen) return
+    let depth = 0
+    const hasFiles = (e: DragEvent) => !!e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')
+    const onEnter = (e: DragEvent) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      depth += 1
+      setDragActive(true)
+    }
+    const onOver = (e: DragEvent) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    }
+    const onLeave = (e: DragEvent) => {
+      if (!hasFiles(e)) return
+      depth = Math.max(0, depth - 1)
+      if (depth === 0) setDragActive(false)
+    }
+    const onDrop = (e: DragEvent) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      depth = 0
+      setDragActive(false)
+      const files = Array.from(e.dataTransfer?.files ?? [])
+      if (files.length === 0) return
+      setDroppedFiles(files)
+      setUploadOpen(true)
+    }
+    window.addEventListener('dragenter', onEnter)
+    window.addEventListener('dragover', onOver)
+    window.addEventListener('dragleave', onLeave)
+    window.addEventListener('drop', onDrop)
+    return () => {
+      window.removeEventListener('dragenter', onEnter)
+      window.removeEventListener('dragover', onOver)
+      window.removeEventListener('dragleave', onLeave)
+      window.removeEventListener('drop', onDrop)
+    }
+  }, [uploadOpen])
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickedImages, setPickedImages] = useState<CollectionImage[]>([])
 
@@ -196,11 +245,26 @@ export function MediaGallery({
 
       <UploadDialog
         open={uploadOpen}
-        onOpenChange={setUploadOpen}
+        onOpenChange={o => { setUploadOpen(o); if (!o) setDroppedFiles(undefined) }}
         folderId={selectedFolderId}
         folderLabel={selectedFolder?.name ?? 'Όλα τα αρχεία'}
         onUploaded={refresh}
+        initialFiles={droppedFiles}
       />
+
+      {/* Portal: ένα fixed μέσα στο page-transition transform θα «παγιδευόταν» (βλ. bulk-action-bar). */}
+      {dragActive && !uploadOpen && createPortal(
+        <div className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center bg-background/70 p-6 backdrop-blur-sm" aria-hidden>
+          <div className="flex w-full max-w-xl flex-col items-center gap-3 rounded-[28px] border-2 border-dashed border-primary bg-card/95 px-8 py-12 text-center shadow-xl">
+            <UploadCloud className="size-12 text-primary" strokeWidth={1.5} />
+            <p className="text-[1.125rem] font-bold">Άφησε τα αρχεία εδώ για μεταφόρτωση</p>
+            <p className="text-[0.8125rem] text-muted-foreground">
+              Προορισμός: «{selectedFolder?.name ?? 'Όλα τα αρχεία'}» · έως 100 MB ανά αρχείο
+            </p>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       <MediaPicker
         open={pickerOpen}

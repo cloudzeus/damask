@@ -9,12 +9,15 @@ export function UploadDialog({
   folderId,
   folderLabel,
   onUploaded,
+  initialFiles,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   folderId: string | null
   folderLabel: string
   onUploaded: () => void
+  /** Αρχεία από full-screen drop — ξεκινούν αμέσως. */
+  initialFiles?: File[]
 }) {
   function handleUploaded(assets: UploadedAsset[]) {
     if (assets.length > 0) onUploaded()
@@ -28,6 +31,8 @@ export function UploadDialog({
           <DialogDescription>Προορισμός: «{folderLabel}»</DialogDescription>
         </DialogHeader>
         <MassUploader
+          key={initialFiles?.length ? `drop-${initialFiles.length}-${initialFiles[0].name}-${initialFiles[0].lastModified}` : 'manual'}
+          initialFiles={initialFiles}
           pathPrefix={`media-gallery/${folderId ?? 'root'}`}
           folderId={folderId}
           onUploaded={handleUploaded}

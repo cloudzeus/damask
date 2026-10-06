@@ -32,6 +32,8 @@ export type MassUploaderProps = {
   maxConcurrent?: number
   /** Media Gallery: φάκελος προορισμού (MediaFolder.id) — προαιρετικό, default κανένας (ρίζα) */
   folderId?: string | null
+  /** Αρχεία που μπαίνουν αμέσως στην ουρά κατά το mount (π.χ. full-screen drop). */
+  initialFiles?: File[]
 }
 
 type UploadStatus = 'queued' | 'converting' | 'uploading' | 'done' | 'error'
@@ -75,7 +77,7 @@ function greekUploadError(status: number, body: unknown): string {
   return 'Η μεταφόρτωση απέτυχε.'
 }
 
-export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, maxConcurrent = 3, folderId = null }: MassUploaderProps) {
+export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, maxConcurrent = 3, folderId = null, initialFiles }: MassUploaderProps) {
   const [items, setItems] = useState<QueueItem[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -211,6 +213,16 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
     pendingQueueRef.current.push(...newItems.filter(it => it.status === 'queued').map(it => it.id))
     pump()
   }
+
+  // Μία φορά ανά mount: τα αρχεία του full-screen drop μπαίνουν στην ουρά. Μέσω
+  // microtask (όχι σύγχρονο setState στο σώμα του effect — react-hooks lint).
+  const seededRef = useRef(false)
+  useEffect(() => {
+    if (seededRef.current || !initialFiles?.length) return
+    seededRef.current = true
+    queueMicrotask(() => addFiles(initialFiles))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- σκόπιμα μόνο στο mount
+  }, [])
 
   function retry(id: string) {
     notifiedRef.current = false
