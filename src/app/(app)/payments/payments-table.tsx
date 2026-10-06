@@ -153,6 +153,7 @@ export function PaymentsTable({ payments, canManage }: { payments: PaymentRow[];
 
   return (
     <DataTable
+        searchable={false}
       tableId="payments"
       columns={columns}
       rows={filtered}

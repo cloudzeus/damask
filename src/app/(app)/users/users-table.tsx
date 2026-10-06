@@ -189,6 +189,7 @@ export function UsersTable({
 
   return (
     <DataTable
+        searchable={false}
       tableId="users"
       columns={columns}
       rows={filtered}

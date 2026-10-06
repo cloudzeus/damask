@@ -91,6 +91,7 @@ export function LegalPagesTable({ pages, canEdit }: { pages: LegalPageRow[]; can
 
   return (
     <DataTable
+        searchable={false}
       tableId="cms-legal"
       columns={columns}
       rows={filtered}

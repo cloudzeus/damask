@@ -115,6 +115,7 @@ export function PostsTable({ posts, canEdit }: { posts: PostRow[]; canEdit: bool
 
   return (
     <DataTable
+        searchable={false}
       tableId="cms-posts"
       columns={columns}
       rows={filtered}

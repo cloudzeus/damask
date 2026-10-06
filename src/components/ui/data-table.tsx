@@ -15,7 +15,7 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { Columns3, WrapText, ChevronRight } from 'lucide-react'
+import { Columns3, WrapText, ChevronRight, Search, X } from 'lucide-react'
 
 export type DataTableColumn<T> = {
   /** Σταθερό key — χρησιμοποιείται για persistence ορατότητας/πλάτους. */
@@ -36,7 +36,14 @@ export type DataTableColumn<T> = {
   headerLabel?: string
   /** Κρατά nowrap ακόμη και σε wrap mode (π.χ. αριθμητικοί κωδικοί). */
   nowrap?: boolean
+  /** Κείμενο για την ενσωματωμένη αναζήτηση. Default: η τιμή του `sortValue`. */
+  searchValue?: (row: T) => string | number | null | undefined
   className?: string
+}
+
+/** Πεζά + χωρίς τόνους — «Αθήνα» ταιριάζει με «αθηνα». */
+function fold(v: unknown): string {
+  return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
 type SortState = { columnId: string; dir: 'asc' | 'desc' } | null
@@ -68,6 +75,8 @@ export function DataTable<T>({
   fillHeight: _fillHeight,
   pageSize = 80,
   renderExpanded,
+  searchable = true,
+  searchPlaceholder = 'Αναζήτηση…',
 }: {
   tableId: string
   columns: DataTableColumn<T>[]
@@ -94,7 +103,12 @@ export function DataTable<T>({
   /** Αν οριστεί, κάθε γραμμή αποκτά λαβή ▸ που ανοίγει expanded panel από κάτω
    * (π.χ. υπο-λίστα). Το περιεχόμενο αποδίδεται lazy μόνο όταν ανοίγει. */
   renderExpanded?: (row: T) => React.ReactNode
+  /** Ενσωματωμένη αναζήτηση στη γραμμή εργαλείων (πάνω στα searchValue/sortValue
+   * των στηλών). false όταν η σελίδα έχει ήδη δική της αναζήτηση. */
+  searchable?: boolean
+  searchPlaceholder?: string
 }) {
+  const [query, setQuery] = React.useState('')
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
   const hasExpand = !!renderExpanded
   const [hidden, setHidden] = React.useState<Set<string>>(new Set())
@@ -140,7 +154,22 @@ export function DataTable<T>({
   const visibleColumns = columns.filter(c => !hidden.has(c.id))
   const hideableColumns = columns.filter(c => c.enableHide !== false)
 
+  const searchCols = columns.filter(c => c.searchValue || c.sortValue)
+  const showSearch = searchable && searchCols.length > 0
+  const filteredRows = React.useMemo(() => {
+    const q = fold(query.trim())
+    if (!showSearch || !q) return rows
+    const terms = q.split(/\s+/)
+    return rows.filter(r => {
+      const hay = searchCols.map(c => fold((c.searchValue ?? c.sortValue)!(r))).join(' ')
+      return terms.every(t => hay.includes(t))
+    })
+    // searchCols παράγεται από columns — αρκεί αυτό ως dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, query, showSearch, columns])
+
   const sortedRows = React.useMemo(() => {
+    const rows = filteredRows
     if (!sort) return rows
     const col = columns.find(c => c.id === sort.columnId)
     if (!col?.sortValue) return rows
@@ -156,7 +185,7 @@ export function DataTable<T>({
       if (typeof va === 'boolean' && typeof vb === 'boolean') return (Number(va) - Number(vb)) * dir
       return String(va).localeCompare(String(vb), 'el') * dir
     })
-  }, [rows, sort, columns])
+  }, [filteredRows, sort, columns])
 
   function toggleSort(col: DataTableColumn<T>) {
     if (!col.sortValue) return
@@ -222,6 +251,23 @@ export function DataTable<T>({
   return (
     <div className={cn(bare ? 'dt-bare' : 'glass table-card stagger', className)}>
       <div className="table-toolbar">
+        {showSearch && (
+          <label className="search dt-search">
+            <Search className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
+            <input
+              type="search"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setVisibleCount(pageSize) }}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery('')} aria-label="Καθαρισμός αναζήτησης" className="shrink-0 text-muted-foreground hover:text-foreground">
+                <X className="size-3.5" aria-hidden />
+              </button>
+            )}
+          </label>
+        )}
         {toolbarExtras}
         <div className="flex-1" />
         <button
@@ -376,7 +422,7 @@ export function DataTable<T>({
             {sortedRows.length === 0 && (
               <tr>
                 <td colSpan={visibleColumns.length + (hasExpand ? 1 : 0)} className="py-8 text-center text-muted-foreground">
-                  {emptyMessage}
+                  {query.trim() && rows.length > 0 ? `Κανένα αποτέλεσμα για «${query.trim()}».` : emptyMessage}
                 </td>
               </tr>
             )}

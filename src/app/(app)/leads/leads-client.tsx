@@ -193,6 +193,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
       </div>
 
       <DataTable
+        searchable={false}
         tableId="leads"
         columns={columns}
         rows={filtered}

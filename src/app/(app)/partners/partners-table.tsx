@@ -149,6 +149,7 @@ export function PartnersTable({ partners, referrerOptions }: { partners: Partner
 
   return (
     <DataTable
+        searchable={false}
       tableId="partners"
       columns={columns}
       rows={filtered}

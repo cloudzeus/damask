@@ -1874,3 +1874,6 @@ input[type='checkbox'] {
 .docx-preview table { border-collapse: collapse; margin: 0.6em 0; }
 .docx-preview td, .docx-preview th { border: 1px solid var(--border); padding: 4px 8px; }
 .docx-preview img { max-width: 100%; height: auto; }
+
+.dt-search { flex: 0 1 260px; min-width: 180px; height: 32px; }
+.dt-search input::-webkit-search-cancel-button { display: none; }
