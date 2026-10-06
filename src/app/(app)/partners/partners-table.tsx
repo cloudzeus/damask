@@ -8,6 +8,9 @@ import { BulkRegionMatchButton } from '@/components/trdr/bulk-region-match-butto
 import { BulkKadMatchButton } from '@/components/trdr/bulk-kad-match-button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
+import { PhoneLink } from '@/components/ui/phone-link'
+import { MapPin } from 'lucide-react'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 export type PartnerRow = {
   id: string
@@ -97,16 +100,21 @@ export function PartnersTable({ partners, referrerOptions }: { partners: Partner
       header: 'Περιφέρεια',
       width: 160,
       sortValue: p => p.regionName,
-      cell: p => (p.regionName ? <span className="badge-pill muted">{p.regionName}</span> : <span className="text-muted-foreground">—</span>),
+      cell: p => (p.regionName ? <span className="badge-pill place" title="Δήμος / Περιφέρεια"><MapPin className="size-2.5 shrink-0" strokeWidth={2.4} aria-hidden />{p.regionName}</span> : <span className="text-muted-foreground">—</span>),
     },
     {
       id: 'referrer',
       header: 'Σύσταση',
       width: 150,
       sortValue: p => p.referrerName,
-      cell: p => (p.referrerName ? <span className="badge-pill info">{p.referrerName}</span> : <span className="text-muted-foreground">—</span>),
+      cell: p => (p.referrerName ? (p.referrerName.length > 12 ? (
+        <Tooltip>
+          <TooltipTrigger render={<span className="badge-pill info cursor-default">{`${p.referrerName.slice(0, 12).trimEnd()}…`}</span>} />
+          <TooltipContent>{p.referrerName}</TooltipContent>
+        </Tooltip>
+      ) : <span className="badge-pill info">{p.referrerName}</span>) : <span className="text-muted-foreground">—</span>),
     },
-    { id: 'phone', header: 'Τηλέφωνο', width: 130, sortValue: p => p.phone, cell: p => p.phone ?? '—' },
+    { id: 'phone', header: 'Τηλέφωνο', width: 130, sortValue: p => p.phone, cell: p => <PhoneLink phone={p.phone} /> },
     { id: 'contacts', header: 'Επαφές', align: 'right', width: 90, sortValue: p => p.contactsCount, cell: p => p.contactsCount },
     {
       id: 'status',

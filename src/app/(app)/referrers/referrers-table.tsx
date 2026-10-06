@@ -18,6 +18,7 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { createReferrer, updateReferrer, deleteReferrer, lookupReferrerAfm, type ReferrerRow, type ReferrerInput } from '@/lib/referrers/actions'
 import { ReferralEligibilityDialog } from './referral-eligibility-dialog'
 import { ReferrerExpandPanel } from './referrer-expand-panel'
+import { PhoneLink } from '@/components/ui/phone-link'
 
 type ReferrerTypeValue = 'COMPANY' | 'INDIVIDUAL'
 
@@ -83,7 +84,7 @@ export function ReferrersTable({ rows, canManage }: { rows: ReferrerRow[]; canMa
       cell: r => <span className="badge-pill muted">{TYPE_LABEL[r.type as ReferrerTypeValue]}</span>,
     },
     { id: 'email', header: 'Email', width: 200, sortValue: r => r.email, cell: r => r.email ?? '—' },
-    { id: 'phone', header: 'Τηλέφωνο', width: 140, sortValue: r => r.phone, cell: r => r.phone ?? '—' },
+    { id: 'phone', header: 'Τηλέφωνο', width: 140, sortValue: r => r.phone, cell: r => <PhoneLink phone={r.phone} /> },
     { id: 'afm', header: 'ΑΦΜ', width: 120, sortValue: r => r.afm, cell: r => <span className="tabular-nums">{r.afm ?? '—'}</span> },
     { id: 'referred', header: 'Πελάτες', align: 'right', width: 100, sortValue: r => r.referredCount, cell: r => r.referredCount },
     {

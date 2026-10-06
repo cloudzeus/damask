@@ -15,6 +15,7 @@ import {
   adminSubscribe, adminUnsubscribe, getUnsubscribeUrl,
   type SubscriberRow, type LeadRequestRow, type ConsentRow,
 } from '@/lib/newsletter/actions'
+import { PhoneLink } from '@/components/ui/phone-link'
 
 /**
  * Διαχείριση Newsletter (admin) — τρεις καρτέλες: Εγγεγραμμένοι, δημόσια
@@ -300,7 +301,7 @@ function RequestsTab({ rows }: { rows: LeadRequestRow[] }) {
       header: 'Τηλέφωνο',
       width: 140,
       sortValue: r => r.phone,
-      cell: r => <span className="tabular-nums">{r.phone}</span>,
+      cell: r => <PhoneLink phone={r.phone} />,
     },
     {
       id: 'status',

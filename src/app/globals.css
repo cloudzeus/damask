@@ -474,6 +474,14 @@
   color: #fff;
   background: #1f9d94;
 }
+/* Τοποθεσία (δήμος/περιφέρεια): ήπιο teal + εικονίδιο πινέζας — ξεχωρίζει από τα status badges. */
+.badge-pill.place {
+  color: #12746d;
+  background: color-mix(in oklab, #1f9d94 13%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, #1f9d94 35%, transparent);
+  gap: 3px;
+}
+.dark .badge-pill.place { color: #6fd6cd; }
 .badge-pill.danger {
   color: #fff;
   background: var(--coral);
@@ -1161,7 +1169,7 @@
 .data-table.dt-fixed td {
   overflow: hidden;
   text-overflow: ellipsis;
-  vertical-align: top;
+  vertical-align: middle;
   height: auto;
   padding: 9px 10px;
   /* Πυκνός, έντονος γκρι διαχωρισμός ανά γραμμή (ανά εταιρία) — αξιόπιστο στο td. */

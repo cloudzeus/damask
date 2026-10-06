@@ -6,6 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { roleColorVar } from '@/lib/role-meta'
 import { UserRowActions } from './row-actions'
+import { PhoneLink } from '@/components/ui/phone-link'
 
 export type UserRow = {
   id: string
@@ -138,7 +139,7 @@ export function UsersTable({
         </span>
       ),
     },
-    { id: 'phone', header: 'Τηλέφωνο', width: 130, sortValue: u => u.phone, cell: u => u.phone ?? '—' },
+    { id: 'phone', header: 'Τηλέφωνο', width: 130, sortValue: u => u.phone, cell: u => <PhoneLink phone={u.phone} /> },
     { id: 'city', header: 'Πόλη', width: 130, sortValue: u => u.city, cell: u => u.city ?? '—' },
     { id: 'connected', header: 'Συνδεδεμένος πελάτης', width: 180, sortValue: u => u.connectedLabel, cell: u => u.connectedLabel },
     { id: 'updated', header: 'Ενημερώθηκε', width: 140, sortValue: u => u.updatedLabel, cell: u => u.updatedLabel },
