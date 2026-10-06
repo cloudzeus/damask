@@ -100,7 +100,17 @@ export function PartnersTable({ partners, referrerOptions }: { partners: Partner
       header: 'Περιφέρεια',
       width: 160,
       sortValue: p => p.regionName,
-      cell: p => (p.regionName ? <span className="badge-pill place" title="Δήμος / Περιφέρεια"><MapPin className="size-2.5 shrink-0" strokeWidth={2.4} aria-hidden />{p.regionName}</span> : <span className="text-muted-foreground">—</span>),
+      cell: p => {
+        if (!p.regionName) return <span className="text-muted-foreground">—</span>
+        const pin = <MapPin className="size-2.5 shrink-0" strokeWidth={2.4} aria-hidden />
+        if (p.regionName.length <= 16) return <span className="badge-pill place">{pin}{p.regionName}</span>
+        return (
+          <Tooltip>
+            <TooltipTrigger render={<span className="badge-pill place cursor-default">{pin}{`${p.regionName.slice(0, 16).trimEnd()}…`}</span>} />
+            <TooltipContent>{p.regionName}</TooltipContent>
+          </Tooltip>
+        )
+      },
     },
     {
       id: 'referrer',
