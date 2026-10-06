@@ -31,7 +31,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
       include: {
         contacts: { orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }] },
         kads: { orderBy: [{ kind: 'asc' }, { order: 'asc' }] },
-        documents: { orderBy: { createdAt: 'desc' } },
+        documents: { orderBy: [{ dateAnnounced: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }] },
       },
     }),
     getMapsClientConfig(),
@@ -83,12 +83,18 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
     licensed: licensedCodes.has(k.code),
   }))
 
+  const DMY = { day: '2-digit', month: '2-digit', year: 'numeric' } as const
   const documentRows: TrdrDocumentRow[] = trdr.documents.map(d => ({
     id: d.id,
     title: d.title,
     docKind: d.docKind,
-    createdAtLabel: d.createdAt.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    // Η ουσιαστική ημ/νία είναι της ανακοίνωσης στο ΓΕΜΗ (ίδια με το modal
+    // «Προβολή εγγράφων ΓΕΜΗ»)· η ημ/νία μεταφόρτωσης μόνο ως fallback.
+    dateLabel: d.dateAnnounced
+      ? `Ανακοίνωση: ${d.dateAnnounced.toLocaleDateString('el-GR', DMY)}`
+      : `Καταχωρίστηκε: ${d.createdAt.toLocaleDateString('el-GR', DMY)}`,
     downloadable: d.storageKey !== null,
+    mimeType: d.mimeType,
   }))
 
   const dateLabel = (d: Date | null) => d ? d.toLocaleDateString('el-GR') : null

@@ -321,26 +321,31 @@ export async function translatePostToEnglish(postId: string): Promise<ActionResu
     return { ok: false, message: e instanceof Error ? e.message : 'Η μετάφραση απέτυχε.' }
   }
 
-  await prisma.postTranslation.upsert({
-    where: { postId_locale: { postId, locale: 'en' } },
-    update: {
-      title: translated.title,
-      excerpt: emptyToNull(translated.excerpt),
-      body: translated.body,
-      seoTitle: emptyToNull(translated.seoTitle),
-      seoDescription: emptyToNull(translated.seoDescription),
-      machineTranslated: true,
-    },
-    create: {
-      postId, locale: 'en',
-      title: translated.title,
-      excerpt: emptyToNull(translated.excerpt),
-      body: translated.body,
-      seoTitle: emptyToNull(translated.seoTitle),
-      seoDescription: emptyToNull(translated.seoDescription),
-      machineTranslated: true,
-    },
-  })
+  // Η μετάφραση γράφει στο PostTranslation· το Post.updatedAt (που δείχνει η
+  // λίστα ως «τελευταία ενημέρωση») δεν άλλαζε. Ενημέρωσέ το ρητά, ατομικά.
+  await prisma.$transaction([
+    prisma.postTranslation.upsert({
+      where: { postId_locale: { postId, locale: 'en' } },
+      update: {
+        title: translated.title,
+        excerpt: emptyToNull(translated.excerpt),
+        body: translated.body,
+        seoTitle: emptyToNull(translated.seoTitle),
+        seoDescription: emptyToNull(translated.seoDescription),
+        machineTranslated: true,
+      },
+      create: {
+        postId, locale: 'en',
+        title: translated.title,
+        excerpt: emptyToNull(translated.excerpt),
+        body: translated.body,
+        seoTitle: emptyToNull(translated.seoTitle),
+        seoDescription: emptyToNull(translated.seoDescription),
+        machineTranslated: true,
+      },
+    }),
+    prisma.post.update({ where: { id: postId }, data: { updatedAt: new Date() } }),
+  ])
 
   revalidatePosts()
   return { ok: true, message: 'Η αγγλική μετάφραση ενημερώθηκε.' }
@@ -607,9 +612,15 @@ export async function translateCategoryNameDraft(nameEl: string): Promise<
 // Συγγραφείς (Author)
 // ══════════════════════════════════════════════════════════════════════════
 
+const AUTHOR_NAME_MAX = 150
+const AUTHOR_BIO_MAX = 2000
+
 const authorFormSchema = z.object({
-  name: z.string().trim().min(1, 'Συμπλήρωσε όνομα.').max(150),
-  bio: z.string().trim().max(2000),
+  name: z.string().trim()
+    .min(1, 'Συμπλήρωσε όνομα.')
+    .max(AUTHOR_NAME_MAX, `Το όνομα είναι πολύ μεγάλο — έως ${AUTHOR_NAME_MAX} χαρακτήρες.`),
+  bio: z.string().trim()
+    .max(AUTHOR_BIO_MAX, `Το βιογραφικό είναι πολύ μεγάλο — έως ${AUTHOR_BIO_MAX} χαρακτήρες. Γράψε μικρότερο κείμενο.`),
   avatarUrl: z.string().nullable(),
   userId: z.string().nullable(),
 })
@@ -617,15 +628,34 @@ const authorFormSchema = z.object({
 export type AuthorFormValues = { name: string; bio: string; avatarUrl: string | null; userId: string | null }
 
 const DUPLICATE_AUTHOR_USER_MESSAGE = 'Αυτός ο χρήστης είναι ήδη συνδεδεμένος με άλλον συγγραφέα.'
+const DUPLICATE_AUTHOR_NAME_MESSAGE = 'Υπάρχει ήδη συγγραφέας με αυτό το όνομα.'
+
+/** Το ΠΡΑΓΜΑΤΙΚΟ πρώτο μήνυμα σφάλματος (όχι γενικό «Συμπλήρωσε το όνομα»). */
+function authorValidationMessage(error: z.ZodError): string {
+  return error.issues[0]?.message ?? 'Έλεγξε τα πεδία της φόρμας.'
+}
+
+/** Διπλοεγγραφή ονόματος (case/accents-insensitive), εξαιρώντας τον εαυτό του σε update. */
+async function authorNameTaken(name: string, exceptId?: string): Promise<boolean> {
+  const found = await prisma.author.findFirst({
+    where: { name: { equals: name, mode: 'insensitive' }, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { id: true },
+  })
+  return !!found
+}
 
 export async function createAuthor(values: AuthorFormValues): Promise<ActionResult> {
   await requirePermission('cms.edit')
 
   const parsed = authorFormSchema.safeParse(values)
   if (!parsed.success) {
-    return { ok: false, message: 'Συμπλήρωσε το όνομα.', fieldErrors: fieldErrorsFromZod(parsed.error) }
+    return { ok: false, message: authorValidationMessage(parsed.error), fieldErrors: fieldErrorsFromZod(parsed.error) }
   }
   const data = parsed.data
+
+  if (await authorNameTaken(data.name)) {
+    return { ok: false, message: DUPLICATE_AUTHOR_NAME_MESSAGE, fieldErrors: { name: DUPLICATE_AUTHOR_NAME_MESSAGE } }
+  }
 
   if (data.userId) {
     const user = await prisma.user.findUnique({ where: { id: data.userId } })
@@ -651,12 +681,16 @@ export async function updateAuthor(authorId: string, values: AuthorFormValues): 
 
   const parsed = authorFormSchema.safeParse(values)
   if (!parsed.success) {
-    return { ok: false, message: 'Συμπλήρωσε το όνομα.', fieldErrors: fieldErrorsFromZod(parsed.error) }
+    return { ok: false, message: authorValidationMessage(parsed.error), fieldErrors: fieldErrorsFromZod(parsed.error) }
   }
   const data = parsed.data
 
   const existing = await prisma.author.findUnique({ where: { id: authorId } })
   if (!existing) return { ok: false, message: 'Ο συγγραφέας δεν βρέθηκε.' }
+
+  if (await authorNameTaken(data.name, authorId)) {
+    return { ok: false, message: DUPLICATE_AUTHOR_NAME_MESSAGE, fieldErrors: { name: DUPLICATE_AUTHOR_NAME_MESSAGE } }
+  }
 
   if (data.userId) {
     const user = await prisma.user.findUnique({ where: { id: data.userId } })

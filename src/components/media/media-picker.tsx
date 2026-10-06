@@ -200,7 +200,9 @@ export function MediaPicker({
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col gap-2 overflow-hidden">
-                <label className="search shrink-0">
+                {/* flex:none — η global .search έχει flex:1 (για το topbar)· μέσα σε
+                    flex-col αυτό την μεγάλωνε ΚΑΘΕΤΑ, μοιράζοντας ύψος με το grid. */}
+                <label className="search" style={{ flex: 'none' }}>
                   <Search className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
                   <input
                     value={queryInput}

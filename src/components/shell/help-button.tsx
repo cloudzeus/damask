@@ -70,7 +70,6 @@ export function HelpButton() {
                 <li key={i} className="flex items-center gap-2 text-[0.8125rem]">
                   <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[0.6875rem] font-bold text-primary tabular-nums">{i + 1}</span>
                   <span className="text-foreground">{f}</span>
-                  {i < FLOW.length - 1 && <ArrowRight className="ml-auto size-3 shrink-0 text-muted-foreground" aria-hidden />}
                 </li>
               ))}
             </ol>

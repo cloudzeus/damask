@@ -1,8 +1,7 @@
-import { Users, Clock3, Compass, ShieldCheck, Download } from 'lucide-react'
+import { Users, Clock3, Compass, ShieldCheck } from 'lucide-react'
 import { requirePermission } from '@/lib/rbac-server'
 import { prisma } from '@/lib/prisma'
 import { relativeTime } from '@/lib/relative-time'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UsersTable, type UserRow } from './users-table'
 import { AccessRequestsPanel, type AccessRequestRow } from './access-requests'
 import { NewUserButton } from './new-user-button'
@@ -126,24 +125,7 @@ export default async function UsersPage() {
         breadcrumb={<>Διαχείριση <span aria-hidden>›</span></>}
         title="Χρήστες"
         actions={
-          <>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    className="btn-pill btn-glass"
-                    aria-disabled="true"
-                    style={{ opacity: 0.6, cursor: 'default' }}
-                  >
-                    <Download className="size-3.5" strokeWidth={1.8} aria-hidden /> Λήψη Excel
-                  </button>
-                }
-              />
-              <TooltipContent>Έρχεται με το Import/Export Engine (Φάση 2)</TooltipContent>
-            </Tooltip>
-            <NewUserButton roles={roles} />
-          </>
+          <NewUserButton roles={roles} />
         }
       />
 

@@ -374,6 +374,13 @@ function FolderNameDialog({
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
+  // Reset σε κάθε άνοιγμα (το onOpenChange ΔΕΝ καλείται όταν ανοίγει μέσω prop).
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) { setName(initialName); setError(null) }
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     startTransition(async () => {
@@ -394,10 +401,7 @@ function FolderNameDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={next => {
-        onOpenChange(next)
-        if (next) { setName(initialName); setError(null) }
-      }}
+      onOpenChange={onOpenChange}
     >
       <DialogContent className="glass sm:max-w-[420px]">
         <DialogHeader>

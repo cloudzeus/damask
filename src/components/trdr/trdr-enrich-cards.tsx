@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { RefreshCw, BadgeCheck, Download, Trash2, ScanEye, LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
+import { DocumentPreviewButton } from '@/components/ui/document-preview'
 import { removeTrdrDocument } from '@/lib/trdr/enrich-actions'
 import { GemiSyncConfirmDialog } from './gemi-sync-dialog'
 import { AadeCheckDialog } from './aade-check-dialog'
@@ -152,8 +153,10 @@ export type TrdrDocumentRow = {
   id: string
   title: string
   docKind: 'DECISION' | 'PUBLICATION' | 'OTHER'
-  createdAtLabel: string
+  /** «Ανακοίνωση: dd/mm/yyyy» (ΓΕΜΗ) ή fallback «Καταχωρίστηκε: …». */
+  dateLabel: string
   downloadable: boolean
+  mimeType: string | null
 }
 
 const DOC_KIND_LABEL: Record<TrdrDocumentRow['docKind'], string> = {
@@ -209,12 +212,21 @@ export function TrdrDocumentsCard({
                   <span className="badge-pill muted shrink-0">{DOC_KIND_LABEL[doc.docKind]}</span>
                   <b className="truncate text-[0.8125rem]">{doc.title}</b>
                 </div>
-                <div className="mt-0.5 text-[0.71875rem] text-muted-foreground">{doc.createdAtLabel}</div>
+                <div className="mt-0.5 text-[0.71875rem] text-muted-foreground">{doc.dateLabel}</div>
               </div>
               {doc.downloadable && (
-                <a href={`/partners/${trdrId}/documents/${doc.id}`} className="btn-pill btn-glass h-8 px-3 text-[0.75rem]">
-                  <Download className="size-3.5" aria-hidden /> Λήψη
-                </a>
+                <>
+                  <DocumentPreviewButton
+                    url={`/partners/${trdrId}/documents/${doc.id}`}
+                    name={doc.mimeType === 'application/pdf' && !/\.pdf$/i.test(doc.title) ? `${doc.title}.pdf` : doc.title}
+                    mimeType={doc.mimeType}
+                    label="Προβολή"
+                    className="btn-pill btn-glass h-8 px-3 text-[0.75rem]"
+                  />
+                  <a href={`/partners/${trdrId}/documents/${doc.id}`} className="btn-pill btn-glass h-8 px-3 text-[0.75rem]">
+                    <Download className="size-3.5" aria-hidden /> Λήψη
+                  </a>
+                </>
               )}
               <Button
                 type="button" variant="ghost" size="icon-sm" disabled={deletingId === doc.id}

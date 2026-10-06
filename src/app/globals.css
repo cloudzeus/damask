@@ -1435,6 +1435,22 @@ input[type='checkbox'] {
   transition: background 0.15s, color 0.15s;
   z-index: 2;
 }
+/* «Stretched button»: το body button (all:unset → πλάτος = περιεχόμενο) έπιανε
+   κλικ μόνο πάνω στο κείμενο (μέση/αριστερά). Το ::before καλύπτει όλη την κάρτα
+   (ο πλησιέστερος positioned πρόγονος είναι το .role-card), ώστε ΟΛΗ να πατιέται. */
+.role-card-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.role-card-body:focus-visible::before {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+  border-radius: 14px;
+}
+.role-card::after { pointer-events: none; }
+.role-card-del { z-index: 2; }
 .role-card-del:hover {
   background: color-mix(in srgb, var(--destructive) 14%, transparent);
   color: var(--destructive);

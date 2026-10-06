@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { isConvertibleImage, processImageToWebp } from '@/lib/image-processing'
+import { MEDIA_MAX_BYTES, tooLargeMessage } from '@/lib/media-limits'
 
 export type UploadedAsset = {
   id: string
@@ -68,6 +69,7 @@ function greekUploadError(status: number, body: unknown): string {
   if (body && typeof body === 'object' && 'error' in body && typeof (body as { error?: unknown }).error === 'string') {
     return (body as { error: string }).error
   }
+  if (status === 413) return tooLargeMessage(null)
   if (status === 401 || status === 403) return 'Δεν έχεις δικαίωμα μεταφόρτωσης.'
   if (status === 502) return 'Το BunnyCDN δεν αποκρίθηκε σωστά.'
   return 'Η μεταφόρτωση απέτυχε.'
@@ -190,21 +192,23 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
     const newItems: QueueItem[] = files.map(file => {
       const id = crypto.randomUUID()
       filesRef.current.set(id, file)
+      // Υπερμεγέθη αρχεία: σφάλμα αμέσως, χωρίς άσκοπο upload που θα κοβόταν.
+      const tooBig = file.size > MEDIA_MAX_BYTES
       return {
         id,
         name: file.name,
         mimeType: file.type,
-        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
-        status: 'queued',
+        previewUrl: !tooBig && file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+        status: tooBig ? 'error' : 'queued',
         progress: 0,
-        error: null,
+        error: tooBig ? tooLargeMessage(file.size) : null,
         originalSize: file.size,
         convertedSize: null,
         asset: null,
       }
     })
     setItems(prev => [...prev, ...newItems])
-    pendingQueueRef.current.push(...newItems.map(it => it.id))
+    pendingQueueRef.current.push(...newItems.filter(it => it.status === 'queued').map(it => it.id))
     pump()
   }
 
@@ -306,11 +310,13 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
 
           <ul className="flex flex-col divide-y divide-border rounded-lg border bg-card">
             {items.map(item => (
-              <li key={item.id} className="flex items-center gap-3 px-3 py-2">
+              <li key={item.id} className="flex min-w-0 items-center gap-3 px-3 py-2">
                 <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
                   {item.previewUrl ? (
+                    // width/height attrs: δεσμεύουν διαστάσεις πριν φορτώσει το blob, ώστε
+                    // μια φωτογραφία 4000px να μην «σπρώξει» προσωρινά το πλάτος του modal.
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.previewUrl} alt="" className="size-full object-cover" />
+                    <img src={item.previewUrl} alt="" width={44} height={44} className="size-full max-w-full object-cover" />
                   ) : item.mimeType.startsWith('video/') ? (
                     <Video className="size-5 text-muted-foreground" strokeWidth={1.75} />
                   ) : item.name.toLowerCase().endsWith('.glb') || item.name.toLowerCase().endsWith('.gltf') ? (
@@ -325,13 +331,13 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
                     <span className="truncate text-[0.8125rem] font-medium">{item.name}</span>
                     <StatusBadge status={item.status} />
                   </div>
-                  <div className="flex items-center justify-between gap-2 text-[0.75rem] text-muted-foreground">
-                    <span>
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 text-[0.75rem] text-muted-foreground">
+                    <span className="shrink-0">
                       {formatBytes(item.originalSize)}
                       {item.convertedSize != null && <> → {formatBytes(item.convertedSize)}</>}
                     </span>
                     {item.status === 'error' && item.error && (
-                      <span className="text-(--destructive)">{item.error}</span>
+                      <span className="min-w-0 break-words text-(--destructive)">{item.error}</span>
                     )}
                   </div>
                   {(item.status === 'uploading' || item.status === 'converting') && (

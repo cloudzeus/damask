@@ -17,7 +17,7 @@ export default async function PartnersPage() {
   monthStart.setDate(1)
   monthStart.setHours(0, 0, 0, 0)
 
-  const [trdrs, customerCount, supplierCount, leadCount, newThisMonth, mapsConfig, formOptions] = await Promise.all([
+  const [trdrs, customerCount, supplierCount, leadCount, newThisMonth, mapsConfig, formOptions, referrers] = await Promise.all([
     prisma.trdr.findMany({
       include: {
         _count: { select: { contacts: true } },
@@ -32,7 +32,18 @@ export default async function PartnersPage() {
     prisma.trdr.count({ where: { createdAt: { gte: monthStart } } }),
     getMapsClientConfig(),
     getPartnerFormOptions(),
+    // ΟΛΕΣ οι συστάσεις (εταιρίες + ιδιώτες) για το combobox φίλτρου.
+    prisma.referrer.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, type: true, active: true, _count: { select: { referred: true } } },
+    }),
   ])
+
+  const referrerOptions = referrers.map(r => ({
+    value: r.id,
+    label: r.name,
+    hint: `${r.type === 'COMPANY' ? 'Εταιρία' : 'Ιδιώτης'} · ${r._count.referred}${r.active ? '' : ' · ανενεργή'}`,
+  }))
 
   const partnerRows: PartnerRow[] = trdrs.map(t => ({
     id: t.id,
@@ -46,6 +57,7 @@ export default async function PartnersPage() {
     sodtype: t.SODTYPE,
     trdr: t.TRDR,
     regionName: t.region?.nameEL ?? null,
+    referrerId: t.referrerId,
     referrerName: t.referrer?.name ?? null,
   }))
 
@@ -100,7 +112,7 @@ export default async function PartnersPage() {
         ))}
       </div>
 
-      <PartnersTable partners={partnerRows} />
+      <PartnersTable partners={partnerRows} referrerOptions={referrerOptions} />
     </div>
   )
 }

@@ -184,6 +184,13 @@ function CategoryFormDialog({
     })
   }
 
+  // Reset σε κάθε άνοιγμα (το onOpenChange ΔΕΝ καλείται όταν ανοίγει μέσω prop).
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) { setValues({ nameEl: category?.nameEl ?? '', nameEn: category?.nameEn ?? '' }); setError(null) }
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     startTransition(async () => {
@@ -200,10 +207,7 @@ function CategoryFormDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={next => {
-        onOpenChange(next)
-        if (next) { setValues({ nameEl: category?.nameEl ?? '', nameEn: category?.nameEn ?? '' }); setError(null) }
-      }}
+      onOpenChange={onOpenChange}
     >
       <DialogContent className="glass sm:max-w-[480px]">
         <DialogHeader>

@@ -320,7 +320,9 @@ function UploadDialog({
             <label htmlFor="dsr-type">Τύπος δικαιολογητικού</label>
             <Select value={typeId} onValueChange={v => setTypeId(v ?? '')}>
               <SelectTrigger id="dsr-type" className="h-10 w-full rounded-full border-border bg-card px-3 text-[0.8125rem]">
-                <SelectValue placeholder="Επίλεξε…" />
+                <SelectValue placeholder="Επίλεξε…">
+                  {(v: string) => v === NEW_TYPE ? '+ Νέος τύπος…' : (types.find(t => t.id === v)?.name ?? 'Επίλεξε…')}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {types.map(t => <SelectItem key={t.id} value={t.id}>{t.name}{t.expires ? ' · (λήγει)' : ''}</SelectItem>)}

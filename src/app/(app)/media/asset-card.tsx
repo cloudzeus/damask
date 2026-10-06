@@ -80,17 +80,23 @@ export function AssetCard({
     else onOpenLightbox?.()
   }
 
-  function handleCheckboxClick(e: MouseEvent<HTMLInputElement>) {
-    e.preventDefault()
-    e.stopPropagation()
+  // Σε selection mode ΟΛΗ η κάρτα (εικόνα, checkbox, τίτλος) εναλλάσσει την
+  // επιλογή — ένα σημείο χειρισμού στο εξωτερικό div. Πριν, το πλαίσιο του
+  // checkbox έκανε stopPropagation χωρίς δική του λογική και ο τίτλος δεν είχε
+  // handler, οπότε μόνο η εικόνα αντιδρούσε.
+  function handleCardClick(e: MouseEvent<HTMLDivElement>) {
+    if (!selectionMode) return
     onToggleSelect?.(asset.id, e.shiftKey)
   }
 
   return (
-    <div className="lift group/card flex flex-col overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+    <div
+      className={`lift group/card flex flex-col overflow-hidden rounded-xl bg-card ring-1 ${selectionMode ? 'cursor-pointer' : ''} ${selected ? 'ring-2 ring-primary' : 'ring-foreground/10'}`}
+      onClick={handleCardClick}
+    >
       <div
         className="relative aspect-square w-full cursor-pointer overflow-hidden bg-muted"
-        onClick={e => handleThumbActivate(e.shiftKey)}
+        onClick={e => { if (!selectionMode) handleThumbActivate(e.shiftKey) }}
         role="button"
         tabIndex={0}
         onKeyDown={e => {
@@ -117,17 +123,17 @@ export function AssetCard({
           {MEDIA_KIND_LABEL[asset.type]}
         </span>
         {selectionMode ? (
-          <span
-            className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md bg-card/90 backdrop-blur-sm"
-            onClick={e => e.stopPropagation()}
-          >
+          <span className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md bg-card/90 backdrop-blur-sm">
             <input
               type="checkbox"
               checked={selected}
               readOnly
-              onClick={handleCheckboxClick}
-              className="select-check"
-              aria-label={`Επιλογή ${asset.name}`}
+              // preventDefault: η κατάσταση είναι controlled (selected)· το κλικ
+              // ανεβαίνει στο handleCardClick της κάρτας που κάνει το toggle.
+              onClick={e => e.preventDefault()}
+              tabIndex={-1}
+              className="select-check pointer-events-none"
+              aria-hidden
             />
           </span>
         ) : (
@@ -220,6 +226,13 @@ function RenameAssetDialog({
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
+  // Reset σε κάθε άνοιγμα (το onOpenChange ΔΕΝ καλείται όταν ανοίγει μέσω prop).
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) { setName(initialName); setError(null) }
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     startTransition(async () => {
@@ -235,7 +248,7 @@ function RenameAssetDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={next => { onOpenChange(next); if (next) { setName(initialName); setError(null) } }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle>Μετονομασία αρχείου</DialogTitle>
@@ -287,6 +300,12 @@ function MoveAssetDialog({
   const [pending, startTransition] = useTransition()
   const options = flattenFolders(buildFolderTree(folders))
 
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) setTarget(currentFolderId ?? ROOT_VALUE)
+  }
+
   function handleMove() {
     startTransition(async () => {
       const res = await moveAsset(assetId, target === ROOT_VALUE ? null : target)
@@ -301,7 +320,7 @@ function MoveAssetDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={next => { onOpenChange(next); if (next) setTarget(currentFolderId ?? ROOT_VALUE) }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle>Μετακίνηση σε φάκελο</DialogTitle>

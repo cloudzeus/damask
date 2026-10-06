@@ -5,6 +5,7 @@ import { can } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
 import { logApiUsage } from '@/lib/api-usage'
 import type { MediaType } from '@prisma/client'
+import { MEDIA_MAX_BYTES, tooLargeMessage } from '@/lib/media-limits'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -75,11 +76,18 @@ export async function POST(request: Request) {
     )
   }
 
+  // Έλεγχος μεγέθους ΠΡΙΝ το parse: ένα body πάνω από το όριο buffer του proxy
+  // κόβεται και το formData() σκάει με γενικό σφάλμα — δώσε σαφές μήνυμα.
+  const contentLength = Number(request.headers.get('content-length') ?? '')
+  if (Number.isFinite(contentLength) && contentLength > MEDIA_MAX_BYTES) {
+    return NextResponse.json({ error: tooLargeMessage(contentLength) }, { status: 413 })
+  }
+
   let formData: FormData
   try {
     formData = await request.formData()
   } catch {
-    return NextResponse.json({ error: 'Μη έγκυρα δεδομένα φόρμας.' }, { status: 400 })
+    return NextResponse.json({ error: 'Η ανάγνωση του αρχείου απέτυχε — δοκίμασε ξανά ή με μικρότερο αρχείο.' }, { status: 400 })
   }
 
   const file = formData.get('file')
@@ -87,6 +95,9 @@ export async function POST(request: Request) {
   const folderIdRaw = formData.get('folderId')
   if (!(file instanceof File)) {
     return NextResponse.json({ error: 'Δεν βρέθηκε αρχείο για μεταφόρτωση.' }, { status: 400 })
+  }
+  if (file.size > MEDIA_MAX_BYTES) {
+    return NextResponse.json({ error: tooLargeMessage(file.size) }, { status: 413 })
   }
   if (typeof path !== 'string') {
     return NextResponse.json({ error: 'Λείπει η διαδρομή προορισμού.' }, { status: 400 })

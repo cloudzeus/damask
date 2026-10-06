@@ -7,6 +7,7 @@ import { PartnerRowActions } from './partner-row-actions'
 import { BulkRegionMatchButton } from '@/components/trdr/bulk-region-match-button'
 import { BulkKadMatchButton } from '@/components/trdr/bulk-kad-match-button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
 
 export type PartnerRow = {
   id: string
@@ -20,6 +21,7 @@ export type PartnerRow = {
   sodtype: number
   trdr: number | null
   regionName: string | null
+  referrerId: string | null
   referrerName: string | null
 }
 
@@ -39,41 +41,38 @@ function LogoAvatar({ name, logoUrl }: { name: string; logoUrl: string | null })
   return <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">{initialsOf(name)}</span>
 }
 
-export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
+export function PartnersTable({ partners, referrerOptions }: { partners: PartnerRow[]; referrerOptions: ComboboxOption[] }) {
   const [tab, setTab] = useState<TabKey>('customers')
   const [query, setQuery] = useState('')
-  const [referrerFilter, setReferrerFilter] = useState<string>('')
+  const [referrerId, setReferrerId] = useState<string | null>(null)
 
-  const referrerOptions = useMemo(
-    () => [...new Set(partners.map(p => p.referrerName).filter((n): n is string => !!n))].sort((a, b) => a.localeCompare(b, 'el')),
-    [partners],
-  )
-
-  const counts = useMemo(() => ({
-    customers: partners.filter(p => p.sodtype === 13).length,
-    suppliers: partners.filter(p => p.sodtype === 12).length,
-    leads: partners.filter(p => p.isProsp).length,
-  }), [partners])
-
-  const byTab = useMemo(() => {
-    if (tab === 'suppliers') return partners.filter(p => p.sodtype === 12)
-    if (tab === 'leads') return partners.filter(p => p.isProsp)
-    return partners.filter(p => p.sodtype === 13)
-  }, [partners, tab])
-
-  const filtered = useMemo(() => {
+  // Φίλτρο σύστασης (combobox, με id) + αναζήτηση εφαρμόζονται ΠΡΩΤΑ· από το
+  // ίδιο σύνολο βγαίνουν ΚΑΙ οι μετρητές των tabs ΚΑΙ οι γραμμές. Η ελεύθερη
+  // αναζήτηση ΔΕΝ ψάχνει πλέον στο όνομα σύστασης — γι' αυτό υπάρχει το combobox.
+  const base = useMemo(() => {
     const q = query.trim().toLowerCase()
-    let rows = referrerFilter ? byTab.filter(p => p.referrerName === referrerFilter) : byTab
+    let rows = referrerId ? partners.filter(p => p.referrerId === referrerId) : partners
     if (q) {
       rows = rows.filter(p =>
         p.name.toLowerCase().includes(q)
         || (p.afm ?? '').includes(q)
-        || (p.city ?? '').toLowerCase().includes(q)
-        || (p.referrerName ?? '').toLowerCase().includes(q),
+        || (p.city ?? '').toLowerCase().includes(q),
       )
     }
     return rows
-  }, [byTab, query, referrerFilter])
+  }, [partners, query, referrerId])
+
+  const counts = useMemo(() => ({
+    customers: base.filter(p => p.sodtype === 13).length,
+    suppliers: base.filter(p => p.sodtype === 12).length,
+    leads: base.filter(p => p.isProsp).length,
+  }), [base])
+
+  const filtered = useMemo(() => {
+    if (tab === 'suppliers') return base.filter(p => p.sodtype === 12)
+    if (tab === 'leads') return base.filter(p => p.isProsp)
+    return base.filter(p => p.sodtype === 13)
+  }, [base, tab])
 
   const columns: DataTableColumn<PartnerRow>[] = [
     {
@@ -178,16 +177,15 @@ export function PartnersTable({ partners }: { partners: PartnerRow[] }) {
             Leads <span className="cnt">{counts.leads}</span>
           </button>
           {referrerOptions.length > 0 && (
-            <select
-              className="pill"
-              value={referrerFilter}
-              onChange={e => setReferrerFilter(e.target.value)}
-              aria-label="Φίλτρο ανά εταιρία παραπομπής"
-              title="Εταιρία παραπομπής"
-            >
-              <option value="">Όλες οι παραπομπές</option>
-              {referrerOptions.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <Combobox
+              options={referrerOptions}
+              value={referrerId}
+              onChange={setReferrerId}
+              placeholder="Όλες οι συστάσεις"
+              ariaLabel="Φίλτρο ανά σύσταση (εταιρία ή ιδιώτης)"
+              emptyText="Δεν βρέθηκε σύσταση."
+              className="w-60"
+            />
           )}
           <BulkKadMatchButton />
           <BulkRegionMatchButton />

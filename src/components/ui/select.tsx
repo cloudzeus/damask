@@ -6,7 +6,41 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+/**
+ * Συλλέγει αναδρομικά τα <SelectItem value=…>label</SelectItem> από τα children,
+ * ώστε το Root να γνωρίζει την αντιστοίχιση τιμή→ετικέτα (`items`). Χωρίς αυτό,
+ * ένα <SelectValue /> χωρίς renderer δείχνει την ωμή τιμή (π.χ. cuid) αντί για
+ * το όνομα — συστημικό bug που επηρέαζε ~28 σημεία της εφαρμογής.
+ */
+function collectSelectItems(node: React.ReactNode, out: Record<string, React.ReactNode>) {
+  React.Children.forEach(node, child => {
+    if (!React.isValidElement(child)) return
+    const props = child.props as { value?: unknown; children?: React.ReactNode }
+    if (child.type === SelectItem && typeof props.value === "string") {
+      out[props.value] = props.children
+    } else if (props.children != null) {
+      collectSelectItems(props.children, out)
+    }
+  })
+}
+
+function Select<Value, Multiple extends boolean | undefined = false>({
+  items,
+  children,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  let resolvedItems = items
+  if (resolvedItems === undefined) {
+    const collected: Record<string, React.ReactNode> = {}
+    collectSelectItems(children, collected)
+    if (Object.keys(collected).length > 0) resolvedItems = collected
+  }
+  return (
+    <SelectPrimitive.Root items={resolvedItems} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (

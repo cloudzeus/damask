@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
       // (~1.37×) ≈ 11MB body, άνετα κάτω από το 12mb όριο.
       bodySizeLimit: '12mb',
     },
+    // Το proxy (src/proxy.ts) κάνει buffer το request body· default 10MB → πάνω
+    // από αυτό το body κόβεται και το formData() στο /api/media/upload αποτύγχανε
+    // με «Μη έγκυρα δεδομένα φόρμας». Συγχρονισμένο με MEDIA_MAX_BYTES (src/lib/media-limits.ts).
+    proxyClientMaxBodySize: '105mb',
   },
 }
 

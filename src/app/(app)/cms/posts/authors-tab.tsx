@@ -32,6 +32,8 @@ export type AuthorRow = {
 type UserOption = { id: string; name: string }
 
 const NO_USER = '__none__'
+/** Ίδιο όριο με το authorFormSchema (actions.ts) — μετρητής χαρακτήρων στο bio. */
+const BIO_MAX = 2000
 
 export function AuthorsTab({ authors, users, canEdit }: { authors: AuthorRow[]; users: UserOption[]; canEdit: boolean }) {
   const [createOpen, setCreateOpen] = useState(false)
@@ -205,6 +207,15 @@ function AuthorFormDialog({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pending, startTransition] = useTransition()
 
+  // Reset σε ΚΑΘΕ άνοιγμα. Το Base UI ΔΕΝ καλεί onOpenChange όταν ο γονέας
+  // ανοίγει το dialog μέσω του `open` prop, οπότε το reset εκεί δεν έτρεχε και
+  // η φόρμα «Νέος συγγραφέας» κρατούσε τα πεδία/εικόνα του προηγούμενου.
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) { setValues(toFormValues(author)); setFieldErrors({}) }
+  }
+
   function set<K extends keyof AuthorFormValues>(key: K, value: AuthorFormValues[K]) {
     setValues(v => ({ ...v, [key]: value }))
     setFieldErrors(e => {
@@ -232,10 +243,7 @@ function AuthorFormDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={next => {
-        onOpenChange(next)
-        if (next) { setValues(toFormValues(author)); setFieldErrors({}) }
-      }}
+      onOpenChange={onOpenChange}
     >
       <DialogContent className="glass max-h-[88vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-[520px]">
         <DialogHeader>
@@ -290,7 +298,12 @@ function AuthorFormDialog({
               onChange={e => set('bio', e.target.value)}
               placeholder="Σύντομο βιογραφικό…"
               rows={3}
+              aria-invalid={values.bio.trim().length > BIO_MAX || !!fieldErrors.bio}
             />
+            <div className={`mt-1 text-right text-[0.6875rem] tabular-nums ${values.bio.trim().length > BIO_MAX ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+              {values.bio.trim().length}/{BIO_MAX}
+            </div>
+            {fieldErrors.bio && <div className="error">{fieldErrors.bio}</div>}
           </div>
 
           <div className="field">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, Download } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { roleColorVar } from '@/lib/role-meta'
@@ -71,16 +71,30 @@ export function UsersTable({
     })
   }, [users, query, status])
 
+  /** Εξαγωγή των ΤΡΕΧΟΝΤΩΝ (φιλτραρισμένων) χρηστών σε .xlsx — client-side, δικά μας δεδομένα. */
+  async function exportExcel() {
+    const XLSX = await import('xlsx')
+    const data = filtered.map(u => ({
+      'Ονοματεπώνυμο': u.name,
+      'Email': u.email,
+      'Ρόλος': u.roleName,
+      'Κατάσταση': u.active ? 'Ενεργός' : 'Ανενεργός',
+      'Τηλέφωνο': u.phone ?? '',
+      'Κινητό': u.mobile ?? '',
+      'Διεύθυνση': u.address ?? '',
+      'Πόλη': u.city ?? '',
+      'Χώρα': u.country ?? '',
+      'Τελευταία σύνδεση': u.connectedLabel,
+      'Τελευταία ενημέρωση': u.updatedLabel,
+    }))
+    const ws = XLSX.utils.json_to_sheet(data)
+    ws['!cols'] = [{ wch: 28 }, { wch: 32 }, { wch: 16 }, { wch: 11 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 16 }, { wch: 12 }, { wch: 20 }, { wch: 20 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Χρήστες')
+    XLSX.writeFile(wb, `xristes-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
   const columns: DataTableColumn<UserRow>[] = [
-    {
-      id: 'select',
-      header: <input type="checkbox" aria-label="Επιλογή όλων" disabled />,
-      headerLabel: 'Επιλογή',
-      cell: user => <input type="checkbox" aria-label={`Επιλογή ${user.name}`} disabled />,
-      width: 34,
-      enableHide: false,
-      enableResize: false,
-    },
     {
       id: 'user',
       header: 'Χρήστης',
@@ -201,6 +215,15 @@ export function UsersTable({
           </button>
           <button type="button" className={`pill${status === 'inactive' ? ' on' : ''}`} onClick={() => setStatus('inactive')}>
             Ανενεργοί <span className="cnt">{inactiveCount}</span>
+          </button>
+          <button
+            type="button"
+            className="pill"
+            onClick={() => void exportExcel()}
+            disabled={filtered.length === 0}
+            title="Εξαγωγή των χρηστών που φαίνονται (με τα τρέχοντα φίλτρα) σε Excel"
+          >
+            <Download className="size-3.5" strokeWidth={1.8} aria-hidden /> Λήψη Excel
           </button>
         </>
       }
