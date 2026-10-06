@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-09T04:42:09.424Z",
+  "timestamp": "2026-10-06T22:51:59.104Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,9 +22,13 @@
     },
     {
       "status": "M",
-      "path": "src/lib/objects.ts"
+      "path": "src/app/globals.css"
+    },
+    {
+      "status": "M",
+      "path": "src/components/ui/data-table.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nf6640b3 feat(ux): Φάση Γ (μέρος) — DataTable cap, αναζήτηση Leads, clickable breadcrumbs\n3d197a7 feat(ux): Φάση Β — ομαδοποίηση tabs έργου σε φάσεις + tooltips ορολογίας\n071da66 feat(ux): Φάση Β (μέρος) — καθοδήγηση: πρώτα βήματα, βοήθεια, empty states, ετικέτες\n9fd3d6d feat(ux): Φάση Α — Κέντρο ελέγχου + actionable ειδοποιήσεις + καθολική αναζήτηση ⌘K\n31b6345 feat(pm): #5 έγγραφα αγοράς ως πραγματικό gate αποπληρωμής"
+  "context_notes": "Recent commits:\n74855aa feat(tables): χωρίς οριζόντιο scroll — οι στήλες που δεν χωρούν πάνε σε expandable panel ανά γραμμή\n7d5e236 feat(partners): ενοποιημένο δέντρο «Αρχεία» — Δικαιολογητικά (εταιρικά + φάκελος ανά πρόγραμμα με παραδοτέα) και ξεχωριστός φάκελος ΓΕΜΗ\n241b76b feat(tables): ενσωματωμένη αναζήτηση σε κάθε DataTable (χωρίς τόνους, πολλαπλοί όροι)\ne4536ad feat(tables): sticky επικεφαλίδες στο DataTable + φαρδύτερο dropdown γραμμής (μικρότερα, έντονα γράμματα)\nd0caed3 feat(layout): ένας μόνο κάθετος scroller — η σελίδα"
 }

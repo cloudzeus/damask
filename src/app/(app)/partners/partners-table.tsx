@@ -91,7 +91,7 @@ export function PartnersTable({ partners, referrerOptions }: { partners: Partner
         </Link>
       ),
     },
-    { id: 'city', header: 'Πόλη', width: 130, sortValue: p => p.city, cell: p => p.city ?? '—' },
+    { id: 'city', header: 'Πόλη', width: 130, sortValue: p => p.city, cell: p => <span className="text-[0.71875rem] font-medium text-muted-foreground">{p.city ?? '—'}</span> },
     {
       id: 'region',
       header: 'Περιφέρεια',
