@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useTransition, type MouseEvent, type ReactNode } from 'react'
 import {
   Folder, FileText, Download, Trash2, FolderPlus, ChevronRight, ArrowLeft, LoaderCircle, Upload,
-  Pencil, Copy, ExternalLink, Eye,
+  Pencil, Copy, ExternalLink, Eye, FolderLock, Info,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,32 +11,21 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
+import { DocumentPreviewDialog } from '@/components/ui/document-preview'
 import { FileDropzone, xhrUpload } from '@/components/ui/file-dropzone'
 import {
-  listTrdrFiles, deleteTrdrFile, createTrdrSubfolder, renameTrdrFile, type TrdrFilesListing, type BrowserFile,
+  listTrdrTree, deleteTrdrFile, createTrdrSubfolder, renameTrdrFile, type TrdrTreeListing, type BrowserFile,
 } from '@/lib/trdr/files'
 import { toast } from 'sonner'
 import { relativeTime } from '@/lib/relative-time'
 
 /**
- * Staff file browser μέσα στην καρτέλα πελάτη — περιηγείται στο πραγματικό
- * δέντρο φακέλων του πελάτη στο Bunny (documents/…, EuPrograms/<code>/…).
- * Λήψη / μεταφόρτωση στον τρέχοντα φάκελο / διαγραφή / δημιουργία υποφακέλου.
- * Όλο το data-fetching γίνεται μέσω των server actions του `lib/trdr/files`.
+ * Staff file browser μέσα στην καρτέλα πελάτη — ενοποιημένο δέντρο (βλ.
+ * `listTrdrTree`): «Δικαιολογητικά» (εταιρικά + ένας φάκελος ανά πρόγραμμα με
+ * δικαιολογητικά/παραδοτέα/αρχεία προγράμματος), «ΓΕΜΗ» ξεχωριστά, και οι
+ * υπόλοιποι φάκελοι αποθήκης. Τα αρχεία αποθήκης μετονομάζονται/διαγράφονται
+ * εδώ· οι εγγραφές (δικαιολογητικά/ΓΕΜΗ/παραδοτέα) μόνο προβάλλονται/κατεβαίνουν.
  */
-
-/** Φιλικές ελληνικές ετικέτες για γνωστά τμήματα διαδρομής· τα υπόλοιπα (ΑΦΜ,
- * κωδικοί προγραμμάτων) μένουν ως έχουν. */
-const SEGMENT_LABELS: Record<string, string> = {
-  documents: 'Έγγραφα',
-  gemi: 'ΓΕΜΗ',
-  services: 'Υπηρεσίες',
-  EuPrograms: 'Ευρωπαϊκά Προγράμματα',
-}
-
-function segmentLabel(name: string): string {
-  return SEGMENT_LABELS[name] ?? name
-}
 
 /** Inline variant του gated download URL — προβολή χωρίς λήψη. */
 const inlineUrl = (u: string) => `${u}${u.includes('?') ? '&' : '?'}disp=inline`
@@ -49,7 +38,8 @@ function formatSize(bytes: number): string {
 
 export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: boolean }) {
   const [subPath, setSubPath] = useState('')
-  const [listing, setListing] = useState<TrdrFilesListing | null>(null)
+  const [listing, setListing] = useState<TrdrTreeListing | null>(null)
+  const [recordPreview, setRecordPreview] = useState<BrowserFile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -82,7 +72,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
     setLoading(true)
     setError(false)
     try {
-      setListing(await listTrdrFiles(trdrId, subPath))
+      setListing(await listTrdrTree(trdrId, subPath))
     } catch {
       setError(true)
     } finally {
@@ -102,7 +92,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
       setError(false)
       setActionError(null)
       try {
-        const data = await listTrdrFiles(trdrId, subPath)
+        const data = await listTrdrTree(trdrId, subPath)
         if (!cancelled) setListing(data)
       } catch {
         if (!cancelled) setError(true)
@@ -114,15 +104,21 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
     return () => { cancelled = true }
   }, [trdrId, subPath])
 
+  const uploadSubPath = listing?.uploadSubPath ?? null
   const uploadFn = useCallback(
     (file: File, onProgress: (pct: number) => void, signal: AbortSignal) => {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('subPath', subPath)
+      fd.append('subPath', uploadSubPath ?? '')
       return xhrUpload(`/api/partners/${trdrId}/files/upload`, fd, onProgress, signal)
     },
-    [trdrId, subPath],
+    [trdrId, uploadSubPath],
   )
+
+  function preview(file: BrowserFile) {
+    if (file.kind === 'record') setRecordPreview(file)
+    else setViewer({ name: file.name, url: inlineUrl(file.downloadUrl) })
+  }
 
   function handleDelete(file: BrowserFile) {
     if (!window.confirm(`Διαγραφή του αρχείου «${file.name}»; Η ενέργεια δεν αναιρείται.`)) return
@@ -139,7 +135,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
     if (!name) return
     setActionError(null)
     startTransition(async () => {
-      const res = await createTrdrSubfolder(trdrId, subPath, name)
+      const res = await createTrdrSubfolder(trdrId, uploadSubPath ?? '', name)
       if (!res.ok) { setActionError(res.error ?? 'Η δημιουργία φακέλου απέτυχε.'); return }
       setFolderOpen(false)
       setFolderName('')
@@ -179,11 +175,11 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
     })
   }
 
-  // Breadcrumb από τον normalized subPath του listing (με trailing slash).
-  const currentPath = listing?.subPath ?? ''
-  const segments = currentPath.split('/').filter(Boolean)
-  const parentPath = segments.slice(0, -1).join('/')
-  const atRoot = segments.length === 0
+  // Breadcrumb: έτοιμο από τον server (εικονικά + πραγματικά τμήματα).
+  const currentPath = listing?.path ?? ''
+  const crumbs = listing?.crumbs ?? [{ label: 'Αρχεία', path: '' }]
+  const parentPath = crumbs.length > 1 ? crumbs[crumbs.length - 2].path : ''
+  const atRoot = crumbs.length <= 1
 
   return (
     <div className="glass flex flex-col gap-3 rounded-[22px] p-4">
@@ -191,7 +187,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
         <h3 className="flex items-center gap-2 text-[0.9375rem] font-bold">
           <Folder className="size-4 text-muted-foreground" aria-hidden /> Αρχεία
         </h3>
-        {canEdit && (
+        {canEdit && listing?.canCreateFolder && (
           <Button type="button" variant="outline" onClick={() => { setFolderName(''); setFolderOpen(true) }}>
             <FolderPlus className="size-4" aria-hidden /> Νέος φάκελος
           </Button>
@@ -200,31 +196,23 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
 
       {/* Breadcrumb */}
       <nav aria-label="Διαδρομή φακέλων" className="flex flex-wrap items-center gap-1 text-sm">
-        <button
-          type="button"
-          onClick={() => setSubPath('')}
-          className="inline-flex min-h-9 items-center rounded-md px-2 font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-100"
-          disabled={atRoot}
-        >
-          Αρχεία
-        </button>
-        {segments.map((seg, i) => {
-          const path = segments.slice(0, i + 1).join('/')
-          const last = i === segments.length - 1
+        {crumbs.map((c, i) => {
+          const last = i === crumbs.length - 1
           return (
-            <span key={path} className="flex items-center gap-1">
-              <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
+            <span key={c.path || 'root'} className="flex items-center gap-1">
+              {i > 0 && <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />}
               <button
                 type="button"
-                onClick={() => setSubPath(path)}
+                onClick={() => setSubPath(c.path)}
                 aria-current={last ? 'page' : undefined}
+                disabled={last}
                 className={
                   last
-                    ? 'inline-flex min-h-9 items-center rounded-md px-2 font-semibold text-foreground'
+                    ? 'inline-flex min-h-9 items-center rounded-md px-2 font-semibold text-foreground disabled:opacity-100'
                     : 'inline-flex min-h-9 items-center rounded-md px-2 font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 }
               >
-                {segmentLabel(seg)}
+                {c.label}
               </button>
             </span>
           )
@@ -265,8 +253,13 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
                       onClick={() => setSubPath(folder.path)}
                       className="flex min-h-11 w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-muted/50"
                     >
-                      <Folder className="size-5 shrink-0 text-(--brass)" strokeWidth={1.75} aria-hidden />
-                      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{segmentLabel(folder.name)}</span>
+                      {folder.virtual
+                        ? <FolderLock className="size-5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden />
+                        : <Folder className="size-5 shrink-0 text-(--brass)" strokeWidth={1.75} aria-hidden />}
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate text-sm font-semibold">{folder.label ?? folder.name}</span>
+                        {folder.hint && <span className="truncate text-xs text-muted-foreground">{folder.hint}</span>}
+                      </span>
                       <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                     </button>
                   </li>
@@ -282,15 +275,15 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm font-medium">{file.name}</span>
                       <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                        <span className="tabular-nums">{formatSize(file.size)}</span>
-                        <span aria-hidden>·</span>
+                        {file.meta && <><span className="font-semibold text-foreground/70">{file.meta}</span><span aria-hidden>·</span></>}
+                        {file.size > 0 && <><span className="tabular-nums">{formatSize(file.size)}</span><span aria-hidden>·</span></>}
                         <span>{relativeTime(file.lastChanged)}</span>
                       </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => setViewer({ name: file.name, url: inlineUrl(file.downloadUrl) })}
+                        onClick={() => preview(file)}
                         className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         aria-label={`Προβολή ${file.name}`}
                         title="Προβολή"
@@ -305,7 +298,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
                       >
                         <Download className="size-4" aria-hidden />
                       </a>
-                      {canEdit && (
+                      {canEdit && file.kind !== 'record' && (
                         <Button
                           type="button"
                           variant="ghost"
@@ -332,7 +325,13 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
             </div>
           )}
 
-          {canEdit && (
+          {canEdit && uploadSubPath === null && listing?.uploadHint && (
+            <p className="flex items-start gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
+              <Info className="mt-px size-3.5 shrink-0" aria-hidden /> {listing.uploadHint}
+            </p>
+          )}
+
+          {canEdit && uploadSubPath !== null && (
             <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/20 p-3">
               <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                 <Upload className="size-3.5" aria-hidden /> Μεταφόρτωση στον τρέχοντα φάκελο
@@ -382,7 +381,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
           style={{ top: menu.y, left: menu.x }}
           onContextMenu={e => e.preventDefault()}
         >
-          <ContextItem icon={<Eye className="size-4" aria-hidden />} onClick={() => setViewer({ name: menu.file.name, url: inlineUrl(menu.file.downloadUrl) })}>
+          <ContextItem icon={<Eye className="size-4" aria-hidden />} onClick={() => preview(menu.file)}>
             Προβολή
           </ContextItem>
           <ContextItem icon={<Download className="size-4" aria-hidden />} onClick={() => { window.location.href = menu.file.downloadUrl }}>
@@ -394,7 +393,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
           <ContextItem icon={<Copy className="size-4" aria-hidden />} onClick={() => copyLink(menu.file)}>
             Αντιγραφή συνδέσμου
           </ContextItem>
-          {canEdit && (
+          {canEdit && menu.file.kind !== 'record' && (
             <>
               <ContextItem icon={<Pencil className="size-4" aria-hidden />} onClick={() => openRename(menu.file)}>
                 Μετονομασία
@@ -432,6 +431,15 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
       </Dialog>
 
       <FileViewerModal open={!!viewer} onOpenChange={o => { if (!o) setViewer(null) }} file={viewer} />
+      {recordPreview && (
+        <DocumentPreviewDialog
+          url={recordPreview.downloadUrl}
+          name={recordPreview.name}
+          mimeType={recordPreview.mimeType ?? null}
+          open
+          onOpenChange={o => { if (!o) setRecordPreview(null) }}
+        />
+      )}
     </div>
   )
 }
