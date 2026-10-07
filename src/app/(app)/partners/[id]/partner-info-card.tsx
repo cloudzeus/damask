@@ -17,6 +17,8 @@ type Field = {
   hint?: string | null
   /** πιάνει όλο το πλάτος (μεγάλα κείμενα, π.χ. δραστηριότητα) */
   wide?: boolean
+  /** μεγάλο κείμενο → μικρότερα γράμματα */
+  small?: boolean
 }
 
 type VerifyState =
@@ -59,7 +61,7 @@ export function PartnerInfoCard({
     { icon: Landmark, label: 'ΔΟΥ', value: irsdataName ?? irsdataCode, hint: irsdataName && irsdataCode ? `κωδ. ${irsdataCode}` : null },
     { icon: Briefcase, label: 'Νομική μορφή', value: legalForm },
     { icon: Briefcase, label: 'Κατηγορία', value: trdCategoryName },
-    { icon: Briefcase, label: 'Δραστηριότητα', value: jobtypetrd, wide: true },
+    { icon: Briefcase, label: 'Δραστηριότητα', value: jobtypetrd, wide: true, small: true },
     { icon: MapPin, label: 'Διεύθυνση', value: [address, city, zip].filter(Boolean).join(', ') || null },
     { icon: Globe, label: 'Χώρα', value: countryName },
     { icon: Phone, label: 'Τηλέφωνο', value: phone ? <PhoneLink phone={phone} /> : null },
@@ -112,7 +114,9 @@ export function PartnerInfoCard({
               </dt>
               <dd className={empty
                 ? 'text-[length:var(--fs-13)] text-muted-foreground/60'
-                : 'text-[length:var(--fs-14)] leading-snug font-semibold [overflow-wrap:anywhere] text-foreground'}
+                : f.small
+                  ? 'text-[length:var(--fs-12)] leading-snug font-semibold [overflow-wrap:anywhere] text-foreground'
+                  : 'text-[length:var(--fs-14)] leading-snug font-semibold [overflow-wrap:anywhere] text-foreground'}
               >
                 {empty ? '—' : f.value}
                 {!empty && f.hint && <span className="ml-2 text-[length:var(--fs-11)] font-medium text-muted-foreground">{f.hint}</span>}

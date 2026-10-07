@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-06T22:51:59.104Z",
+  "timestamp": "2026-10-07T05:25:12.133Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,13 +22,45 @@
     },
     {
       "status": "M",
-      "path": "src/app/globals.css"
+      "path": "prisma/schema.prisma"
     },
     {
       "status": "M",
-      "path": "src/components/ui/data-table.tsx"
+      "path": "src/app/(app)/partners/[id]/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/partners/[id]/partner-info-card.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/partners/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/ingestion/commit/partner-upsert.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/trdr/enrich-actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/trdr/irsdata.ts"
+    },
+    {
+      "status": "??",
+      "path": "prisma/migrations/20261007130000_doy_registry/"
+    },
+    {
+      "status": "??",
+      "path": "scripts/backfill-doy-country.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/trdr/country.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n74855aa feat(tables): χωρίς οριζόντιο scroll — οι στήλες που δεν χωρούν πάνε σε expandable panel ανά γραμμή\n7d5e236 feat(partners): ενοποιημένο δέντρο «Αρχεία» — Δικαιολογητικά (εταιρικά + φάκελος ανά πρόγραμμα με παραδοτέα) και ξεχωριστός φάκελος ΓΕΜΗ\n241b76b feat(tables): ενσωματωμένη αναζήτηση σε κάθε DataTable (χωρίς τόνους, πολλαπλοί όροι)\ne4536ad feat(tables): sticky επικεφαλίδες στο DataTable + φαρδύτερο dropdown γραμμής (μικρότερα, έντονα γράμματα)\nd0caed3 feat(layout): ένας μόνο κάθετος scroller — η σελίδα"
+  "context_notes": "Recent commits:\n401f828 feat(dossier): C3 εντοπισμός διπλοεγγραφών δικαιολογητικών\n0d46409 feat(typography): fluid rem τυπογραφία παντού (--fs-N tokens)\n78f7cf9 feat(dossier): έξυπνη καταχώριση δικαιολογητικών που μαθαίνει\n2187e40 feat(media): αιωρούμενο panel προόδου για drag & drop — preloader (δακτύλιος + %) ανά αρχείο και συνολική πρόοδος\na487577 feat(media): full-screen drag & drop — αρχεία που αφήνονται οπουδήποτε στη σελίδα ανεβαίνουν στον τρέχοντα φάκελο"
 }
