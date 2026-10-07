@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
+import { coverObligationsFromDossierDoc } from '@/lib/pm/form-obligations'
 
 /**
  * Τύποι δικαιολογητικών (ελαφρύς κατάλογος) + αποθήκη δικαιολογητικών ανά πελάτη.
@@ -96,7 +97,7 @@ export async function uploadTrdrDossierDoc(
     /** Αντικατάσταση: το παλιό δικαιολογητικό (ίδιου πελάτη) αφαιρείται μετά την αποθήκευση. */
     replaceDocId?: string | null
   },
-): Promise<{ id: string }> {
+): Promise<{ id: string; covered: number; coveredPrograms: string[] }> {
   const session = await requirePermission('customer.edit')
   const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { id: true } })
   if (!trdr) throw new Error('Ο συναλλασσόμενος δεν βρέθηκε.')
@@ -140,8 +141,10 @@ export async function uploadTrdrDossierDoc(
       },
     }).catch(() => { /* η εκμάθηση δεν μπλοκάρει ποτέ την αποθήκευση */ })
   }
+  // Καλύπτει αυτόματα τις ανοιχτές εκκρεμότητες ίδιου τύπου στα προγράμματα του πελάτη.
+  const cover = await coverObligationsFromDossierDoc(id).catch(() => ({ covered: 0, programs: [] as string[] }))
   revalidatePath(`/partners/${trdrId}`)
-  return { id }
+  return { id, covered: cover.covered, coveredPrograms: cover.programs }
 }
 
 export async function updateTrdrDossierDoc(
@@ -236,4 +239,48 @@ export async function checkDossierDuplicates(
     const sameType = i.typeId ? rows.filter(r => r.documentTypeId === i.typeId && !exactIds.has(r.id)) : []
     return { key: i.key, exact: exact.map(hit), sameType: sameType.map(hit) }
   })
+}
+
+// ── Ποια ευρωπαϊκά προγράμματα χρειάζονται αυτόν τον τύπο ──────────────────────
+
+export type ProgramNeed = {
+  programId: string
+  title: string
+  /** ο πελάτης έχει ενταχθεί στο πρόγραμμα */
+  joined: boolean
+  /** κατάσταση της εκκρεμότητας του πελάτη (αν έχει ενταχθεί) */
+  status: 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'WAIVED' | null
+  formName: string
+}
+
+/** Για κάθε τύπο: προγράμματα του πελάτη που τον απαιτούν (με κατάσταση) + ενεργά
+ * προγράμματα που τον ζητούν (για ένταξη). Ταξινόμηση: πρώτα τα δικά του. */
+export async function listProgramNeedsForTypes(trdrId: string, typeIds: string[]): Promise<Record<string, ProgramNeed[]>> {
+  await requirePermission('customer.view')
+  const ids = [...new Set(typeIds.filter(Boolean))]
+  if (ids.length === 0) return {}
+  const apps = await prisma.programApplication.findMany({ where: { trdrId }, select: { id: true, programId: true } })
+  const appByProgram = new Map(apps.map(a => [a.programId, a.id]))
+  const forms = await prisma.programRequiredForm.findMany({
+    where: {
+      documentTypeId: { in: ids },
+      mandatory: true,
+      OR: [{ program: { status: 'ACTIVE' } }, { programId: { in: apps.map(a => a.programId) } }],
+    },
+    select: { id: true, name: true, documentTypeId: true, programId: true, program: { select: { title: true } } },
+  })
+  const obligations = await prisma.applicationObligation.findMany({
+    where: { kind: 'FORM', sourceId: { in: forms.map(f => f.id) }, applicationId: { in: apps.map(a => a.id) } },
+    select: { sourceId: true, status: true },
+  })
+  const statusByForm = new Map(obligations.map(o => [o.sourceId!, o.status]))
+  const out: Record<string, ProgramNeed[]> = {}
+  for (const f of forms) {
+    const list = (out[f.documentTypeId!] ??= [])
+    if (list.some(x => x.programId === f.programId)) continue
+    const joined = appByProgram.has(f.programId)
+    list.push({ programId: f.programId, title: f.program.title, joined, status: joined ? (statusByForm.get(f.id) ?? null) : null, formName: f.name })
+  }
+  for (const k of Object.keys(out)) out[k].sort((a, b) => Number(b.joined) - Number(a.joined) || a.title.localeCompare(b.title, 'el'))
+  return out
 }

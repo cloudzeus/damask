@@ -213,3 +213,58 @@ export async function seedFormObligationsForApplication(applicationId: string, p
   }
   return { created, recognized }
 }
+
+/**
+ * Έξυπνη καταχώριση δικαιολογητικών → κάλυψη εκκρεμοτήτων: ένα νέο δικαιολογητικό
+ * της αποθήκης καλύπτει τις ΑΝΟΙΧΤΕΣ εκκρεμότητες FORM ίδιου τύπου στα προγράμματα
+ * του πελάτη (σεβόμενο το «μόνο για ένα πρόγραμμα»): status → SUBMITTED + αντίγραφο
+ * αναφοράς του εγγράφου, ώστε να μένει μόνο ο έλεγχος/έγκριση.
+ */
+export async function coverObligationsFromDossierDoc(docId: string): Promise<{ covered: number; programs: string[] }> {
+  const doc = await prisma.trdrDossierDocument.findUnique({
+    where: { id: docId },
+    select: { trdrId: true, documentTypeId: true, programId: true, reusable: true, name: true, storageKey: true, mimeType: true, sizeBytes: true, expiresAt: true },
+  })
+  if (!doc) return { covered: 0, programs: [] }
+  if (doc.expiresAt && doc.expiresAt.getTime() < Date.now()) return { covered: 0, programs: [] }
+
+  const forms = await prisma.programRequiredForm.findMany({
+    where: {
+      documentTypeId: doc.documentTypeId,
+      ...(doc.programId && !doc.reusable ? { programId: doc.programId } : {}),
+    },
+    select: { id: true, programId: true, program: { select: { title: true } } },
+  })
+  if (forms.length === 0) return { covered: 0, programs: [] }
+  const formById = new Map(forms.map(f => [f.id, f]))
+
+  const open = await prisma.applicationObligation.findMany({
+    where: {
+      kind: 'FORM',
+      sourceId: { in: forms.map(f => f.id) },
+      status: { in: ['PENDING', 'IN_PROGRESS', 'REJECTED'] },
+      application: { trdrId: doc.trdrId },
+    },
+    select: { id: true, applicationId: true, sourceId: true },
+  })
+  const dateFmt = new Intl.DateTimeFormat('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const programs = new Set<string>()
+  for (const o of open) {
+    await prisma.applicationObligation.update({
+      where: { id: o.id },
+      data: {
+        status: 'SUBMITTED',
+        notes: `Καλύφθηκε από τα δικαιολογητικά της εταιρίας («${doc.name}»${doc.expiresAt ? `, σε ισχύ έως ${dateFmt.format(doc.expiresAt)}` : ''}) — έλεγξε & ενέκρινε.`,
+        documents: {
+          create: {
+            applicationId: o.applicationId, name: doc.name, storageKey: doc.storageKey, mimeType: doc.mimeType,
+            size: doc.sizeBytes, expiresAt: doc.expiresAt, documentTypeId: doc.documentTypeId,
+          },
+        },
+      },
+    })
+    const title = o.sourceId ? formById.get(o.sourceId)?.program.title : null
+    if (title) programs.add(title)
+  }
+  return { covered: open.length, programs: [...programs] }
+}

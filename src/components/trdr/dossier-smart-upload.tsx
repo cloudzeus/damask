@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
-  LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload, LuCopy, LuInfo,
+  LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload, LuCopy, LuInfo, LuFolderKanban,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import {
-  uploadTrdrDossierDoc, listTrdrProgramsForDossier, checkDossierDuplicates,
-  type DocumentTypeOption, type DossierDuplicateCheck,
+  uploadTrdrDossierDoc, listTrdrProgramsForDossier, checkDossierDuplicates, listProgramNeedsForTypes,
+  type DocumentTypeOption, type DossierDuplicateCheck, type ProgramNeed,
 } from '@/lib/documents/actions'
 import { classifyDocumentSmart, type SmartClassifyResult } from '@/lib/documents/smart-classify'
 import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType } from '@/lib/ocr/rasterize'
@@ -48,6 +48,10 @@ type Row = {
   dup: DossierDuplicateCheck | null
   /** skip = να μην αποθηκευτεί· keep = αποθήκευση κανονικά· replace = αντικατάσταση του παλιού ίδιου τύπου. */
   decision: 'skip' | 'keep' | 'replace'
+  /** Ευρωπαϊκά προγράμματα που χρειάζονται αυτόν τον τύπο (του πελάτη + ενεργά). */
+  needs: ProgramNeed[] | null
+  /** Μετά την αποθήκευση: προγράμματα όπου καλύφθηκε εκκρεμότητα. */
+  covered: string[]
 }
 
 const GENERAL = '__general__'
@@ -132,9 +136,13 @@ export function DossierSmartUpload({
       }
       const s = res.result
       const t = typesRef.current.find(x => x.id === s.typeId)
-      const [dup] = await checkDossierDuplicates(trdrId, [{ key: id, hash, typeId: s.typeId }]).catch(() => [null])
+      const [[dup], needs] = await Promise.all([
+        checkDossierDuplicates(trdrId, [{ key: id, hash, typeId: s.typeId }]).catch(() => [null]),
+        s.typeId ? listProgramNeedsForTypes(trdrId, [s.typeId]).catch(() => ({} as Record<string, ProgramNeed[]>)) : Promise.resolve({} as Record<string, ProgramNeed[]>),
+      ])
       patch(id, {
         dup: dup ?? null,
+        needs: s.typeId ? (needs[s.typeId] ?? []) : null,
         decision: defaultDecision(dup ?? null, !!t?.expires),
         phase: 'ready',
         suggestion: s,
@@ -166,7 +174,7 @@ export function DossierSmartUpload({
       return {
         id, file, phase: 'reading', error: null, snippet: '', suggestion: null,
         typeId: '', programId: GENERAL, reusable: true, hasExpiry: false, expiresAt: '',
-        hash: '', dup: null, decision: 'keep',
+        hash: '', dup: null, decision: 'keep', needs: null, covered: [],
       }
     })
     setRows(prev => [...prev, ...newRows])
@@ -199,8 +207,11 @@ export function DossierSmartUpload({
   /** Αλλαγή τύπου → ξαναέλεγχος «ίδιου τύπου» για αυτό το αρχείο. */
   async function recheck(row: Row, typeId: string) {
     const t = types.find(x => x.id === typeId)
-    const [dup] = await checkDossierDuplicates(trdrId, [{ key: row.id, hash: row.hash, typeId }]).catch(() => [null])
-    patch(row.id, { dup: dup ?? null, decision: defaultDecision(dup ?? null, !!t?.expires) })
+    const [[dup], needs] = await Promise.all([
+      checkDossierDuplicates(trdrId, [{ key: row.id, hash: row.hash, typeId }]).catch(() => [null]),
+      listProgramNeedsForTypes(trdrId, [typeId]).catch(() => ({} as Record<string, ProgramNeed[]>)),
+    ])
+    patch(row.id, { dup: dup ?? null, decision: defaultDecision(dup ?? null, !!t?.expires), needs: needs[typeId] ?? [] })
   }
 
   function handleOpenChange(next: boolean) {
@@ -211,13 +222,14 @@ export function DossierSmartUpload({
 
   async function saveAll() {
     let saved = 0
+    let coveredTotal = 0
     for (const r of rows) {
       if (r.phase !== 'ready' || !r.typeId || r.decision === 'skip' || batchDupOf.has(r.id)) continue
       const replaceDocId = r.decision === 'replace' ? (r.dup?.sameType[0]?.id ?? null) : null
       patch(r.id, { phase: 'saving' })
       try {
         const { base64, ext } = await readFileBase64(r.file)
-        await uploadTrdrDossierDoc(trdrId, {
+        const res = await uploadTrdrDossierDoc(trdrId, {
           documentTypeId: r.typeId,
           name: r.file.name.replace(/\.[^.]+$/, ''),
           base64,
@@ -230,14 +242,17 @@ export function DossierSmartUpload({
           learn: { predictedTypeId: r.suggestion?.typeId ?? null, snippet: r.snippet, fileName: r.file.name },
           replaceDocId,
         })
-        patch(r.id, { phase: 'saved' })
+        patch(r.id, { phase: 'saved', covered: res.coveredPrograms })
+        coveredTotal += res.covered
         saved += 1
       } catch {
         patch(r.id, { phase: 'error', error: 'Η αποθήκευση απέτυχε.' })
       }
     }
     if (saved > 0) {
-      toast.success(saved === 1 ? 'Αποθηκεύτηκε 1 δικαιολογητικό.' : `Αποθηκεύτηκαν ${saved} δικαιολογητικά.`)
+      toast.success(saved === 1 ? 'Αποθηκεύτηκε 1 δικαιολογητικό.' : `Αποθηκεύτηκαν ${saved} δικαιολογητικά.`, {
+        description: coveredTotal ? `Καλύφθηκαν ${coveredTotal} εκκρεμότητες σε προγράμματα — μένει έλεγχος & έγκριση.` : undefined,
+      })
       onDone()
     }
   }
@@ -378,6 +393,10 @@ function RowCard({
         <DuplicateNotice row={row} batchDupOf={batchDupOf} onDecision={d => onChange({ decision: d })} />
       )}
 
+      {!working && !skipped && (row.needs?.length || row.covered.length) ? (
+        <ProgramNeeds needs={row.needs ?? []} covered={row.covered} saved={row.phase === 'saved'} />
+      ) : null}
+
       {!working && row.phase !== 'saved' && !skipped && (
         <div className="mt-3 grid gap-x-3 gap-y-2.5 sm:grid-cols-2">
           <div className="field !mb-0">
@@ -508,6 +527,64 @@ function DuplicateNotice({
         {choice('keep', 'Κράτα και τα δύο')}
         {choice('skip', 'Παράλειψη')}
       </div>
+    </div>
+  )
+}
+
+const NEED_STATUS: Record<string, { label: string; cls: string }> = {
+  PENDING: { label: 'εκκρεμεί — θα καλυφθεί', cls: 'warn' },
+  IN_PROGRESS: { label: 'σε εξέλιξη — θα καλυφθεί', cls: 'warn' },
+  REJECTED: { label: 'απορρίφθηκε — θα καλυφθεί', cls: 'warn' },
+  SUBMITTED: { label: 'υποβλήθηκε', cls: 'info' },
+  APPROVED: { label: 'εγκρίθηκε', cls: 'ok' },
+  WAIVED: { label: 'δεν απαιτείται', cls: 'muted' },
+}
+
+/** «Χρειάζεται σε»: προγράμματα του πελάτη που ζητούν τον τύπο (+ ενεργά που τον ζητούν). */
+function ProgramNeeds({ needs, covered, saved }: { needs: ProgramNeed[]; covered: string[]; saved: boolean }) {
+  const mine = needs.filter(n => n.joined)
+  const others = needs.filter(n => !n.joined)
+  const [showAll, setShowAll] = React.useState(false)
+  const shownOthers = showAll ? others : others.slice(0, 3)
+  if (saved) {
+    if (!covered.length) return null
+    return (
+      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[length:var(--fs-11-5)] text-muted-foreground">
+        <LuFolderKanban className="size-3.5 text-[color:var(--success)]" aria-hidden />
+        Καλύφθηκε εκκρεμότητα σε: {covered.map(t => <span key={t} className="badge-pill ok max-w-[16rem] truncate" style={{ textTransform: 'none' }} title={t}>{t}</span>)}
+      </p>
+    )
+  }
+  return (
+    <div className="mt-2.5 flex flex-col gap-1.5 rounded-xl border border-border bg-muted/30 px-3 py-2 text-[length:var(--fs-11-5)]">
+      {mine.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="flex items-center gap-1 font-bold text-foreground"><LuFolderKanban className="size-3.5 text-primary" aria-hidden /> Χρειάζεται στα προγράμματά του:</span>
+          {mine.map(n => {
+            const st = n.status ? NEED_STATUS[n.status] : null
+            return (
+              <span key={n.programId} className={cn('badge-pill max-w-[20rem]', st?.cls ?? 'muted')} style={{ textTransform: 'none' }} title={`${n.title} — ${n.formName}`}>
+                <span className="truncate">{n.title}</span>{st && <span className="opacity-80"> · {st.label}</span>}
+              </span>
+            )
+          })}
+        </div>
+      )}
+      {others.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-muted-foreground">{mine.length ? 'Το ζητούν και:' : 'Το ζητούν τα ενεργά προγράμματα:'}</span>
+          {shownOthers.map(n => (
+            <span key={n.programId} className="badge-pill muted max-w-[18rem]" style={{ textTransform: 'none' }} title={`${n.title} — ${n.formName}`}>
+              <span className="truncate">{n.title}</span>
+            </span>
+          ))}
+          {others.length > 3 && (
+            <button type="button" onClick={() => setShowAll(v => !v)} className="font-semibold text-primary hover:underline">
+              {showAll ? 'λιγότερα' : `+${others.length - 3} ακόμη`}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
