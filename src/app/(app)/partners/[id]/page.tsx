@@ -167,6 +167,9 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
               phone2={trdr.PHONE02}
               emailAcc={trdr.EMAILACC}
               employees={trdr.appEmployees}
+              eme={trdr.appEme != null ? Number(trdr.appEme) : null}
+              employeesYear={trdr.appEmployeesYear}
+              employeesSource={trdr.appEmployeesSource}
               annualRevenue={trdr.appAnnualRevenue != null ? Number(trdr.appAnnualRevenue) : null}
               email={trdr.EMAIL}
               website={trdr.WEBPAGE}

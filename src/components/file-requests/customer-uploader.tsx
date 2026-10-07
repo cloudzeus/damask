@@ -145,6 +145,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
     const fd = new FormData()
     fd.append('file', file)
     fd.append('itemId', row.itemId)
+    if (row.recognized?.typeName) fd.append('docType', row.recognized.typeName)
 
     try {
       const res = await xhrUpload<UploadResult>(

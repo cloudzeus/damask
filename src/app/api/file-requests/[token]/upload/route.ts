@@ -6,6 +6,7 @@ import { hashToken } from '@/lib/pm/portal-token'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { attachUploadedFileToItem } from '@/lib/file-requests/public'
 import { trdrUploadFolder } from '@/lib/trdr/cdn-folder'
+import { EME_DOC_TYPE_NAME, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
 
 /**
  * Public upload endpoint (token-gated, ΧΩΡΙΣ session — βλ. proxy.ts /api/file-requests/).
@@ -89,5 +90,15 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
   if (!res.ok) return NextResponse.json({ error: res.error ?? 'Αποτυχία συσχέτισης.' }, { status: 400 })
 
   void logApiUsage({ service: 'bunnycdn', operation: 'upload', units: file.size / 1e9, refType: 'fileRequest', refId: fr.id })
+
+  // Αναγνωρίστηκε ως ΕΜΕ (Πίνακας ταξινόμησης βάσει μεγέθους) → ίδια αυτόματη ενέργεια
+  // με τα δικαιολογητικά: εγγραφή χρήσης στον Οδηγό ΕΜΕ + εργαζόμενοι εταιρίας. Στο
+  // παρασκήνιο, ώστε ο πελάτης να μην περιμένει την ανάγνωση.
+  if (formData.get('docType') === EME_DOC_TYPE_NAME && /pdf|image\//.test(file.type)) {
+    const base64 = Buffer.from(arrayBuffer).toString('base64')
+    void extractEmeWithAi({ base64, mimeType: file.type })
+      .then(data => (data ? applyEmeToTrdr({ trdrId: fr.trdrId, data, storageKey, name: file.name.replace(/\.[^.]+$/, ''), model: 'gemini' }) : null))
+      .catch(err => console.error('[eme] file-request processing failed', err))
+  }
   return NextResponse.json({ ok: true, name: file.name, size: file.size })
 }

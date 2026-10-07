@@ -340,6 +340,12 @@ model Trdr {
   appLegalForm         String?
   appNotes             String?
   appEmployees         Int? // αριθμός εργαζομένων (app-only, από import/χειροκίνητα)
+  /// ΕΜΕ (ετήσιες μονάδες εργασίας) της τελευταίας χρήσης από «Πίνακα ταξινόμησης βάσει μεγέθους».
+  appEme               Decimal?                 @db.Decimal(8, 2)
+  /// Χρήση από την οποία προέρχονται οι εργαζόμενοι/ΕΜΕ (νεότερο ΕΜΕ → ενημέρωση).
+  appEmployeesYear     Int?
+  /// 'EME' = από ανεβασμένο ΕΜΕ · 'MANUAL' = διόρθωση χρήστη · 'IMPORT'
+  appEmployeesSource   String?
   appAnnualRevenue     Decimal?                 @db.Decimal(14, 2) // τελευταία ετήσια έσοδα € (app-only)
   cdnFolder            String? // path στο Bunny (private) — αυτόματος φάκελος ανά συναλλασσόμενο (partners/<type>/<ΑΦΜ>/)
   syncedAt             DateTime?

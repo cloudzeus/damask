@@ -29,7 +29,7 @@ type VerifyState =
   | { status: 'error'; message: string }
 
 export function PartnerInfoCard({
-  trdrId, afm, irsdataName, irsdataCode, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, phone2, email, emailAcc, website, employees, annualRevenue,
+  trdrId, afm, irsdataName, irsdataCode, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, phone2, email, emailAcc, website, employees, eme, employeesYear, employeesSource, annualRevenue,
 }: {
   trdrId: string
   afm: string | null
@@ -50,6 +50,9 @@ export function PartnerInfoCard({
   emailAcc: string | null
   website: string | null
   employees: number | null
+  eme?: number | null
+  employeesYear?: number | null
+  employeesSource?: string | null
   annualRevenue: number | null
 }) {
   const router = useRouter()
@@ -75,7 +78,14 @@ export function PartnerInfoCard({
     },
     { icon: Briefcase, label: 'Τρόπος πληρωμής', value: paymentName },
     { icon: Briefcase, label: 'Τρόπος αποστολής', value: shipmentName },
-    { icon: Briefcase, label: 'Εργαζόμενοι', value: employees != null ? employees.toLocaleString('el-GR') : null },
+    {
+      icon: Briefcase,
+      label: 'Εργαζόμενοι',
+      value: employees != null ? employees.toLocaleString('el-GR') : null,
+      hint: employeesSource === 'EME'
+        ? `ΕΜΕ ${employeesYear ?? ''}: ${eme != null ? eme.toLocaleString('el-GR', { maximumFractionDigits: 2 }) : '—'}`
+        : employeesSource === 'MANUAL' ? 'χειροκίνητα' : null,
+    },
     { icon: Briefcase, label: 'Ετήσια έσοδα', value: annualRevenue != null ? `${annualRevenue.toLocaleString('el-GR')} €` : null },
   ]
 

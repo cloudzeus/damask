@@ -6,6 +6,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { coverObligationsFromDossierDoc } from '@/lib/pm/form-obligations'
+import { EME_DOC_TYPE_NAME, parseEmeText, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
 
 /**
  * Τύποι δικαιολογητικών (ελαφρύς κατάλογος) + αποθήκη δικαιολογητικών ανά πελάτη.
@@ -96,8 +97,10 @@ export async function uploadTrdrDossierDoc(
     learn?: { predictedTypeId: string | null; snippet: string; fileName: string } | null
     /** Αντικατάσταση: το παλιό δικαιολογητικό (ίδιου πελάτη) αφαιρείται μετά την αποθήκευση. */
     replaceDocId?: string | null
+    /** Πλήρες ψηφιακό κείμενο (αν υπάρχει) — για ειδικούς τύπους όπως το ΕΜΕ. */
+    fullText?: string | null
   },
-): Promise<{ id: string; covered: number; coveredPrograms: string[] }> {
+): Promise<{ id: string; covered: number; coveredPrograms: string[]; eme?: EmeApplied | null }> {
   const session = await requirePermission('customer.edit')
   const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { id: true } })
   if (!trdr) throw new Error('Ο συναλλασσόμενος δεν βρέθηκε.')
@@ -143,8 +146,10 @@ export async function uploadTrdrDossierDoc(
   }
   // Καλύπτει αυτόματα τις ανοιχτές εκκρεμότητες ίδιου τύπου στα προγράμματα του πελάτη.
   const cover = await coverObligationsFromDossierDoc(id).catch(() => ({ covered: 0, programs: [] as string[] }))
+  // ΕΜΕ: αυτόματη ανάγνωση εργαζομένων/μέσου όρου → Οδηγός Εντύπων + εργαζόμενοι εταιρίας.
+  const eme = await processEmeIfApplicable({ trdrId, documentTypeId: input.documentTypeId, fullText: input.fullText ?? null, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id })
   revalidatePath(`/partners/${trdrId}`)
-  return { id, covered: cover.covered, coveredPrograms: cover.programs }
+  return { id, covered: cover.covered, coveredPrograms: cover.programs, eme }
 }
 
 export async function updateTrdrDossierDoc(
@@ -283,4 +288,37 @@ export async function listProgramNeedsForTypes(trdrId: string, typeIds: string[]
   }
   for (const k of Object.keys(out)) out[k].sort((a, b) => Number(b.joined) - Number(a.joined) || a.title.localeCompare(b.title, 'el'))
   return out
+}
+
+// ── ΕΜΕ (Πίνακας ταξινόμησης βάσει μεγέθους) ─────────────────────────────────
+
+export type EmeApplied = { year: number; eme: number | null; employees: number; updatedCompany: boolean; afmMismatch: boolean }
+
+async function processEmeIfApplicable(input: {
+  trdrId: string
+  documentTypeId: string
+  fullText: string | null
+  base64: string
+  mimeType: string
+  storageKey: string
+  name: string
+  userId: string
+}): Promise<EmeApplied | null> {
+  const type = await prisma.documentType.findUnique({ where: { id: input.documentTypeId }, select: { name: true } })
+  if (type?.name !== EME_DOC_TYPE_NAME) return null
+  try {
+    let data = input.fullText ? parseEmeText(input.fullText) : null
+    let model: string | null = data ? 'parser' : null
+    if (!data || data.employees.length === 0) {
+      if (/pdf|image\//.test(input.mimeType)) {
+        data = await extractEmeWithAi({ base64: input.base64, mimeType: input.mimeType }, { userId: input.userId })
+        model = 'gemini'
+      }
+    }
+    if (!data) return null
+    return await applyEmeToTrdr({ trdrId: input.trdrId, data, storageKey: input.storageKey, name: input.name, userId: input.userId, model })
+  } catch (err) {
+    console.error('[eme] processing failed', err)
+    return null
+  }
 }

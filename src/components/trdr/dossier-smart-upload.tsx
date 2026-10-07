@@ -88,7 +88,7 @@ function readFileBase64(file: File): Promise<{ base64: string; ext: string }> {
 async function extractText(file: File): Promise<string> {
   if (isPdfFile(file)) {
     const { pages, text } = await rasterizePdf(file, { maxPages: 2 })
-    if ((text ?? '').trim().length >= 80) return text!.slice(0, 3000)
+    if ((text ?? '').trim().length >= 80) return text!.slice(0, 60_000)
     const ocr = await runOcrExtraction({ images: pages.map(p => ({ base64: p.base64, mimeType: p.mimeType })), text: text || undefined, docType: 'auto' })
     return ocr.ok ? JSON.stringify(ocr.data).slice(0, 3000) : (text ?? '')
   }
@@ -241,8 +241,18 @@ export function DossierSmartUpload({
           reusable: r.programId === GENERAL ? true : r.reusable,
           learn: { predictedTypeId: r.suggestion?.typeId ?? null, snippet: r.snippet, fileName: r.file.name },
           replaceDocId,
+          fullText: r.snippet || null,
         })
         patch(r.id, { phase: 'saved', covered: res.coveredPrograms })
+        if (res.eme) {
+          const nf = new Intl.NumberFormat('el-GR', { maximumFractionDigits: 2 })
+          toast.success(`ΕΜΕ χρήσης ${res.eme.year}: ${res.eme.eme != null ? nf.format(res.eme.eme) : '—'} (${res.eme.employees} εργαζόμενοι)`, {
+            description: [
+              res.eme.updatedCompany ? 'Ενημερώθηκαν οι εργαζόμενοι στην καρτέλα της εταιρίας.' : 'Η καρτέλα έχει ήδη νεότερη χρήση — δεν άλλαξε.',
+              res.eme.afmMismatch ? '⚠ Το ΑΦΜ του εγγράφου δεν ταιριάζει με την εταιρία.' : null,
+            ].filter(Boolean).join(' '),
+          })
+        }
         coveredTotal += res.covered
         saved += 1
       } catch {
