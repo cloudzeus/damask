@@ -2023,3 +2023,34 @@ input[type='checkbox'] {
   .dt-details { margin-left: 8px; }
   .dt-details-item { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* Modals: το scroll μένει ΜΕΣΑ στη στρογγυλεμένη κάρτα — λεπτό thumb με διάφανο
+   περίγραμμα (φαίνεται «εσωτερικά») και track με περιθώριο πάνω/κάτω ώστε να μην
+   ακουμπά τις καμπύλες γωνίες. Ισχύει για ΚΑΘΕ DialogContent (και όσα modals
+   κάνουν scroll σε εσωτερικό στοιχείο με την ίδια κλάση). */
+.dialog-scroll,
+.dialog-scroll [class*="overflow-y-auto"] {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
+}
+.dialog-scroll::-webkit-scrollbar,
+.dialog-scroll [class*="overflow-y-auto"]::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.dialog-scroll::-webkit-scrollbar-track,
+.dialog-scroll [class*="overflow-y-auto"]::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 18px;
+}
+.dialog-scroll::-webkit-scrollbar-thumb,
+.dialog-scroll [class*="overflow-y-auto"]::-webkit-scrollbar-thumb {
+  border: 4px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: color-mix(in oklab, var(--muted-foreground) 40%, transparent);
+}
+.dialog-scroll::-webkit-scrollbar-thumb:hover,
+.dialog-scroll [class*="overflow-y-auto"]::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--muted-foreground) 65%, transparent);
+}
