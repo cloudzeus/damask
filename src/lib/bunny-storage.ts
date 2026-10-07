@@ -76,6 +76,7 @@ export async function bunnyUploadPrivate({
   if (res.status !== 201) {
     throw new Error(`Το BunnyCDN απέρριψε το upload (HTTP ${res.status})${await errorDetail(res)}`)
   }
+  void import('@/lib/search/live-index').then(m => m.notifyStorageChange({ key, size: body.length, op: 'put' })).catch(() => {})
   return { key }
 }
 
@@ -101,6 +102,7 @@ export async function bunnyDeleteOne(key: string): Promise<void> {
   if (!res.ok && res.status !== 404) {
     throw new Error(`Αποτυχία διαγραφής από το BunnyCDN (HTTP ${res.status}) για ${key}${await errorDetail(res)}`)
   }
+  void import('@/lib/search/live-index').then(m => m.notifyStorageChange({ key, op: 'del' })).catch(() => {})
 }
 
 /** Η raw Storage API του Bunny δεν έχει batch-delete endpoint — sequential loop

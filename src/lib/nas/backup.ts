@@ -102,6 +102,31 @@ function parseBunnyDate(v: string): Date {
   return new Date(0)
 }
 
+/** Άμεση ενημέρωση του καταλόγου για συγκεκριμένα αρχεία (upload/διαγραφή) — χωρίς πλήρη σάρωση. */
+export async function indexStorageChanges(changes: { key: string; size?: number; op: 'put' | 'del' }[]): Promise<void> {
+  const latest = new Map<string, { key: string; size?: number; op: 'put' | 'del' }>()
+  for (const c of changes) latest.set(c.key, c)
+  const puts = [...latest.values()].filter(c => c.op === 'put')
+  const dels = [...latest.values()].filter(c => c.op === 'del').map(c => c.key)
+  if (puts.length) {
+    const resolver = await buildResolver()
+    const now = new Date()
+    const values = puts.map(p => {
+      const cls = classifyKey(p.key, resolver)
+      return Prisma.sql`(${createId()}, ${p.key}, ${p.size ?? 0}, ${now}, ${cls.category}, ${cls.trdrId}, ${now}, NOW(), NOW())`
+    })
+    await prisma.$executeRaw`
+      INSERT INTO "FileIndexEntry" ("id", "key", "size", "lastChanged", "category", "trdrId", "seenAt", "createdAt", "updatedAt")
+      VALUES ${Prisma.join(values)}
+      ON CONFLICT ("key") DO UPDATE SET
+        "size" = EXCLUDED."size", "lastChanged" = EXCLUDED."lastChanged", "category" = EXCLUDED."category",
+        "trdrId" = EXCLUDED."trdrId", "seenAt" = EXCLUDED."seenAt", "missingAt" = NULL, "updatedAt" = NOW()`
+  }
+  if (dels.length) {
+    await prisma.fileIndexEntry.updateMany({ where: { key: { in: dels }, missingAt: null }, data: { missingAt: new Date() } })
+  }
+}
+
 // ── 1. Σάρωση αποθήκης ─────────────────────────────────────────────────────
 
 export async function scanStorage(opts: { onProgress?: (n: number) => void } = {}): Promise<{ scanned: number; missing: number }> {

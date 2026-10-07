@@ -132,6 +132,16 @@ export async function startQueue(): Promise<void> {
   // Κάθε βράδυ 02:00 Ελλάδα — πριν το backup βάσης (03:30), το οποίο πιάνεται την επόμενη νύχτα.
   await boss.schedule(QUEUE_NAS_BACKUP, '0 2 * * *', null, { tz: 'Europe/Athens' })
 
+  // Άμεση ευρετηρίαση: κάθε upload/διαγραφή → καταχώριση στον κατάλογο + reindex (μόνο τα αλλαγμένα παίρνουν embedding).
+  const { QUEUE_SEARCH_INDEX } = await import('@/lib/search/live-index')
+  await boss.createQueue(QUEUE_SEARCH_INDEX)
+  await boss.work<import('@/lib/search/live-index').StorageChange>(QUEUE_SEARCH_INDEX, { batchSize: 100 }, async jobs => {
+    const { indexStorageChanges } = await import('@/lib/nas/backup')
+    const { reindexDocuments } = await import('@/lib/search/documents')
+    await indexStorageChanges(jobs.map(j => j.data))
+    await reindexDocuments()
+  })
+
   console.log('[pg-boss] started')
 }
 

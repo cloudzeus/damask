@@ -156,6 +156,7 @@ export async function POST(request: Request) {
   }
 
   const cdnUrl = `${pullZoneUrl}/${fullPath}`
+  void import('@/lib/search/live-index').then(m => m.notifyStorageChange({ key: fullPath, size: file.size, op: 'put' })).catch(() => {})
 
   const asset = await prisma.mediaAsset.create({
     data: {
