@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-07T05:25:12.133Z",
+  "timestamp": "2026-10-07T06:26:38.757Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,48 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "prisma/schema.prisma"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(app)/partners/[id]/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(app)/partners/[id]/partner-info-card.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(app)/partners/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ingestion/commit/partner-upsert.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/trdr/enrich-actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/trdr/irsdata.ts"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261007130000_doy_registry/"
-    },
-    {
-      "status": "??",
-      "path": "scripts/backfill-doy-country.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/trdr/country.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n401f828 feat(dossier): C3 εντοπισμός διπλοεγγραφών δικαιολογητικών\n0d46409 feat(typography): fluid rem τυπογραφία παντού (--fs-N tokens)\n78f7cf9 feat(dossier): έξυπνη καταχώριση δικαιολογητικών που μαθαίνει\n2187e40 feat(media): αιωρούμενο panel προόδου για drag & drop — preloader (δακτύλιος + %) ανά αρχείο και συνολική πρόοδος\na487577 feat(media): full-screen drag & drop — αρχεία που αφήνονται οπουδήποτε στη σελίδα ανεβαίνουν στον τρέχοντα φάκελο"
+  "context_notes": "Recent commits:\ndee12e4 feat(c4): κύκλωμα προσφορών — σάρωση → προμηθευτής → είδη με κατηγορία → πολλαπλές δαπάνες\n619fdb8 feat(mme): αυτόματη ανάγνωση Δήλωσης ΜΜΕ (επίσημο έγγραφο ΟΠΣΚΕ) → ΕΜΕ/κύκλος εργασιών/κατηγορία\n681e32a feat(e3): αυτόματη ανάγνωση Ε3 → κύκλος εργασιών (κωδ. 500 κατά ΕΛΠ) & αποτελέσματα ανά έτος\nc2a7e85 fix(eme): ένας τύπος/οδηγός ΕΜΕ — επαναχρησιμοποίηση του υπάρχοντος «ΕΜΕ» (τον ζητούν προγράμματα)\n81f5029 feat(eme): αυτόματη ανάγνωση ΕΜΕ (πίνακας ταξινόμησης βάσει μεγέθους) → Οδηγός Εντύπων + εργαζόμενοι εταιρίας"
 }
