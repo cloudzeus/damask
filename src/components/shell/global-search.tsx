@@ -73,7 +73,7 @@ export function GlobalSearch() {
         <span className="ml-auto hidden rounded border border-border px-1 text-[length:var(--fs-10)] sm:inline">⌘K</span>
       </button>
 
-      <Dialog open={open} onOpenChange={o => { setOpen(o); if (!o) reset() }}>
+      <Dialog open={open} onOpenChange={o => { setOpen(o); if (!o) reset() }} disablePointerDismissal={false}>
         <DialogContent className="glass gap-0 overflow-hidden p-0 sm:max-w-[560px]" showCloseButton={false}>
           <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
             <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.8} aria-hidden />

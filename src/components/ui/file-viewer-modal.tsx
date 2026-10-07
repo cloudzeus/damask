@@ -80,7 +80,7 @@ export function FileViewerModal({ open, onOpenChange, file }: { open: boolean; o
   const sheetHtml = wb && sheets[activeSheet] ? XLSX.utils.sheet_to_html(wb.Sheets[sheets[activeSheet]]) : null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal={false}>
       <DialogContent className="glass flex h-[88vh] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-[72rem]">
         <DialogHeader className="flex-row items-center justify-between gap-2">
           <DialogTitle className="truncate">{file?.name ?? 'Προβολή αρχείου'}</DialogTitle>

@@ -109,7 +109,7 @@ export function DocumentPreviewDialog({
   }, [open, url, name, mimeType])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal={false}>
       <DialogContent className="glass flex max-h-[92vh] w-[min(1100px,96vw)] flex-col sm:max-w-[1100px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 truncate pr-8">

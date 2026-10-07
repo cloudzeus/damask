@@ -106,3 +106,39 @@ export async function listThreadMessages(threadId: string): Promise<MessageRow[]
     }
   })
 }
+
+// ── Προτάσεις παραληπτών (Προς / CC / BCC) ─────────────────────────────────────
+
+export type RecipientSuggestion = {
+  email: string
+  name: string
+  /** 'contact' = επαφή/στοιχεία του πελάτη · 'user' = συνεργάτης (χρήστης εφαρμογής) */
+  kind: 'contact' | 'user'
+  hint: string | null
+}
+
+/** Επαφές του πελάτη (+ email εταιρίας/λογιστηρίου) και οι ενεργοί χρήστες μας. */
+export async function listRecipientSuggestions(trdrId?: string | null): Promise<RecipientSuggestion[]> {
+  await requirePermission('customer.view')
+  const [trdr, contacts, users] = await Promise.all([
+    trdrId ? prisma.trdr.findUnique({ where: { id: trdrId }, select: { NAME: true, EMAIL: true, EMAILACC: true } }) : null,
+    trdrId
+      ? prisma.contact.findMany({ where: { trdrId, email: { not: null } }, orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }], select: { name: true, email: true, position: true, isPrimary: true } })
+      : [],
+    prisma.user.findMany({ where: { active: true, contact: { is: null } }, orderBy: { name: 'asc' }, select: { name: true, email: true, role: { select: { name: true } } } }),
+  ])
+  const out: RecipientSuggestion[] = []
+  const seen = new Set<string>()
+  const push = (s: RecipientSuggestion) => {
+    const key = s.email.trim().toLowerCase()
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    out.push({ ...s, email: s.email.trim() })
+  }
+  for (const c of contacts) push({ email: c.email!, name: c.name, kind: 'contact', hint: [c.isPrimary ? 'Κύρια επαφή' : null, c.position].filter(Boolean).join(' · ') || null })
+  if (trdr?.EMAIL) push({ email: trdr.EMAIL, name: trdr.NAME, kind: 'contact', hint: 'Email εταιρίας' })
+  if (trdr?.EMAILACC) push({ email: trdr.EMAILACC, name: trdr.NAME, kind: 'contact', hint: 'Λογιστήριο' })
+  // Μόνο εσωτερικοί χρήστες (όχι λογαριασμοί portal πελατών, που είναι ήδη επαφές).
+  for (const u of users) push({ email: u.email, name: u.name, kind: 'user', hint: u.role.name })
+  return out
+}

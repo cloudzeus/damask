@@ -75,19 +75,19 @@
 
 /* FLUID-TYPE:START — παράγεται από scripts/fluid-type.mjs, μην το επεξεργάζεσαι με το χέρι. */
 :root {
-  --fs-9: clamp(0.5625rem, 0.6495rem - 0.1087vw, 0.625rem);
-  --fs-9-5: clamp(0.5938rem, 0.6807rem - 0.1087vw, 0.6563rem);
-  --fs-10: clamp(0.625rem, 0.712rem - 0.1087vw, 0.6875rem);
-  --fs-10-5: clamp(0.6563rem, 0.7432rem - 0.1087vw, 0.7188rem);
-  --fs-11: clamp(0.6875rem, 0.7745rem - 0.1087vw, 0.75rem);
-  --fs-11-5: clamp(0.7188rem, 0.8057rem - 0.1087vw, 0.7813rem);
-  --fs-12: clamp(0.75rem, 0.837rem - 0.1087vw, 0.8125rem);
-  --fs-12-5: clamp(0.7813rem, 0.8682rem - 0.1087vw, 0.8438rem);
-  --fs-13: clamp(0.8125rem, 0.8995rem - 0.1087vw, 0.875rem);
-  --fs-13-5: clamp(0.8438rem, 0.9307rem - 0.1087vw, 0.9063rem);
-  --fs-14: clamp(0.875rem, 0.962rem - 0.1087vw, 0.9375rem);
-  --fs-14-5: clamp(0.9063rem, 0.9932rem - 0.1087vw, 0.9688rem);
-  --fs-15: clamp(0.9375rem, 1.0245rem - 0.1087vw, 1rem);
+  --fs-9: 0.5625rem;
+  --fs-9-5: 0.5938rem;
+  --fs-10: 0.625rem;
+  --fs-10-5: 0.6563rem;
+  --fs-11: 0.6875rem;
+  --fs-11-5: 0.7188rem;
+  --fs-12: 0.75rem;
+  --fs-12-5: 0.7813rem;
+  --fs-13: 0.8125rem;
+  --fs-13-5: 0.8438rem;
+  --fs-14: 0.875rem;
+  --fs-14-5: 0.9063rem;
+  --fs-15: 0.9375rem;
   --fs-16: 1rem;
   --fs-17: 1.0625rem;
   --fs-18: 1.125rem;
@@ -2086,3 +2086,35 @@ input[type='checkbox'] {
   pointer-events: none;
   color: var(--muted-foreground);
 }
+
+/* Πεδίο παραληπτών με chips (Προς / CC / BCC) — ίδια όψη με τα .inwrap πεδία. */
+.recip {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 12px 6px 40px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: inset 0 1px 3px rgb(23 43 58 / 5%);
+  cursor: text;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.recip:focus-within { border-color: var(--info); box-shadow: 0 0 0 4px var(--info-soft); }
+.recip-icon { position: absolute; left: 14px; top: 14px; display: flex; color: var(--muted-foreground); pointer-events: none; }
+.recip-icon svg { width: 15px; height: 15px; }
+.recip-input {
+  flex: 1 1 8rem;
+  min-width: 8rem;
+  height: 30px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--fs-14);
+}
+.recip-input::placeholder { color: var(--muted-foreground); }

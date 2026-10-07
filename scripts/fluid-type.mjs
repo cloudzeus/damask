@@ -7,7 +7,8 @@
 //
 // Μαζεύει ΚΑΘΕ μέγεθος που χρησιμοποιείται (var(--fs-N) στα tsx/css) και φτιάχνει
 // ένα token ανά μέγεθος: γραμμικό clamp() από οθόνη 360px έως 1280px. Desktop =
-// ακριβώς το px του design. Κινητό: ≤15px → +1px, 16–20px → ίδιο, ≥22px → ×0.78.
+// ακριβώς το px του design. Κινητό: ≤20px → ίδιο (επιλογή χρήστη: πάντα η μικρότερη
+// εκδοχή, ποτέ μεγαλύτερα γράμματα), ≥22px → ×0.78.
 // Ξανατρέξ' το όταν εμφανιστεί νέο μέγεθος.
 import { execSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -20,7 +21,7 @@ const sizes = [...new Set([...used, '14', '16'].map(Number))].filter(Number.isFi
 
 const MINW = 360, MAXW = 1280
 const r = v => Number(v.toFixed(4))
-const mobile = d => (d <= 15 ? d + 1 : d <= 20 ? d : Math.round(d * 0.78 * 2) / 2)
+const mobile = d => (d <= 20 ? d : Math.round(d * 0.78 * 2) / 2) // ΠΟΤΕ μεγαλύτερα — μόνο οι τίτλοι μικραίνουν
 const lines = sizes.map(d => {
   const m = mobile(d)
   const name = String(d).replace('.', '-')

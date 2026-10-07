@@ -1,15 +1,16 @@
 'use client'
 
-import { useState, useTransition, type FormEvent } from 'react'
+import { useEffect, useState, useTransition, type FormEvent } from 'react'
 import { toast } from 'sonner'
-import { Mail, Users, Type, Plus, Trash2, Paperclip, FileCheck2, ChevronDown, Send, LoaderCircle } from 'lucide-react'
+import { Mail, Users, EyeOff, Type, Plus, Trash2, Paperclip, FileCheck2, ChevronDown, Send, LoaderCircle } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { FileDropzone, xhrUpload } from '@/components/ui/file-dropzone'
 import { RichTextEditor } from '@/components/email/rich-text-editor'
-import { sendCustomerEmail } from '@/lib/email/actions'
+import { sendCustomerEmail, listRecipientSuggestions, type RecipientSuggestion } from '@/lib/email/actions'
+import { RecipientInput } from '@/components/email/recipient-input'
 import { type ComposeAttachment } from '@/lib/email/deliver'
 import { getPhaseFileTemplate } from '@/lib/programs/phase-files'
 import { DELIVERABLE_PHASE_ORDER, deliverablePhaseLabel, type DeliverablePhaseStr } from '@/lib/pm/deliverable-phases'
@@ -60,6 +61,18 @@ export function ComposeEmailDialog({
 
   const [to, setTo] = useState(defaultTo)
   const [cc, setCc] = useState('')
+  const [bcc, setBcc] = useState('')
+  const [suggestions, setSuggestions] = useState<RecipientSuggestion[]>([])
+
+  // Προτάσεις παραληπτών (επαφές πελάτη + συνεργάτες) — φόρτωση όταν ανοίγει.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    listRecipientSuggestions(trdrId ?? null)
+      .then(list => { if (!cancelled) setSuggestions(list) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [open, trdrId])
   const [subject, setSubject] = useState(defaultSubject)
   const [bodyHtml, setBodyHtml] = useState(defaultBody)
   const [attachments, setAttachments] = useState<ComposeAttachment[]>([])
@@ -76,6 +89,7 @@ export function ComposeEmailDialog({
   function resetForm() {
     setTo(defaultTo)
     setCc('')
+    setBcc('')
     setSubject(defaultSubject)
     setBodyHtml(defaultBody)
     setAttachments([])
@@ -153,6 +167,7 @@ export function ComposeEmailDialog({
         obligationId,
         to: to.trim(),
         cc: cc.trim() || undefined,
+        bcc: bcc.trim() || undefined,
         subject: subject.trim(),
         bodyHtml,
         attachments: attachments.length ? attachments : undefined,
@@ -193,17 +208,17 @@ export function ComposeEmailDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="field !mb-0">
             <label htmlFor="compose-to">Προς*</label>
-            <div className="inwrap">
-              <Mail aria-hidden />
-              <input id="compose-to" type="email" multiple value={to} onChange={e => setTo(e.target.value)} placeholder="paraliptis@example.com" required />
-            </div>
+            <RecipientInput id="compose-to" value={to} onChange={setTo} suggestions={suggestions} icon={<Mail aria-hidden />} placeholder="Πληκτρολόγησε όνομα ή email…" disabled={pending} />
           </div>
 
-          <div className="field !mb-0">
-            <label htmlFor="compose-cc">Κοιν. (CC)</label>
-            <div className="inwrap">
-              <Users aria-hidden />
-              <input id="compose-cc" value={cc} onChange={e => setCc(e.target.value)} placeholder="Προαιρετικά, χωρισμένα με κόμμα" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="field !mb-0 min-w-0">
+              <label htmlFor="compose-cc">Κοιν. (CC)</label>
+              <RecipientInput id="compose-cc" value={cc} onChange={setCc} suggestions={suggestions} icon={<Users aria-hidden />} placeholder="Προαιρετικά" disabled={pending} />
+            </div>
+            <div className="field !mb-0 min-w-0">
+              <label htmlFor="compose-bcc">Κρυφή κοιν. (BCC)</label>
+              <RecipientInput id="compose-bcc" value={bcc} onChange={setBcc} suggestions={suggestions} icon={<EyeOff aria-hidden />} placeholder="Δεν φαίνεται στους άλλους" disabled={pending} />
             </div>
           </div>
 

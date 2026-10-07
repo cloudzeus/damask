@@ -31,6 +31,8 @@ export type DeliverCustomerEmailInput = {
   obligationId?: string
   to: string
   cc?: string
+  /** Κρυφή κοινοποίηση — δεν φαίνεται στους υπόλοιπους παραλήπτες. */
+  bcc?: string
   subject: string
   bodyHtml: string
   attachments?: ComposeAttachment[]
@@ -146,6 +148,7 @@ export async function deliverCustomerEmail(
   const result = await sendMail({
     to: input.to,
     cc: input.cc,
+    bcc: input.bcc,
     subject: taggedSubject,
     html,
     replyTo,
@@ -173,6 +176,7 @@ export async function deliverCustomerEmail(
       fromEmail,
       toEmails: input.to.split(',').map(s => s.trim()).filter(Boolean),
       cc: (input.cc ?? '').split(',').map(s => s.trim()).filter(Boolean),
+      bcc: (input.bcc ?? '').split(',').map(s => s.trim()).filter(Boolean),
       subject: taggedSubject,
       bodyHtml: html,
       bodyText: snippet,
