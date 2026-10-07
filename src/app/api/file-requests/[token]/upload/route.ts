@@ -8,6 +8,7 @@ import { attachUploadedFileToItem } from '@/lib/file-requests/public'
 import { trdrUploadFolder } from '@/lib/trdr/cdn-folder'
 import { ensureEmeTemplate, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
 import { isE3TypeName, extractE3WithAi, applyE3ToTrdr } from '@/lib/tax/e3'
+import { isMmeTypeName, extractMmeWithAi, applyMmeToTrdr } from '@/lib/tax/mme'
 
 /**
  * Public upload endpoint (token-gated, ΧΩΡΙΣ session — βλ. proxy.ts /api/file-requests/).
@@ -111,6 +112,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
     void extractE3WithAi({ base64, mimeType: file.type })
       .then(data => (data ? applyE3ToTrdr({ trdrId: fr.trdrId, data, storageKey, name: file.name.replace(/\.[^.]+$/, ''), model: 'gemini' }) : null))
       .catch(err => console.error('[e3] file-request processing failed', err))
+  }
+  // Αναγνωρίστηκε ως Δήλωση ΜΜΕ → ΕΜΕ/κύκλος εργασιών/κατηγορία (στο παρασκήνιο).
+  if (typeof docType === 'string' && isMmeTypeName(docType) && /pdf|image\//.test(file.type)) {
+    const base64 = Buffer.from(arrayBuffer).toString('base64')
+    void extractMmeWithAi({ base64, mimeType: file.type })
+      .then(data => (data ? applyMmeToTrdr({ trdrId: fr.trdrId, data, storageKey, name: file.name.replace(/\.[^.]+$/, ''), model: 'gemini' }) : null))
+      .catch(err => console.error('[mme] file-request processing failed', err))
   }
   return NextResponse.json({ ok: true, name: file.name, size: file.size })
 }

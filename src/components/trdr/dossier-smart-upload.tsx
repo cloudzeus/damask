@@ -244,6 +244,18 @@ export function DossierSmartUpload({
           fullText: r.snippet || null,
         })
         patch(r.id, { phase: 'saved', covered: res.coveredPrograms })
+        if (res.mme) {
+          const eur = new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' })
+          toast.success(`Δήλωση ΜΜΕ ${res.mme.year}: ${res.mme.category ?? '—'} επιχείρηση`, {
+            description: res.mme.afmMismatch
+              ? '⚠ Το ΑΦΜ της δήλωσης ανήκει σε άλλη εταιρία — δεν καταχωρίστηκαν στοιχεία.'
+              : [
+                  `ΕΜΕ ${res.mme.eme ?? '—'} · κύκλος εργασιών ${res.mme.turnover != null ? eur.format(res.mme.turnover) : '—'}.`,
+                  res.mme.official ? 'Επίσημο έγγραφο (gov.gr) — υπερισχύει Ε3/μισθοδοσίας για το έτος.' : null,
+                  res.mme.updatedCompany ? 'Ενημερώθηκε η καρτέλα της εταιρίας.' : null,
+                ].filter(Boolean).join(' '),
+          })
+        }
         if (res.e3) {
           const eur = new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' })
           toast.success(`Ε3 ${res.e3.year}: κύκλος εργασιών ${res.e3.turnover != null ? eur.format(res.e3.turnover) : '—'}`, {

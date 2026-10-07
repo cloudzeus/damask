@@ -84,15 +84,15 @@ export function PartnerInfoCard({
       icon: Briefcase,
       label: 'Εργαζόμενοι',
       value: employees != null ? employees.toLocaleString('el-GR') : null,
-      hint: employeesSource === 'EME'
-        ? `ΕΜΕ ${employeesYear ?? ''}: ${eme != null ? eme.toLocaleString('el-GR', { maximumFractionDigits: 2 }) : '—'}`
+      hint: employeesSource === 'EME' || employeesSource === 'MME'
+        ? `${employeesSource === 'MME' ? 'Δήλωση ΜΜΕ' : 'ΕΜΕ'} ${employeesYear ?? ''}: ${eme != null ? eme.toLocaleString('el-GR', { maximumFractionDigits: 2 }) : '—'}`
         : employeesSource === 'MANUAL' ? 'χειροκίνητα' : null,
     },
     {
       icon: Briefcase,
       label: 'Κύκλος εργασιών',
       value: annualRevenue != null ? `${annualRevenue.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : null,
-      hint: revenueSource === 'E3' ? `Ε3 ${revenueYear ?? ''}` : revenueSource === 'MANUAL' ? 'χειροκίνητα' : null,
+      hint: revenueSource === 'E3' ? `Ε3 ${revenueYear ?? ''}` : revenueSource === 'MME' ? `Δήλωση ΜΜΕ ${revenueYear ?? ''}` : revenueSource === 'MANUAL' ? 'χειροκίνητα' : null,
     },
   ]
 
