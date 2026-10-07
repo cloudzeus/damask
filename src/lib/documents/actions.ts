@@ -93,6 +93,8 @@ export async function uploadTrdrDossierDoc(
     /** Από την έξυπνη αναγνώριση: τι είχε προταθεί + απόσπασμα κειμένου → γίνεται
      * παράδειγμα εκμάθησης (επιβεβαίωση ή διόρθωση). */
     learn?: { predictedTypeId: string | null; snippet: string; fileName: string } | null
+    /** Αντικατάσταση: το παλιό δικαιολογητικό (ίδιου πελάτη) αφαιρείται μετά την αποθήκευση. */
+    replaceDocId?: string | null
   },
 ): Promise<{ id: string }> {
   const session = await requirePermission('customer.edit')
@@ -114,6 +116,7 @@ export async function uploadTrdrDossierDoc(
       storageKey: key,
       mimeType: input.mimeType,
       sizeBytes: Buffer.byteLength(body),
+      contentHash: crypto.createHash('sha256').update(body).digest('hex'),
       issuedAt: input.issuedAt ? new Date(input.issuedAt) : null,
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
       programId: input.programId || null,
@@ -121,6 +124,9 @@ export async function uploadTrdrDossierDoc(
       uploadedById: session.user.id,
     },
   })
+  if (input.replaceDocId) {
+    await prisma.trdrDossierDocument.deleteMany({ where: { id: input.replaceDocId, trdrId } })
+  }
   if (input.learn && (input.learn.snippet.trim() || input.learn.fileName.trim())) {
     await prisma.documentClassificationExample.create({
       data: {
@@ -174,4 +180,60 @@ export async function listTrdrProgramsForDossier(trdrId: string): Promise<{ id: 
     select: { program: { select: { id: true, title: true } } },
   })
   return apps.map(a => a.program)
+}
+
+// ── C3: εντοπισμός διπλοεγγραφών ─────────────────────────────────────────────
+
+export type DossierDuplicateHit = {
+  id: string
+  name: string
+  typeName: string
+  createdAt: string
+  expiresAt: string | null
+  /** σε ισχύ (χωρίς λήξη ή λήξη στο μέλλον) */
+  valid: boolean
+}
+export type DossierDuplicateCheck = {
+  key: string
+  /** Ακριβώς το ίδιο αρχείο (ίδιο SHA-256) — ανεξάρτητα από όνομα/τύπο. */
+  exact: DossierDuplicateHit[]
+  /** Ίδιος τύπος δικαιολογητικού που υπάρχει ήδη (π.χ. ενημερότητα σε ισχύ). */
+  sameType: DossierDuplicateHit[]
+}
+
+/** Για κάθε αρχείο της παρτίδας: υπάρχει ήδη ίδιο αρχείο ή ίδιος τύπος στον πελάτη; */
+export async function checkDossierDuplicates(
+  trdrId: string,
+  items: { key: string; hash: string; typeId: string | null }[],
+): Promise<DossierDuplicateCheck[]> {
+  await requirePermission('customer.view')
+  const hashes = [...new Set(items.map(i => i.hash).filter(Boolean))]
+  const typeIds = [...new Set(items.map(i => i.typeId).filter((t): t is string => !!t))]
+  if (hashes.length === 0 && typeIds.length === 0) return items.map(i => ({ key: i.key, exact: [], sameType: [] }))
+  const rows = await prisma.trdrDossierDocument.findMany({
+    where: {
+      trdrId,
+      OR: [
+        ...(hashes.length ? [{ contentHash: { in: hashes } }] : []),
+        ...(typeIds.length ? [{ documentTypeId: { in: typeIds } }] : []),
+      ],
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, name: true, contentHash: true, documentTypeId: true, createdAt: true, expiresAt: true, documentType: { select: { name: true } } },
+  })
+  const now = Date.now()
+  const hit = (r: (typeof rows)[number]): DossierDuplicateHit => ({
+    id: r.id,
+    name: r.name,
+    typeName: r.documentType.name,
+    createdAt: r.createdAt.toISOString(),
+    expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
+    valid: !r.expiresAt || r.expiresAt.getTime() > now,
+  })
+  return items.map(i => {
+    const exact = rows.filter(r => i.hash && r.contentHash === i.hash)
+    const exactIds = new Set(exact.map(r => r.id))
+    const sameType = i.typeId ? rows.filter(r => r.documentTypeId === i.typeId && !exactIds.has(r.id)) : []
+    return { key: i.key, exact: exact.map(hit), sameType: sameType.map(hit) }
+  })
 }

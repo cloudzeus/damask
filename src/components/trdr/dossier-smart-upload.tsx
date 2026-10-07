@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
-  LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload,
+  LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload, LuCopy, LuInfo,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { uploadTrdrDossierDoc, listTrdrProgramsForDossier, type DocumentTypeOption } from '@/lib/documents/actions'
+import {
+  uploadTrdrDossierDoc, listTrdrProgramsForDossier, checkDossierDuplicates,
+  type DocumentTypeOption, type DossierDuplicateCheck,
+} from '@/lib/documents/actions'
 import { classifyDocumentSmart, type SmartClassifyResult } from '@/lib/documents/smart-classify'
 import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType } from '@/lib/ocr/rasterize'
 import { runOcrExtraction } from '@/lib/ocr/actions'
@@ -39,9 +42,30 @@ type Row = {
   reusable: boolean
   hasExpiry: boolean
   expiresAt: string
+  /** SHA-256 περιεχομένου (εντοπισμός ίδιου αρχείου). */
+  hash: string
+  /** Διπλοεγγραφές στον πελάτη (ίδιο αρχείο / ίδιος τύπος). */
+  dup: DossierDuplicateCheck | null
+  /** skip = να μην αποθηκευτεί· keep = αποθήκευση κανονικά· replace = αντικατάσταση του παλιού ίδιου τύπου. */
+  decision: 'skip' | 'keep' | 'replace'
 }
 
 const GENERAL = '__general__'
+const DATE_FMT = new Intl.DateTimeFormat('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const fmt = (iso: string | null) => (iso ? DATE_FMT.format(new Date(iso)) : '')
+
+async function sha256(file: File): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+  return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Προεπιλογή: ίδιο αρχείο → παράλειψη· ίδιος τύπος που λήγει και υπάρχει → αντικατάσταση
+ * (π.χ. νέα ενημερότητα αντικαθιστά την παλιά)· αλλιώς κανονική αποθήκευση. */
+function defaultDecision(dup: DossierDuplicateCheck | null, typeExpires: boolean): Row['decision'] {
+  if (dup?.exact.length) return 'skip'
+  if (dup?.sameType.length && typeExpires) return 'replace'
+  return 'keep'
+}
 const CONCURRENCY = 2
 
 function readFileBase64(file: File): Promise<{ base64: string; ext: string }> {
@@ -96,13 +120,22 @@ export function DossierSmartUpload({
     const file = files.current.get(id)
     if (!file) return
     try {
+      const hash = await sha256(file).catch(() => '')
+      patch(id, { hash })
       const text = await extractText(file).catch(() => '')
       patch(id, { phase: 'classifying', snippet: text })
       const res = await classifyDocumentSmart({ trdrId, fileName: file.name, text })
-      if (!res.ok) { patch(id, { phase: 'ready', error: res.message }); return }
+      if (!res.ok) {
+        const [dup] = await checkDossierDuplicates(trdrId, [{ key: id, hash, typeId: null }]).catch(() => [null])
+        patch(id, { phase: 'ready', error: res.message, dup: dup ?? null, decision: defaultDecision(dup ?? null, false) })
+        return
+      }
       const s = res.result
       const t = typesRef.current.find(x => x.id === s.typeId)
+      const [dup] = await checkDossierDuplicates(trdrId, [{ key: id, hash, typeId: s.typeId }]).catch(() => [null])
       patch(id, {
+        dup: dup ?? null,
+        decision: defaultDecision(dup ?? null, !!t?.expires),
         phase: 'ready',
         suggestion: s,
         typeId: s.typeId ?? '',
@@ -133,6 +166,7 @@ export function DossierSmartUpload({
       return {
         id, file, phase: 'reading', error: null, snippet: '', suggestion: null,
         typeId: '', programId: GENERAL, reusable: true, hasExpiry: false, expiresAt: '',
+        hash: '', dup: null, decision: 'keep',
       }
     })
     setRows(prev => [...prev, ...newRows])
@@ -146,8 +180,28 @@ export function DossierSmartUpload({
   }
 
   const busy = rows.some(r => r.phase === 'reading' || r.phase === 'classifying' || r.phase === 'saving')
-  const pending = rows.filter(r => r.phase !== 'saved')
+  const pending = rows.filter(r => r.phase !== 'saved' && r.decision !== 'skip')
   const missingType = pending.some(r => r.phase === 'ready' && !r.typeId)
+
+  // Ίδιο αρχείο δύο φορές στην ίδια παρτίδα: το δεύτερο δείχνει στο πρώτο.
+  const batchDupOf = React.useMemo(() => {
+    const first = new Map<string, Row>()
+    const out = new Map<string, Row>()
+    for (const r of rows) {
+      if (!r.hash) continue
+      const f = first.get(r.hash)
+      if (f) out.set(r.id, f)
+      else first.set(r.hash, r)
+    }
+    return out
+  }, [rows])
+
+  /** Αλλαγή τύπου → ξαναέλεγχος «ίδιου τύπου» για αυτό το αρχείο. */
+  async function recheck(row: Row, typeId: string) {
+    const t = types.find(x => x.id === typeId)
+    const [dup] = await checkDossierDuplicates(trdrId, [{ key: row.id, hash: row.hash, typeId }]).catch(() => [null])
+    patch(row.id, { dup: dup ?? null, decision: defaultDecision(dup ?? null, !!t?.expires) })
+  }
 
   function handleOpenChange(next: boolean) {
     if (!next && busy) return
@@ -158,7 +212,8 @@ export function DossierSmartUpload({
   async function saveAll() {
     let saved = 0
     for (const r of rows) {
-      if (r.phase !== 'ready' || !r.typeId) continue
+      if (r.phase !== 'ready' || !r.typeId || r.decision === 'skip' || batchDupOf.has(r.id)) continue
+      const replaceDocId = r.decision === 'replace' ? (r.dup?.sameType[0]?.id ?? null) : null
       patch(r.id, { phase: 'saving' })
       try {
         const { base64, ext } = await readFileBase64(r.file)
@@ -173,6 +228,7 @@ export function DossierSmartUpload({
           programId: r.programId === GENERAL ? null : r.programId,
           reusable: r.programId === GENERAL ? true : r.reusable,
           learn: { predictedTypeId: r.suggestion?.typeId ?? null, snippet: r.snippet, fileName: r.file.name },
+          replaceDocId,
         })
         patch(r.id, { phase: 'saved' })
         saved += 1
@@ -186,7 +242,8 @@ export function DossierSmartUpload({
     }
   }
 
-  const allSaved = rows.length > 0 && rows.every(r => r.phase === 'saved')
+  const allSaved = rows.length > 0 && rows.every(r => r.phase === 'saved' || r.decision === 'skip' || batchDupOf.has(r.id))
+  const toSave = pending.filter(r => r.phase === 'ready' && !batchDupOf.has(r.id)).length
 
   return (
     <>
@@ -230,7 +287,9 @@ export function DossierSmartUpload({
                   row={r}
                   types={types}
                   programs={programs}
+                  batchDupOf={batchDupOf.get(r.id) ?? null}
                   onChange={p => patch(r.id, p)}
+                  onTypeChange={typeId => void recheck(r, typeId)}
                   onRemove={() => { setRows(prev => prev.filter(x => x.id !== r.id)); files.current.delete(r.id) }}
                 />
               ))}
@@ -242,9 +301,9 @@ export function DossierSmartUpload({
               {allSaved ? 'Κλείσιμο' : 'Άκυρο'}
             </Button>
             {!allSaved && (
-              <Button type="button" onClick={saveAll} disabled={busy || pending.length === 0 || missingType}>
+              <Button type="button" onClick={saveAll} disabled={busy || toSave === 0 || missingType}>
                 {busy ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuUpload className="size-3.5" aria-hidden />}
-                {missingType ? 'Επίλεξε τύπο σε όλα' : `Αποθήκευση όλων (${pending.filter(r => r.phase === 'ready').length})`}
+                {missingType ? 'Επίλεξε τύπο σε όλα' : `Αποθήκευση όλων (${toSave})`}
               </Button>
             )}
           </DialogFooter>
@@ -269,19 +328,22 @@ function ConfidenceChip({ s }: { s: SmartClassifyResult | null }) {
 }
 
 function RowCard({
-  row, types, programs, onChange, onRemove,
+  row, types, programs, batchDupOf, onChange, onTypeChange, onRemove,
 }: {
   row: Row
   types: DocumentTypeOption[]
   programs: { id: string; title: string }[]
+  batchDupOf: Row | null
   onChange: (p: Partial<Row>) => void
+  onTypeChange: (typeId: string) => void
   onRemove: () => void
 }) {
+  const skipped = row.decision === 'skip' || !!batchDupOf
   const working = row.phase === 'reading' || row.phase === 'classifying'
   const locked = working || row.phase === 'saving' || row.phase === 'saved'
   const sizeKb = Math.max(1, Math.round(row.file.size / 1024))
   return (
-    <li className={cn('rounded-2xl border bg-card p-3', row.phase === 'saved' ? 'border-[color:var(--success)]/40' : 'border-border')}>
+    <li className={cn('rounded-2xl border bg-card p-3', row.phase === 'saved' ? 'border-[color:var(--success)]/40' : 'border-border', skipped && row.phase !== 'saved' && 'opacity-70')}>
       <div className="flex items-start gap-2.5">
         <span className="relative mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
           {working || row.phase === 'saving'
@@ -313,6 +375,10 @@ function RowCard({
       </div>
 
       {!working && row.phase !== 'saved' && (
+        <DuplicateNotice row={row} batchDupOf={batchDupOf} onDecision={d => onChange({ decision: d })} />
+      )}
+
+      {!working && row.phase !== 'saved' && !skipped && (
         <div className="mt-3 grid gap-x-3 gap-y-2.5 sm:grid-cols-2">
           <div className="field !mb-0">
             <label>Τύπος δικαιολογητικού</label>
@@ -321,6 +387,7 @@ function RowCard({
               onValueChange={v => {
                 const t = types.find(x => x.id === v)
                 onChange({ typeId: v ?? '', hasExpiry: t?.expires ? true : row.hasExpiry })
+                if (v) onTypeChange(v)
               }}
               disabled={locked}
             >
@@ -374,5 +441,73 @@ function RowCard({
         </div>
       )}
     </li>
+  )
+}
+
+/** Προειδοποίηση διπλοεγγραφής με επιλογή χειρισμού (C3). */
+function DuplicateNotice({
+  row, batchDupOf, onDecision,
+}: {
+  row: Row
+  batchDupOf: Row | null
+  onDecision: (d: Row['decision']) => void
+}) {
+  if (batchDupOf) {
+    return (
+      <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-[color:var(--warning)]/40 bg-[color:var(--warning)]/8 px-3 py-2 text-[length:var(--fs-12)]">
+        <LuCopy className="mt-0.5 size-3.5 shrink-0 text-[color:var(--warning)]" aria-hidden />
+        <span>Το ίδιο αρχείο υπάρχει ήδη σε αυτή τη μεταφόρτωση («{batchDupOf.file.name}») — <strong>δεν θα αποθηκευτεί δεύτερη φορά</strong>.</span>
+      </div>
+    )
+  }
+  const exact = row.dup?.exact[0]
+  const same = row.dup?.sameType[0]
+  if (!exact && !same) return null
+
+  const choice = (value: Row['decision'], label: string) => (
+    <button
+      type="button"
+      onClick={() => onDecision(value)}
+      aria-pressed={row.decision === value}
+      className={cn(
+        'h-7 rounded-full border px-3 text-[length:var(--fs-11-5)] font-semibold transition-colors',
+        row.decision === value ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:bg-muted',
+      )}
+    >
+      {label}
+    </button>
+  )
+
+  if (exact) {
+    return (
+      <div className="mt-2.5 flex flex-col gap-2 rounded-xl border border-[color:var(--warning)]/40 bg-[color:var(--warning)]/8 px-3 py-2.5 text-[length:var(--fs-12)]">
+        <p className="flex items-start gap-2">
+          <LuCopy className="mt-0.5 size-3.5 shrink-0 text-[color:var(--warning)]" aria-hidden />
+          <span>
+            <strong>Διπλοεγγραφή:</strong> αυτό ακριβώς το αρχείο υπάρχει ήδη ως «{exact.name}» ({exact.typeName}, καταχωρίστηκε {fmt(exact.createdAt)}).
+          </span>
+        </p>
+        <div className="flex flex-wrap gap-1.5 pl-5.5">
+          {choice('skip', 'Παράλειψη')}
+          {choice('keep', 'Αποθήκευση ξανά')}
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="mt-2.5 flex flex-col gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-[length:var(--fs-12)]">
+      <p className="flex items-start gap-2">
+        <LuInfo className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
+        <span>
+          Υπάρχει ήδη <strong>{same!.typeName}</strong>: «{same!.name}»
+          {same!.expiresAt ? (same!.valid ? ` — σε ισχύ έως ${fmt(same!.expiresAt)}` : ` — έληξε ${fmt(same!.expiresAt)}`) : ` — καταχωρίστηκε ${fmt(same!.createdAt)}`}.
+        </span>
+      </p>
+      <div className="flex flex-wrap gap-1.5 pl-5.5">
+        {choice('replace', 'Αντικατάσταση του παλιού')}
+        {choice('keep', 'Κράτα και τα δύο')}
+        {choice('skip', 'Παράλειψη')}
+      </div>
+    </div>
   )
 }
