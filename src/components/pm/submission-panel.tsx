@@ -58,7 +58,7 @@ export function SubmissionPanel({ applicationId, canManage }: { applicationId: s
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Η ενέργεια απέτυχε.') } finally { setBusy(false) }
   }
 
-  if (loading) return <div className="glass flex items-center justify-center gap-2 rounded-[22px] p-8 text-[0.78125rem] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
+  if (loading) return <div className="glass flex items-center justify-center gap-2 rounded-[22px] p-8 text-[length:var(--fs-12-5)] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
   if (!data) return null
 
   const { current, history, readiness, canSubmit, canModify } = data
@@ -68,7 +68,7 @@ export function SubmissionPanel({ applicationId, canManage }: { applicationId: s
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Υποβολή πρότασης</div>
+        <div className="dotted-leader text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Υποβολή πρότασης</div>
         {current && sm && (
           <span className={`badge-pill ${sm.cls}`}>έκδοση {current.version} · {sm.label}</span>
         )}
@@ -76,20 +76,20 @@ export function SubmissionPanel({ applicationId, canManage }: { applicationId: s
 
       {/* Readiness */}
       {readiness.ready ? (
-        <div className="mb-3 flex items-center gap-2 rounded-xl border border-[color:var(--success)]/30 bg-[color:var(--success)]/5 px-3 py-2 text-[0.75rem]">
+        <div className="mb-3 flex items-center gap-2 rounded-xl border border-[color:var(--success)]/30 bg-[color:var(--success)]/5 px-3 py-2 text-[length:var(--fs-12)]">
           <LuCircleCheck className="size-4 shrink-0 text-[color:var(--success)]" aria-hidden />
           <span>Το σχέδιο δαπανών και τα δικαιολογητικά είναι έτοιμα για υποβολή{readiness.totalPlanned > 0 ? ` — σύνολο ${EUR.format(readiness.totalPlanned)} €` : ''}.</span>
         </div>
       ) : (
         <div className="mb-3 rounded-xl border border-[color:var(--coral)]/30 bg-[color:var(--coral)]/5 px-3 py-2">
-          <div className="flex items-center gap-2 text-[0.75rem] font-semibold text-[color:var(--coral)]"><LuTriangleAlert className="size-4 shrink-0" aria-hidden /> Δεν είναι έτοιμη η υποβολή</div>
-          <ul className="mt-1 list-disc pl-6 text-[0.71875rem] text-muted-foreground">
+          <div className="flex items-center gap-2 text-[length:var(--fs-12)] font-semibold text-[color:var(--coral)]"><LuTriangleAlert className="size-4 shrink-0" aria-hidden /> Δεν είναι έτοιμη η υποβολή</div>
+          <ul className="mt-1 list-disc pl-6 text-[length:var(--fs-11-5)] text-muted-foreground">
             {readiness.blockers.map((b, i) => <li key={i}>{b}</li>)}
           </ul>
         </div>
       )}
       {readiness.warnings.length > 0 && (
-        <ul className="mb-3 list-disc pl-6 text-[0.6875rem] text-[color:var(--warning)]">
+        <ul className="mb-3 list-disc pl-6 text-[length:var(--fs-11)] text-[color:var(--warning)]">
           {readiness.warnings.map((w, i) => <li key={i}>{w}</li>)}
         </ul>
       )}
@@ -100,7 +100,7 @@ export function SubmissionPanel({ applicationId, canManage }: { applicationId: s
           {pending ? (
             // Απόφαση σε εκκρεμή υποβολή
             <div className="flex flex-col gap-2">
-              <div className="text-[0.75rem] text-muted-foreground">Η έκδοση {current!.version} περιμένει απόφαση.</div>
+              <div className="text-[length:var(--fs-12)] text-muted-foreground">Η έκδοση {current!.version} περιμένει απόφαση.</div>
               <Input value={note} onChange={e => setNote(e.target.value)} placeholder="Λόγος απόρριψης (αν απορρίπτεται)" autoComplete="off" />
               <div className="flex flex-wrap gap-2">
                 <Button type="button" onClick={() => decide(true)} disabled={busy}><LuCheck className="size-3.5" aria-hidden /> Έγκριση</Button>
@@ -122,7 +122,7 @@ export function SubmissionPanel({ applicationId, canManage }: { applicationId: s
               </div>
             </div>
           ) : (
-            <div className="text-[0.75rem] text-muted-foreground">Διόρθωσε τα εμπόδια παραπάνω για να υποβάλεις την πρόταση.</div>
+            <div className="text-[length:var(--fs-12)] text-muted-foreground">Διόρθωσε τα εμπόδια παραπάνω για να υποβάλεις την πρόταση.</div>
           )}
         </div>
       )}
@@ -130,18 +130,18 @@ export function SubmissionPanel({ applicationId, canManage }: { applicationId: s
       {/* Ιστορικό εκδόσεων */}
       {history.length > 0 && (
         <div className="mt-3">
-          <div className="mb-1 text-[0.65625rem] font-semibold uppercase tracking-wide text-muted-foreground">Ιστορικό υποβολών</div>
+          <div className="mb-1 text-[length:var(--fs-10-5)] font-semibold uppercase tracking-wide text-muted-foreground">Ιστορικό υποβολών</div>
           <ul className="flex flex-col gap-1">
             {history.map(h => {
               const m = STATUS_META[h.status]
               return (
-                <li key={h.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-card/60 px-2.5 py-1.5 text-[0.71875rem]">
+                <li key={h.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-card/60 px-2.5 py-1.5 text-[length:var(--fs-11-5)]">
                   <span className="font-semibold">v{h.version}</span>
                   <span className={`badge-pill ${m.cls} shrink-0`}>{m.label}</span>
                   {h.opskeRef && <span className="text-muted-foreground">ΟΠΣΚΕ {h.opskeRef}</span>}
                   {h.totalAmount != null && <span className="tabular-nums text-muted-foreground">{EUR.format(h.totalAmount)} €</span>}
                   <span className="ml-auto text-muted-foreground">υποβ. {fmtDate(h.submittedAt)}{h.decidedAt ? ` · απόφ. ${fmtDate(h.decidedAt)}` : ''}</span>
-                  {h.note && <span className="w-full text-[0.6875rem] text-muted-foreground">— {h.note}</span>}
+                  {h.note && <span className="w-full text-[length:var(--fs-11)] text-muted-foreground">— {h.note}</span>}
                 </li>
               )
             })}

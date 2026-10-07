@@ -67,8 +67,8 @@ export function MarkupCard({ initial }: { initial: AiMarkupSettings }) {
           <Percent className="size-4" strokeWidth={1.8} aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[0.90625rem] font-bold">Markup ανά υπηρεσία</h3>
-          <p className="mt-0.5 text-[0.75rem] text-muted-foreground">
+          <h3 className="text-[length:var(--fs-14-5)] font-bold">Markup ανά υπηρεσία</h3>
+          <p className="mt-0.5 text-[length:var(--fs-12)] text-muted-foreground">
             Ποσοστό επιπλέον χρέωσης πάνω στο base USD cost — μόνο ο SUPER_ADMIN το βλέπει/αλλάζει. Ο ADMIN βλέπει μόνο το τελικό κόστος.
           </p>
         </div>

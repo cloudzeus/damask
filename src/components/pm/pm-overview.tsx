@@ -59,7 +59,7 @@ export function PmOverview({ obligations }: { obligations: BoardObligation[] }) 
   ]
 
   if (obligations.length === 0) {
-    return <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν εκκρεμότητες.</p>
+    return <p className="py-8 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Δεν υπάρχουν εκκρεμότητες.</p>
   }
 
   return (
@@ -71,7 +71,7 @@ export function PmOverview({ obligations }: { obligations: BoardObligation[] }) 
       </div>
 
       <section className="glass table-card">
-        <div className="dotted-leader px-2.5 pt-2 pb-1 text-[0.65625rem] font-extrabold tracking-[0.1em] uppercase">
+        <div className="dotted-leader px-2.5 pt-2 pb-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] uppercase">
           Ανά πρόγραμμα
         </div>
         <DataTable
@@ -87,7 +87,7 @@ export function PmOverview({ obligations }: { obligations: BoardObligation[] }) 
 
       {summary.byAssignee.length > 1 && (
         <section className="glass table-card">
-          <div className="dotted-leader px-2.5 pt-2 pb-1 text-[0.65625rem] font-extrabold tracking-[0.1em] uppercase">
+          <div className="dotted-leader px-2.5 pt-2 pb-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] uppercase">
             Ανά υπεύθυνο
           </div>
           <DataTable
@@ -107,9 +107,9 @@ export function PmOverview({ obligations }: { obligations: BoardObligation[] }) 
 function StatCard({ title, value, coral = false }: { title: string; value: number; coral?: boolean }) {
   return (
     <div className="glass lift relative px-[17px] pt-[15px] pb-[13px]">
-      <div className="text-[0.71875rem] font-bold text-muted-foreground">{title}</div>
+      <div className="text-[length:var(--fs-11-5)] font-bold text-muted-foreground">{title}</div>
       <div
-        className="mt-[3px] text-[2.0625rem] leading-none font-[250] tracking-[-0.015em] tabular-nums"
+        className="mt-[3px] text-[length:var(--fs-33)] leading-none font-[250] tracking-[-0.015em] tabular-nums"
         style={coral ? { color: 'var(--coral)' } : undefined}
       >
         {value}

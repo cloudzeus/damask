@@ -109,22 +109,22 @@ export function FileViewerModal({ open, onOpenChange, file }: { open: boolean; o
           ) : kind === 'pdf' ? (
             <iframe src={file.url} title={file.name} className="h-full w-full" />
           ) : kind === 'text' ? (
-            <pre className="h-full w-full overflow-auto p-4 text-[0.8125rem] whitespace-pre-wrap">{text}</pre>
+            <pre className="h-full w-full overflow-auto p-4 text-[length:var(--fs-13)] whitespace-pre-wrap">{text}</pre>
           ) : kind === 'docx' && html !== null ? (
-            <div className="docx-preview mx-auto max-w-[46rem] p-6 text-[0.875rem] leading-relaxed" dangerouslySetInnerHTML={{ __html: html }} />
+            <div className="docx-preview mx-auto max-w-[46rem] p-6 text-[length:var(--fs-14)] leading-relaxed" dangerouslySetInnerHTML={{ __html: html }} />
           ) : kind === 'sheet' && sheetHtml !== null ? (
             <div className="flex h-full flex-col">
               {sheets.length > 1 && (
                 <div className="flex flex-wrap gap-1 border-b border-border p-2">
                   {sheets.map((s, i) => (
                     <button key={s} type="button" onClick={() => setActiveSheet(i)}
-                      className={`rounded-md px-2.5 py-1 text-[0.75rem] font-semibold ${i === activeSheet ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
+                      className={`rounded-md px-2.5 py-1 text-[length:var(--fs-12)] font-semibold ${i === activeSheet ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
                       {s}
                     </button>
                   ))}
                 </div>
               )}
-              <div className="sheet-preview min-h-0 flex-1 overflow-auto p-2 text-[0.8125rem]" dangerouslySetInnerHTML={{ __html: sheetHtml }} />
+              <div className="sheet-preview min-h-0 flex-1 overflow-auto p-2 text-[length:var(--fs-13)]" dangerouslySetInnerHTML={{ __html: sheetHtml }} />
             </div>
           ) : (
             <Fallback file={file} message="Δεν υποστηρίζεται προεπισκόπηση για αυτόν τον τύπο." />
@@ -140,7 +140,7 @@ function Fallback({ file, message }: { file: ViewerFile; message: string }) {
     <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
       <FileQuestion className="size-8 text-muted-foreground" strokeWidth={1.5} aria-hidden />
       <p className="text-sm text-muted-foreground">{message}</p>
-      <a href={file.url.replace(/([?&])disp=inline/, '$1disp=attachment')} download className="btn-pill btn-navy h-10 px-4 text-[0.8125rem]">
+      <a href={file.url.replace(/([?&])disp=inline/, '$1disp=attachment')} download className="btn-pill btn-navy h-10 px-4 text-[length:var(--fs-13)]">
         <Download className="size-4" aria-hidden /> Λήψη
       </a>
     </div>

@@ -80,13 +80,13 @@ export function ActivityDashboard({ users }: { users: { id: string; name: string
   return (
     <div className="flex flex-col gap-3">
       <div className="glass table-toolbar rounded-[18px]">
-        <label className="flex items-center gap-1.5 text-[0.75rem] font-semibold text-muted-foreground">
+        <label className="flex items-center gap-1.5 text-[length:var(--fs-12)] font-semibold text-muted-foreground">
           Από
-          <input type="date" value={from} max={to} onChange={e => setFrom(e.target.value)} className="rounded-lg border border-border bg-card px-2 py-1 text-[0.78125rem]" />
+          <input type="date" value={from} max={to} onChange={e => setFrom(e.target.value)} className="rounded-lg border border-border bg-card px-2 py-1 text-[length:var(--fs-12-5)]" />
         </label>
-        <label className="flex items-center gap-1.5 text-[0.75rem] font-semibold text-muted-foreground">
+        <label className="flex items-center gap-1.5 text-[length:var(--fs-12)] font-semibold text-muted-foreground">
           Έως
-          <input type="date" value={to} min={from} onChange={e => setTo(e.target.value)} className="rounded-lg border border-border bg-card px-2 py-1 text-[0.78125rem]" />
+          <input type="date" value={to} min={from} onChange={e => setTo(e.target.value)} className="rounded-lg border border-border bg-card px-2 py-1 text-[length:var(--fs-12-5)]" />
         </label>
         <div className="min-w-[200px]">
           <Select value={userId || 'all'} onValueChange={v => setUserId(!v || v === 'all' ? '' : v)}>
@@ -112,8 +112,8 @@ export function ActivityDashboard({ users }: { users: { id: string; name: string
             <div className="absolute top-[13px] right-[13px] flex size-[30px] items-center justify-center rounded-[11px]" style={{ background: 'var(--info-soft)', color: 'var(--info)' }}>
               <k.icon className="size-[15px]" strokeWidth={1.8} />
             </div>
-            <div className="text-[0.71875rem] font-bold text-muted-foreground">{k.label}</div>
-            <div className="mt-[3px] text-[2.0625rem] leading-none font-[250] tabular-nums">{k.value}</div>
+            <div className="text-[length:var(--fs-11-5)] font-bold text-muted-foreground">{k.label}</div>
+            <div className="mt-[3px] text-[length:var(--fs-33)] leading-none font-[250] tabular-nums">{k.value}</div>
           </div>
         ))}
       </div>

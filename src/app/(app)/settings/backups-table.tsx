@@ -66,7 +66,7 @@ export function BackupsTable({ rows }: { rows: BackupRow[] }) {
         </div>
         <div>
           <p className="font-semibold">Δεν υπάρχουν ακόμα αντίγραφα ασφαλείας.</p>
-          <p className="mt-0.5 text-[0.78125rem] text-muted-foreground">Το πρώτο θα τρέξει αυτόματα απόψε στις 03:30, ή μπορείς να το ξεκινήσεις τώρα.</p>
+          <p className="mt-0.5 text-[length:var(--fs-12-5)] text-muted-foreground">Το πρώτο θα τρέξει αυτόματα απόψε στις 03:30, ή μπορείς να το ξεκινήσεις τώρα.</p>
         </div>
         <BackupNowButton />
       </div>
@@ -86,7 +86,7 @@ export function BackupsTable({ rows }: { rows: BackupRow[] }) {
       header: 'Αρχείο',
       width: 280,
       sortValue: row => row.filename,
-      cell: row => <span className="block max-w-[280px] truncate font-mono text-[0.75rem]" title={row.filename}>{row.filename}</span>,
+      cell: row => <span className="block max-w-[280px] truncate font-mono text-[length:var(--fs-12)]" title={row.filename}>{row.filename}</span>,
     },
     {
       id: 'size',

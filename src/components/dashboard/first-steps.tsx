@@ -44,8 +44,8 @@ export function FirstSteps() {
           <Compass className="size-[0.9375rem]" strokeWidth={1.8} aria-hidden />
         </span>
         <div>
-          <h2 className="text-[0.8125rem] font-bold text-foreground">Πρώτα βήματα</h2>
-          <p className="text-[0.6875rem] text-muted-foreground">Νέος εδώ; Ακολούθησε τη σειρά — κάθε βήμα σε πάει εκεί που χρειάζεται.</p>
+          <h2 className="text-[length:var(--fs-13)] font-bold text-foreground">Πρώτα βήματα</h2>
+          <p className="text-[length:var(--fs-11)] text-muted-foreground">Νέος εδώ; Ακολούθησε τη σειρά — κάθε βήμα σε πάει εκεί που χρειάζεται.</p>
         </div>
       </header>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -57,11 +57,11 @@ export function FirstSteps() {
                 <Icon className="size-4" strokeWidth={1.8} aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1 text-[0.78125rem] font-semibold text-foreground">
+                <span className="flex items-center gap-1 text-[length:var(--fs-12-5)] font-semibold text-foreground">
                   <span className="text-muted-foreground tabular-nums">{i + 1}.</span> {s.label}
                   <ArrowRight className="size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
                 </span>
-                <span className="mt-0.5 block text-[0.6875rem] leading-snug text-muted-foreground">{s.hint}</span>
+                <span className="mt-0.5 block text-[length:var(--fs-11)] leading-snug text-muted-foreground">{s.hint}</span>
               </span>
             </Link>
           )

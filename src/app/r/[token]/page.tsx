@@ -34,7 +34,7 @@ export default async function FileRequestPage({ params }: { params: Promise<{ to
           boxShadow: '0 18px 50px rgba(2,20,32,0.35)',
         }}
       >
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.7, marginBottom: '1rem' }}>
+        <div style={{ fontSize: 'var(--fs-13)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.7, marginBottom: '1rem' }}>
           World Wide Associates
         </div>
 
@@ -43,9 +43,9 @@ export default async function FileRequestPage({ params }: { params: Promise<{ to
         ) : (
           <div style={{ display: 'grid', gap: '1.25rem' }}>
             <header style={{ display: 'grid', gap: '0.35rem' }}>
-              <h1 style={{ margin: 0, fontSize: '1.3rem', fontFamily: 'var(--font-display)' }}>{req.title}</h1>
-              {req.message && <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.55, color: 'var(--muted-foreground, #475569)' }}>{req.message}</p>}
-              <p style={{ margin: '0.15rem 0 0', fontSize: '0.76rem', color: 'var(--muted-foreground, #94a3b8)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <h1 style={{ margin: 0, fontSize: 'var(--fs-21)', fontFamily: 'var(--font-display)' }}>{req.title}</h1>
+              {req.message && <p style={{ margin: 0, fontSize: 'var(--fs-14-5)', lineHeight: 1.55, color: 'var(--muted-foreground, #475569)' }}>{req.message}</p>}
+              <p style={{ margin: '0.15rem 0 0', fontSize: 'var(--fs-12)', color: 'var(--muted-foreground, #94a3b8)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 <Clock size={13} aria-hidden />
                 Λήγει: {new Date(req.expiresAt).toLocaleString('el-GR', { dateStyle: 'long', timeStyle: 'short' })}
               </p>
@@ -66,8 +66,8 @@ function Invalid({ reason }: { reason: 'not_found' | 'expired' | 'cancelled' }) 
       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '3rem', height: '3rem', margin: '0 auto', borderRadius: '999px', background: 'color-mix(in srgb, var(--muted-foreground, #64748b) 14%, transparent)', color: 'var(--muted-foreground, #64748b)' }}>
         <Icon size={24} aria-hidden />
       </span>
-      <h1 style={{ margin: 0, fontSize: '1.15rem', fontFamily: 'var(--font-display)' }}>{title}</h1>
-      <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.55, color: 'var(--muted-foreground, #475569)' }}>{body}</p>
+      <h1 style={{ margin: 0, fontSize: 'var(--fs-18-5)', fontFamily: 'var(--font-display)' }}>{title}</h1>
+      <p style={{ margin: 0, fontSize: 'var(--fs-14-5)', lineHeight: 1.55, color: 'var(--muted-foreground, #475569)' }}>{body}</p>
     </div>
   )
 }

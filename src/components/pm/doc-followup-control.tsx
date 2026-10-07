@@ -44,23 +44,23 @@ export function DocFollowupControl({
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="flex items-center gap-1.5 text-[0.71875rem] font-semibold text-foreground">
+        <span className="flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-semibold text-foreground">
           <LuBellRing className="size-3.5 text-muted-foreground" aria-hidden />
           Υπενθύμιση επανεπικοινωνίας δικαιολογητικών
         </span>
         {canManage ? (
           <div className="flex items-center gap-1.5">
-            <span className="text-[0.71875rem] text-muted-foreground">κάθε</span>
+            <span className="text-[length:var(--fs-11-5)] text-muted-foreground">κάθε</span>
             <Input
               type="number"
               min={0}
               max={365}
               value={days}
               onChange={e => setDays(e.target.value)}
-              className="h-8 w-16 text-center text-[0.78125rem]"
+              className="h-8 w-16 text-center text-[length:var(--fs-12-5)]"
               aria-label="Ημέρες υπενθύμισης"
             />
-            <span className="text-[0.71875rem] text-muted-foreground">ημέρες (0 = ανενεργό)</span>
+            <span className="text-[length:var(--fs-11-5)] text-muted-foreground">ημέρες (0 = ανενεργό)</span>
             {dirty && (
               <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
                 {saving ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : 'Αποθήκευση'}
@@ -71,7 +71,7 @@ export function DocFollowupControl({
           <span className="badge-pill muted">{savedDays === 0 ? 'Ανενεργό' : `κάθε ${savedDays} ημέρες`}</span>
         )}
       </div>
-      <p className="mt-1.5 text-[0.6875rem] text-muted-foreground">
+      <p className="mt-1.5 text-[length:var(--fs-11)] text-muted-foreground">
         Όσο υπάρχουν μη-εγκεκριμένα υποχρεωτικά δικαιολογητικά, δημιουργείται alert στον διαχειριστή &amp; διεκπεραιωτή του έργου (in-app + email).
       </p>
     </section>

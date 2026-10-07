@@ -51,24 +51,24 @@ export function HelpButton() {
           <Link
             href="/help"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 rounded-xl border border-primary/30 bg-primary/5 px-3 py-3 text-[0.8125rem] font-semibold text-foreground transition-colors hover:bg-primary/10"
+            className="flex items-center gap-2.5 rounded-xl border border-primary/30 bg-primary/5 px-3 py-3 text-[length:var(--fs-13)] font-semibold text-foreground transition-colors hover:bg-primary/10"
           >
             <BookOpen className="size-4 shrink-0 text-primary" aria-hidden />
             <span className="flex-1">Πλήρες εγχειρίδιο χρήσης — αναλυτικά, βήμα-βήμα</span>
             <ArrowRight className="size-4 shrink-0 text-primary" aria-hidden />
           </Link>
 
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-[0.78125rem]">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-[length:var(--fs-12-5)]">
             <Search className="size-4 shrink-0 text-primary" aria-hidden />
-            <span>Πάτα <kbd className="rounded border border-border px-1 text-[0.6875rem]">⌘K</kbd> από οπουδήποτε για να βρεις γρήγορα πελάτη, έργο ή πρόγραμμα.</span>
+            <span>Πάτα <kbd className="rounded border border-border px-1 text-[length:var(--fs-11)]">⌘K</kbd> από οπουδήποτε για να βρεις γρήγορα πελάτη, έργο ή πρόγραμμα.</span>
           </div>
 
           <div>
-            <h3 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-wide text-muted-foreground">Ο κύκλος μιας πρότασης</h3>
+            <h3 className="mb-2 text-[length:var(--fs-11)] font-bold uppercase tracking-wide text-muted-foreground">Ο κύκλος μιας πρότασης</h3>
             <ol className="flex flex-col gap-1.5">
               {FLOW.map((f, i) => (
-                <li key={i} className="flex items-center gap-2 text-[0.8125rem]">
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[0.6875rem] font-bold text-primary tabular-nums">{i + 1}</span>
+                <li key={i} className="flex items-center gap-2 text-[length:var(--fs-13)]">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[length:var(--fs-11)] font-bold text-primary tabular-nums">{i + 1}</span>
                   <span className="text-foreground">{f}</span>
                 </li>
               ))}
@@ -76,12 +76,12 @@ export function HelpButton() {
           </div>
 
           <div>
-            <h3 className="mb-2 text-[0.6875rem] font-bold uppercase tracking-wide text-muted-foreground">Λεξικό όρων</h3>
+            <h3 className="mb-2 text-[length:var(--fs-11)] font-bold uppercase tracking-wide text-muted-foreground">Λεξικό όρων</h3>
             <dl className="flex flex-col gap-2">
               {GLOSSARY.map(g => (
                 <div key={g.term} className="rounded-lg bg-muted/40 px-3 py-2">
-                  <dt className="text-[0.78125rem] font-semibold text-foreground">{g.term}</dt>
-                  <dd className="text-[0.71875rem] text-muted-foreground">{g.def}</dd>
+                  <dt className="text-[length:var(--fs-12-5)] font-semibold text-foreground">{g.term}</dt>
+                  <dd className="text-[length:var(--fs-11-5)] text-muted-foreground">{g.def}</dd>
                 </div>
               ))}
             </dl>

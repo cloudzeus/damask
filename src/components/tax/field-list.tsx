@@ -90,7 +90,7 @@ export function FieldList({ fields, selectedFieldKey, pages, templateId, onSelec
       })}
 
       {fields.length === 0 && (
-        <div className="glass rounded-[16px] p-6 text-center text-[0.78125rem] text-muted-foreground">
+        <div className="glass rounded-[16px] p-6 text-center text-[length:var(--fs-12-5)] text-muted-foreground">
           Δεν υπάρχουν ακόμη πεδία — πρόσθεσε το πρώτο.
         </div>
       )}
@@ -204,7 +204,7 @@ function FieldCard({
     >
       <div className="mb-2 flex items-start gap-2">
         <div className="flex-1">
-          <label className="mb-1 block text-[0.6875rem] font-semibold text-muted-foreground" htmlFor={`fl-label-${index}`}>
+          <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground" htmlFor={`fl-label-${index}`}>
             Ετικέτα
           </label>
           <Input
@@ -227,20 +227,20 @@ function FieldCard({
 
       <div className="mb-2 grid grid-cols-2 gap-2">
         <div>
-          <label className="mb-1 block text-[0.6875rem] font-semibold text-muted-foreground" htmlFor={`fl-key-${index}`}>
+          <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground" htmlFor={`fl-key-${index}`}>
             Κλειδί
           </label>
           <Input
             id={`fl-key-${index}`}
             value={field.fieldKey}
             placeholder={slugPreview}
-            className="font-mono text-[0.75rem]"
+            className="font-mono text-[length:var(--fs-12)]"
             onClick={e => e.stopPropagation()}
             onChange={e => onUpdate({ fieldKey: e.target.value })}
           />
         </div>
         <div>
-          <label className="mb-1 block text-[0.6875rem] font-semibold text-muted-foreground" htmlFor={`fl-section-${index}`}>
+          <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground" htmlFor={`fl-section-${index}`}>
             Ενότητα
           </label>
           <Input
@@ -255,9 +255,9 @@ function FieldCard({
 
       <div className="mb-2 grid grid-cols-2 gap-2">
         <div onClick={e => e.stopPropagation()}>
-          <label className="mb-1 block text-[0.6875rem] font-semibold text-muted-foreground">Τύπος τιμής</label>
+          <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground">Τύπος τιμής</label>
           <Select value={field.valueType} onValueChange={v => onUpdate({ valueType: v as FinancialValueTypeStr })}>
-            <SelectTrigger aria-label="Τύπος τιμής" className="h-8 w-full text-[0.78125rem]">
+            <SelectTrigger aria-label="Τύπος τιμής" className="h-8 w-full text-[length:var(--fs-12-5)]">
               <SelectValue>{(v: string) => VALUE_TYPE_LABELS[v as FinancialValueTypeStr]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -266,7 +266,7 @@ function FieldCard({
           </Select>
         </div>
         <div onClick={e => e.stopPropagation()}>
-          <label className="mb-1 block text-[0.6875rem] font-semibold text-muted-foreground">Είδος</label>
+          <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground">Είδος</label>
           <Select
             value={field.kind}
             onValueChange={v => onUpdate({
@@ -274,7 +274,7 @@ function FieldCard({
               config: v === 'TABLE' ? { columns: field.config?.columns ?? [''] } : null,
             })}
           >
-            <SelectTrigger aria-label="Είδος πεδίου" className="h-8 w-full text-[0.78125rem]">
+            <SelectTrigger aria-label="Είδος πεδίου" className="h-8 w-full text-[length:var(--fs-12-5)]">
               <SelectValue>{(v: string) => KIND_LABELS[v as TaxFieldKindStr]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -286,7 +286,7 @@ function FieldCard({
 
       {field.kind === 'TABLE' && (
         <div className="mb-2" onClick={e => e.stopPropagation()}>
-          <label className="mb-1 block text-[0.6875rem] font-semibold text-muted-foreground">Στήλες πίνακα</label>
+          <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground">Στήλες πίνακα</label>
           <div className="flex flex-col gap-1.5">
             {(field.config?.columns ?? []).map((col, colIndex) => (
               <div key={colIndex} className="flex items-center gap-1.5">
@@ -313,7 +313,7 @@ function FieldCard({
       )}
 
       <div className="mb-2">
-        <label className="mb-1 block text-[0.6875rem] font-semibold text-muted-foreground" htmlFor={`fl-hint-${index}`}>
+        <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground" htmlFor={`fl-hint-${index}`}>
           Υπόδειξη OCR (προαιρετικό)
         </label>
         <Input
@@ -326,7 +326,7 @@ function FieldCard({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="flex items-center gap-1.5 text-[0.75rem]" onClick={e => e.stopPropagation()}>
+        <label className="flex items-center gap-1.5 text-[length:var(--fs-12)]" onClick={e => e.stopPropagation()}>
           <input type="checkbox" checked={field.required} onChange={e => onUpdate({ required: e.target.checked })} />
           Υποχρεωτικό
         </label>
@@ -367,7 +367,7 @@ function FieldCard({
       </div>
 
       {(result || testError) && (
-        <div className="mt-2 rounded-lg border border-border bg-muted/40 p-2 text-[0.75rem]" onClick={e => e.stopPropagation()}>
+        <div className="mt-2 rounded-lg border border-border bg-muted/40 p-2 text-[length:var(--fs-12)]" onClick={e => e.stopPropagation()}>
           {testError ? (
             <span className="text-destructive">{testError}</span>
           ) : (

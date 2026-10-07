@@ -116,7 +116,7 @@ export function ApplicationContactsTab({ applicationId, canManage, programId, tr
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Επαφές έργου ({linked.length})
         </div>
         {canManage && (
@@ -132,17 +132,17 @@ export function ApplicationContactsTab({ applicationId, canManage, programId, tr
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
+        <p className="py-4 text-center text-[length:var(--fs-12-5)] text-coral">{error}</p>
       ) : linked.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <Users className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[0.78125rem] text-muted-foreground">Δεν έχουν συνδεθεί επαφές.</p>
+          <p className="text-[length:var(--fs-12-5)] text-muted-foreground">Δεν έχουν συνδεθεί επαφές.</p>
           {canManage && (
-            <p className="text-[0.71875rem] text-muted-foreground">
+            <p className="text-[length:var(--fs-11-5)] text-muted-foreground">
               {hasContacts
                 ? 'Πάτησε «Σύνδεση επαφών» για υπάρχουσες επαφές, ή «Νέα επαφή» για να προσθέσεις νέα.'
                 : 'Πάτησε «Νέα επαφή» για να προσθέσεις (καταχωρείται και ως επαφή της εταιρίας).'}
@@ -353,10 +353,10 @@ function ContactFormDialog({
             <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border bg-card/60 p-3">
               <input type="checkbox" checked={portalAccess} onChange={e => setPortalAccess(e.target.checked)} className="mt-0.5 size-4 shrink-0" />
               <span className="flex flex-col">
-                <span className="flex items-center gap-1.5 text-[0.8125rem] font-semibold">
+                <span className="flex items-center gap-1.5 text-[length:var(--fs-13)] font-semibold">
                   <KeyRound className="size-3.5" aria-hidden /> Πρόσβαση στο portal
                 </span>
-                <span className="text-[0.71875rem] text-muted-foreground">Αποστολή email στην επαφή με σύνδεσμο για να ορίσει τον δικό της κωδικό.</span>
+                <span className="text-[length:var(--fs-11-5)] text-muted-foreground">Αποστολή email στην επαφή με σύνδεσμο για να ορίσει τον δικό της κωδικό.</span>
               </span>
             </label>
           )}
@@ -394,13 +394,13 @@ function ContactCard({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[0.8125rem] font-semibold">{contact.name}</span>
+            <span className="text-[length:var(--fs-13)] font-semibold">{contact.name}</span>
             {contact.isPrimary && <span className="badge-pill ok shrink-0">Κύρια</span>}
           </div>
-          {contact.position && <p className="mt-1 text-[0.75rem] text-muted-foreground">{contact.position}</p>}
+          {contact.position && <p className="mt-1 text-[length:var(--fs-12)] text-muted-foreground">{contact.position}</p>}
         </div>
         <div className="flex shrink-0 items-start gap-2">
-          <div className="flex flex-col items-end gap-1 text-[0.71875rem] text-muted-foreground">
+          <div className="flex flex-col items-end gap-1 text-[length:var(--fs-11-5)] text-muted-foreground">
             {contact.email && (
               <a href={`mailto:${contact.email}`} className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline">
                 <Mail className="size-3.5" aria-hidden /> {contact.email}
@@ -599,17 +599,17 @@ function RequestDocsDialog({
 
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border p-2">
           {loadingTpl ? (
-            <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση προτύπου…
             </div>
           ) : groups.length === 0 ? (
-            <p className="px-1 py-3 text-[0.75rem] text-muted-foreground">
+            <p className="px-1 py-3 text-[length:var(--fs-12)] text-muted-foreground">
               Δεν υπάρχουν ορισμένα δικαιολογητικά ανά φάση για αυτό το πρόγραμμα. Πρόσθεσε custom παρακάτω.
             </p>
           ) : (
             groups.map(([phase, rows]) => (
               <div key={phase} className="mb-2">
-                <div className="px-1 py-1 text-[0.65625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+                <div className="px-1 py-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
                   {deliverablePhaseLabel(phase as DeliverablePhaseStr)}
                 </div>
                 <ul className="flex flex-col">
@@ -619,12 +619,12 @@ function RequestDocsDialog({
                         <input type="checkbox" checked={checked.has(r.id)} onChange={() => toggle(r.id)} className="size-4 shrink-0" />
                         <span className="flex min-w-0 flex-col">
                           <span className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[0.8125rem] font-medium">{r.label}</span>
+                            <span className="text-[length:var(--fs-13)] font-medium">{r.label}</span>
                             {r.required
                               ? <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>
                               : <span className="badge-pill muted shrink-0">Προαιρετικό</span>}
                           </span>
-                          {r.description && <span className="truncate text-[0.71875rem] text-muted-foreground">{r.description}</span>}
+                          {r.description && <span className="truncate text-[length:var(--fs-11-5)] text-muted-foreground">{r.description}</span>}
                         </span>
                       </label>
                     </li>
@@ -636,7 +636,7 @@ function RequestDocsDialog({
 
           {custom.length > 0 && (
             <div className="mb-1 mt-1">
-              <div className="px-1 py-1 text-[0.65625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">Custom</div>
+              <div className="px-1 py-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">Custom</div>
               <div className="flex flex-col gap-1.5">
                 {custom.map((c, idx) => (
                   <div key={idx} className="flex items-center gap-2 px-1">
@@ -647,7 +647,7 @@ function RequestDocsDialog({
                       autoComplete="off"
                       className="h-9 flex-1"
                     />
-                    <label className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 text-[0.6875rem] font-semibold">
+                    <label className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 text-[length:var(--fs-11)] font-semibold">
                       <input type="checkbox" checked={c.required} onChange={e => setCustom(items => items.map((it, i) => i === idx ? { ...it, required: e.target.checked } : it))} className="size-3.5" />
                       Υποχρ.
                     </label>
@@ -757,8 +757,8 @@ function ManageContactsDialog({
         {options.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <Users className="size-6 text-muted-foreground" aria-hidden />
-            <p className="text-[0.78125rem] text-muted-foreground">Ο πελάτης δεν έχει καταχωρημένες επαφές.</p>
-            <p className="text-[0.71875rem] text-muted-foreground">Οι επαφές διαχειρίζονται από την καρτέλα πελάτη.</p>
+            <p className="text-[length:var(--fs-12-5)] text-muted-foreground">Ο πελάτης δεν έχει καταχωρημένες επαφές.</p>
+            <p className="text-[length:var(--fs-11-5)] text-muted-foreground">Οι επαφές διαχειρίζονται από την καρτέλα πελάτη.</p>
           </div>
         ) : (
           <>
@@ -767,20 +767,20 @@ function ManageContactsDialog({
                 <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                 <input
                   type="text" value={query} onChange={e => setQuery(e.target.value)}
-                  placeholder="Αναζήτηση επαφής…" className="w-full bg-transparent text-[0.8125rem] outline-none"
+                  placeholder="Αναζήτηση επαφής…" className="w-full bg-transparent text-[length:var(--fs-13)] outline-none"
                   aria-label="Αναζήτηση επαφής"
                 />
               </label>
-              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold whitespace-nowrap">
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[length:var(--fs-12-5)] font-semibold whitespace-nowrap">
                 <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} disabled={filtered.length === 0} className="size-4" />
                 Επιλογή όλων
               </label>
-              <span className="text-[0.75rem] text-muted-foreground">{selected.size} επιλεγμένες</span>
+              <span className="text-[length:var(--fs-12)] text-muted-foreground">{selected.size} επιλεγμένες</span>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
               {filtered.length === 0 ? (
-                <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν βρέθηκαν επαφές.</p>
+                <p className="py-8 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Δεν βρέθηκαν επαφές.</p>
               ) : (
                 <ul className="flex flex-col">
                   {filtered.map(o => (
@@ -789,11 +789,11 @@ function ManageContactsDialog({
                         <input type="checkbox" checked={selected.has(o.contactId)} onChange={() => toggle(o.contactId)} className="size-4 shrink-0" />
                         <span className="flex min-w-0 flex-col">
                           <span className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[0.8125rem] font-semibold">{o.name}</span>
+                            <span className="text-[length:var(--fs-13)] font-semibold">{o.name}</span>
                             {o.isPrimary && <span className="badge-pill ok shrink-0">Κύρια</span>}
                           </span>
                           {(o.position || o.email) && (
-                            <span className="truncate text-[0.71875rem] text-muted-foreground">
+                            <span className="truncate text-[length:var(--fs-11-5)] text-muted-foreground">
                               {[o.position, o.email].filter(Boolean).join(' · ')}
                             </span>
                           )}

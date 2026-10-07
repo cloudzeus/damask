@@ -88,7 +88,7 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
   return (
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Ευρωπαϊκά Προγράμματα ({cards.length})
         </div>
         {canManage && (
@@ -99,11 +99,11 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : cards.length === 0 ? (
-        <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
+        <p className="py-6 text-center text-[length:var(--fs-12-5)] text-muted-foreground">
           Ο πελάτης δεν έχει συνδεθεί με κάποιο πρόγραμμα ακόμη.
         </p>
       ) : (
@@ -165,7 +165,7 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
                     </span>
                     <span className="badge-pill" style={{ color: c.fg, background: 'var(--card)' }}>{lifecycleLabel(card.lifecycle)}</span>
                   </div>
-                  <div className="line-clamp-2 text-[0.78125rem] font-semibold text-foreground">{card.programTitle}</div>
+                  <div className="line-clamp-2 text-[length:var(--fs-12-5)] font-semibold text-foreground">{card.programTitle}</div>
                   <div className="mt-1.5">
                     {card.snapshot ? (
                       card.snapshot.eligible ? (
@@ -210,7 +210,7 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
 }
 
 function CriteriaBadges({ snapshot }: { snapshot: SinglePairEligibility | null }) {
-  if (!snapshot) return <p className="text-[0.78125rem] text-muted-foreground">Δεν υπάρχει αποθηκευμένη αξιολόγηση.</p>
+  if (!snapshot) return <p className="text-[length:var(--fs-12-5)] text-muted-foreground">Δεν υπάρχει αποθηκευμένη αξιολόγηση.</p>
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap gap-1">
@@ -225,7 +225,7 @@ function CriteriaBadges({ snapshot }: { snapshot: SinglePairEligibility | null }
       </div>
       {snapshot.matchedKads.length > 0 && (
         <div>
-          <div className="mb-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">ΚΑΔ που ταιριάζουν</div>
+          <div className="mb-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">ΚΑΔ που ταιριάζουν</div>
           <div className="flex flex-wrap gap-1">
             {snapshot.matchedKads.map(code => <span key={code} className="badge-pill ok tabular-nums">{code}</span>)}
           </div>
@@ -267,8 +267,8 @@ function ValueChecksSection({ trdrId, programId, applicationId }: { trdrId: stri
   return (
     <div className="mt-3 border-t border-border pt-3">
       <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Στοιχεία εταιρίας — για τον έλεγχό σου</div>
-        <button type="button" onClick={assess} disabled={assessing} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary disabled:opacity-60" title="ΕΝΔΕΙΚΤΙΚΕΣ AI παρατηρήσεις — το σύστημα ΔΕΝ αποφασίζει">
+        <div className="text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Στοιχεία εταιρίας — για τον έλεγχό σου</div>
+        <button type="button" onClick={assess} disabled={assessing} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary disabled:opacity-60" title="ΕΝΔΕΙΚΤΙΚΕΣ AI παρατηρήσεις — το σύστημα ΔΕΝ αποφασίζει">
           {assessing ? <LoaderCircle className="size-3 animate-spin" aria-hidden /> : <Sparkles className="size-3" aria-hidden />} AI παρατηρήσεις (ενδεικτικά)
         </button>
       </div>
@@ -277,13 +277,13 @@ function ValueChecksSection({ trdrId, programId, applicationId }: { trdrId: stri
       </div>
       {observations && (
         <div className="mt-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
-          <div className="mb-1 text-[0.65625rem] font-bold uppercase tracking-wide text-primary">AI παρατηρήσεις — ενδεικτικά (εσύ αποφασίζεις)</div>
-          <ul className="list-disc pl-5 text-[0.71875rem] text-muted-foreground">
+          <div className="mb-1 text-[length:var(--fs-10-5)] font-bold uppercase tracking-wide text-primary">AI παρατηρήσεις — ενδεικτικά (εσύ αποφασίζεις)</div>
+          <ul className="list-disc pl-5 text-[length:var(--fs-11-5)] text-muted-foreground">
             {observations.map((o, i) => <li key={i}>{o}</li>)}
           </ul>
         </div>
       )}
-      <p className="mt-1.5 text-[0.65625rem] text-muted-foreground"><strong>Εσύ επιλέγεις</strong> ποια τιμή θα ελέγξεις — η ένδειξη είναι ενδεικτική και <strong>η επιλογή σου αποθηκεύεται</strong>. Το σύστημα δεν αποφασίζει επιλεξιμότητα.</p>
+      <p className="mt-1.5 text-[length:var(--fs-10-5)] text-muted-foreground"><strong>Εσύ επιλέγεις</strong> ποια τιμή θα ελέγξεις — η ένδειξη είναι ενδεικτική και <strong>η επιλογή σου αποθηκεύεται</strong>. Το σύστημα δεν αποφασίζει επιλεξιμότητα.</p>
     </div>
   )
 }
@@ -305,13 +305,13 @@ function ValueCheckRow({ check: c, applicationId }: { check: ValueCheck; applica
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78125rem]">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--fs-12-5)]">
       <span className="font-medium">{c.label}:</span>
       {c.options.length === 0 ? (
-        <span className="text-[0.71875rem] text-muted-foreground">— καμία καταχωρημένη τιμή (δες «Τιμές εντύπων»)</span>
+        <span className="text-[length:var(--fs-11-5)] text-muted-foreground">— καμία καταχωρημένη τιμή (δες «Τιμές εντύπων»)</span>
       ) : (
         <Select value={year} onValueChange={v => pick(v ?? '')}>
-          <SelectTrigger className="h-8 w-[190px] rounded-full border-border bg-card px-3 text-[0.75rem]">
+          <SelectTrigger className="h-8 w-[190px] rounded-full border-border bg-card px-3 text-[length:var(--fs-12)]">
             <SelectValue placeholder="Διάλεξε τιμή/έτος…" />
           </SelectTrigger>
           <SelectContent>
@@ -319,13 +319,13 @@ function ValueCheckRow({ check: c, applicationId }: { check: ValueCheck; applica
           </SelectContent>
         </Select>
       )}
-      {c.requirement != null && <span className="text-[0.71875rem] text-muted-foreground">· ζητά {c.requirementLabel}: ≥ {NUM.format(c.requirement)}</span>}
+      {c.requirement != null && <span className="text-[length:var(--fs-11-5)] text-muted-foreground">· ζητά {c.requirementLabel}: ≥ {NUM.format(c.requirement)}</span>}
       {ok != null && (
         <span className="badge-pill muted shrink-0" title="Ενδεικτικό — επιβεβαίωσε. Το σύστημα δεν αποφασίζει επιλεξιμότητα.">
           {ok ? 'καλύπτει (ενδεικτικά)' : 'κάτω από το ελάχιστο (ενδεικτικά)'}
         </span>
       )}
-      {saved && picked && <span className="text-[0.65625rem] text-[color:var(--success)]" title="Η επιλογή σου αποθηκεύτηκε">αποθηκεύτηκε ✓</span>}
+      {saved && picked && <span className="text-[length:var(--fs-10-5)] text-[color:var(--success)]" title="Η επιλογή σου αποθηκεύτηκε">αποθηκεύτηκε ✓</span>}
     </div>
   )
 }
@@ -440,7 +440,7 @@ function EvaluationDialog({
               role="tab"
               aria-selected={tab === t.key}
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-3 py-1.5 text-[0.75rem] font-semibold whitespace-nowrap transition-colors ${tab === t.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+              className={`rounded-full px-3 py-1.5 text-[length:var(--fs-12)] font-semibold whitespace-nowrap transition-colors ${tab === t.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
             >
               {t.label}
             </button>
@@ -465,25 +465,25 @@ function EvaluationDialog({
         {/* Εκκρεμότητες / δικαιολογητικά — έμφαση στην τρέχουσα φάση */}
         <div className="mt-3 border-t border-border pt-3">
           <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+            <span className="text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
               Δικαιολογητικά &amp; εκκρεμότητες · Φάση: {stageLabel(card.stage)}
             </span>
             {canManage && (
               <NewDocumentRequestDialog
                 applicationId={card.id}
                 onCreated={reloadPending}
-                trigger={<button type="button" className="btn-pill btn-glass h-7 px-3 text-[0.6875rem]"><MailPlus className="size-3" aria-hidden /> Νέο αίτημα</button>}
+                trigger={<button type="button" className="btn-pill btn-glass h-7 px-3 text-[length:var(--fs-11)]"><MailPlus className="size-3" aria-hidden /> Νέο αίτημα</button>}
               />
             )}
           </div>
           {!pending ? (
-            <p className="text-[0.71875rem] text-muted-foreground">Φόρτωση…</p>
+            <p className="text-[length:var(--fs-11-5)] text-muted-foreground">Φόρτωση…</p>
           ) : pending.openCount === 0 ? (
-            <p className="text-[0.71875rem] text-muted-foreground">Καμία εκκρεμότητα.</p>
+            <p className="text-[length:var(--fs-11-5)] text-muted-foreground">Καμία εκκρεμότητα.</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {pending.obligations.map(o => (
-                <li key={o.id} className="flex flex-wrap items-center gap-1.5 text-[0.78125rem]">
+                <li key={o.id} className="flex flex-wrap items-center gap-1.5 text-[length:var(--fs-12-5)]">
                   {o.current && <span className="badge-pill info">Τρέχουσα φάση</span>}
                   {o.kind === 'FORM' && <span className="badge-pill violet">Δικαιολογητικό</span>}
                   <span className="font-medium">{o.name}</span>
@@ -491,7 +491,7 @@ function EvaluationDialog({
                   <span className={`badge-pill ${o.status === 'REJECTED' ? '' : 'warn'}`} style={o.status === 'REJECTED' ? { color: 'var(--card)', background: 'var(--coral)' } : undefined}>
                     {obligationStatusLabel(o.status)}
                   </span>
-                  {o.dueDate && <span className="text-[0.6875rem] text-muted-foreground">έως {new Date(o.dueDate).toLocaleDateString('el-GR')}</span>}
+                  {o.dueDate && <span className="text-[length:var(--fs-11)] text-muted-foreground">έως {new Date(o.dueDate).toLocaleDateString('el-GR')}</span>}
                   {canManage && o.kind === 'FORM' && (
                     <NewDocumentRequestDialog
                       applicationId={card.id}
@@ -504,7 +504,7 @@ function EvaluationDialog({
                 </li>
               ))}
               {pending.fileRequests.map(f => (
-                <li key={f.id} className="flex flex-wrap items-center gap-1.5 text-[0.78125rem]">
+                <li key={f.id} className="flex flex-wrap items-center gap-1.5 text-[length:var(--fs-12-5)]">
                   <span className="badge-pill violet">Δικαιολογητικά</span>
                   <span className="font-medium">{f.title}</span>
                   <span className="badge-pill muted tabular-nums">{f.uploadedCount}/{f.itemCount} ανέβηκαν</span>
@@ -516,22 +516,22 @@ function EvaluationDialog({
 
         {/* Επαφές έργου — εδώ συσχετίζεις τις επαφές της εταιρίας με το πρόγραμμα */}
         <div className="mt-3 border-t border-border pt-3">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
             <Users className="size-3.5" aria-hidden /> Επαφές έργου
           </div>
           {!contacts ? (
-            <p className="text-[0.71875rem] text-muted-foreground">Φόρτωση…</p>
+            <p className="text-[length:var(--fs-11-5)] text-muted-foreground">Φόρτωση…</p>
           ) : contacts.length === 0 ? (
-            <p className="text-[0.71875rem] text-muted-foreground">Ο πελάτης δεν έχει επαφές ακόμη — πρόσθεσέ τες στην καρτέλα πελάτη.</p>
+            <p className="text-[length:var(--fs-11-5)] text-muted-foreground">Ο πελάτης δεν έχει επαφές ακόμη — πρόσθεσέ τες στην καρτέλα πελάτη.</p>
           ) : (
             <ul className="flex flex-col gap-1">
               {contacts.map(ct => (
-                <li key={ct.contactId} className="flex flex-wrap items-center gap-1.5 text-[0.78125rem]">
+                <li key={ct.contactId} className="flex flex-wrap items-center gap-1.5 text-[length:var(--fs-12-5)]">
                   <input type="checkbox" checked={ct.linked} disabled={!canManage} onChange={e => toggleContact(ct.contactId, e.target.checked)} className="size-3.5 accent-[var(--primary)]" aria-label={`Σύνδεση ${ct.name}`} />
                   <span className="font-medium">{ct.name}</span>
                   {ct.isPrimary && <span className="badge-pill info">Κύρια</span>}
-                  {ct.position && <span className="text-[0.6875rem] text-muted-foreground">{ct.position}</span>}
-                  {ct.email && <span className="text-[0.6875rem] text-muted-foreground">· {ct.email}</span>}
+                  {ct.position && <span className="text-[length:var(--fs-11)] text-muted-foreground">{ct.position}</span>}
+                  {ct.email && <span className="text-[length:var(--fs-11)] text-muted-foreground">· {ct.email}</span>}
                   {ct.hasPortalAccess && (
                     <button
                       type="button"
@@ -548,12 +548,12 @@ function EvaluationDialog({
               ))}
             </ul>
           )}
-          <p className="mt-1.5 text-[0.65625rem] text-muted-foreground">Επίλεξε ποιες επαφές αφορούν το πρόγραμμα — σε αυτές στέλνονται τα αιτήματα δικαιολογητικών.</p>
+          <p className="mt-1.5 text-[length:var(--fs-10-5)] text-muted-foreground">Επίλεξε ποιες επαφές αφορούν το πρόγραμμα — σε αυτές στέλνονται τα αιτήματα δικαιολογητικών.</p>
         </div>
 
         {canManage && (
           <div className="mt-2 flex flex-col gap-1.5">
-            <label htmlFor="lifecycle-select" className="text-[0.6875rem] font-semibold text-muted-foreground">Κατάσταση συμμετοχής</label>
+            <label htmlFor="lifecycle-select" className="text-[length:var(--fs-11)] font-semibold text-muted-foreground">Κατάσταση συμμετοχής</label>
             <Select value={card.lifecycle} onValueChange={v => changeLifecycle(v as LifecycleStr)} disabled={busy}>
               <SelectTrigger id="lifecycle-select" className="h-10 w-full rounded-full border-border bg-card px-4">
                 <SelectValue>{(v: string) => lifecycleLabel(v as LifecycleStr)}</SelectValue>
@@ -573,7 +573,7 @@ function EvaluationDialog({
             </Button>
           )}
           <div className="flex-1" />
-          <Link href={`/programs/${card.programId}/applications/${card.id}`} className="btn-pill btn-glass h-9 px-4 text-[0.78125rem]">
+          <Link href={`/programs/${card.programId}/applications/${card.id}`} className="btn-pill btn-glass h-9 px-4 text-[length:var(--fs-12-5)]">
             <ExternalLink className="size-3.5" aria-hidden /> Άνοιγμα έργου
           </Link>
           <DialogClose render={<Button variant="outline">Κλείσιμο</Button>} />
@@ -652,27 +652,27 @@ function AddProgramDialog({
             <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
             <input
               type="text" value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Αναζήτηση προγράμματος…" className="w-full bg-transparent text-[0.8125rem] outline-none"
+              placeholder="Αναζήτηση προγράμματος…" className="w-full bg-transparent text-[length:var(--fs-13)] outline-none"
               aria-label="Αναζήτηση προγράμματος"
             />
           </label>
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold whitespace-nowrap">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-[length:var(--fs-12-5)] font-semibold whitespace-nowrap">
             <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} disabled={filtered.length === 0} className="size-4" />
             Επιλογή όλων
           </label>
-          <span className="text-[0.75rem] text-muted-foreground">{selected.size} επιλεγμένα</span>
+          <span className="text-[length:var(--fs-12)] text-muted-foreground">{selected.size} επιλεγμένα</span>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
           {filtered.length === 0 ? (
-            <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν ενεργά προγράμματα.</p>
+            <p className="py-8 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Δεν υπάρχουν ενεργά προγράμματα.</p>
           ) : (
             <ul className="flex flex-col">
               {filtered.map(o => (
                 <li key={o.value} className="dotted-row-bottom">
                   <label className="flex min-h-[44px] cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted">
                     <input type="checkbox" checked={selected.has(o.value)} onChange={() => toggle(o.value)} className="size-4 shrink-0" />
-                    <span className="text-[0.8125rem]">{o.label}</span>
+                    <span className="text-[length:var(--fs-13)]">{o.label}</span>
                   </label>
                 </li>
               ))}

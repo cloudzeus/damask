@@ -49,7 +49,7 @@ export function WorkloadTable({ rows }: { rows: WorkloadRow[] }) {
       cell: r => (
         <span className="flex min-w-0 flex-col">
           <b className="truncate">{r.name}</b>
-          <span className="truncate text-[0.71875rem] text-muted-foreground">{r.email}</span>
+          <span className="truncate text-[length:var(--fs-11-5)] text-muted-foreground">{r.email}</span>
         </span>
       ),
     },

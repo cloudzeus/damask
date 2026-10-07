@@ -24,7 +24,7 @@ export function PageHeader({
     <div className="glass mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
       <div className="min-w-0 flex-1">
         {crumbs && crumbs.length > 0 ? (
-          <nav aria-label="Διαδρομή" className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground">
+          <nav aria-label="Διαδρομή" className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[length:var(--fs-11)] font-semibold text-muted-foreground">
             {crumbs.map((c, i) => (
               <span key={i} className="flex items-center gap-1.5">
                 {c.href && i < crumbs.length - 1
@@ -35,14 +35,14 @@ export function PageHeader({
             ))}
           </nav>
         ) : breadcrumb ? (
-          <div className="mb-0.5 flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground">
+          <div className="mb-0.5 flex items-center gap-1.5 text-[length:var(--fs-11)] font-semibold text-muted-foreground">
             {breadcrumb}
           </div>
         ) : null}
-        <h1 className="text-[1rem] leading-tight font-bold text-foreground">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-[0.71875rem] text-muted-foreground">{subtitle}</p>}
+        <h1 className="text-[length:var(--fs-16)] leading-tight font-bold text-foreground">{title}</h1>
+        {subtitle && <p className="mt-0.5 text-[length:var(--fs-11-5)] text-muted-foreground">{subtitle}</p>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
   )
 }

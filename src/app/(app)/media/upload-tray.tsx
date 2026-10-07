@@ -45,8 +45,8 @@ export function UploadTray({
           <CheckCircle2 className="size-4.5 shrink-0 text-(--success)" strokeWidth={1.8} aria-hidden />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[0.8125rem] font-bold tabular-nums" aria-live="polite">{title}</p>
-          <p className="truncate text-[0.6875rem] text-muted-foreground">Προορισμός: «{folderLabel}»</p>
+          <p className="truncate text-[length:var(--fs-13)] font-bold tabular-nums" aria-live="polite">{title}</p>
+          <p className="truncate text-[length:var(--fs-11)] text-muted-foreground">Προορισμός: «{folderLabel}»</p>
         </div>
         <button
           type="button"

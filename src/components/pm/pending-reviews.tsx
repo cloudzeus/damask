@@ -78,7 +78,7 @@ export function PendingReviews() {
         <span className="flex size-[1.75rem] items-center justify-center rounded-[0.6875rem]" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>
           <Check className="size-[0.9375rem]" strokeWidth={2} aria-hidden />
         </span>
-        <p className="text-[0.78125rem] text-muted-foreground">Καμία εκκρεμότητα προς επιβεβαίωση — όλα ήρεμα.</p>
+        <p className="text-[length:var(--fs-12-5)] text-muted-foreground">Καμία εκκρεμότητα προς επιβεβαίωση — όλα ήρεμα.</p>
       </section>
     )
   }
@@ -92,7 +92,7 @@ export function PendingReviews() {
         >
           <FileCheck2 className="size-[0.9375rem]" strokeWidth={1.8} />
         </span>
-        <h2 className="text-[0.8125rem] font-bold text-foreground">
+        <h2 className="text-[length:var(--fs-13)] font-bold text-foreground">
           Δικαιολογητικά προς επιβεβαίωση ({rows.length})
         </h2>
       </header>
@@ -107,14 +107,14 @@ export function PendingReviews() {
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span className="truncate text-[0.8125rem] font-bold text-foreground">{r.label}</span>
+                  <span className="truncate text-[length:var(--fs-13)] font-bold text-foreground">{r.label}</span>
                   {r.uploadedAt && (
-                    <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
+                    <span className="shrink-0 text-[length:var(--fs-11)] text-muted-foreground tabular-nums">
                       {relativeTime(r.uploadedAt)}
                     </span>
                   )}
                 </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.75rem] text-muted-foreground">
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[length:var(--fs-12)] text-muted-foreground">
                   <span className="truncate">{r.trdrName}</span>
                   <span aria-hidden>·</span>
                   <span className="truncate">{r.programTitle}</span>
@@ -124,13 +124,13 @@ export function PendingReviews() {
                     {r.downloadUrl ? (
                       <a
                         href={r.downloadUrl}
-                        className="inline-flex items-center gap-1 text-[0.75rem] font-medium text-foreground underline-offset-2 hover:underline"
+                        className="inline-flex items-center gap-1 text-[length:var(--fs-12)] font-medium text-foreground underline-offset-2 hover:underline"
                       >
                         <Download className="size-3.5" strokeWidth={1.8} />
                         <span className="truncate">{r.fileName}</span>
                       </a>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[0.75rem] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 text-[length:var(--fs-12)] text-muted-foreground">
                         <Download className="size-3.5" strokeWidth={1.8} />
                         <span className="truncate">{r.fileName}</span>
                       </span>
@@ -248,7 +248,7 @@ function RejectReasonDialog({
               autoFocus
             />
           </div>
-          <label className="flex cursor-pointer items-center gap-2 text-[0.8125rem] font-semibold">
+          <label className="flex cursor-pointer items-center gap-2 text-[length:var(--fs-13)] font-semibold">
             <input type="checkbox" checked={resend} onChange={e => setResend(e.target.checked)} className="size-4" />
             Επαναποστολή αιτήματος upload στον πελάτη
           </label>

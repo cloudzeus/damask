@@ -268,8 +268,8 @@ export function MediaGallery({
         <div className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center bg-background/70 p-6 backdrop-blur-sm" aria-hidden>
           <div className="flex w-full max-w-xl flex-col items-center gap-3 rounded-[28px] border-2 border-dashed border-primary bg-card/95 px-8 py-12 text-center shadow-xl">
             <UploadCloud className="size-12 text-primary" strokeWidth={1.5} />
-            <p className="text-[1.125rem] font-bold">Άφησε τα αρχεία εδώ για μεταφόρτωση</p>
-            <p className="text-[0.8125rem] text-muted-foreground">
+            <p className="text-[length:var(--fs-18)] font-bold">Άφησε τα αρχεία εδώ για μεταφόρτωση</p>
+            <p className="text-[length:var(--fs-13)] text-muted-foreground">
               Προορισμός: «{selectedFolder?.name ?? 'Όλα τα αρχεία'}» · έως 100 MB ανά αρχείο
             </p>
           </div>
@@ -301,7 +301,7 @@ export function MediaGallery({
 
       {pickedImages.length > 0 && (
         <div className="glass p-4">
-          <h2 className="mb-3 text-[0.875rem] font-semibold">Επιλεγμένα από το MediaPicker ({pickedImages.length})</h2>
+          <h2 className="mb-3 text-[length:var(--fs-14)] font-semibold">Επιλεγμένα από το MediaPicker ({pickedImages.length})</h2>
           <ProductImageCollection images={pickedImages} onReorder={setPickedImages} size={56} />
         </div>
       )}

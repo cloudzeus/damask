@@ -64,15 +64,15 @@ export function CmsTab({ programId }: { programId: string }) {
   }
 
   if (loading) {
-    return <section className="glass rounded-[22px] p-4"><div className="flex items-center justify-center gap-2 py-10 text-[0.8125rem] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" /> Φόρτωση…</div></section>
+    return <section className="glass rounded-[22px] p-4"><div className="flex items-center justify-center gap-2 py-10 text-[length:var(--fs-13)] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" /> Φόρτωση…</div></section>
   }
 
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="dotted-leader text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Περιεχόμενο ιστότοπου (SEO / GEO / AEO)</div>
-          <p className="mt-1 text-[0.71875rem] text-muted-foreground">
+          <div className="dotted-leader text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Περιεχόμενο ιστότοπου (SEO / GEO / AEO)</div>
+          <p className="mt-1 text-[length:var(--fs-11-5)] text-muted-foreground">
             {generatedAt ? <>Δημιουργήθηκε {new Date(generatedAt).toLocaleString('el-GR')}{model ? ` · ${model}` : ''}</> : 'Δεν έχει δημιουργηθεί ακόμη — παράγεται αυτόματα σε κάθε αποδελτίωση.'}
           </p>
         </div>
@@ -91,7 +91,7 @@ export function CmsTab({ programId }: { programId: string }) {
       {!cms ? (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
           <LuSparkles className="size-7 text-muted-foreground" />
-          <p className="max-w-md text-[0.8125rem] text-muted-foreground">Πάτησε «Δημιουργία με DeepSeek» για να παραχθεί αυτόματα το περιεχόμενο της δημόσιας σελίδας από την αποδελτίωση του προγράμματος.</p>
+          <p className="max-w-md text-[length:var(--fs-13)] text-muted-foreground">Πάτησε «Δημιουργία με DeepSeek» για να παραχθεί αυτόματα το περιεχόμενο της δημόσιας σελίδας από την αποδελτίωση του προγράμματος.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-5">
@@ -154,7 +154,7 @@ function splitLines(v: string): string[] {
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-border bg-card/50 p-3.5">
-      <div className="mb-2.5 text-[0.75rem] font-bold text-foreground">{title}</div>
+      <div className="mb-2.5 text-[length:var(--fs-12)] font-bold text-foreground">{title}</div>
       <div className="flex flex-col gap-3">{children}</div>
     </div>
   )
@@ -163,7 +163,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="field !mb-0">
-      <span className="mb-1 block text-[0.75rem] font-semibold text-muted-foreground">{label}</span>
+      <span className="mb-1 block text-[length:var(--fs-12)] font-semibold text-muted-foreground">{label}</span>
       {children}
     </label>
   )

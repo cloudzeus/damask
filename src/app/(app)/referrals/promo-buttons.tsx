@@ -29,7 +29,7 @@ export function PromoButtons({ programs }: { programs: { programId: string; titl
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="dotted-leader text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Promo PDF ανά πρόγραμμα
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -39,7 +39,7 @@ export function PromoButtons({ programs }: { programs: { programId: string; titl
             type="button"
             onClick={() => handle(p.programId)}
             disabled={busy === p.programId}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[0.71875rem] font-semibold text-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[length:var(--fs-11-5)] font-semibold text-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
           >
             {busy === p.programId ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuFileText className="size-3.5" aria-hidden />}
             {p.title}

@@ -132,20 +132,20 @@ export function ApplicationDocuments({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[0.6875rem] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[length:var(--fs-11)] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
           {uploading ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />}
           {uploading ? 'Ανέβασμα…' : 'Ανέβασμα εγγράφου'}
         </button>
         {types.length > 0 && (
-          <label className="inline-flex items-center gap-1 text-[0.65625rem] text-muted-foreground" title="Τύπος δικαιολογητικού (προαιρετικό)">
+          <label className="inline-flex items-center gap-1 text-[length:var(--fs-10-5)] text-muted-foreground" title="Τύπος δικαιολογητικού (προαιρετικό)">
             τύπος:
             <select
               value={typeId}
               onChange={e => setTypeId(e.target.value)}
               disabled={uploading}
               aria-label="Τύπος δικαιολογητικού (προαιρετικό)"
-              className="max-w-[150px] rounded-full border border-border bg-card px-2 py-0.5 text-[0.65625rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+              className="max-w-[150px] rounded-full border border-border bg-card px-2 py-0.5 text-[length:var(--fs-10-5)] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
             >
               <option value="">— (κανένας) —</option>
               {types.map(t => <option key={t.id} value={t.id}>{t.name}{t.expires ? ' ⏱' : ''}</option>)}
@@ -153,7 +153,7 @@ export function ApplicationDocuments({
           </label>
         )}
         <label
-          className="inline-flex items-center gap-1 text-[0.65625rem] text-muted-foreground"
+          className="inline-flex items-center gap-1 text-[length:var(--fs-10-5)] text-muted-foreground"
           title={selectedType?.expires ? 'Αυτός ο τύπος έχει ημ. λήξης — όρισέ την' : 'Ημ. λήξης δικαιολογητικού (προαιρετικό — π.χ. φορολογική/ασφαλιστική ενημερότητα)'}
         >
           λήξη{selectedType?.expires ? <span className="text-[color:var(--amber)]"> *</span> : ''}:
@@ -163,7 +163,7 @@ export function ApplicationDocuments({
             onChange={e => setExpiresAt(e.target.value)}
             disabled={uploading}
             aria-label="Ημερομηνία λήξης (προαιρετικό)"
-            className="rounded-full border border-border bg-card px-2 py-0.5 text-[0.65625rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="rounded-full border border-border bg-card px-2 py-0.5 text-[length:var(--fs-10-5)] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           />
         </label>
         {loading && <LuLoaderCircle className="size-3 animate-spin text-muted-foreground" aria-hidden />}
@@ -172,11 +172,11 @@ export function ApplicationDocuments({
       {docs.length > 0 && (
         <ul className="flex flex-col gap-1">
           {docs.map(doc => (
-            <li key={doc.id} className="flex min-w-0 items-center gap-1.5 text-[0.75rem]">
+            <li key={doc.id} className="flex min-w-0 items-center gap-1.5 text-[length:var(--fs-12)]">
               <LuFile className="size-3 shrink-0 text-muted-foreground" aria-hidden />
               <span className="min-w-0 truncate font-semibold" title={doc.name}>{doc.name}</span>
               {doc.typeName && <span className="badge-pill muted shrink-0">{doc.typeName}</span>}
-              <span className="shrink-0 text-[0.6875rem] text-muted-foreground">{formatSize(doc.size)}</span>
+              <span className="shrink-0 text-[length:var(--fs-11)] text-muted-foreground">{formatSize(doc.size)}</span>
               <DocumentPreviewButton
                 url={`/programs/${programId}/applications/${appId}/documents/${doc.id}`}
                 name={doc.name}

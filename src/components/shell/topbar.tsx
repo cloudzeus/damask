@@ -34,7 +34,7 @@ export async function Topbar() {
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <button type="button" className="avatar-ring size-[30px] shrink-0 cursor-pointer text-[0.6875rem]">
+            <button type="button" className="avatar-ring size-[30px] shrink-0 cursor-pointer text-[length:var(--fs-11)]">
               {initials}
             </button>
           }

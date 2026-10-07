@@ -163,18 +163,18 @@ function GuidesPanel({ row, guides, onChanged }: { row: DocumentTypeAdminRow; gu
 
   return (
     <div className="border-t border-border bg-muted/30 p-3">
-      <div className="mb-2 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="mb-2 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Οδηγοί Εντύπων (πεδία προς σάρωση) — {row.name}
       </div>
 
       {linked.length === 0 ? (
-        <p className="mb-2 text-[0.75rem] text-muted-foreground">
+        <p className="mb-2 text-[length:var(--fs-12)] text-muted-foreground">
           Δεν έχει συνδεθεί Οδηγός. Σύνδεσε έναν παρακάτω για να σαρώνονται αυτόματα πεδία/τιμές από αυτόν τον τύπο δικαιολογητικού.
         </p>
       ) : (
         <div className="mb-2 flex flex-col gap-1.5">
           {linked.map(t => (
-            <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/70 px-3 py-2 text-[0.78125rem]">
+            <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/70 px-3 py-2 text-[length:var(--fs-12-5)]">
               <FileText className="size-3.5 shrink-0 text-primary" aria-hidden />
               <span className="font-semibold">{guideLabel(t)}</span>
               <span className={cn('badge-pill', t.status === 'READY' ? 'ok' : 'muted')}>{t.status === 'READY' ? 'Έτοιμο' : 'Πρόχειρο'}</span>
@@ -257,9 +257,9 @@ function TypeFormDialog({
 
           <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-card/50 p-3">
             <Switch checked={expires} onCheckedChange={setExpires} size="sm" />
-            <span className="text-[0.8125rem]">
+            <span className="text-[length:var(--fs-13)]">
               <span className="font-semibold">Έχει ημερομηνία λήξης</span>
-              <span className="block text-[0.71875rem] text-muted-foreground">Ο χρήστης θα ορίζει «valid μέχρι» κατά τη μεταφόρτωση (π.χ. φορολογική ενημερότητα).</span>
+              <span className="block text-[length:var(--fs-11-5)] text-muted-foreground">Ο χρήστης θα ορίζει «valid μέχρι» κατά τη μεταφόρτωση (π.χ. φορολογική ενημερότητα).</span>
             </span>
           </label>
 
@@ -268,13 +268,13 @@ function TypeFormDialog({
             <Input id="dt-notes" className="w-full" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Προαιρετικό" />
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold">
+          <label className="flex cursor-pointer items-center gap-2 text-[length:var(--fs-12-5)] font-semibold">
             <Switch checked={active} onCheckedChange={setActive} size="sm" />
             Ενεργός (εμφανίζεται στη λίστα επιλογής κατά τη μεταφόρτωση)
           </label>
 
           {!editing && (
-            <p className="text-[0.71875rem] text-muted-foreground">
+            <p className="text-[length:var(--fs-11-5)] text-muted-foreground">
               Μετά τη δημιουργία, άνοιξε τη γραμμή του τύπου για να συνδέσεις <strong>Οδηγό Εντύπων</strong> (τα πεδία που σαρώνονται για εξαγωγή τιμών).
             </p>
           )}

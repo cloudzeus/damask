@@ -57,7 +57,7 @@ export function Combobox({
           id={id}
           aria-label={ariaLabel}
           placeholder={placeholder}
-          className="h-full min-w-0 flex-1 bg-transparent text-[0.75rem] font-semibold outline-none placeholder:font-medium placeholder:text-muted-foreground"
+          className="h-full min-w-0 flex-1 bg-transparent text-[length:var(--fs-12)] font-semibold outline-none placeholder:font-medium placeholder:text-muted-foreground"
         />
         {selected && (
           <C.Clear
@@ -78,19 +78,19 @@ export function Combobox({
       <C.Portal>
         <C.Positioner sideOffset={4} className="z-50">
           <C.Popup className="max-h-[min(22rem,var(--available-height))] w-max max-w-[min(32rem,calc(100vw-2rem))] min-w-[max(var(--anchor-width),22rem)] overflow-y-auto rounded-xl bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/10">
-            <C.Empty className="px-3 py-2 text-[0.75rem] font-medium text-muted-foreground empty:hidden">{emptyText}</C.Empty>
+            <C.Empty className="px-3 py-2 text-[length:var(--fs-12)] font-medium text-muted-foreground empty:hidden">{emptyText}</C.Empty>
             <C.List>
               {(opt: ComboboxOption) => (
                 <C.Item
                   key={opt.value}
                   value={opt}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-[0.75rem] font-semibold outline-none select-none data-highlighted:bg-muted"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-[length:var(--fs-12)] font-semibold outline-none select-none data-highlighted:bg-muted"
                 >
                   <span className="flex size-4 shrink-0 items-center justify-center">
                     <C.ItemIndicator><Check className="size-3.5 text-primary" aria-hidden /></C.ItemIndicator>
                   </span>
                   <span className="min-w-0 flex-1 truncate">{opt.label}</span>
-                  {opt.hint && <span className="shrink-0 text-[0.65625rem] font-medium text-muted-foreground">{opt.hint}</span>}
+                  {opt.hint && <span className="shrink-0 text-[length:var(--fs-10-5)] font-medium text-muted-foreground">{opt.hint}</span>}
                 </C.Item>
               )}
             </C.List>

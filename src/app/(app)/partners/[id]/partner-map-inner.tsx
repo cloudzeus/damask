@@ -114,7 +114,7 @@ export function PartnerMapInner({
     <div className="relative overflow-hidden rounded-[14px]" style={{ border: '1px solid var(--border)' }}>
       <div ref={containerRef} style={{ height: 260, width: '100%' }} data-testid="partner-map" />
       {pending && (
-        <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/60 px-2.5 py-1 text-[0.6875rem] font-semibold text-white">
+        <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/60 px-2.5 py-1 text-[length:var(--fs-11)] font-semibold text-white">
           Αναζήτηση διεύθυνσης…
         </div>
       )}

@@ -40,13 +40,13 @@ export function PortalPrograms({ applications }: { applications: PortalApp[] }) 
       {applications.map(app => (
         <div key={app.applicationId} className="glass p-4 sm:p-5">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <h2 className="flex-1 text-[1.0625rem] font-semibold">{app.programTitle}</h2>
+            <h2 className="flex-1 text-[length:var(--fs-17)] font-semibold">{app.programTitle}</h2>
             <span className="badge-pill info">{app.lifecycleLabel}</span>
             <span className="badge-pill muted">Φάση: {app.stageLabel}</span>
           </div>
 
           {app.obligations.length === 0 ? (
-            <p className="text-[0.8125rem] text-muted-foreground">Δεν υπάρχουν δικαιολογητικά σε εκκρεμότητα.</p>
+            <p className="text-[length:var(--fs-13)] text-muted-foreground">Δεν υπάρχουν δικαιολογητικά σε εκκρεμότητα.</p>
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {app.obligations.map(o => {
@@ -57,19 +57,19 @@ export function PortalPrograms({ applications }: { applications: PortalApp[] }) 
                   <li key={o.id} className="flex flex-wrap items-center gap-2.5 py-2.5">
                     <LuFileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                     <div className="min-w-0 flex-1">
-                      <div className="text-[0.875rem] font-medium">{o.name}</div>
+                      <div className="text-[length:var(--fs-14)] font-medium">{o.name}</div>
                       {o.hasDocument && o.documentName && (
-                        <div className="truncate text-[0.6875rem] text-muted-foreground">Ανέβηκε: {o.documentName}</div>
+                        <div className="truncate text-[length:var(--fs-11)] text-muted-foreground">Ανέβηκε: {o.documentName}</div>
                       )}
                       {o.dueDate && !done && (
-                        <div className="text-[0.6875rem] text-muted-foreground">Προθεσμία: {new Date(o.dueDate).toLocaleDateString('el-GR')}</div>
+                        <div className="text-[length:var(--fs-11)] text-muted-foreground">Προθεσμία: {new Date(o.dueDate).toLocaleDateString('el-GR')}</div>
                       )}
                     </div>
                     <span className={`badge-pill ${done ? 'success' : rejected ? '' : 'warn'}`} style={rejected ? { color: 'var(--card)', background: 'var(--coral)' } : undefined}>
                       {done ? <LuCircleCheck className="size-3" aria-hidden /> : <LuClock className="size-3" aria-hidden />} {o.statusLabel}
                     </span>
                     {!done && (
-                      <label className="btn-pill btn-glass h-9 cursor-pointer px-3 text-[0.78125rem]">
+                      <label className="btn-pill btn-glass h-9 cursor-pointer px-3 text-[length:var(--fs-12-5)]">
                         {busy ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuUpload className="size-3.5" aria-hidden />}
                         {rejected ? 'Επανα-ανέβασμα' : 'Ανέβασμα'}
                         <input

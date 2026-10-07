@@ -114,7 +114,7 @@ export function EligibleReferralsTable({
             </Select>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-[0.75rem] text-muted-foreground">{visible.length} εταιρίες</span>
+            <span className="text-[length:var(--fs-12)] text-muted-foreground">{visible.length} εταιρίες</span>
             <Button
               type="button"
               variant="outline"
@@ -136,7 +136,7 @@ export function EligibleReferralsTable({
         {visible.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
             <LuUsers className="size-6 text-muted-foreground" aria-hidden />
-            <p className="text-[0.78125rem] text-muted-foreground">
+            <p className="text-[length:var(--fs-12-5)] text-muted-foreground">
               Δεν υπάρχουν επιλέξιμες εταιρίες προς αναγωγή. Τρέξε πρώτα μια χαρτογράφηση παραπομπών.
             </p>
           </div>
@@ -150,7 +150,7 @@ export function EligibleReferralsTable({
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[0.8125rem] font-semibold">{r.name ?? `ΑΦΜ ${r.afm}`}</span>
+                        <span className="text-[length:var(--fs-13)] font-semibold">{r.name ?? `ΑΦΜ ${r.afm}`}</span>
                         <span className="badge-pill muted shrink-0 tabular-nums">{r.afm}</span>
                         {r.existingTrdrId && (
                           <span className={cn('badge-pill shrink-0', r.existingIsCustomer ? 'warn' : 'muted')}>
@@ -158,7 +158,7 @@ export function EligibleReferralsTable({
                           </span>
                         )}
                       </div>
-                      <div className="mt-0.5 text-[0.71875rem] text-muted-foreground">
+                      <div className="mt-0.5 text-[length:var(--fs-11-5)] text-muted-foreground">
                         {r.referrerName}{r.regionName ? ` · ${r.regionName}` : ''}{r.city ? ` · ${r.city}` : ''}
                       </div>
                     </div>
@@ -178,7 +178,7 @@ export function EligibleReferralsTable({
                           onClick={() => toggleProgram(r, p.programId)}
                           aria-pressed={on}
                           className={cn(
-                            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold transition-colors',
+                            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[length:var(--fs-11)] font-semibold transition-colors',
                             on
                               ? 'border-primary bg-primary text-primary-foreground'
                               : 'border-border bg-card text-muted-foreground hover:text-foreground',

@@ -222,12 +222,12 @@ export function TemplateEditor({ template, fields: initialFields }: { template: 
           {creatingType && (
             <div className="mt-2 flex flex-wrap items-center gap-2.5 rounded-[14px] border border-border bg-muted/40 p-2.5 sm:max-w-[420px]">
               <Input value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="Όνομα νέου τύπου (π.χ. Ισολογισμός)" autoComplete="off" disabled={savingMeta} className="flex-1" />
-              <label className="flex items-center gap-1.5 text-[0.78125rem] font-semibold whitespace-nowrap">
+              <label className="flex items-center gap-1.5 text-[length:var(--fs-12-5)] font-semibold whitespace-nowrap">
                 <Switch checked={newTypeExpires} onCheckedChange={setNewTypeExpires} disabled={savingMeta} /> Λήγει
               </label>
             </div>
           )}
-          <p className="mt-1 text-[0.65625rem] text-muted-foreground">Ο τύπος στον οποίο ανήκει αυτός ο οδηγός εξαγωγής τιμών — τον επιλέγεις πρώτο, μετά ορίζεις τιμές &amp; περιοχές.</p>
+          <p className="mt-1 text-[length:var(--fs-10-5)] text-muted-foreground">Ο τύπος στον οποίο ανήκει αυτός ο οδηγός εξαγωγής τιμών — τον επιλέγεις πρώτο, μετά ορίζεις τιμές &amp; περιοχές.</p>
         </div>
         <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-[2fr_130px_170px_auto]">
           <div className="field !mb-0">
@@ -268,7 +268,7 @@ export function TemplateEditor({ template, fields: initialFields }: { template: 
           <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
             <LuUpload className="size-3.5" aria-hidden /> {uploading ? 'Μεταφόρτωση…' : 'Ανέβασμα δείγματος'}
           </Button>
-          <span className="text-[0.75rem] text-muted-foreground">
+          <span className="text-[length:var(--fs-12)] text-muted-foreground">
             {pagesLoading
               ? 'Φόρτωση δείγματος…'
               : pages.length > 0
@@ -282,7 +282,7 @@ export function TemplateEditor({ template, fields: initialFields }: { template: 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.35fr)_400px]">
         <div>
           {pagesLoading ? (
-            <div className="glass flex min-h-[360px] items-center justify-center rounded-[22px] p-10 text-center text-[0.8125rem] text-muted-foreground">
+            <div className="glass flex min-h-[360px] items-center justify-center rounded-[22px] p-10 text-center text-[length:var(--fs-13)] text-muted-foreground">
               Φόρτωση δείγματος…
             </div>
           ) : (

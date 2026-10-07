@@ -104,7 +104,7 @@ export function PhaseFilesTab({ programId }: { programId: string }) {
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Αρχεία πελάτη ({total})
         </div>
         <Button type="button" onClick={handleSave} disabled={saving || loading}>
@@ -113,7 +113,7 @@ export function PhaseFilesTab({ programId }: { programId: string }) {
         </Button>
       </div>
 
-      <div className="mb-3 flex items-start gap-2 text-[0.78125rem] text-muted-foreground">
+      <div className="mb-3 flex items-start gap-2 text-[length:var(--fs-12-5)] text-muted-foreground">
         <LuInfo className="mt-0.5 size-3.5 shrink-0" aria-hidden />
         <span>
           Όρισε ανά φάση τα αρχεία που ζητούνται από τον πελάτη. Αυτά τροφοδοτούν ως πρότυπο τα
@@ -122,11 +122,11 @@ export function PhaseFilesTab({ programId }: { programId: string }) {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
+        <p className="py-4 text-center text-[length:var(--fs-12-5)] text-coral">{error}</p>
       ) : (
         <div className="flex flex-col gap-3">
           {DELIVERABLE_PHASE_ORDER.map(phase => {
@@ -135,7 +135,7 @@ export function PhaseFilesTab({ programId }: { programId: string }) {
               <div key={phase} className="rounded-[18px] border border-border bg-card p-3.5">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <b className="text-[0.84375rem]">{deliverablePhaseLabel(phase)}</b>
+                    <b className="text-[length:var(--fs-13-5)]">{deliverablePhaseLabel(phase)}</b>
                     <span className="badge-pill muted">
                       {phaseRows.length} {phaseRows.length === 1 ? 'αρχείο' : 'αρχεία'}
                     </span>
@@ -146,7 +146,7 @@ export function PhaseFilesTab({ programId }: { programId: string }) {
                 </div>
 
                 {phaseRows.length === 0 ? (
-                  <p className="py-2 text-[0.75rem] text-muted-foreground">
+                  <p className="py-2 text-[length:var(--fs-12)] text-muted-foreground">
                     Δεν έχουν οριστεί αρχεία για αυτή τη φάση.
                   </p>
                 ) : (
@@ -175,7 +175,7 @@ export function PhaseFilesTab({ programId }: { programId: string }) {
                           />
                         </div>
                         <div className="flex shrink-0 items-center gap-2.5">
-                          <label className="flex cursor-pointer items-center gap-1.5 text-[0.75rem] font-semibold">
+                          <label className="flex cursor-pointer items-center gap-1.5 text-[length:var(--fs-12)] font-semibold">
                             <Switch
                               checked={row.required}
                               onCheckedChange={checked => patchRow(row.tempId, { required: checked })}

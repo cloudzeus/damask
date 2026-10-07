@@ -155,7 +155,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Έντυπα ({forms.length})
         </div>
         <AddRequiredFormDialog programId={programId} onCreated={load} docTypes={docTypes} onTypesChanged={setDocTypes} />
@@ -166,13 +166,13 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
+        <p className="py-4 text-center text-[length:var(--fs-12-5)] text-coral">{error}</p>
       ) : forms.length === 0 ? (
-        <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
+        <p className="py-6 text-center text-[length:var(--fs-12-5)] text-muted-foreground">
           Δεν έχουν οριστεί απαιτούμενα έντυπα. Η αποδελτίωση τα προτείνει, ή πρόσθεσέ τα εδώ.
         </p>
       ) : (
@@ -199,7 +199,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       <input
                         defaultValue={form.name}
                         onBlur={e => handleNameBlur(form, e.target.value)}
-                        className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[0.8125rem] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
+                        className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[length:var(--fs-13)] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
                       />
                       {form.mandatory && !form.documentTypeId && (
                         <span className="badge-pill warn shrink-0" title="Δεν έχει αντιστοιχιστεί σε τύπο — δεν θα γίνεται αναγνώριση από την αποθήκη πελάτη">Χωρίς τύπο</span>
@@ -211,7 +211,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       value={form.phase ?? NONE_PHASE}
                       onValueChange={v => handlePhaseChange(form, v)}
                     >
-                      <SelectTrigger aria-label={`Φάση — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
+                      <SelectTrigger aria-label={`Φάση — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
                         <SelectValue>
                           {(v: string) => (v === NONE_PHASE ? '— (καμία) —' : deliverablePhaseLabel(v as DeliverablePhaseStr))}
                         </SelectValue>
@@ -243,7 +243,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       value={form.documentTypeId ?? NONE_DOCTYPE}
                       onValueChange={v => handleDocTypeChange(form, v)}
                     >
-                      <SelectTrigger aria-label={`Τύπος δικαιολογητικού — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
+                      <SelectTrigger aria-label={`Τύπος δικαιολογητικού — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -260,7 +260,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       value={form.templateId ?? NONE_TEMPLATE}
                       onValueChange={v => handleTemplateChange(form, v)}
                     >
-                      <SelectTrigger aria-label={`Οδηγός Εντύπου — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
+                      <SelectTrigger aria-label={`Οδηγός Εντύπου — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -278,7 +278,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
                       defaultValue={form.notes ?? ''}
                       onBlur={e => handleNotesBlur(form, e.target.value)}
                       placeholder="—"
-                      className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[0.78125rem] text-muted-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+                      className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[length:var(--fs-12-5)] text-muted-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
                     />
                   </td>
                   <td className="ctr">
@@ -384,9 +384,9 @@ function AddRequiredFormDialog({
 
           {catalog.length > 0 && (
             <div className="field !mb-0 rounded-[14px] border border-border bg-muted/40 p-2.5">
-              <label className="!text-[0.6875rem]">Από κατάλογο επαναχρησιμοποιήσιμων (άλλα προγράμματα)</label>
+              <label className="!text-[length:var(--fs-11)]">Από κατάλογο επαναχρησιμοποιήσιμων (άλλα προγράμματα)</label>
               <Select value={''} onValueChange={v => { if (v) void handleAddFromCatalog(v) }} disabled={saving}>
-                <SelectTrigger className="h-10 w-full rounded-full border-border bg-card px-3 text-[0.8125rem]">
+                <SelectTrigger className="h-10 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-13)]">
                   <SelectValue placeholder="Επίλεξε έτοιμο έντυπο…">{() => 'Επίλεξε έτοιμο έντυπο…'}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -397,7 +397,7 @@ function AddRequiredFormDialog({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="mt-1 text-[0.65625rem] text-muted-foreground">…ή συμπλήρωσε νέο έντυπο παρακάτω.</p>
+              <p className="mt-1 text-[length:var(--fs-10-5)] text-muted-foreground">…ή συμπλήρωσε νέο έντυπο παρακάτω.</p>
             </div>
           )}
 
@@ -421,7 +421,7 @@ function AddRequiredFormDialog({
           <div className="field !mb-0">
             <label htmlFor="rf-phase">Φάση προγράμματος</label>
             <Select value={phase} onValueChange={v => setPhase(v ?? NONE_PHASE)}>
-              <SelectTrigger id="rf-phase" className="h-10 w-full rounded-full border-border bg-card px-3 text-[0.8125rem]">
+              <SelectTrigger id="rf-phase" className="h-10 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-13)]">
                 <SelectValue>
                   {(v: string) => (v === NONE_PHASE ? '— (καμία) —' : deliverablePhaseLabel(v as DeliverablePhaseStr))}
                 </SelectValue>
@@ -438,7 +438,7 @@ function AddRequiredFormDialog({
           <div className="field !mb-0">
             <label htmlFor="rf-doctype">Τύπος δικαιολογητικού (αποθήκη πελάτη)</label>
             <Select value={docTypeId} onValueChange={v => setDocTypeId(v ?? NONE_DOCTYPE)}>
-              <SelectTrigger id="rf-doctype" className="h-10 w-full rounded-full border-border bg-card px-3 text-[0.8125rem]">
+              <SelectTrigger id="rf-doctype" className="h-10 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-13)]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -447,28 +447,28 @@ function AddRequiredFormDialog({
                 <SelectItem value={NEW_DOCTYPE}>+ Νέος τύπος…</SelectItem>
               </SelectContent>
             </Select>
-            <p className="mt-1 text-[0.65625rem] text-muted-foreground">Αν η εταιρία το έχει ήδη σε ισχύ στην αποθήκη της, δεν θα ξαναζητηθεί.</p>
+            <p className="mt-1 text-[length:var(--fs-10-5)] text-muted-foreground">Αν η εταιρία το έχει ήδη σε ισχύ στην αποθήκη της, δεν θα ξαναζητηθεί.</p>
           </div>
 
           {creatingType && (
             <div className="field !mb-0 rounded-[14px] border border-border bg-muted/40 p-2.5">
-              <label htmlFor="rf-newtype" className="!text-[0.6875rem]">Όνομα νέου τύπου</label>
+              <label htmlFor="rf-newtype" className="!text-[length:var(--fs-11)]">Όνομα νέου τύπου</label>
               <Input id="rf-newtype" value={newTypeName} onChange={e => setNewTypeName(e.target.value)} placeholder="π.χ. Φορολογική ενημερότητα" autoComplete="off" disabled={saving} />
               <div className="mt-2 flex items-center gap-2.5">
                 <Switch checked={newTypeExpires} onCheckedChange={setNewTypeExpires} disabled={saving} id="rf-newtype-exp" />
-                <label htmlFor="rf-newtype-exp" className="text-[0.78125rem] font-semibold">Λήγει (έχει ημερομηνία λήξης)</label>
+                <label htmlFor="rf-newtype-exp" className="text-[length:var(--fs-12-5)] font-semibold">Λήγει (έχει ημερομηνία λήξης)</label>
               </div>
             </div>
           )}
 
           <div className="flex items-center gap-2.5">
             <Switch checked={mandatory} onCheckedChange={setMandatory} disabled={saving} id="rf-mandatory" />
-            <label htmlFor="rf-mandatory" className="text-[0.78125rem] font-semibold">Υποχρεωτικό</label>
+            <label htmlFor="rf-mandatory" className="text-[length:var(--fs-12-5)] font-semibold">Υποχρεωτικό</label>
           </div>
 
           <div className="flex items-center gap-2.5">
             <Switch checked={reusable} onCheckedChange={setReusable} disabled={saving} id="rf-reusable" />
-            <label htmlFor="rf-reusable" className="text-[0.78125rem] font-semibold">Επαναχρησιμοποιήσιμο σε άλλα έργα</label>
+            <label htmlFor="rf-reusable" className="text-[length:var(--fs-12-5)] font-semibold">Επαναχρησιμοποιήσιμο σε άλλα έργα</label>
           </div>
 
           <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] bg-transparent p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
@@ -526,7 +526,7 @@ function ProposalsPanel({
   return (
     <div className="mb-3 rounded-[16px] border border-dashed border-border bg-muted/30 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-[0.71875rem] font-semibold text-foreground">
+        <div className="flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-semibold text-foreground">
           <LuFileText className="size-3.5 text-muted-foreground" aria-hidden />
           Προτάσεις από αποδελτίωση ({proposals.length}) — επίλεξε ποια θα προσθέσεις
         </div>
@@ -537,7 +537,7 @@ function ProposalsPanel({
       </div>
       <div className="flex flex-col gap-1">
         {proposals.map(p => (
-          <label key={p.name} className="flex cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-[0.78125rem] hover:bg-muted">
+          <label key={p.name} className="flex cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-[length:var(--fs-12-5)] hover:bg-muted">
             <input type="checkbox" checked={selected.has(p.name)} onChange={() => toggle(p.name)} className="size-4 shrink-0 accent-[color:var(--primary)]" />
             <span className="font-semibold">{p.name}</span>
             {p.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>}

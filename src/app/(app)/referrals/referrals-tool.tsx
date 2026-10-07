@@ -171,7 +171,7 @@ export function ReferralsTool({
                 {parsed ? 'Αλλαγή αρχείου' : 'Επίλεξε αρχείο'}
               </Button>
               {parsed && (
-                <span className="inline-flex items-center gap-1.5 truncate text-[0.75rem] text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5 truncate text-[length:var(--fs-12)] text-muted-foreground">
                   <LuFileSpreadsheet className="size-3.5 shrink-0" aria-hidden />
                   <span className="truncate">{parsed.fileName}</span>
                   <span className="badge-pill ok shrink-0">{parsed.rows.length} ΑΦΜ</span>
@@ -180,7 +180,7 @@ export function ReferralsTool({
             </div>
           </div>
         </div>
-        <p className="mt-2 text-[0.71875rem] text-muted-foreground">
+        <p className="mt-2 text-[length:var(--fs-11-5)] text-muted-foreground">
           Το αρχείο πρέπει να έχει μια στήλη <strong>ΑΦΜ</strong> (αναγνωρίζεται αυτόματα). Προαιρετικά στήλες <strong>Τηλέφωνο</strong> και <strong>Email</strong>.
         </p>
         <div className="mt-3 flex justify-end">
@@ -194,7 +194,7 @@ export function ReferralsTool({
       {results && summary && (
         <section className="glass rounded-[22px] p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+            <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
               Αποτελέσματα{referrerName ? ` — ${referrerName}` : ''} ({summary.total})
             </div>
             <span className="badge-pill ok shrink-0">{summary.eligible} επιλέξιμες</span>
@@ -209,9 +209,9 @@ export function ReferralsTool({
             </Button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[0.78125rem]">
+            <table className="w-full border-collapse text-[length:var(--fs-12-5)]">
               <thead>
-                <tr className="text-left text-[0.6875rem] font-bold text-muted-foreground uppercase">
+                <tr className="text-left text-[length:var(--fs-11)] font-bold text-muted-foreground uppercase">
                   <th className="py-1.5 pr-3">ΑΦΜ</th>
                   <th className="py-1.5 pr-3">Επωνυμία</th>
                   <th className="py-1.5 pr-3">Περιοχή</th>
@@ -241,7 +241,7 @@ export function ReferralsTool({
                       </td>
                       <td className="py-2 pr-3">
                         <span className={`badge-pill shrink-0 ${meta.cls}`}><meta.Icon className="size-3" aria-hidden /> {meta.label}</span>
-                        {c.error && <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">{c.error}</div>}
+                        {c.error && <div className="mt-0.5 text-[length:var(--fs-11)] text-muted-foreground">{c.error}</div>}
                       </td>
                       <td className="py-2 pr-3">
                         {c.eligiblePrograms.length === 0
@@ -268,7 +268,7 @@ export function ReferralsTool({
             const distinct = [...m.entries()].map(([programId, title]) => ({ programId, title }))
             return distinct.length > 0 ? <div className="mt-4"><PromoButtons programs={distinct} /></div> : null
           })()}
-          <p className="mt-3 text-[0.71875rem] text-muted-foreground">
+          <p className="mt-3 text-[length:var(--fs-11-5)] text-muted-foreground">
             Οι επιλέξιμες εταιρίες αποθηκεύτηκαν και εμφανίζονται στη σελίδα «Επιλέξιμοι ανά παραπομπή», όπου μπορείς να δημιουργήσεις δυνητικό πελάτη ανά πρόγραμμα.
           </p>
         </section>
@@ -302,7 +302,7 @@ function PreviewEmail({ programs }: { programs: { id: string; title: string }[] 
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Δοκιμαστικό preview email
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
@@ -325,7 +325,7 @@ function PreviewEmail({ programs }: { programs: { id: string; title: string }[] 
           {sending ? <><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Αποστολή…</> : <><LuMailCheck className="size-3.5" aria-hidden /> Στείλε δείγμα</>}
         </Button>
       </div>
-      <p className="mt-2 text-[0.71875rem] text-muted-foreground">
+      <p className="mt-2 text-[length:var(--fs-11-5)] text-muted-foreground">
         Στέλνει το ακριβές email του προγράμματος με δείγμα επωνυμίας — χωρίς καταγραφή lead, ο σύνδεσμος δεν είναι ενεργός.
       </p>
     </section>

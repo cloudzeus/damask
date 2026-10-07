@@ -72,21 +72,21 @@ export function FileRequestsReviewTab({ applicationId }: { applicationId: string
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Δικαιολογητικά ({totalItems})
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
+        <p className="py-4 text-center text-[length:var(--fs-12-5)] text-coral">{error}</p>
       ) : groups.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <FileCheck2 className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν αιτήματα δικαιολογητικών για αυτό το έργο.</p>
+          <p className="text-[length:var(--fs-12-5)] text-muted-foreground">Δεν υπάρχουν αιτήματα δικαιολογητικών για αυτό το έργο.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -139,16 +139,16 @@ function FileRequestGroupCard({ group, onReload }: { group: FileRequestGroup; on
     <div className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-          <span className="text-[0.8125rem] font-semibold">{group.title}</span>
+          <span className="text-[length:var(--fs-13)] font-semibold">{group.title}</span>
           {groupStatusBadge(group.status)}
         </div>
-        <span className="shrink-0 text-[0.71875rem] text-muted-foreground">
+        <span className="shrink-0 text-[length:var(--fs-11-5)] text-muted-foreground">
           Λήξη: {new Date(group.expiresAt).toLocaleDateString('el-GR')}
         </span>
       </div>
 
       {group.items.length === 0 ? (
-        <p className="mt-2 text-[0.71875rem] text-muted-foreground">Χωρίς στοιχεία.</p>
+        <p className="mt-2 text-[length:var(--fs-11-5)] text-muted-foreground">Χωρίς στοιχεία.</p>
       ) : (
         <ul className="mt-2.5 flex flex-col gap-2 pt-2.5" style={{ borderTop: '1px dotted var(--dotted)' }}>
           {group.items.map(item => (
@@ -186,7 +186,7 @@ function FileRequestItemRow({ item, onReload }: { item: ReviewItem; onReload: ()
     <li className="flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[0.8125rem] font-medium">{item.label}</span>
+          <span className="text-[length:var(--fs-13)] font-medium">{item.label}</span>
           {item.required
             ? <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>
             : <span className="badge-pill muted shrink-0">Προαιρετικό</span>}
@@ -194,13 +194,13 @@ function FileRequestItemRow({ item, onReload }: { item: ReviewItem; onReload: ()
         </div>
 
         {item.fileName && (
-          <div className="mt-1 text-[0.71875rem] text-muted-foreground">
+          <div className="mt-1 text-[length:var(--fs-11-5)] text-muted-foreground">
             <span className="truncate">{item.fileName}</span>
           </div>
         )}
 
         {item.reviewedByName && (
-          <p className="mt-1 flex flex-wrap items-center gap-1 text-[0.6875rem] text-muted-foreground">
+          <p className="mt-1 flex flex-wrap items-center gap-1 text-[length:var(--fs-11)] text-muted-foreground">
             <UserCheck className="size-3" aria-hidden />
             Επιβεβαίωση: {item.reviewedByName}
             {item.reviewedAt && <> · {relativeTime(item.reviewedAt)}</>}
@@ -316,7 +316,7 @@ function RejectReasonDialog({
             />
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-[0.8125rem] font-semibold">
+          <label className="flex cursor-pointer items-center gap-2 text-[length:var(--fs-13)] font-semibold">
             <input type="checkbox" checked={resend} onChange={e => setResend(e.target.checked)} className="size-4" />
             Επαναποστολή αιτήματος upload στον πελάτη
           </label>

@@ -65,22 +65,22 @@ export function PaymentsTab({ applicationId }: { applicationId: string }) {
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Αποπληρωμές ({requests.length})
         </div>
         <NewPaymentRequestDialog applicationId={applicationId} onCreated={handleMutated} />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
+        <p className="py-4 text-center text-[length:var(--fs-12-5)] text-coral">{error}</p>
       ) : requests.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <LuWallet className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[0.78125rem] text-muted-foreground">Δεν υπάρχουν δόσεις.</p>
+          <p className="text-[length:var(--fs-12-5)] text-muted-foreground">Δεν υπάρχουν δόσεις.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -161,8 +161,8 @@ function PaymentRequestCard({
     <div className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <span className="text-[0.8125rem] font-semibold">{r.ordinal}η δόση</span>
-          {r.title && <span className="text-[0.78125rem] text-muted-foreground"> — {r.title}</span>}
+          <span className="text-[length:var(--fs-13)] font-semibold">{r.ordinal}η δόση</span>
+          {r.title && <span className="text-[length:var(--fs-12-5)] text-muted-foreground"> — {r.title}</span>}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <StatusBadge status={r.status} />
@@ -181,7 +181,7 @@ function PaymentRequestCard({
         </div>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.78125rem]">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[length:var(--fs-12-5)]">
         <span>
           Σύνολο: <span className={cn('font-semibold', overTarget && 'text-coral')}>{formatEUR(r.total)}</span>
         </span>
@@ -219,7 +219,7 @@ function PaymentRequestCard({
           <button
             type="button"
             onClick={() => setExpanded(e => !e)}
-            className="inline-flex items-center gap-1 text-[0.75rem] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1 text-[length:var(--fs-12)] font-semibold text-muted-foreground transition-colors hover:text-foreground"
             aria-expanded={expanded}
           >
             {expanded ? <LuChevronUp className="size-3.5" aria-hidden /> : <LuChevronDown className="size-3.5" aria-hidden />}
@@ -233,7 +233,7 @@ function PaymentRequestCard({
         </div>
       ) : (
         <div
-          className="mt-2.5 flex items-center gap-1.5 pt-2.5 text-[0.71875rem] text-muted-foreground"
+          className="mt-2.5 flex items-center gap-1.5 pt-2.5 text-[length:var(--fs-11-5)] text-muted-foreground"
           style={{ borderTop: '1px dotted var(--dotted)' }}
         >
           <LuLock className="size-3" aria-hidden /> Κλειδωμένη — οι δαπάνες δεν επεξεργάζονται σε αυτή την κατάσταση.
@@ -299,13 +299,13 @@ function ExpensePicker({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-4 text-[0.75rem] text-muted-foreground">
+      <div className="flex items-center justify-center gap-2 py-4 text-[length:var(--fs-12)] text-muted-foreground">
         <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Φόρτωση…
       </div>
     )
   }
-  if (error) return <p className="py-2 text-center text-[0.75rem] text-coral">{error}</p>
-  if (items.length === 0) return <p className="py-2 text-center text-[0.75rem] text-muted-foreground">Δεν υπάρχουν ενεργές δαπάνες.</p>
+  if (error) return <p className="py-2 text-center text-[length:var(--fs-12)] text-coral">{error}</p>
+  if (items.length === 0) return <p className="py-2 text-center text-[length:var(--fs-12)] text-muted-foreground">Δεν υπάρχουν ενεργές δαπάνες.</p>
 
   const included = items.filter(i => i.inThisRequest)
   const available = items.filter(i => !i.inThisRequest && i.eligible)
@@ -315,13 +315,13 @@ function ExpensePicker({
     <div className="flex flex-col gap-2.5">
       {included.length > 0 && (
         <div>
-          <div className="mb-1 text-[0.65625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+          <div className="mb-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
             Σε αυτή τη δόση ({included.length})
           </div>
           <div className="flex flex-col gap-1">
             {included.map(i => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5">
-                <span className="min-w-0 flex-1 truncate text-[0.75rem]">
+                <span className="min-w-0 flex-1 truncate text-[length:var(--fs-12)]">
                   {i.description} <span className="text-muted-foreground">{formatEUR(i.amount)}</span>
                 </span>
                 <PurchaseBadge item={i} />
@@ -336,13 +336,13 @@ function ExpensePicker({
 
       {available.length > 0 && (
         <div>
-          <div className="mb-1 text-[0.65625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+          <div className="mb-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
             Διαθέσιμες ({available.length})
           </div>
           <div className="flex flex-col gap-1">
             {available.map(i => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5">
-                <span className="min-w-0 flex-1 truncate text-[0.75rem]">
+                <span className="min-w-0 flex-1 truncate text-[length:var(--fs-12)]">
                   {i.description} <span className="text-muted-foreground">{formatEUR(i.amount)}</span>
                 </span>
                 <PurchaseBadge item={i} />
@@ -357,13 +357,13 @@ function ExpensePicker({
 
       {ineligible.length > 0 && (
         <div>
-          <div className="mb-1 text-[0.65625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+          <div className="mb-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
             Μη επιλέξιμες ({ineligible.length})
           </div>
           <div className="flex flex-col gap-1">
             {ineligible.map(i => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 opacity-60">
-                <span className="min-w-0 truncate text-[0.75rem] text-muted-foreground">
+                <span className="min-w-0 truncate text-[length:var(--fs-12)] text-muted-foreground">
                   {i.description} {formatEUR(i.amount)}
                 </span>
                 <span className="badge-pill muted shrink-0">{i.reason}</span>
@@ -384,9 +384,9 @@ function PurchaseBadge({ item }: { item: PaymentEligibleExpenseItem }) {
   return (
     <span className="flex shrink-0 items-center gap-1">
       {item.purchaseDocsComplete ? (
-        <span className="inline-flex items-center gap-1 text-[0.625rem] font-semibold text-[color:var(--success)]" title="Όλα τα έγγραφα αγοράς"><LuFileCheck2 className="size-3" aria-hidden /> έγγραφα 3/3</span>
+        <span className="inline-flex items-center gap-1 text-[length:var(--fs-10)] font-semibold text-[color:var(--success)]" title="Όλα τα έγγραφα αγοράς"><LuFileCheck2 className="size-3" aria-hidden /> έγγραφα 3/3</span>
       ) : (
-        <span className="inline-flex items-center gap-1 text-[0.625rem] font-semibold text-[color:var(--warning)]" title="Λείπουν έγγραφα αγοράς"><LuTriangleAlert className="size-3" aria-hidden /> έγγραφα {3 - item.purchaseMissing}/3</span>
+        <span className="inline-flex items-center gap-1 text-[length:var(--fs-10)] font-semibold text-[color:var(--warning)]" title="Λείπουν έγγραφα αγοράς"><LuTriangleAlert className="size-3" aria-hidden /> έγγραφα {3 - item.purchaseMissing}/3</span>
       )}
       {recon && (
         <span className={`badge-pill shrink-0 ${recon === 'OK' ? 'ok' : recon === 'MISMATCH' ? 'warn' : 'muted'}`} title="AI διασταύρωση αγοράς"><LuSparkles className="size-3" aria-hidden /> {recon === 'OK' ? 'ΟΚ' : recon === 'MISMATCH' ? 'ασυμφωνία' : 'αβέβαιο'}</span>

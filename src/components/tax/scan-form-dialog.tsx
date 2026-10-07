@@ -296,7 +296,7 @@ export function ScanFormDialog({
           <div className="flex flex-col gap-3">
             {previewRegions.length > 0 && (
               <div>
-                <div className="dotted-leader mb-2 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+                <div className="dotted-leader mb-2 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
                   Προεπισκόπηση — περιοχές &amp; τιμές πάνω στο έντυπο
                 </div>
                 <RegionPreview pages={previewPages} regions={previewRegions} />
@@ -328,7 +328,7 @@ export function ScanFormDialog({
                       </SelectItem>
                     ))}
                     {templates.length === 0 && !loadingTemplates && (
-                      <div className="px-2 py-1.5 text-[0.75rem] text-muted-foreground">Δεν υπάρχουν έτοιμοι οδηγοί.</div>
+                      <div className="px-2 py-1.5 text-[length:var(--fs-12)] text-muted-foreground">Δεν υπάρχουν έτοιμοι οδηγοί.</div>
                     )}
                   </SelectContent>
                 </Select>
@@ -377,7 +377,7 @@ export function ScanFormDialog({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={phase === 'scanning'}
-                className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-left text-[0.78125rem] transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-left text-[length:var(--fs-12-5)] transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {file ? <LuFile className="size-3.5 shrink-0" aria-hidden /> : <LuUpload className="size-3.5 shrink-0" aria-hidden />}
                 <span className="truncate">{file ? file.name : 'Επίλεξε ή σύρε το σαρωμένο έντυπο…'}</span>
@@ -387,7 +387,7 @@ export function ScanFormDialog({
             {phase === 'scanning' && (
               <div className="flex flex-col gap-1.5 pt-1">
                 <Progress value={progress} />
-                <p className="text-center text-[0.71875rem] text-muted-foreground">{progressLabel || 'Σάρωση…'}</p>
+                <p className="text-center text-[length:var(--fs-11-5)] text-muted-foreground">{progressLabel || 'Σάρωση…'}</p>
               </div>
             )}
 

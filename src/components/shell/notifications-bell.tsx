@@ -112,7 +112,7 @@ export function NotificationsBell() {
         <Bell className="size-4" strokeWidth={1.8} />
         {count > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 flex min-w-[1.05rem] items-center justify-center rounded-full px-1 text-[0.625rem] leading-none font-extrabold tabular-nums"
+            className="absolute -top-0.5 -right-0.5 flex min-w-[1.05rem] items-center justify-center rounded-full px-1 text-[length:var(--fs-10)] leading-none font-extrabold tabular-nums"
             style={{ height: '1.05rem', background: 'var(--coral)', color: '#fff', border: '1.5px solid var(--card)' }}
             aria-hidden
           >
@@ -128,12 +128,12 @@ export function NotificationsBell() {
           className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-[0.875rem] border border-border bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/5"
         >
           <div className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
-            <span className="text-[0.8125rem] font-bold text-foreground">Ειδοποιήσεις</span>
+            <span className="text-[length:var(--fs-13)] font-bold text-foreground">Ειδοποιήσεις</span>
             <button
               type="button"
               onClick={() => { void handleMarkAll() }}
               disabled={count === 0}
-              className="inline-flex min-h-[2rem] items-center gap-1 rounded-full px-2 text-[0.6875rem] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex min-h-[2rem] items-center gap-1 rounded-full px-2 text-[length:var(--fs-11)] font-semibold text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
             >
               <CheckCheck className="size-3.5" strokeWidth={1.8} />
               Σήμανση όλων ως αναγνωσμένα
@@ -142,11 +142,11 @@ export function NotificationsBell() {
 
           <div className="max-h-[min(28rem,70vh)] overflow-y-auto overscroll-contain">
             {loading && items.length === 0 ? (
-              <div className="px-3.5 py-6 text-center text-[0.75rem] text-muted-foreground">
+              <div className="px-3.5 py-6 text-center text-[length:var(--fs-12)] text-muted-foreground">
                 Φόρτωση…
               </div>
             ) : items.length === 0 ? (
-              <div className="px-3.5 py-8 text-center text-[0.75rem] text-muted-foreground">
+              <div className="px-3.5 py-8 text-center text-[length:var(--fs-12)] text-muted-foreground">
                 Καμία ειδοποίηση
               </div>
             ) : (
@@ -166,10 +166,10 @@ export function NotificationsBell() {
                         >
                           <span className="flex w-full items-center gap-2">
                             {!n.read && <span className="size-1.5 shrink-0 rounded-full" style={{ background: 'var(--coral)' }} aria-hidden />}
-                            <span className={`min-w-0 flex-1 truncate text-[0.8125rem] ${n.read ? 'font-medium text-foreground' : 'font-bold text-foreground'}`}>{n.title}</span>
-                            <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">{relativeTime(n.createdAt)}</span>
+                            <span className={`min-w-0 flex-1 truncate text-[length:var(--fs-13)] ${n.read ? 'font-medium text-foreground' : 'font-bold text-foreground'}`}>{n.title}</span>
+                            <span className="shrink-0 text-[length:var(--fs-11)] text-muted-foreground tabular-nums">{relativeTime(n.createdAt)}</span>
                           </span>
-                          {n.body && <span className="line-clamp-2 text-[0.75rem] text-muted-foreground">{n.body}</span>}
+                          {n.body && <span className="line-clamp-2 text-[length:var(--fs-12)] text-muted-foreground">{n.body}</span>}
                         </button>
                         <button
                           type="button"
@@ -187,7 +187,7 @@ export function NotificationsBell() {
                             <button
                               type="button"
                               onClick={() => { void handleOpen(n) }}
-                              className="flex min-h-9 w-full items-center gap-2 rounded-md px-3 text-left text-[0.8125rem] transition-colors hover:bg-muted"
+                              className="flex min-h-9 w-full items-center gap-2 rounded-md px-3 text-left text-[length:var(--fs-13)] transition-colors hover:bg-muted"
                             >
                               <ExternalLink className="size-3.5" aria-hidden /> Άνοιγμα
                             </button>
@@ -196,13 +196,13 @@ export function NotificationsBell() {
                             <button
                               type="button"
                               onClick={() => { setMenuId(null); void markRead(n) }}
-                              className="flex min-h-9 w-full items-center gap-2 rounded-md px-3 text-left text-[0.8125rem] transition-colors hover:bg-muted"
+                              className="flex min-h-9 w-full items-center gap-2 rounded-md px-3 text-left text-[length:var(--fs-13)] transition-colors hover:bg-muted"
                             >
                               <Check className="size-3.5" aria-hidden /> Σήμανση ως αναγνωσμένο
                             </button>
                           )}
                           {!target && n.read && (
-                            <span className="block px-3 py-1.5 text-[0.75rem] text-muted-foreground">Καμία ενέργεια</span>
+                            <span className="block px-3 py-1.5 text-[length:var(--fs-12)] text-muted-foreground">Καμία ενέργεια</span>
                           )}
                         </div>
                       )}

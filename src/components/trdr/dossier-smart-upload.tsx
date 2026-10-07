@@ -217,8 +217,8 @@ export function DossierSmartUpload({
             )}
           >
             <LuCloudUpload className="size-7 text-primary" aria-hidden />
-            <p className="text-[0.84375rem] font-semibold">Σύρε δικαιολογητικά εδώ ή πάτησε για επιλογή</p>
-            <p className="text-[0.71875rem] text-muted-foreground">PDF, εικόνες, Word, Excel · πολλά αρχεία μαζί</p>
+            <p className="text-[length:var(--fs-13-5)] font-semibold">Σύρε δικαιολογητικά εδώ ή πάτησε για επιλογή</p>
+            <p className="text-[length:var(--fs-11-5)] text-muted-foreground">PDF, εικόνες, Word, Excel · πολλά αρχεία μαζί</p>
             <input ref={inputRef} type="file" multiple className="hidden" onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }} />
           </div>
 
@@ -292,10 +292,10 @@ function RowCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="min-w-0 truncate text-[0.8125rem] font-semibold">{row.file.name}</span>
-            <span className="text-[0.6875rem] text-muted-foreground tabular-nums">{sizeKb} KB</span>
+            <span className="min-w-0 truncate text-[length:var(--fs-13)] font-semibold">{row.file.name}</span>
+            <span className="text-[length:var(--fs-11)] text-muted-foreground tabular-nums">{sizeKb} KB</span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.71875rem] text-muted-foreground" aria-live="polite">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[length:var(--fs-11-5)] text-muted-foreground" aria-live="polite">
             {row.phase === 'reading' && 'Ανάγνωση εγγράφου…'}
             {row.phase === 'classifying' && 'Αναγνώριση τύπου…'}
             {row.phase === 'saving' && 'Αποθήκευση…'}
@@ -324,7 +324,7 @@ function RowCard({
               }}
               disabled={locked}
             >
-              <SelectTrigger className={cn('h-9 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]', !row.typeId && 'border-[color:var(--warning)]')}>
+              <SelectTrigger className={cn('h-9 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]', !row.typeId && 'border-[color:var(--warning)]')}>
                 <SelectValue placeholder="Επίλεξε τύπο…" />
               </SelectTrigger>
               <SelectContent>
@@ -336,7 +336,7 @@ function RowCard({
           <div className="field !mb-0">
             <label>Πρόγραμμα στο οποίο αναφέρεται</label>
             <Select value={row.programId} onValueChange={v => onChange({ programId: v ?? GENERAL, reusable: v === GENERAL ? true : row.reusable })} disabled={locked}>
-              <SelectTrigger className="h-9 w-full rounded-full border-border bg-card px-3 text-[0.78125rem]">
+              <SelectTrigger className="h-9 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -352,13 +352,13 @@ function RowCard({
               onCheckedChange={v => onChange({ reusable: v })}
               disabled={locked || row.programId === GENERAL}
             />
-            <span className="text-[0.75rem] font-semibold">Χρησιμοποιείται και σε άλλα προγράμματα</span>
+            <span className="text-[length:var(--fs-12)] font-semibold">Χρησιμοποιείται και σε άλλα προγράμματα</span>
           </label>
 
           <div className="flex flex-wrap items-center gap-2.5 rounded-xl border border-border px-3 py-2">
             <label className="flex items-center gap-2.5">
               <Switch checked={row.hasExpiry} onCheckedChange={v => onChange({ hasExpiry: v })} disabled={locked} />
-              <span className="text-[0.75rem] font-semibold">Έχει ημ. λήξης</span>
+              <span className="text-[length:var(--fs-12)] font-semibold">Έχει ημ. λήξης</span>
             </label>
             {row.hasExpiry && (
               <Input
@@ -367,7 +367,7 @@ function RowCard({
                 onChange={e => onChange({ expiresAt: e.target.value })}
                 disabled={locked}
                 aria-label="Ημερομηνία λήξης"
-                className={cn('h-8 w-auto flex-1 rounded-full text-[0.75rem]', !row.expiresAt && 'border-[color:var(--warning)]')}
+                className={cn('h-8 w-auto flex-1 rounded-full text-[length:var(--fs-12)]', !row.expiresAt && 'border-[color:var(--warning)]')}
               />
             )}
           </div>

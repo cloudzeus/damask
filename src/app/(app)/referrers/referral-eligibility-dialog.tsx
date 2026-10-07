@@ -221,7 +221,7 @@ export function ReferralEligibilityDialog({
               {sheet ? 'Αλλαγή αρχείου' : 'Επίλεξε αρχείο'}
             </Button>
             {sheet && (
-              <span className="inline-flex items-center gap-1.5 truncate text-[0.75rem] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 truncate text-[length:var(--fs-12)] text-muted-foreground">
                 <FileSpreadsheet className="size-3.5 shrink-0" aria-hidden />
                 <span className="truncate">{sheet.fileName}</span>
               </span>
@@ -233,10 +233,10 @@ export function ReferralEligibilityDialog({
         {sheet && !results && (
           <section className="rounded-2xl border border-border p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+              <span className="text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
                 Αντιστοίχιση στηλών
               </span>
-              <label className="flex cursor-pointer items-center gap-2 text-[0.75rem] font-semibold">
+              <label className="flex cursor-pointer items-center gap-2 text-[length:var(--fs-12)] font-semibold">
                 <Switch checked={map.header} onCheckedChange={v => setMap(m => ({ ...m, header: v }))} size="sm" />
                 Η πρώτη γραμμή είναι επικεφαλίδες
               </label>
@@ -247,7 +247,7 @@ export function ReferralEligibilityDialog({
               <MapSelect role="Email" value={map.email} colOptions={colOptions} onChange={v => setMap(m => ({ ...m, email: v }))} />
             </div>
             {preview && (
-              <p className="mt-2 text-[0.71875rem] text-muted-foreground">
+              <p className="mt-2 text-[length:var(--fs-11-5)] text-muted-foreground">
                 {preview.rows.length > 0
                   ? <>Βρέθηκαν <strong>{preview.rows.length}</strong> μοναδικά ΑΦΜ{preview.skipped ? ` (${preview.skipped} γραμμές χωρίς έγκυρο ΑΦΜ αγνοούνται)` : ''}.</>
                   : <>Δεν βρέθηκαν έγκυρα 9ψήφια ΑΦΜ — έλεγξε τη στήλη ΑΦΜ ή την επιλογή επικεφαλίδων.</>}
@@ -265,7 +265,7 @@ export function ReferralEligibilityDialog({
         {results && summary && (
           <section className="rounded-2xl border border-border p-3">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+              <span className="flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
                 Αποτελέσματα ({summary.total})
               </span>
               <span className="badge-pill ok shrink-0">{summary.eligible} επιλέξιμες</span>
@@ -277,9 +277,9 @@ export function ReferralEligibilityDialog({
               </Button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[0.78125rem]">
+              <table className="w-full border-collapse text-[length:var(--fs-12-5)]">
                 <thead>
-                  <tr className="text-left text-[0.6875rem] font-bold text-muted-foreground uppercase">
+                  <tr className="text-left text-[length:var(--fs-11)] font-bold text-muted-foreground uppercase">
                     <th className="py-1.5 pr-3">ΑΦΜ</th>
                     <th className="py-1.5 pr-3">Επωνυμία</th>
                     <th className="py-1.5 pr-3">Περιοχή</th>
@@ -309,7 +309,7 @@ export function ReferralEligibilityDialog({
                         </td>
                         <td className="py-2 pr-3">
                           <span className={`badge-pill shrink-0 ${meta.cls}`}><meta.Icon className="size-3" aria-hidden /> {meta.label}</span>
-                          {c.error && <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">{c.error}</div>}
+                          {c.error && <div className="mt-0.5 text-[length:var(--fs-11)] text-muted-foreground">{c.error}</div>}
                         </td>
                         <td className="py-2 pr-3">
                           {c.eligiblePrograms.length === 0
@@ -331,7 +331,7 @@ export function ReferralEligibilityDialog({
               </table>
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/50 p-3">
-              <p className="text-[0.71875rem] text-muted-foreground">
+              <p className="text-[length:var(--fs-11-5)] text-muted-foreground">
                 Οι επιλέξιμες εταιρίες <strong>δεν προστέθηκαν</strong> στους συναλλασσόμενους. Αποθηκεύτηκαν στους «Επιλέξιμους ανά παραπομπή»,
                 όπου μπορείς να τις αναγάγεις σε δυνητικό πελάτη ανά πρόγραμμα — με την παραπομπή «{referrerName}».
               </p>

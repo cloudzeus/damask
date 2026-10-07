@@ -73,7 +73,7 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Δικαιολογητικά εταιρίας ({docs.length})
         </div>
         {canEdit && (
@@ -93,18 +93,18 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
       </div>
       {canEdit && <ScanFormDialog trdrId={trdrId} trdrName={trdrName} open={scanOpen} onOpenChange={setScanOpen} onSaved={load} />}
 
-      <p className="mb-3 text-[0.71875rem] text-muted-foreground">
+      <p className="mb-3 text-[length:var(--fs-11-5)] text-muted-foreground">
         Ό,τι δικαιολογητικά έχει ήδη η εταιρία (με ημ. λήξης όπου ισχύει). Στην ένταξη σε πρόγραμμα, όσα υπάρχουν <strong>σε ισχύ</strong> δεν ξαναζητούνται.
       </p>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
+        <p className="py-4 text-center text-[length:var(--fs-12-5)] text-coral">{error}</p>
       ) : docs.length === 0 ? (
-        <p className="py-6 text-center text-[0.78125rem] text-muted-foreground">
+        <p className="py-6 text-center text-[length:var(--fs-12-5)] text-muted-foreground">
           Δεν υπάρχουν αποθηκευμένα δικαιολογητικά για αυτή την εταιρία.
         </p>
       ) : (
@@ -115,7 +115,7 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <LuFileCheck2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                    <span className="text-[0.8125rem] font-semibold">{doc.documentTypeName}</span>
+                    <span className="text-[length:var(--fs-13)] font-semibold">{doc.documentTypeName}</span>
                     <ExpiryBadge doc={doc} />
                     {doc.programTitle ? (
                       <span className="badge-pill muted max-w-[16rem] truncate" title={doc.programTitle}>
@@ -125,11 +125,11 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
                       <span className="badge-pill muted">Γενικό</span>
                     )}
                   </div>
-                  <div className="mt-0.5 truncate text-[0.71875rem] text-muted-foreground">{doc.name}</div>
+                  <div className="mt-0.5 truncate text-[length:var(--fs-11-5)] text-muted-foreground">{doc.name}</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {(doc.typeExpires || doc.expiresAt) && (
-                    <label className="flex items-center gap-1 text-[0.6875rem] text-muted-foreground">
+                    <label className="flex items-center gap-1 text-[length:var(--fs-11)] text-muted-foreground">
                       <LuCalendarClock className="size-3.5" aria-hidden />
                       <input
                         type="date"
@@ -137,7 +137,7 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
                         onBlur={e => canEdit && handleExpiryChange(doc, e.target.value)}
                         disabled={!canEdit}
                         aria-label="Ημερομηνία λήξης"
-                        className="h-8 rounded-full border border-border bg-card px-2 text-[0.75rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+                        className="h-8 rounded-full border border-border bg-card px-2 text-[length:var(--fs-12)] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
                       />
                     </label>
                   )}

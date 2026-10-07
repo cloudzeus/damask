@@ -63,7 +63,7 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
     } catch { toast.error('Ο έλεγχος απέτυχε.') } finally { setChecking(false) }
   }
 
-  if (loading) return <div className="glass flex items-center justify-center gap-2 rounded-[22px] p-8 text-[0.78125rem] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
+  if (loading) return <div className="glass flex items-center justify-center gap-2 rounded-[22px] p-8 text-[length:var(--fs-12-5)] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
   if (!data) return null
 
   const expensesByCat = (catId: string | null) => data.expenses.filter(e => e.categoryId === catId)
@@ -72,8 +72,8 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="dotted-leader text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Προδιαγραφή προϋπολογισμού υποβολής</div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 text-[0.8125rem]">
+          <div className="dotted-leader text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Προδιαγραφή προϋπολογισμού υποβολής</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 text-[length:var(--fs-13)]">
             <span>Προϋπολογισμός: <b>{data.totalBudget != null ? `${EUR.format(data.totalBudget)} €` : '—'}</b></span>
             <span>Προδιαγραμμένο σύνολο: <b className="tabular-nums">{EUR2.format(data.totalSpent)} €</b></span>
             {data.missingQuotes > 0 && <span className="badge-pill warn"><LuTriangleAlert className="size-3" aria-hidden /> {data.missingQuotes} χωρίς προσφορά</span>}
@@ -93,20 +93,20 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
       {sanity && (
         <div className={cn('mb-3 rounded-xl border px-3 py-2', sanity.status === 'READY' ? 'border-[color:var(--success)]/30 bg-[color:var(--success)]/5' : 'border-[color:var(--warning)]/40 bg-[color:var(--warning)]/5')}>
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-[0.75rem] font-semibold">
+            <div className="flex items-center gap-2 text-[length:var(--fs-12)] font-semibold">
               {sanity.status === 'READY' ? <><LuCircleCheck className="size-4 text-[color:var(--success)]" aria-hidden /> Το σχέδιο δείχνει εντάξει</> : <><LuTriangleAlert className="size-4 text-[color:var(--warning)]" aria-hidden /> Εντοπίστηκαν σημεία προσοχής</>}
             </div>
             <button type="button" onClick={() => setSanity(null)} className="text-muted-foreground hover:text-foreground" title="Κλείσιμο">✕</button>
           </div>
           {sanity.findings.length > 0 && (
-            <ul className="mt-1 list-disc pl-6 text-[0.71875rem] text-muted-foreground">
+            <ul className="mt-1 list-disc pl-6 text-[length:var(--fs-11-5)] text-muted-foreground">
               {sanity.findings.map((f, i) => <li key={i}>{f}</li>)}
             </ul>
           )}
         </div>
       )}
 
-      <p className="mb-3 text-[0.71875rem] text-muted-foreground">Στο στάδιο της μελέτης <strong>προδιαγράφεις</strong> τις δαπάνες μέσα σε κάθε κατηγορία (άνοιξε την κατηγορία για να τις δεις μία-μία). Η <strong>μπάρα</strong> δείχνει πόσο έχεις καλύψει από το όριο. Κάθε δαπάνη χρειάζεται <strong>ενυπόγραφη προσφορά</strong> — αν λείπει, μπαίνει σε εκκρεμότητα.</p>
+      <p className="mb-3 text-[length:var(--fs-11-5)] text-muted-foreground">Στο στάδιο της μελέτης <strong>προδιαγράφεις</strong> τις δαπάνες μέσα σε κάθε κατηγορία (άνοιξε την κατηγορία για να τις δεις μία-μία). Η <strong>μπάρα</strong> δείχνει πόσο έχεις καλύψει από το όριο. Κάθε δαπάνη χρειάζεται <strong>ενυπόγραφη προσφορά</strong> — αν λείπει, μπαίνει σε εκκρεμότητα.</p>
 
       <div className="flex flex-col gap-2.5">
         {data.categories.map(c => (
@@ -179,11 +179,11 @@ function CategoryCard({
           <LuChevronRight className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} aria-hidden />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[0.8125rem] font-semibold">{c?.name ?? 'Χωρίς κατηγορία'}</span>
+              <span className="text-[length:var(--fs-13)] font-semibold">{c?.name ?? 'Χωρίς κατηγορία'}</span>
               {c?.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτική</span>}
               <span className="badge-pill muted shrink-0 tabular-nums">{count} {count === 1 ? 'δαπάνη' : 'δαπάνες'}</span>
               {missing > 0 && <span className="badge-pill warn shrink-0"><LuTriangleAlert className="size-3" aria-hidden /> {missing} χωρίς προσφορά</span>}
-              {c && <span className="text-[0.6875rem] text-muted-foreground">όριο: {c.limitLabel}</span>}
+              {c && <span className="text-[length:var(--fs-11)] text-muted-foreground">όριο: {c.limitLabel}</span>}
             </div>
             {/* Μπάρα ορίου — «άθροισμα € / όριο €», ορατή και κλειστή */}
             {pctUsed != null ? (
@@ -191,7 +191,7 @@ function CategoryCard({
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <div className={cn('h-full rounded-full transition-all', over ? 'bg-[color:var(--coral)]' : 'bg-[color:var(--success)]')} style={{ width: `${pctUsed}%` }} />
                 </div>
-                <div className="mt-0.5 flex items-center justify-between gap-2 text-[0.65625rem]">
+                <div className="mt-0.5 flex items-center justify-between gap-2 text-[length:var(--fs-10-5)]">
                   <span className="font-medium tabular-nums">
                     {EUR2.format(spent)} € <span className="font-normal text-muted-foreground">από</span> {EUR2.format(max ?? 0)} €
                   </span>
@@ -202,10 +202,10 @@ function CategoryCard({
               </div>
             ) : (
               // Χωρίς όριο σε € (π.χ. μόνο ελάχιστο ή καθόλου όριο) — δείξε μόνο το άθροισμα.
-              <div className="text-[0.65625rem] tabular-nums text-muted-foreground">Άθροισμα: <span className="font-medium text-foreground">{EUR2.format(spent)} €</span></div>
+              <div className="text-[length:var(--fs-10-5)] tabular-nums text-muted-foreground">Άθροισμα: <span className="font-medium text-foreground">{EUR2.format(spent)} €</span></div>
             )}
           </div>
-          <span className="shrink-0 text-[0.8125rem] font-bold tabular-nums">{EUR2.format(spent)} €</span>
+          <span className="shrink-0 text-[length:var(--fs-13)] font-bold tabular-nums">{EUR2.format(spent)} €</span>
         </button>
         {/* ⋮ Ενέργειες κατηγορίας */}
         <div className="flex items-center pr-1.5 pl-0.5">
@@ -237,7 +237,7 @@ function CategoryCard({
               {expenses.map(e => <ExpenseRow key={e.id} expense={e} onReload={onReload} />)}
             </ul>
           ) : (
-            <p className="py-1 text-[0.71875rem] text-muted-foreground">Καμία προδιαγραμμένη δαπάνη σε αυτή την κατηγορία ακόμη.</p>
+            <p className="py-1 text-[length:var(--fs-11-5)] text-muted-foreground">Καμία προδιαγραμμένη δαπάνη σε αυτή την κατηγορία ακόμη.</p>
           )}
           <Button type="button" size="sm" variant="outline" className="mt-2" onClick={onAdd}>
             <LuPlus className="size-3.5" aria-hidden /> Προδιαγραφή δαπάνης
@@ -299,11 +299,11 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
 
   return (
     <li className="rounded-lg bg-card/60 px-2.5 py-1.5">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78125rem]">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--fs-12-5)]">
         <span className="font-medium">{e.description}</span>
-        {e.supplierName && <span className="text-[0.6875rem] text-muted-foreground">· {e.supplierName}{e.supplierAfm ? ` (${e.supplierAfm})` : ''}</span>}
+        {e.supplierName && <span className="text-[length:var(--fs-11)] text-muted-foreground">· {e.supplierName}{e.supplierAfm ? ` (${e.supplierAfm})` : ''}</span>}
         {vm && <button type="button" onClick={() => setShowNote(s => !s)} className={`badge-pill shrink-0 ${vm.cls}`} title="Τεκμηρίωση AI — έλεγξέ τη">{vm.label} ▾</button>}
-        <button type="button" onClick={evaluate} disabled={evaluating} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary" title="Αξιολόγηση επιλεξιμότητας με AI (τεκμηρίωση βάσει αποδελτίωσης)">
+        <button type="button" onClick={evaluate} disabled={evaluating} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary" title="Αξιολόγηση επιλεξιμότητας με AI (τεκμηρίωση βάσει αποδελτίωσης)">
           {evaluating ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {e.eligibilityVerdict ? 'Ξανά' : 'Τεκμηρίωση AI'}
         </button>
         <span className="ml-auto font-bold tabular-nums">{EUR2.format(e.amount)} €</span>
@@ -319,10 +319,10 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
         )}
       </div>
       {showNote && e.eligibilityNote && (
-        <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[0.6875rem] text-muted-foreground"><strong>Τεκμηρίωση AI (έλεγξέ τη):</strong> {e.eligibilityNote}</p>
+        <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[length:var(--fs-11)] text-muted-foreground"><strong>Τεκμηρίωση AI (έλεγξέ τη):</strong> {e.eligibilityNote}</p>
       )}
       {suggestion && (
-        <div className="mt-1 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-[0.6875rem]">
+        <div className="mt-1 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-[length:var(--fs-11)]">
           <span className="text-muted-foreground">Το AI προτείνει κατηγορία: <strong className="text-foreground">{suggestion.name}</strong></span>
           <button type="button" onClick={moveToSuggested} disabled={moving} className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60" title="Μετακίνησε τη δαπάνη στην προτεινόμενη κατηγορία">
             {moving ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuArrowRightLeft className="size-3" aria-hidden />} Μετακίνησε εκεί
@@ -443,10 +443,10 @@ function AddExpenseDialog({
         <div className="field !mb-0">
           <label>Προμηθευτής (με ΑΦΜ)</label>
           {supplier ? (
-            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[0.8125rem]">
+            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[length:var(--fs-13)]">
               <LuCircleCheck className="size-4 text-[color:var(--success)]" aria-hidden />
               <span className="font-semibold">{supplier.name}</span>{supplier.afm && <span className="text-muted-foreground">({supplier.afm})</span>}
-              <button type="button" onClick={() => setSupplier(null)} className="ml-auto text-[0.6875rem] text-muted-foreground hover:text-foreground">αλλαγή</button>
+              <button type="button" onClick={() => setSupplier(null)} className="ml-auto text-[length:var(--fs-11)] text-muted-foreground hover:text-foreground">αλλαγή</button>
             </div>
           ) : (
             <>
@@ -470,7 +470,7 @@ function AddExpenseDialog({
         <div className="field !mb-0">
           <label>Ενυπόγραφη προσφορά (προαιρετικό)</label>
           <input ref={quoteRef} type="file" className="hidden" onChange={e => setQuote(e.target.files?.[0] ?? null)} />
-          <button type="button" onClick={() => quoteRef.current?.click()} disabled={saving} className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2.5 text-left text-[0.78125rem] hover:bg-muted">
+          <button type="button" onClick={() => quoteRef.current?.click()} disabled={saving} className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2.5 text-left text-[length:var(--fs-12-5)] hover:bg-muted">
             <LuUpload className="size-3.5 shrink-0" aria-hidden />
             <span className="truncate">{quote ? quote.name : 'Ανέβασε την προσφορά… (αν λείπει, μπαίνει σε εκκρεμότητα)'}</span>
           </button>

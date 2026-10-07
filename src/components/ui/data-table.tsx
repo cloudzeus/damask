@@ -461,7 +461,7 @@ export function DataTable<T>({
                   <button
                     type="button"
                     onClick={() => setVisibleCount(c => c + pageSize)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-1.5 text-[0.78125rem] font-semibold text-foreground transition-colors hover:bg-muted"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-1.5 text-[length:var(--fs-12-5)] font-semibold text-foreground transition-colors hover:bg-muted"
                   >
                     Δείξε περισσότερα ({sortedRows.length - visibleCount})
                   </button>

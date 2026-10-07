@@ -106,21 +106,21 @@ export function ProgramInvoiceDialog({ applicationId, categories, onCreated }: P
               <button
                 type="button"
                 onClick={() => setExtracted(null)}
-                className="flex w-fit items-center gap-1.5 text-[0.75rem] font-semibold text-muted-foreground hover:text-foreground"
+                className="flex w-fit items-center gap-1.5 text-[length:var(--fs-12)] font-semibold text-muted-foreground hover:text-foreground"
               >
                 <LuArrowLeft className="size-3.5" aria-hidden /> Πίσω στο ανέβασμα
               </button>
 
               <div className="rounded-2xl border border-border p-3.5">
-                <span className="mb-2 flex items-center gap-1.5 text-[0.78125rem] font-bold">
+                <span className="mb-2 flex items-center gap-1.5 text-[length:var(--fs-12-5)] font-bold">
                   <LuBuilding2 className="size-3.5" aria-hidden /> Προμηθευτής
                 </span>
-                <div className="grid grid-cols-1 gap-1.5 text-[0.78125rem] sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-1.5 text-[length:var(--fs-12-5)] sm:grid-cols-2">
                   <div><b>Επωνυμία:</b> {supplier?.name || '—'}</div>
                   <div><b>ΑΦΜ:</b> {afm || '—'}</div>
                 </div>
                 {!afmValid && (
-                  <p className="mt-1.5 flex items-center gap-1.5 text-[0.71875rem]" style={{ color: 'var(--warning)' }}>
+                  <p className="mt-1.5 flex items-center gap-1.5 text-[length:var(--fs-11-5)]" style={{ color: 'var(--warning)' }}>
                     <LuTriangleAlert className="size-3.5 shrink-0" aria-hidden />
                     Χρειάζεται έγκυρο ΑΦΜ (9 ψηφία) — δεν μπορεί να καταχωριστεί η δαπάνη.
                   </p>
@@ -128,36 +128,36 @@ export function ProgramInvoiceDialog({ applicationId, categories, onCreated }: P
               </div>
 
               <div className="rounded-2xl border border-border p-3.5">
-                <span className="mb-2 block text-[0.78125rem] font-bold">Στοιχεία δαπάνης</span>
+                <span className="mb-2 block text-[length:var(--fs-12-5)] font-bold">Στοιχεία δαπάνης</span>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                   <div>
-                    <div className="mb-1 flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
+                    <div className="mb-1 flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-semibold text-muted-foreground">
                       <LuHash className="size-3" aria-hidden /> Αρ. παραστατικού
                     </div>
-                    <div className="text-[0.78125rem]">{extracted.documentNumber || '—'}</div>
+                    <div className="text-[length:var(--fs-12-5)]">{extracted.documentNumber || '—'}</div>
                   </div>
                   <div>
-                    <div className="mb-1 flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
+                    <div className="mb-1 flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-semibold text-muted-foreground">
                       <LuCalendar className="size-3" aria-hidden /> Ημερομηνία
                     </div>
-                    <div className="text-[0.78125rem]">{extracted.date || '—'}</div>
+                    <div className="text-[length:var(--fs-12-5)]">{extracted.date || '—'}</div>
                   </div>
                   <div>
-                    <div className="mb-1 flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
+                    <div className="mb-1 flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-semibold text-muted-foreground">
                       <LuPercent className="size-3" aria-hidden /> ΦΠΑ
                     </div>
-                    <div className="text-[0.78125rem] tabular-nums">{fmtMoney(extracted.totals.vat)}</div>
+                    <div className="text-[length:var(--fs-12-5)] tabular-nums">{fmtMoney(extracted.totals.vat)}</div>
                   </div>
                   <div>
-                    <div className="mb-1 flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
+                    <div className="mb-1 flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-semibold text-muted-foreground">
                       <LuEuro className="size-3" aria-hidden /> Σύνολο
                     </div>
-                    <div className="text-[0.78125rem] font-semibold tabular-nums">{fmtMoney(extracted.totals.gross)}</div>
+                    <div className="text-[length:var(--fs-12-5)] font-semibold tabular-nums">{fmtMoney(extracted.totals.gross)}</div>
                   </div>
                 </div>
               </div>
 
-              <label className="flex cursor-pointer items-center gap-2 text-[0.78125rem] font-semibold">
+              <label className="flex cursor-pointer items-center gap-2 text-[length:var(--fs-12-5)] font-semibold">
                 <input
                   type="checkbox"
                   checked={enrichAade}

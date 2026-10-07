@@ -30,7 +30,7 @@ export default async function UnsubscribePage({ params }: { params: Promise<{ to
           boxShadow: '0 18px 50px rgba(2,20,32,0.35)',
         }}
       >
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.7, marginBottom: '0.9rem' }}>
+        <div style={{ fontSize: 'var(--fs-13)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.7, marginBottom: '0.9rem' }}>
           World Wide Associates
         </div>
         <UnsubscribeForm token={token} />

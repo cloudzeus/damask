@@ -95,8 +95,8 @@ export function ExpensesTab({ applicationId, programId, stage }: { applicationId
       <div className="flex items-start gap-3 rounded-[18px] border border-border bg-muted/40 px-4 py-3">
         <BannerIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
         <div className="min-w-0">
-          <div className="text-[0.8125rem] font-semibold">{banner.title}</div>
-          <p className="mt-0.5 text-[0.71875rem] text-muted-foreground">{banner.hint}</p>
+          <div className="text-[length:var(--fs-13)] font-semibold">{banner.title}</div>
+          <p className="mt-0.5 text-[length:var(--fs-11-5)] text-muted-foreground">{banner.hint}</p>
         </div>
         {/* «Καταχώριση από OCR» (πραγματικό παραστατικό) — μόνο στη φάση υλοποίησης. */}
         {isImplementation && !loading && !error && (
@@ -150,7 +150,7 @@ function ReplaceExpensesSection({
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-3 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-3 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         Αντικατάσταση δαπανών
       </div>
       <div className="flex flex-col gap-1.5">
@@ -160,8 +160,8 @@ function ReplaceExpensesSection({
             className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card/60 px-3 py-2"
           >
             <div className={e.status === 'REPLACED' ? 'text-muted-foreground line-through' : undefined}>
-              <span className="text-[0.78125rem] font-semibold">{e.description}</span>{' '}
-              <span className="text-[0.71875rem] text-muted-foreground">{formatEUR(e.amount)}</span>
+              <span className="text-[length:var(--fs-12-5)] font-semibold">{e.description}</span>{' '}
+              <span className="text-[length:var(--fs-11-5)] text-muted-foreground">{formatEUR(e.amount)}</span>
             </div>
             {e.status === 'REPLACED' ? (
               <span className="badge-pill muted shrink-0">Αντικαταστάθηκε</span>

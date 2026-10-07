@@ -100,7 +100,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
       cell: r => (
         <div className="min-w-0">
           <div className="truncate font-semibold">{r.companyName ?? r.email}</div>
-          <div className="truncate text-[0.71875rem] text-muted-foreground">
+          <div className="truncate text-[length:var(--fs-11-5)] text-muted-foreground">
             {r.afm ? `ΑΦΜ ${r.afm} · ` : ''}{r.email}{r.phone ? ` · ${r.phone}` : ''}
           </div>
         </div>
@@ -177,7 +177,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Αναζήτηση: επωνυμία, ΑΦΜ, email…"
-          className="h-8 w-full max-w-[280px] rounded-full text-[0.78125rem]"
+          className="h-8 w-full max-w-[280px] rounded-full text-[length:var(--fs-12-5)]"
           autoComplete="off"
         />
         {['ALL', 'NEW', 'ASSIGNED', 'IN_PROGRESS', 'CONVERTED', 'NOT_INTERESTED'].map(s => (
@@ -185,7 +185,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
             key={s}
             type="button"
             onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-3 py-1 text-[0.75rem] font-semibold transition-colors ${statusFilter === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
+            className={`rounded-full px-3 py-1 text-[length:var(--fs-12)] font-semibold transition-colors ${statusFilter === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
           >
             {s === 'ALL' ? 'Όλα' : STATUS_META[s].label}
           </button>
@@ -335,23 +335,23 @@ function CommDialog({ row, open, onOpenChange, onDone }: { row: LeadRow; open: b
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border p-2">
-          <div className="mb-1 flex items-center gap-1.5 px-1 text-[0.65625rem] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
+          <div className="mb-1 flex items-center gap-1.5 px-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
             <History className="size-3.5" aria-hidden /> Ιστορικό
           </div>
           {loadingHist ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-[0.78125rem] text-muted-foreground"><LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
+            <div className="flex items-center justify-center gap-2 py-6 text-[length:var(--fs-12-5)] text-muted-foreground"><LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
           ) : history.length === 0 ? (
-            <p className="px-1 py-3 text-[0.75rem] text-muted-foreground">Καμία καταγραφή ακόμα.</p>
+            <p className="px-1 py-3 text-[length:var(--fs-12)] text-muted-foreground">Καμία καταγραφή ακόμα.</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {history.map(c => (
                 <li key={c.id} className="rounded-lg bg-card/60 p-2.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="badge-pill info shrink-0"><Phone className="size-3" aria-hidden /> {mediumLabel(c.medium)}</span>
-                    <span className="text-[0.6875rem] text-muted-foreground tabular-nums">{relativeTime(c.occurredAt)}</span>
-                    {c.byName && <span className="text-[0.6875rem] text-muted-foreground">· {c.byName}</span>}
+                    <span className="text-[length:var(--fs-11)] text-muted-foreground tabular-nums">{relativeTime(c.occurredAt)}</span>
+                    {c.byName && <span className="text-[length:var(--fs-11)] text-muted-foreground">· {c.byName}</span>}
                   </div>
-                  <p className="mt-1 text-[0.78125rem] whitespace-pre-wrap">{c.note}</p>
+                  <p className="mt-1 text-[length:var(--fs-12-5)] whitespace-pre-wrap">{c.note}</p>
                 </li>
               ))}
             </ul>

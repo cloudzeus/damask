@@ -120,11 +120,11 @@ export function DocumentPreviewDialog({
 
         <div className="min-h-[300px] flex-1 overflow-auto rounded-xl border border-border bg-card">
           {status === 'loading' || status === 'idle' ? (
-            <div className="flex h-full min-h-[300px] items-center justify-center gap-2 text-[0.8125rem] text-muted-foreground">
+            <div className="flex h-full min-h-[300px] items-center justify-center gap-2 text-[length:var(--fs-13)] text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση προεπισκόπησης…
             </div>
           ) : status === 'error' ? (
-            <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-2 text-center text-[0.8125rem] text-muted-foreground">
+            <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-2 text-center text-[length:var(--fs-13)] text-muted-foreground">
               <FileWarning className="size-6 text-amber-600" aria-hidden />
               Η προεπισκόπηση απέτυχε. Κατέβασε το αρχείο για να το ανοίξεις.
             </div>
@@ -138,11 +138,11 @@ export function DocumentPreviewDialog({
           ) : loaded?.kind === 'sheet' ? (
             <SheetView sheets={loaded.sheets} />
           ) : loaded?.kind === 'docx' ? (
-            <div className="docx-preview px-5 py-4 text-[0.8125rem] leading-relaxed" dangerouslySetInnerHTML={{ __html: loaded.html }} />
+            <div className="docx-preview px-5 py-4 text-[length:var(--fs-13)] leading-relaxed" dangerouslySetInnerHTML={{ __html: loaded.html }} />
           ) : loaded?.kind === 'text' ? (
-            <pre className="overflow-auto p-4 text-[0.75rem] leading-relaxed whitespace-pre-wrap">{loaded.text}</pre>
+            <pre className="overflow-auto p-4 text-[length:var(--fs-12)] leading-relaxed whitespace-pre-wrap">{loaded.text}</pre>
           ) : (
-            <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-2 text-center text-[0.8125rem] text-muted-foreground">
+            <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-2 text-center text-[length:var(--fs-13)] text-muted-foreground">
               <FileWarning className="size-6" aria-hidden />
               Δεν υποστηρίζεται προεπισκόπηση για αυτόν τον τύπο αρχείου.
             </div>
@@ -174,7 +174,7 @@ function SheetView({ sheets }: { sheets: { name: string; html: string }[] }) {
               key={s.name + i}
               type="button"
               onClick={() => setActive(i)}
-              className={cn('rounded-full px-3 py-1 text-[0.6875rem] font-semibold transition-colors',
+              className={cn('rounded-full px-3 py-1 text-[length:var(--fs-11)] font-semibold transition-colors',
                 i === active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}
             >
               {s.name}
@@ -203,7 +203,7 @@ export function DocumentPreviewButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={cn('inline-flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground', label ? 'gap-1.5 px-2.5 py-1 text-[0.6875rem] font-semibold' : 'size-7', className)}
+        className={cn('inline-flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground', label ? 'gap-1.5 px-2.5 py-1 text-[length:var(--fs-11)] font-semibold' : 'size-7', className)}
         title="Προεπισκόπηση"
         aria-label={`Προεπισκόπηση — ${name}`}
       >

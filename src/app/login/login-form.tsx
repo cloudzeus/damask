@@ -70,7 +70,7 @@ export function LoginForm({ justReset = false }: { justReset?: boolean }) {
             <div className="field">
               <label htmlFor="password" style={{ display: 'flex', justifyContent: 'space-between' }}>
                 Κωδικός
-                <Link href="/forgot-password" style={{ color: 'var(--info)', fontWeight: 700, textDecoration: 'none', fontSize: 12 }}>
+                <Link href="/forgot-password" style={{ color: 'var(--info)', fontWeight: 700, textDecoration: 'none', fontSize: 'var(--fs-12)' }}>
                   Τον ξέχασες;
                 </Link>
               </label>

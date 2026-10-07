@@ -15,7 +15,7 @@ export function PhoneLink({ phone, className }: { phone: string | null | undefin
       onClick={e => e.stopPropagation()}
       title={`Κλήση ${value}`}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 -mx-1.5 text-[0.71875rem] font-semibold tabular-nums text-primary transition-colors hover:bg-primary/10 hover:underline',
+        'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 -mx-1.5 text-[length:var(--fs-11-5)] font-semibold tabular-nums text-primary transition-colors hover:bg-primary/10 hover:underline',
         className,
       )}
     >

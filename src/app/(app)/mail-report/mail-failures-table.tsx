@@ -28,12 +28,12 @@ export function MailFailuresTable({ failures }: { failures: MailFailure[] }) {
     {
       id: 'event', header: 'Τύπος', width: 140, nowrap: true, sortValue: r => r.event,
       cell: r => (
-        <span className="rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold" style={{ background: 'var(--mr-failed-soft)', color: 'var(--mr-failed)' }}>
+        <span className="rounded-full px-2 py-0.5 text-[length:var(--fs-11)] font-semibold" style={{ background: 'var(--mr-failed-soft)', color: 'var(--mr-failed)' }}>
           {EVENT_LABEL[r.event] ?? r.event}{r.severity === 'temporary' ? ' (προσωρινή)' : ''}
         </span>
       ),
     },
-    { id: 'reason', header: 'Λόγος', width: 320, sortValue: r => r.reason ?? '', cell: r => <span className="text-[0.78125rem] text-muted-foreground">{r.reason}</span> },
+    { id: 'reason', header: 'Λόγος', width: 320, sortValue: r => r.reason ?? '', cell: r => <span className="text-[length:var(--fs-12-5)] text-muted-foreground">{r.reason}</span> },
   ]
 
   return (

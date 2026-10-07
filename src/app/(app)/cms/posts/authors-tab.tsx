@@ -51,7 +51,7 @@ export function AuthorsTab({ authors, users, canEdit }: { authors: AuthorRow[]; 
           // eslint-disable-next-line @next/next/no-img-element
           <img src={author.avatarUrl} alt={author.name} className="size-7 rounded-full object-cover" />
         ) : (
-          <span className="avatar-ring size-7 text-[0.65625rem]">
+          <span className="avatar-ring size-7 text-[length:var(--fs-10-5)]">
             {author.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
           </span>
         )
@@ -257,7 +257,7 @@ function AuthorFormDialog({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={values.avatarUrl} alt="" className="size-14 rounded-full object-cover" />
             ) : (
-              <span className="avatar-ring size-14 text-[0.9375rem]">
+              <span className="avatar-ring size-14 text-[length:var(--fs-15)]">
                 <UserIcon className="size-5" strokeWidth={1.6} aria-hidden />
               </span>
             )}
@@ -266,7 +266,7 @@ function AuthorFormDialog({
                 {values.avatarUrl ? 'Αλλαγή φωτογραφίας' : 'Επιλογή φωτογραφίας'}
               </Button>
               {values.avatarUrl && (
-                <button type="button" onClick={() => set('avatarUrl', null)} className="text-[0.6875rem] text-muted-foreground hover:text-destructive">
+                <button type="button" onClick={() => set('avatarUrl', null)} className="text-[length:var(--fs-11)] text-muted-foreground hover:text-destructive">
                   Αφαίρεση
                 </button>
               )}
@@ -300,7 +300,7 @@ function AuthorFormDialog({
               rows={3}
               aria-invalid={values.bio.trim().length > BIO_MAX || !!fieldErrors.bio}
             />
-            <div className={`mt-1 text-right text-[0.6875rem] tabular-nums ${values.bio.trim().length > BIO_MAX ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+            <div className={`mt-1 text-right text-[length:var(--fs-11)] tabular-nums ${values.bio.trim().length > BIO_MAX ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
               {values.bio.trim().length}/{BIO_MAX}
             </div>
             {fieldErrors.bio && <div className="error">{fieldErrors.bio}</div>}

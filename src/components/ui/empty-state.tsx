@@ -28,12 +28,12 @@ export function EmptyState({
       <span className="flex size-12 items-center justify-center rounded-2xl" style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
         <Icon className="size-6" strokeWidth={1.6} aria-hidden />
       </span>
-      <p className="text-[0.875rem] font-semibold text-foreground">{title}</p>
-      {hint && <p className="max-w-[42ch] text-[0.78125rem] text-muted-foreground">{hint}</p>}
+      <p className="text-[length:var(--fs-14)] font-semibold text-foreground">{title}</p>
+      {hint && <p className="max-w-[42ch] text-[length:var(--fs-12-5)] text-muted-foreground">{hint}</p>}
       {action
         ? <div className="mt-1">{action}</div>
         : actionLabel && actionHref && (
-          <Link href={actionHref} className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[0.8125rem] font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+          <Link href={actionHref} className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[length:var(--fs-13)] font-semibold text-primary-foreground transition-opacity hover:opacity-90">
             {actionLabel}
           </Link>
         )}

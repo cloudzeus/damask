@@ -56,7 +56,7 @@ export function LogosField({ value, onChange }: { value: LogoEntry[]; onChange: 
               <X className="size-3" strokeWidth={2.5} />
             </button>
             {i === 0 && (
-              <span className="badge-pill ok absolute top-1.5 left-1.5 z-10" style={{ padding: '2px 7px', fontSize: 10 }}>
+              <span className="badge-pill ok absolute top-1.5 left-1.5 z-10" style={{ padding: '2px 7px', fontSize: 'var(--fs-10)' }}>
                 <Star className="size-2.5" strokeWidth={2.5} aria-hidden />
                 Κύριο
               </span>
@@ -70,13 +70,13 @@ export function LogosField({ value, onChange }: { value: LogoEntry[]; onChange: 
               onChange={e => relabel(i, e.target.value)}
               placeholder="Ετικέτα (π.χ. Λευκό)"
               aria-label="Ετικέτα λογοτύπου"
-              className="w-full rounded-md border border-border bg-transparent px-1.5 py-1 text-[0.6875rem]"
+              className="w-full rounded-md border border-border bg-transparent px-1.5 py-1 text-[length:var(--fs-11)]"
             />
             {i !== 0 && (
               <button
                 type="button"
                 onClick={() => setPrimary(i)}
-                className="text-left text-[0.65625rem] font-semibold text-(--info) hover:underline"
+                className="text-left text-[length:var(--fs-10-5)] font-semibold text-(--info) hover:underline"
               >
                 Ορισμός ως κύριο
               </button>
@@ -90,7 +90,7 @@ export function LogosField({ value, onChange }: { value: LogoEntry[]; onChange: 
           style={{ borderColor: 'var(--border)' }}
         >
           <Plus className="size-5" strokeWidth={1.8} aria-hidden />
-          <span className="px-2 text-center text-[0.6875rem] font-semibold">Προσθήκη λογοτύπου</span>
+          <span className="px-2 text-center text-[length:var(--fs-11)] font-semibold">Προσθήκη λογοτύπου</span>
         </button>
       </div>
       <div className="help">Το πρώτο (με το ✓ Κύριο) χρησιμοποιείται ως προεπιλεγμένο λογότυπο.</div>

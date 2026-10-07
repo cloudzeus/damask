@@ -102,7 +102,7 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
           <Link href={`/partners/${r.trdrId}`} className="inline-flex items-center gap-1.5 font-semibold hover:underline">
             <Building2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden /> {r.name}
           </Link>
-          {r.afm && <div className="text-[0.6875rem] text-muted-foreground tabular-nums">{r.afm}</div>}
+          {r.afm && <div className="text-[length:var(--fs-11)] text-muted-foreground tabular-nums">{r.afm}</div>}
         </div>
       ),
     },
@@ -113,7 +113,7 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
     {
       id: 'region', header: 'Περιοχή', width: 190, sortValue: r => r.regionName ?? '',
       cell: r => r.regionName
-        ? <span className="badge-pill muted text-[0.65625rem]" title={r.regionName}>{r.regionName}</span>
+        ? <span className="badge-pill muted text-[length:var(--fs-10-5)]" title={r.regionName}>{r.regionName}</span>
         : <span className="text-muted-foreground">—</span>,
     },
     {
@@ -155,7 +155,7 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
   return (
     <section className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <span className="flex items-center gap-1.5 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           <Users className="size-3.5" aria-hidden /> Συσχετισμένες εταιρίες ({rows.length})
         </span>
         <div className="flex items-center gap-2">
@@ -168,15 +168,15 @@ function LinkedCompanies({ referrerId, refreshToken, onChanged }: { referrerId: 
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-5 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center gap-2 py-5 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Έλεγχος…
         </div>
       ) : error ? (
-        <p className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-[0.75rem] text-destructive">
+        <p className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-[length:var(--fs-12)] text-destructive">
           {error}
         </p>
       ) : rows.length === 0 ? (
-        <p className="py-4 text-[0.75rem] text-muted-foreground">
+        <p className="py-4 text-[length:var(--fs-12)] text-muted-foreground">
           Καμία καταχωρημένη εταιρία (πελάτης ή δυνητικός) δεν έχει συσχετιστεί με αυτή τη σύσταση ακόμη.
         </p>
       ) : (
@@ -219,7 +219,7 @@ function ContactsSection({ referrerId, onChanged }: { referrerId: string; onChan
   return (
     <section className="rounded-2xl border border-border bg-card/60 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <span className="flex items-center gap-1.5 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           <Contact className="size-3.5" aria-hidden /> Επαφές ({rows.length})
         </span>
         {!adding && (
@@ -238,11 +238,11 @@ function ContactsSection({ referrerId, onChanged }: { referrerId: string; onChan
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 py-4 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center gap-2 py-4 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : rows.length === 0 && !adding ? (
-        <p className="py-3 text-[0.75rem] text-muted-foreground">Δεν υπάρχουν επαφές. Πρόσθεσε πρόσωπα επικοινωνίας για αυτή την εταιρία-παραπομπή.</p>
+        <p className="py-3 text-[length:var(--fs-12)] text-muted-foreground">Δεν υπάρχουν επαφές. Πρόσθεσε πρόσωπα επικοινωνίας για αυτή την εταιρία-παραπομπή.</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {rows.map(c => editId === c.id ? (
@@ -254,11 +254,11 @@ function ContactsSection({ referrerId, onChanged }: { referrerId: string; onChan
               onSaved={() => { setEditId(null); onChanged(); reload() }}
             />
           ) : (
-            <div key={c.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/70 px-3 py-2 text-[0.78125rem]">
+            <div key={c.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/70 px-3 py-2 text-[length:var(--fs-12-5)]">
               <span className="font-semibold">{c.name}</span>
               {c.role && <span className="badge-pill muted">{c.role}</span>}
-              {c.email && <a href={`mailto:${c.email}`} className="text-[0.71875rem] text-info hover:underline">{c.email}</a>}
-              {c.phone && <a href={`tel:${c.phone}`} className="text-[0.71875rem] text-muted-foreground hover:underline">{c.phone}</a>}
+              {c.email && <a href={`mailto:${c.email}`} className="text-[length:var(--fs-11-5)] text-info hover:underline">{c.email}</a>}
+              {c.phone && <a href={`tel:${c.phone}`} className="text-[length:var(--fs-11-5)] text-muted-foreground hover:underline">{c.phone}</a>}
               <div className="ml-auto flex items-center gap-1">
                 <button type="button" onClick={() => { setEditId(c.id); setAdding(false) }} className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground" title="Επεξεργασία"><Pencil className="size-3.5" aria-hidden /></button>
                 <button type="button" onClick={() => remove(c.id)} className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Διαγραφή"><Trash2 className="size-3.5" aria-hidden /></button>

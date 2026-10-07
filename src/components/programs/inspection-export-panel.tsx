@@ -29,10 +29,10 @@ export function InspectionExportPanel({ applicationId }: { applicationId: string
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-1 flex items-center gap-1.5 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+      <div className="dotted-leader mb-1 flex items-center gap-1.5 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
         <LuClipboardCheck className="size-3.5" aria-hidden /> Επιτόπιος έλεγχος
       </div>
-      <p className="mb-3 text-[0.71875rem] text-muted-foreground">Έτοιμα αρχεία για τον ελεγκτή που έρχεται να δει το φυσικό αντικείμενο.</p>
+      <p className="mb-3 text-[length:var(--fs-11-5)] text-muted-foreground">Έτοιμα αρχεία για τον ελεγκτή που έρχεται να δει το φυσικό αντικείμενο.</p>
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" onClick={exportXlsx} disabled={xlsxBusy}>
           {xlsxBusy ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuFileSpreadsheet className="size-3.5" aria-hidden />} Excel δαπανών (τιμολόγια & serials)

@@ -73,11 +73,11 @@ export function RecordPreviewDialog({
           <DialogDescription>{title} — οι χαρτογραφημένες περιοχές &amp; οι τιμές πάνω στο αρχειοθετημένο έντυπο.</DialogDescription>
         </DialogHeader>
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-[0.78125rem] text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-12 text-[length:var(--fs-12-5)] text-muted-foreground">
             <LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση δείγματος…
           </div>
         ) : error ? (
-          <p className="py-8 text-center text-[0.78125rem] text-coral">{error}</p>
+          <p className="py-8 text-center text-[length:var(--fs-12-5)] text-coral">{error}</p>
         ) : (
           <RegionPreview pages={pages} regions={regions} />
         )}

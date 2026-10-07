@@ -16,7 +16,7 @@ export function UnsubscribeForm({ token }: { token: string }) {
 
   if (done?.ok) {
     return (
-      <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: 1.6 }}>
+      <p style={{ margin: 0, fontSize: 'var(--fs-15)', lineHeight: 1.6 }}>
         {done.email ? <><b>{done.email}</b> — η </> : 'Η '}
         διαγραφή σου ολοκληρώθηκε. Δεν θα λαμβάνεις πλέον ενημερώσεις (newsletter) από εμάς.
       </p>
@@ -24,7 +24,7 @@ export function UnsubscribeForm({ token }: { token: string }) {
   }
   if (done && !done.ok) {
     return (
-      <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: 1.6 }}>
+      <p style={{ margin: 0, fontSize: 'var(--fs-15)', lineHeight: 1.6 }}>
         Ο σύνδεσμος δεν είναι έγκυρος ή έχει ήδη χρησιμοποιηθεί.
       </p>
     )
@@ -32,7 +32,7 @@ export function UnsubscribeForm({ token }: { token: string }) {
 
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
-      <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: 1.6 }}>
+      <p style={{ margin: 0, fontSize: 'var(--fs-15)', lineHeight: 1.6 }}>
         Θέλεις να διαγραφείς από τις ενημερώσεις (newsletter) της World Wide Associates;
       </p>
       <button
@@ -41,7 +41,7 @@ export function UnsubscribeForm({ token }: { token: string }) {
         disabled={pending}
         style={{
           minHeight: '2.9rem', borderRadius: '999px', border: 'none',
-          background: 'var(--coral, #e11d48)', color: '#fff', fontWeight: 700, fontSize: '0.92rem', cursor: 'pointer', padding: '0 1.4rem',
+          background: 'var(--coral, #e11d48)', color: '#fff', fontWeight: 700, fontSize: 'var(--fs-14-5)', cursor: 'pointer', padding: '0 1.4rem',
         }}
       >
         {pending ? 'Γίνεται διαγραφή…' : 'Επιβεβαίωση διαγραφής'}

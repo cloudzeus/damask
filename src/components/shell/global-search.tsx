@@ -66,11 +66,11 @@ export function GlobalSearch() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Καθολική αναζήτηση"
-        className="flex h-[34px] min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-3.5 text-[0.78125rem] text-muted-foreground shadow-[inset_0_1px_3px_rgb(23_43_58_/_5%)] transition-colors hover:border-primary/40 sm:min-w-[220px] sm:flex-none"
+        className="flex h-[34px] min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-3.5 text-[length:var(--fs-12-5)] text-muted-foreground shadow-[inset_0_1px_3px_rgb(23_43_58_/_5%)] transition-colors hover:border-primary/40 sm:min-w-[220px] sm:flex-none"
       >
         <Search className="size-3.5 shrink-0" strokeWidth={1.8} />
         <span className="truncate">Αναζήτηση πελάτη, έργου, προγράμματος…</span>
-        <span className="ml-auto hidden rounded border border-border px-1 text-[0.625rem] sm:inline">⌘K</span>
+        <span className="ml-auto hidden rounded border border-border px-1 text-[length:var(--fs-10)] sm:inline">⌘K</span>
       </button>
 
       <Dialog open={open} onOpenChange={o => { setOpen(o); if (!o) reset() }}>
@@ -84,16 +84,16 @@ export function GlobalSearch() {
               onKeyDown={onKeyDown}
               autoFocus
               placeholder="Όνομα ή ΑΦΜ…"
-              className="min-w-0 flex-1 bg-transparent text-[0.9375rem] text-foreground outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-[length:var(--fs-15)] text-foreground outline-none placeholder:text-muted-foreground"
             />
             {loading && <LoaderCircle className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />}
           </div>
 
           <div className="max-h-[min(60vh,420px)] overflow-y-auto p-1.5">
             {q.trim().length < 2 ? (
-              <p className="px-3 py-6 text-center text-[0.78125rem] text-muted-foreground">Γράψε τουλάχιστον 2 χαρακτήρες — όνομα εταιρίας ή ΑΦΜ.</p>
+              <p className="px-3 py-6 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Γράψε τουλάχιστον 2 χαρακτήρες — όνομα εταιρίας ή ΑΦΜ.</p>
             ) : !loading && results.length === 0 ? (
-              <p className="px-3 py-6 text-center text-[0.78125rem] text-muted-foreground">Κανένα αποτέλεσμα για «{q.trim()}».</p>
+              <p className="px-3 py-6 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Κανένα αποτέλεσμα για «{q.trim()}».</p>
             ) : (
               <ul className="flex flex-col gap-0.5">
                 {results.map((r, i) => {
@@ -111,8 +111,8 @@ export function GlobalSearch() {
                           <Icon className="size-4" strokeWidth={1.8} aria-hidden />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[0.8125rem] font-semibold text-foreground">{r.title}</span>
-                          <span className="block truncate text-[0.6875rem] text-muted-foreground">{meta.label}{r.subtitle ? ` · ${r.subtitle}` : ''}</span>
+                          <span className="block truncate text-[length:var(--fs-13)] font-semibold text-foreground">{r.title}</span>
+                          <span className="block truncate text-[length:var(--fs-11)] text-muted-foreground">{meta.label}{r.subtitle ? ` · ${r.subtitle}` : ''}</span>
                         </span>
                         {i === active && <CornerDownLeft className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
                       </button>

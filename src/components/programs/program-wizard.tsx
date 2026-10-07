@@ -80,14 +80,14 @@ function WizardDialog({ onClose }: { onClose: () => void }) {
             return (
               <li key={s.key} className="flex flex-1 items-center gap-1.5">
                 <span className={cn(
-                  'flex size-6 shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-bold',
+                  'flex size-6 shrink-0 items-center justify-center rounded-full text-[length:var(--fs-11)] font-bold',
                   state === 'done' && 'bg-primary text-primary-foreground',
                   state === 'active' && 'bg-primary/15 text-primary ring-2 ring-primary',
                   state === 'todo' && 'bg-muted text-muted-foreground',
                 )}>
                   {state === 'done' ? <LuCheck className="size-3.5" aria-hidden /> : i + 1}
                 </span>
-                <span className={cn('text-[0.71875rem] font-semibold', state === 'todo' ? 'text-muted-foreground' : 'text-foreground')}>{s.label}</span>
+                <span className={cn('text-[length:var(--fs-11-5)] font-semibold', state === 'todo' ? 'text-muted-foreground' : 'text-foreground')}>{s.label}</span>
                 {i < STEPS.length - 1 && <span className="h-px flex-1 bg-border" aria-hidden />}
               </li>
             )
@@ -146,7 +146,7 @@ function StepUpload({ onDone }: { onDone: (programId: string) => void }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[0.8125rem] text-muted-foreground">Ανέβασε την <strong>προκήρυξη σε PDF</strong>. Θα τη διαβάσω και θα βρω τα βασικά στοιχεία και τα δικαιολογητικά για σένα.</p>
+      <p className="text-[length:var(--fs-13)] text-muted-foreground">Ανέβασε την <strong>προκήρυξη σε PDF</strong>. Θα τη διαβάσω και θα βρω τα βασικά στοιχεία και τα δικαιολογητικά για σένα.</p>
       <div className="field !mb-0">
         <label htmlFor="wz-title">Πώς θα λέγεται το πρόγραμμα;</label>
         <Input id="wz-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="π.χ. Ψηφιακός Μετασχηματισμός ΜμΕ" disabled={busy} autoFocus />
@@ -157,16 +157,16 @@ function StepUpload({ onDone }: { onDone: (programId: string) => void }) {
         <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
           className="flex w-full items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-5 text-left transition-colors hover:border-primary hover:bg-muted disabled:opacity-50">
           {file ? <LuFile className="size-5 shrink-0 text-primary" aria-hidden /> : <LuUpload className="size-5 shrink-0 text-muted-foreground" aria-hidden />}
-          <span className="truncate text-[0.8125rem] font-semibold">{file ? file.name : 'Πάτησε εδώ για να διαλέξεις το PDF…'}</span>
+          <span className="truncate text-[length:var(--fs-13)] font-semibold">{file ? file.name : 'Πάτησε εδώ για να διαλέξεις το PDF…'}</span>
         </button>
       </div>
       {busy && (
         <div className="flex flex-col gap-1.5 pt-1">
           <Progress value={progress} />
-          <p className="text-center text-[0.71875rem] text-muted-foreground">{label}</p>
+          <p className="text-center text-[length:var(--fs-11-5)] text-muted-foreground">{label}</p>
         </div>
       )}
-      {error && <p className="flex items-start gap-1.5 text-[0.78125rem] text-coral"><LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {error}</p>}
+      {error && <p className="flex items-start gap-1.5 text-[length:var(--fs-12-5)] text-coral"><LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {error}</p>}
       <div className="flex justify-end pt-1">
         <Button type="button" onClick={start} disabled={busy}>
           {busy ? <><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Δουλεύω…</> : <>Ξεκίνα <LuChevronRight className="size-3.5" aria-hidden /></>}
@@ -195,15 +195,15 @@ function StepBasics({ programId, onBack, onNext }: { programId: string; onBack: 
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[0.8125rem] text-muted-foreground">Αυτά βρήκα από την προκήρυξη. <strong>Ρίξε μια ματιά</strong> — αν κάτι δεν είναι σωστό, θα το διορθώσεις εύκολα αργότερα μέσα στο πρόγραμμα.</p>
+      <p className="text-[length:var(--fs-13)] text-muted-foreground">Αυτά βρήκα από την προκήρυξη. <strong>Ρίξε μια ματιά</strong> — αν κάτι δεν είναι σωστό, θα το διορθώσεις εύκολα αργότερα μέσα στο πρόγραμμα.</p>
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
       ) : (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {cards.map(c => (
             <div key={c.label} className="rounded-xl border border-border bg-card/60 p-3">
-              <div className="text-[0.65625rem] font-semibold text-muted-foreground uppercase">{c.label}</div>
-              <div className="mt-0.5 text-[0.875rem] font-bold">{c.value}</div>
+              <div className="text-[length:var(--fs-10-5)] font-semibold text-muted-foreground uppercase">{c.label}</div>
+              <div className="mt-0.5 text-[length:var(--fs-14)] font-bold">{c.value}</div>
             </div>
           ))}
         </div>
@@ -250,25 +250,25 @@ function StepDocs({ programId, onBack, onNext }: { programId: string; onBack: ()
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[0.8125rem] text-muted-foreground">Αυτά τα <strong>δικαιολογητικά</strong> εντόπισα. Ξε-τσέκαρε όποιο δεν χρειάζεται. (Μπορείς να προσθέσεις κι άλλα αργότερα.)</p>
+      <p className="text-[length:var(--fs-13)] text-muted-foreground">Αυτά τα <strong>δικαιολογητικά</strong> εντόπισα. Ξε-τσέκαρε όποιο δεν χρειάζεται. (Μπορείς να προσθέσεις κι άλλα αργότερα.)</p>
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
       ) : proposals.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
           <LuFileText className="size-6 text-muted-foreground" aria-hidden />
-          <p className="text-[0.78125rem] text-muted-foreground">Δεν βρέθηκαν προτεινόμενα δικαιολογητικά — μπορείς να τα προσθέσεις χειροκίνητα μέσα στο πρόγραμμα.</p>
+          <p className="text-[length:var(--fs-12-5)] text-muted-foreground">Δεν βρέθηκαν προτεινόμενα δικαιολογητικά — μπορείς να τα προσθέσεις χειροκίνητα μέσα στο πρόγραμμα.</p>
         </div>
       ) : (
         <div className="max-h-[46vh] overflow-y-auto rounded-xl border border-border">
           {proposals.map(p => (
             <div key={p.name} className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 last:border-0">
               <input type="checkbox" checked={selected.has(p.name)} onChange={() => toggle(p.name)} className="size-4 shrink-0 accent-[color:var(--primary)]" aria-label={p.name} />
-              <span className="flex-1 text-[0.8125rem] font-semibold">{p.name}</span>
+              <span className="flex-1 text-[length:var(--fs-13)] font-semibold">{p.name}</span>
               {p.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>}
               {p.suggestedDocumentTypeName
                 ? <span className={cn('badge-pill shrink-0', p.suggestionFuzzy ? 'warn' : 'ok')}>{p.suggestionFuzzy ? 'τύπος (πρόταση): ' : 'τύπος: '}{p.suggestedDocumentTypeName}</span>
                 : <button type="button" onClick={() => createTypeFor(p)} disabled={creating === p.name}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary">
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary">
                     {creating === p.name ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuPlus className="size-3" aria-hidden />} φτιάξε τύπο
                   </button>}
             </div>
@@ -292,8 +292,8 @@ function StepDone({ onOpen }: { programId: string; onOpen: () => void }) {
       <div className="flex size-14 items-center justify-center rounded-full bg-[color:var(--success-soft)]">
         <LuCircleCheckBig className="size-7 text-[color:var(--success)]" aria-hidden />
       </div>
-      <h3 className="text-[1rem] font-bold">Έτοιμο! Το πρόγραμμα στήθηκε.</h3>
-      <p className="max-w-md text-[0.8125rem] text-muted-foreground">
+      <h3 className="text-[length:var(--fs-16)] font-bold">Έτοιμο! Το πρόγραμμα στήθηκε.</h3>
+      <p className="max-w-md text-[length:var(--fs-13)] text-muted-foreground">
         Πρόσθεσα τα δικαιολογητικά που διάλεξες. Θες να διαβάζω αυτόματα <strong>τιμές από έντυπα</strong> (π.χ. ΕΜΕ, ισολογισμό); Μέσα στο πρόγραμμα, στα «Έντυπα», σύνδεσε έναν «Οδηγό τιμών».
       </p>
       <Button type="button" onClick={onOpen}>Άνοιγμα προγράμματος <LuChevronRight className="size-3.5" aria-hidden /></Button>

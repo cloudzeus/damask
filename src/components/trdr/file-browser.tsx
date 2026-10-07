@@ -184,7 +184,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
   return (
     <div className="glass flex flex-col gap-3 rounded-[22px] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-[0.9375rem] font-bold">
+        <h3 className="flex items-center gap-2 text-[length:var(--fs-15)] font-bold">
           <Folder className="size-4 text-muted-foreground" aria-hidden /> Αρχεία
         </h3>
         {canEdit && listing?.canCreateFolder && (
@@ -461,7 +461,7 @@ function ContextItem({ icon, children, onClick, danger }: { icon: ReactNode; chi
 function FileBrowserSkeleton() {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card" aria-busy="true" aria-live="polite">
-      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3.5 py-2 text-[0.71875rem] font-medium text-muted-foreground">
+      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3.5 py-2 text-[length:var(--fs-11-5)] font-medium text-muted-foreground">
         <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> Φόρτωση φακέλων…
       </div>
       <ul className="divide-y divide-border">

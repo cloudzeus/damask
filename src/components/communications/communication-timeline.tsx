@@ -68,7 +68,7 @@ export function CommunicationTimeline({
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="dotted-leader flex-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Ιστορικό επικοινωνίας ({items.length})
         </div>
         {canSend && (
@@ -80,20 +80,20 @@ export function CommunicationTimeline({
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
         {(['ALL', 'EMAIL', 'CALL', 'FILE_REQUEST'] as const).map(k => (
           <button key={k} type="button" onClick={() => setKindFilter(k)}
-            className={`rounded-full px-3 py-1 text-[0.75rem] font-semibold transition-colors ${kindFilter === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
+            className={`rounded-full px-3 py-1 text-[length:var(--fs-12)] font-semibold transition-colors ${kindFilter === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}>
             {k === 'ALL' ? 'Όλα' : KIND_META[k].label}
           </button>
         ))}
         {programs.length > 0 && (
           <select value={programFilter} onChange={e => setProgramFilter(e.target.value)}
-            className="h-8 rounded-full border border-border bg-card px-3 text-[0.75rem] outline-none">
+            className="h-8 rounded-full border border-border bg-card px-3 text-[length:var(--fs-12)] outline-none">
             <option value="ALL">Όλα τα έργα</option>
             {programs.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
           </select>
         )}
         {pendingCount > 0 && (
           <button type="button" onClick={() => setOnlyPending(v => !v)}
-            className={`ml-auto inline-flex items-center gap-1 rounded-full px-3 py-1 text-[0.75rem] font-bold transition-colors ${onlyPending ? '' : 'hover:opacity-80'}`}
+            className={`ml-auto inline-flex items-center gap-1 rounded-full px-3 py-1 text-[length:var(--fs-12)] font-bold transition-colors ${onlyPending ? '' : 'hover:opacity-80'}`}
             style={{ color: 'var(--coral)', background: 'var(--coral-soft)', outline: onlyPending ? '2px solid var(--coral)' : 'none' }}>
             <AlertCircle className="size-3.5" aria-hidden /> {pendingCount} εκκρεμότητες
           </button>
@@ -101,13 +101,13 @@ export function CommunicationTimeline({
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : error ? (
-        <p className="py-4 text-center text-[0.78125rem] text-coral">{error}</p>
+        <p className="py-4 text-center text-[length:var(--fs-12-5)] text-coral">{error}</p>
       ) : filtered.length === 0 ? (
-        <p className="py-8 text-center text-[0.78125rem] text-muted-foreground">Δεν υπάρχει ιστορικό επικοινωνίας.</p>
+        <p className="py-8 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Δεν υπάρχει ιστορικό επικοινωνίας.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {filtered.map(item => <CommRow key={item.id} item={item} />)}
@@ -129,7 +129,7 @@ function CommRow({ item }: { item: CommItem }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="truncate text-[0.8125rem] font-bold text-foreground">{item.title}</span>
+          <span className="truncate text-[length:var(--fs-13)] font-bold text-foreground">{item.title}</span>
           {item.kind === 'EMAIL' && (
             item.direction === 'INBOUND'
               ? <span className="badge-pill teal shrink-0"><ArrowDownLeft className="size-3" aria-hidden /> Εισερχ.</span>
@@ -137,10 +137,10 @@ function CommRow({ item }: { item: CommItem }) {
           )}
           <span className="badge-pill muted shrink-0">{item.medium}</span>
           {item.pending && <span className="badge-pill shrink-0" style={{ color: 'var(--coral)', background: 'var(--coral-soft)' }}>Εκκρεμεί</span>}
-          <span className="ml-auto shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">{relativeTime(item.at)}</span>
+          <span className="ml-auto shrink-0 text-[length:var(--fs-11)] text-muted-foreground tabular-nums">{relativeTime(item.at)}</span>
         </div>
-        {item.snippet && <p className="mt-1 line-clamp-2 text-[0.75rem] text-muted-foreground">{item.snippet}</p>}
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.6875rem] text-muted-foreground">
+        {item.snippet && <p className="mt-1 line-clamp-2 text-[length:var(--fs-12)] text-muted-foreground">{item.snippet}</p>}
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[length:var(--fs-11)] text-muted-foreground">
           {item.programTitle && (
             item.applicationId && item.programId
               ? <Link href={`/programs/${item.programId}/applications/${item.applicationId}`} className="inline-flex items-center gap-1 font-medium text-foreground hover:underline">

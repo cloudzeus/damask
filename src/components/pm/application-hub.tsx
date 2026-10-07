@@ -85,7 +85,7 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
     <div className="flex flex-col gap-4">
       {/* Header — breadcrumb + πελάτης/πρόγραμμα + verdict/βαθμολογία (μία κάρτα) */}
       <div className="glass rounded-[22px] p-4">
-        <nav aria-label="Διαδρομή" className="mb-2 flex flex-wrap items-center gap-1 text-[0.71875rem] text-muted-foreground">
+        <nav aria-label="Διαδρομή" className="mb-2 flex flex-wrap items-center gap-1 text-[length:var(--fs-11-5)] text-muted-foreground">
           <Link href="/programs" className="hover:text-foreground hover:underline">Προγράμματα</Link>
           <span aria-hidden>›</span>
           <Link href={`/programs/${app.programId}`} className="hover:text-foreground hover:underline">{app.programTitle}</Link>
@@ -94,10 +94,10 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
         </nav>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[length:var(--fs-11)] font-semibold text-muted-foreground">
               <LuBuilding2 className="size-3" aria-hidden /> Πελάτης
             </div>
-            <h2 className="text-[1.1875rem] font-bold">{app.trdrName}</h2>
+            <h2 className="text-[length:var(--fs-19)] font-bold">{app.trdrName}</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <VerdictBadge verdict={app.assessmentVerdict} />
@@ -107,11 +107,11 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
 
         {/* Assignment row */}
         <div className="mt-3 flex flex-wrap items-center gap-2.5 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
-          <span className="flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
+          <span className="flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-semibold text-muted-foreground">
             <LuUserRound className="size-3.5" aria-hidden /> Διαχειριστής
           </span>
           <span className="badge-pill muted">{app.managerName ?? '—'}</span>
-          <span className="text-[0.71875rem] font-semibold text-muted-foreground">Διεκπεραιωτής</span>
+          <span className="text-[length:var(--fs-11-5)] font-semibold text-muted-foreground">Διεκπεραιωτής</span>
           <span className="badge-pill muted">{app.processorName ?? '—'}</span>
           <div className="ml-auto flex items-center gap-2">
             <FolderStatusDialog applicationId={app.id} />
@@ -240,7 +240,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
           <li key={s} className="flex items-center gap-1.5">
             <div
               className={cn(
-                'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.75rem] font-semibold whitespace-nowrap transition-colors',
+                'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[length:var(--fs-12)] font-semibold whitespace-nowrap transition-colors',
                 active && 'bg-primary text-primary-foreground shadow-sm',
                 !active && done && 'text-[color:var(--success)]',
                 !active && !done && 'text-muted-foreground',
@@ -249,7 +249,7 @@ function StageStepper({ stage }: { stage: StageStr }) {
             >
               <span
                 className={cn(
-                  'flex size-4.5 shrink-0 items-center justify-center rounded-full text-[0.625rem] font-extrabold',
+                  'flex size-4.5 shrink-0 items-center justify-center rounded-full text-[length:var(--fs-10)] font-extrabold',
                   active && 'bg-primary-foreground/20 text-primary-foreground',
                   !active && done && 'bg-[color:var(--success)] text-white',
                   !active && !done && 'bg-border text-muted-foreground',
@@ -303,7 +303,7 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) 
       {TAB_GROUPS.map((g, gi) => (
         <div key={g.label} className="flex items-center gap-1">
           {gi > 0 && <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden />}
-          <span className="mr-0.5 hidden text-[0.5625rem] font-bold uppercase tracking-[0.08em] text-muted-foreground lg:inline">{g.label}</span>
+          <span className="mr-0.5 hidden text-[length:var(--fs-9)] font-bold uppercase tracking-[0.08em] text-muted-foreground lg:inline">{g.label}</span>
           {g.tabs.map(t => (
             <button
               key={t.key}
@@ -313,7 +313,7 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) 
               title={t.hint}
               onClick={() => onChange(t.key)}
               className={cn(
-                'rounded-full px-3.5 py-1.5 text-[0.78125rem] font-semibold whitespace-nowrap transition-colors',
+                'rounded-full px-3.5 py-1.5 text-[length:var(--fs-12-5)] font-semibold whitespace-nowrap transition-colors',
                 active === t.key
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',

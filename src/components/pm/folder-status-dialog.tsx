@@ -40,17 +40,17 @@ export function FolderStatusDialog({ applicationId }: { applicationId: string })
             <DialogDescription>Σύνοψη κατάστασης & επόμενα βήματα (AI, ενδεικτικά — έλεγξέ τα).</DialogDescription>
           </DialogHeader>
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-8 text-[0.8125rem] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Ανάλυση φακέλου…</div>
+            <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-13)] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Ανάλυση φακέλου…</div>
           ) : data ? (
             <div className="flex flex-col gap-3">
-              <p className="text-[0.8125rem]">{data.summary}</p>
+              <p className="text-[length:var(--fs-13)]">{data.summary}</p>
               {data.nextSteps.length > 0 && (
                 <div>
-                  <div className="mb-1 flex items-center gap-1.5 text-[0.6875rem] font-extrabold uppercase tracking-wide text-muted-foreground"><LuListChecks className="size-3.5" aria-hidden /> Επόμενα βήματα</div>
+                  <div className="mb-1 flex items-center gap-1.5 text-[length:var(--fs-11)] font-extrabold uppercase tracking-wide text-muted-foreground"><LuListChecks className="size-3.5" aria-hidden /> Επόμενα βήματα</div>
                   <ol className="flex flex-col gap-1.5">
                     {data.nextSteps.map((s, i) => (
-                      <li key={i} className="flex gap-2 rounded-lg bg-card/60 px-2.5 py-1.5 text-[0.78125rem]">
-                        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[0.6875rem] font-bold text-primary">{i + 1}</span>
+                      <li key={i} className="flex gap-2 rounded-lg bg-card/60 px-2.5 py-1.5 text-[length:var(--fs-12-5)]">
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[length:var(--fs-11)] font-bold text-primary">{i + 1}</span>
                         <span>{s}</span>
                       </li>
                     ))}

@@ -27,7 +27,7 @@ function Kpi({ href, icon: Icon, value, label, alert }: {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-2xl font-bold leading-none tabular-nums" style={hot ? { color: 'var(--coral)' } : undefined}>{value}</span>
-        <span className="mt-1 block text-[0.71875rem] leading-tight text-muted-foreground">{label}</span>
+        <span className="mt-1 block text-[length:var(--fs-11-5)] leading-tight text-muted-foreground">{label}</span>
       </span>
       <ArrowRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
     </Link>
@@ -67,11 +67,11 @@ export default async function DashboardPage() {
           <span className="flex size-[1.75rem] items-center justify-center rounded-[0.6875rem]" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>
             <Bell className="size-[0.9375rem]" strokeWidth={1.8} />
           </span>
-          <h2 className="text-[0.8125rem] font-bold text-foreground">Ειδοποιήσεις</h2>
+          <h2 className="text-[length:var(--fs-13)] font-bold text-foreground">Ειδοποιήσεις</h2>
         </header>
 
         {notifications.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-[0.75rem] text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-[length:var(--fs-12)] text-muted-foreground">
             Καμία ειδοποίηση προς το παρόν — όλα ήρεμα.
           </div>
         ) : (
@@ -84,10 +84,10 @@ export default async function DashboardPage() {
                     {!n.read && <span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: 'var(--coral)' }} aria-hidden />}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-2">
-                        <span className={`min-w-0 flex-1 text-[0.8125rem] ${n.read ? 'font-medium' : 'font-bold'} text-foreground`}>{n.title}</span>
-                        <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">{relativeTime(n.createdAt)}</span>
+                        <span className={`min-w-0 flex-1 text-[length:var(--fs-13)] ${n.read ? 'font-medium' : 'font-bold'} text-foreground`}>{n.title}</span>
+                        <span className="shrink-0 text-[length:var(--fs-11)] text-muted-foreground tabular-nums">{relativeTime(n.createdAt)}</span>
                       </div>
-                      {n.body && <p className="mt-0.5 line-clamp-2 text-[0.75rem] text-muted-foreground">{n.body}</p>}
+                      {n.body && <p className="mt-0.5 line-clamp-2 text-[length:var(--fs-12)] text-muted-foreground">{n.body}</p>}
                       {actions.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {actions.map((a, i) => (
@@ -95,8 +95,8 @@ export default async function DashboardPage() {
                               key={i}
                               href={a.href}
                               className={a.kind === 'primary'
-                                ? 'inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[0.71875rem] font-semibold text-primary-foreground transition-opacity hover:opacity-90'
-                                : 'inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-[0.71875rem] font-semibold text-foreground transition-colors hover:bg-muted'}
+                                ? 'inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[length:var(--fs-11-5)] font-semibold text-primary-foreground transition-opacity hover:opacity-90'
+                                : 'inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-[length:var(--fs-11-5)] font-semibold text-foreground transition-colors hover:bg-muted'}
                             >
                               {a.label}
                             </Link>

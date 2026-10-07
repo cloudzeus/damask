@@ -45,14 +45,14 @@ export function PurchaseDocsPanel({ applicationId }: { applicationId: string }) 
   }, [applicationId])
   React.useEffect(() => { load() }, [load])
 
-  if (!items) return <div className="glass flex items-center justify-center gap-2 rounded-[22px] p-8 text-[0.78125rem] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
+  if (!items) return <div className="glass flex items-center justify-center gap-2 rounded-[22px] p-8 text-[length:var(--fs-12-5)] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-1 text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Στοιχεία αγορών & τεκμηρίωση</div>
-      <p className="mb-3 text-[0.71875rem] text-muted-foreground">Για κάθε εγκεκριμένη δαπάνη ανέβασε <strong>παραστατικό</strong>, <strong>extrait τράπεζας</strong> και <strong>βεβαίωση προμηθευτή</strong>, καταχώρισε το πληρωμένο ποσό/serial, και τρέξε την <strong>AI διασταύρωση</strong> πριν το αίτημα αποπληρωμής.</p>
+      <div className="dotted-leader mb-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Στοιχεία αγορών & τεκμηρίωση</div>
+      <p className="mb-3 text-[length:var(--fs-11-5)] text-muted-foreground">Για κάθε εγκεκριμένη δαπάνη ανέβασε <strong>παραστατικό</strong>, <strong>extrait τράπεζας</strong> και <strong>βεβαίωση προμηθευτή</strong>, καταχώρισε το πληρωμένο ποσό/serial, και τρέξε την <strong>AI διασταύρωση</strong> πριν το αίτημα αποπληρωμής.</p>
       {items.length === 0 ? (
-        <p className="py-2 text-[0.75rem] text-muted-foreground">Δεν υπάρχουν δαπάνες προς υλοποίηση.</p>
+        <p className="py-2 text-[length:var(--fs-12)] text-muted-foreground">Δεν υπάρχουν δαπάνες προς υλοποίηση.</p>
       ) : (
         <div className="flex flex-col gap-2.5">
           {items.map(it => <PurchaseCard key={it.expenseId} item={it} applicationId={applicationId} onReload={load} />)}
@@ -116,10 +116,10 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
 
   return (
     <div className="rounded-2xl border border-border p-3">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78125rem]">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--fs-12-5)]">
         <span className="font-semibold">{it.description}</span>
         {it.categoryName && <span className="badge-pill muted shrink-0">{it.categoryName}</span>}
-        {it.supplierName && <span className="text-[0.6875rem] text-muted-foreground">· {it.supplierName}{it.supplierAfm ? ` (${it.supplierAfm})` : ''}</span>}
+        {it.supplierName && <span className="text-[length:var(--fs-11)] text-muted-foreground">· {it.supplierName}{it.supplierAfm ? ` (${it.supplierAfm})` : ''}</span>}
         {it.inRequest ? (
           <span className="badge-pill ok shrink-0" title="Έχει ενταχθεί σε αίτημα αποπληρωμής">δόση #{it.inRequest.ordinal} · {PAYMENT_STATUS_LABEL[it.inRequest.status] ?? it.inRequest.status}</span>
         ) : (
@@ -130,16 +130,16 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
 
       {/* Στοιχεία αγοράς */}
       <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <label className="flex items-center gap-2 text-[0.71875rem] text-muted-foreground">
+        <label className="flex items-center gap-2 text-[length:var(--fs-11-5)] text-muted-foreground">
           Πληρωμένο ποσό
           <Input value={paid} onChange={e => setPaid(e.target.value)} onBlur={saveMeta} inputMode="decimal" placeholder="0,00" className={overpaid ? 'border-[color:var(--coral)]' : undefined} />
         </label>
-        <label className="flex items-center gap-2 text-[0.71875rem] text-muted-foreground">
+        <label className="flex items-center gap-2 text-[length:var(--fs-11-5)] text-muted-foreground">
           Serial
           <Input value={serial} onChange={e => setSerial(e.target.value)} onBlur={saveMeta} placeholder="—" />
         </label>
       </div>
-      {overpaid && <p className="mt-1 text-[0.6875rem] font-semibold text-[color:var(--coral)]">Το πληρωμένο ποσό ξεπερνά το εγκεκριμένο.</p>}
+      {overpaid && <p className="mt-1 text-[length:var(--fs-11)] font-semibold text-[color:var(--coral)]">Το πληρωμένο ποσό ξεπερνά το εγκεκριμένο.</p>}
 
       {/* Έγγραφα */}
       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -150,7 +150,7 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
 
       {/* AI ανάγνωση παραστατικού (OCR) — σύνοψη τι διαβάστηκε */}
       {it.ocr && (
-        <p className="mt-1.5 rounded-md bg-muted/60 px-2 py-1 text-[0.6875rem]">
+        <p className="mt-1.5 rounded-md bg-muted/60 px-2 py-1 text-[length:var(--fs-11)]">
           <LuScanText className="mr-1 inline size-3 align-[-2px] text-primary" aria-hidden />
           <strong>Διαβάστηκε από παραστατικό:</strong> ποσό <span className={ocrAmountMismatch ? 'font-bold text-[color:var(--coral)]' : 'font-semibold'}>{it.ocr.amount != null ? `${EUR.format(it.ocr.amount)} €` : '—'}</span>
           {it.ocr.supplier ? ` · ${it.ocr.supplier}` : ''}{it.ocr.number ? ` · αρ. ${it.ocr.number}` : ''}
@@ -160,17 +160,17 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
 
       {/* Ενέργειες AI */}
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => setOcrOpen(true)} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary">
+        <button type="button" onClick={() => setOcrOpen(true)} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary">
           <LuScanText className="size-3" aria-hidden /> {it.ocr ? 'Νέα ανάγνωση' : 'AI ανάγνωση παραστατικού'}
         </button>
-        <button type="button" onClick={reconcile} disabled={reconciling} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary disabled:opacity-60">
+        <button type="button" onClick={reconcile} disabled={reconciling} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary disabled:opacity-60">
           {reconciling ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {it.reconVerdict ? 'Ξανά διασταύρωση' : 'AI διασταύρωση'}
         </button>
         {vm && <button type="button" onClick={() => setShowNote(s => !s)} className={`badge-pill ${vm.cls} shrink-0`}>{vm.label} ▾</button>}
-        {it.missingDocs.length > 0 && <span className="inline-flex items-center gap-1 text-[0.65625rem] text-[color:var(--warning)]"><LuTriangleAlert className="size-3" aria-hidden /> λείπουν: {it.missingDocs.join(', ')}</span>}
-        {it.missingDocs.length === 0 && <span className="inline-flex items-center gap-1 text-[0.65625rem] text-[color:var(--success)]"><LuCircleCheck className="size-3" aria-hidden /> όλα τα έγγραφα</span>}
+        {it.missingDocs.length > 0 && <span className="inline-flex items-center gap-1 text-[length:var(--fs-10-5)] text-[color:var(--warning)]"><LuTriangleAlert className="size-3" aria-hidden /> λείπουν: {it.missingDocs.join(', ')}</span>}
+        {it.missingDocs.length === 0 && <span className="inline-flex items-center gap-1 text-[length:var(--fs-10-5)] text-[color:var(--success)]"><LuCircleCheck className="size-3" aria-hidden /> όλα τα έγγραφα</span>}
         {it.missingDocs.length > 0 && (
-          <button type="button" onClick={draftEmail} disabled={drafting} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[0.65625rem] font-semibold hover:border-primary hover:text-primary disabled:opacity-60" title="AI email που ζητά τα έγγραφα που λείπουν">
+          <button type="button" onClick={draftEmail} disabled={drafting} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary disabled:opacity-60" title="AI email που ζητά τα έγγραφα που λείπουν">
             {drafting ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuMail className="size-3" aria-hidden />} AI email αιτήματος
           </button>
         )}
@@ -188,7 +188,7 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
         />
       )}
       {showNote && it.reconNote && (
-        <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[0.6875rem] text-muted-foreground"><strong>AI τεκμηρίωση:</strong> {it.reconNote}</p>
+        <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[length:var(--fs-11)] text-muted-foreground"><strong>AI τεκμηρίωση:</strong> {it.reconNote}</p>
       )}
 
       <Dialog open={ocrOpen} onOpenChange={setOcrOpen}>
@@ -222,7 +222,7 @@ function DocChip({ expenseId, kind, label, doc, onReload }: { expenseId: string;
 
   if (doc.has) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--success)]/10 px-2 py-0.5 text-[0.65625rem]">
+      <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--success)]/10 px-2 py-0.5 text-[length:var(--fs-10-5)]">
         <a href={`/expense-purchase/${expenseId}/${kind}`} className="inline-flex items-center gap-1 font-semibold text-[color:var(--success)]"><LuFileCheck2 className="size-3" aria-hidden /> {label}</a>
         <button type="button" onClick={remove} className="text-muted-foreground hover:text-[color:var(--coral)]" title="Αφαίρεση"><LuX className="size-3" aria-hidden /></button>
       </span>
@@ -231,7 +231,7 @@ function DocChip({ expenseId, kind, label, doc, onReload }: { expenseId: string;
   return (
     <>
       <input ref={fileRef} type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = '' }} />
-      <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[0.65625rem] text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-60">
+      <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[length:var(--fs-10-5)] text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-60">
         {busy ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />} {label}
       </button>
     </>

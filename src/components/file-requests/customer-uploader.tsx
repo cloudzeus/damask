@@ -166,15 +166,15 @@ export function CustomerUploader({ token, request }: { token: string; request: O
               </span>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.label}</span>
+                  <span style={{ fontWeight: 600, fontSize: 'var(--fs-14-5)' }}>{item.label}</span>
                   <span className={item.required ? 'badge-pill danger' : 'badge-pill muted'} lang="el">
                     {item.required ? 'Υποχρεωτικό' : 'Προαιρετικό'}
                   </span>
                 </div>
                 {item.description && (
-                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', lineHeight: 1.45, color: 'var(--muted-foreground, #64748b)' }}>{item.description}</p>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: 'var(--fs-12-5)', lineHeight: 1.45, color: 'var(--muted-foreground, #64748b)' }}>{item.description}</p>
                 )}
-                <p style={{ margin: '0.3rem 0 0', fontSize: '0.76rem', color: item.uploaded ? 'var(--success, #059669)' : 'var(--muted-foreground, #94a3b8)' }}>
+                <p style={{ margin: '0.3rem 0 0', fontSize: 'var(--fs-12)', color: item.uploaded ? 'var(--success, #059669)' : 'var(--muted-foreground, #94a3b8)' }}>
                   {item.uploaded ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                       <FileText size={13} aria-hidden />
@@ -201,8 +201,8 @@ export function CustomerUploader({ token, request }: { token: string; request: O
         style={dropZone(isDragOver)}
       >
         <UploadCloud size={30} strokeWidth={1.6} aria-hidden style={{ color: 'var(--muted-foreground, #64748b)' }} />
-        <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', fontWeight: 600 }}>Σύρε αρχεία εδώ ή πάτησε για επιλογή</p>
-        <p style={{ margin: '0.15rem 0 0', fontSize: '0.76rem', color: 'var(--muted-foreground, #94a3b8)' }}>
+        <p style={{ margin: '0.5rem 0 0', fontSize: 'var(--fs-14-5)', fontWeight: 600 }}>Σύρε αρχεία εδώ ή πάτησε για επιλογή</p>
+        <p style={{ margin: '0.15rem 0 0', fontSize: 'var(--fs-12)', color: 'var(--muted-foreground, #94a3b8)' }}>
           Για κάθε αρχείο, επίλεξε σε ποιο δικαιολογητικό αντιστοιχεί.
         </p>
         <input
@@ -224,8 +224,8 @@ export function CustomerUploader({ token, request }: { token: string; request: O
               <li key={row.id} style={queueRow}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                   <FileText size={16} aria-hidden style={{ flexShrink: 0, color: 'var(--muted-foreground, #64748b)' }} />
-                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.85rem', fontWeight: 600 }}>{row.name}</span>
-                  <span style={{ flexShrink: 0, fontSize: '0.72rem', color: 'var(--muted-foreground, #94a3b8)', fontVariantNumeric: 'tabular-nums' }}>{formatBytes(row.size)}</span>
+                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 'var(--fs-13-5)', fontWeight: 600 }}>{row.name}</span>
+                  <span style={{ flexShrink: 0, fontSize: 'var(--fs-11-5)', color: 'var(--muted-foreground, #94a3b8)', fontVariantNumeric: 'tabular-nums' }}>{formatBytes(row.size)}</span>
                   <span style={{ marginLeft: 'auto', flexShrink: 0 }}><QueueBadge status={row.status} /></span>
                 </div>
 
@@ -268,7 +268,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                   </div>
                 )}
                 {row.status === 'error' && row.error && (
-                  <p role="alert" style={{ margin: 0, fontSize: '0.76rem', color: 'var(--coral, #e11d48)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <p role="alert" style={{ margin: 0, fontSize: 'var(--fs-12)', color: 'var(--coral, #e11d48)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <AlertTriangle size={13} aria-hidden /> {row.error}
                   </p>
                 )}
@@ -299,9 +299,9 @@ function QueueBadge({ status }: { status: QueueStatus }) {
 const successBanner: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1rem', borderRadius: '0.7rem',
   background: 'color-mix(in srgb, var(--success, #059669) 12%, #fff)', border: '1px solid color-mix(in srgb, var(--success, #059669) 35%, transparent)',
-  color: 'var(--success, #047857)', fontSize: '0.88rem', fontWeight: 600, lineHeight: 1.4,
+  color: 'var(--success, #047857)', fontSize: 'var(--fs-14)', fontWeight: 600, lineHeight: 1.4,
 }
-const sectionTitle: CSSProperties = { fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--foreground, #0f172a)' }
+const sectionTitle: CSSProperties = { fontSize: 'var(--fs-12-5)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--foreground, #0f172a)' }
 const itemCard = (uploaded: boolean): CSSProperties => ({
   display: 'flex', gap: '0.6rem', padding: '0.7rem 0.8rem', borderRadius: '0.7rem',
   border: `1px solid ${uploaded ? 'color-mix(in srgb, var(--success, #059669) 35%, transparent)' : 'var(--border, #e2e8f0)'}`,
@@ -315,8 +315,8 @@ const dropZone = (over: boolean): CSSProperties => ({
   transition: 'border-color .15s, background .15s',
 })
 const queueRow: CSSProperties = { display: 'grid', gap: '0.55rem', padding: '0.7rem 0.8rem', borderRadius: '0.7rem', border: '1px solid var(--border, #e2e8f0)', background: 'var(--card, #fff)' }
-const selectStyle: CSSProperties = { flex: '1 1 12rem', minWidth: 0, minHeight: '2.75rem', padding: '0 0.7rem', borderRadius: '0.6rem', border: '1px solid var(--border, #cbd5e1)', background: 'var(--background, #f8fafc)', color: 'inherit', fontSize: '0.85rem' }
-const primaryBtn: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', minHeight: '2.75rem', padding: '0 1rem', borderRadius: '999px', border: 'none', background: 'var(--coral, #16323F)', color: '#fff', fontWeight: 700, fontSize: '0.85rem' }
+const selectStyle: CSSProperties = { flex: '1 1 12rem', minWidth: 0, minHeight: '2.75rem', padding: '0 0.7rem', borderRadius: '0.6rem', border: '1px solid var(--border, #cbd5e1)', background: 'var(--background, #f8fafc)', color: 'inherit', fontSize: 'var(--fs-13-5)' }
+const primaryBtn: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', minHeight: '2.75rem', padding: '0 1rem', borderRadius: '999px', border: 'none', background: 'var(--coral, #16323F)', color: '#fff', fontWeight: 700, fontSize: 'var(--fs-13-5)' }
 const iconBtn: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '2.75rem', height: '2.75rem', flexShrink: 0, borderRadius: '0.6rem', border: '1px solid var(--border, #cbd5e1)', background: 'transparent', color: 'var(--muted-foreground, #64748b)', cursor: 'pointer' }
 const progressTrack: CSSProperties = { height: '0.4rem', borderRadius: '999px', background: 'var(--muted, #e2e8f0)', overflow: 'hidden' }
 const progressFill: CSSProperties = { height: '100%', borderRadius: '999px', background: 'var(--coral, #16323F)', transition: 'width .15s' }

@@ -78,7 +78,7 @@ export function ReferrerEligiblePanel({
   return (
     <div className="border-t border-border bg-muted/30 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[0.65625rem] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
+        <span className="text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Επιλέξιμες επαφές προς αναγωγή — {referrerName}
         </span>
         <Button type="button" variant="outline" size="sm" onClick={onRunUpload}>
@@ -87,13 +87,13 @@ export function ReferrerEligiblePanel({
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-6 text-[0.78125rem] text-muted-foreground">
+        <div className="flex items-center gap-2 py-6 text-[length:var(--fs-12-5)] text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…
         </div>
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-6 text-center">
           <Inbox className="size-5 text-muted-foreground" aria-hidden />
-          <p className="max-w-md text-[0.75rem] text-muted-foreground">
+          <p className="max-w-md text-[length:var(--fs-12)] text-muted-foreground">
             Καμία επιλέξιμη επαφή σε αναμονή. Ανέβασε Excel με ΑΦΜ για να δεις σε ποια προγράμματα
             μπορούν να συμμετέχουν οι επαφές αυτής της παραπομπής.
           </p>
@@ -107,7 +107,7 @@ export function ReferrerEligiblePanel({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[0.8125rem] font-semibold">{r.name ?? `ΑΦΜ ${r.afm}`}</span>
+                      <span className="text-[length:var(--fs-13)] font-semibold">{r.name ?? `ΑΦΜ ${r.afm}`}</span>
                       <span className="badge-pill muted shrink-0 tabular-nums">{r.afm}</span>
                       {r.existingTrdrId && (
                         <span className={cn('badge-pill shrink-0', r.existingIsCustomer ? 'warn' : 'muted')}>
@@ -115,7 +115,7 @@ export function ReferrerEligiblePanel({
                         </span>
                       )}
                     </div>
-                    <div className="mt-0.5 text-[0.71875rem] text-muted-foreground">
+                    <div className="mt-0.5 text-[length:var(--fs-11-5)] text-muted-foreground">
                       {r.regionName ?? '—'}{r.city ? ` · ${r.city}` : ''}
                     </div>
                   </div>
@@ -135,7 +135,7 @@ export function ReferrerEligiblePanel({
                         onClick={() => toggleProgram(r, p.programId)}
                         aria-pressed={on}
                         className={cn(
-                          'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold transition-colors',
+                          'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[length:var(--fs-11)] font-semibold transition-colors',
                           on
                             ? 'border-primary bg-primary text-primary-foreground'
                             : 'border-border bg-card text-muted-foreground hover:text-foreground',
@@ -149,7 +149,7 @@ export function ReferrerEligiblePanel({
               </div>
             )
           })}
-          <p className="px-1 text-[0.6875rem] text-muted-foreground">
+          <p className="px-1 text-[length:var(--fs-11)] text-muted-foreground">
             Τα προγράμματα με μπλε φόντο θα δημιουργηθούν ως δυνητικές αιτήσεις. Η επαφή συνδέεται αυτόματα με την παραπομπή «{referrerName}».
           </p>
         </div>

@@ -31,10 +31,10 @@ export function AccountForms({ user }: { user: AccountUser }) {
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
       <section className="glass rounded-[22px] p-5">
         <div className="mb-5 flex items-center gap-3">
-          <span className="avatar-ring size-12 shrink-0 text-[0.9375rem]">{initials}</span>
+          <span className="avatar-ring size-12 shrink-0 text-[length:var(--fs-15)]">{initials}</span>
           <div className="min-w-0">
-            <h2 className="truncate text-[1rem] font-bold">{user.name}</h2>
-            <p className="truncate text-[0.78125rem] text-muted-foreground">
+            <h2 className="truncate text-[length:var(--fs-16)] font-bold">{user.name}</h2>
+            <p className="truncate text-[length:var(--fs-12-5)] text-muted-foreground">
               {user.email} · <span className="font-semibold">{user.role}</span> · μέλος από {user.since}
             </p>
           </div>
@@ -53,7 +53,7 @@ function ProfileForm({ user }: { user: AccountUser }) {
   useToastResult(state)
   return (
     <form action={action} className="flex flex-col gap-4">
-      <h3 className="flex items-center gap-2 text-[0.8125rem] font-bold">
+      <h3 className="flex items-center gap-2 text-[length:var(--fs-13)] font-bold">
         <UserRound className="size-4 text-muted-foreground" aria-hidden /> Στοιχεία
       </h3>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -76,7 +76,7 @@ function ProfileForm({ user }: { user: AccountUser }) {
           <Input id="acc-city" name="city" defaultValue={user.city} autoComplete="address-level2" />
         </Field>
       </div>
-      {state?.error && <p role="alert" className="text-[0.78125rem] font-medium text-destructive">{state.error}</p>}
+      {state?.error && <p role="alert" className="text-[length:var(--fs-12-5)] font-medium text-destructive">{state.error}</p>}
       <div className="flex justify-end">
         <Button type="submit" disabled={pending}>
           {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <Save className="size-4" aria-hidden />}
@@ -96,13 +96,13 @@ function PasswordForm() {
     // key: μετά από επιτυχία ξαναστήνεται η φόρμα ⇒ καθαρίζουν τα πεδία
     <form key={state?.ok ? 'done' : 'edit'} action={action} className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-[0.8125rem] font-bold">
+        <h3 className="flex items-center gap-2 text-[length:var(--fs-13)] font-bold">
           <KeyRound className="size-4 text-muted-foreground" aria-hidden /> Αλλαγή κωδικού
         </h3>
         <button
           type="button"
           onClick={() => setShow(s => !s)}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-[0.75rem] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-[length:var(--fs-12)] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-pressed={show}
         >
           {show ? <EyeOff className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
@@ -118,7 +118,7 @@ function PasswordForm() {
       <Field id="acc-confirm" label="Επιβεβαίωση νέου κωδικού" required>
         <Input id="acc-confirm" name="confirm" type={type} required minLength={8} autoComplete="new-password" />
       </Field>
-      {state?.error && <p role="alert" className="text-[0.78125rem] font-medium text-destructive">{state.error}</p>}
+      {state?.error && <p role="alert" className="text-[length:var(--fs-12-5)] font-medium text-destructive">{state.error}</p>}
       <div className="flex justify-end">
         <Button type="submit" disabled={pending}>
           {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <KeyRound className="size-4" aria-hidden />}
@@ -137,7 +137,7 @@ function Field({ id, label, hint, required, children }: { id: string; label: str
         {required && <span className="text-destructive" aria-hidden> *</span>}
       </Label>
       {children}
-      {hint && <p className="text-[0.71875rem] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-[length:var(--fs-11-5)] text-muted-foreground">{hint}</p>}
     </div>
   )
 }

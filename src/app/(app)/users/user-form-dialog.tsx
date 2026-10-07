@@ -285,7 +285,7 @@ export function UserFormDialog({
                   onCheckedChange={checked => set('active', checked)}
                   disabled={activeLocked}
                 />
-                <span className="text-[0.78125rem] text-muted-foreground">
+                <span className="text-[length:var(--fs-12-5)] text-muted-foreground">
                   {values.active ? 'Ενεργός' : 'Ανενεργός'}
                 </span>
               </div>

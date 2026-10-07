@@ -304,8 +304,8 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
         )}
       >
         <UploadCloud className="size-8 text-muted-foreground" strokeWidth={1.75} />
-        <p className="text-[0.875rem] font-medium">Σύρε αρχεία εδώ ή πάτησε για επιλογή</p>
-        <p className="text-[0.78125rem] text-muted-foreground">Οι εικόνες μετατρέπονται αυτόματα σε WebP 1920×1920</p>
+        <p className="text-[length:var(--fs-14)] font-medium">Σύρε αρχεία εδώ ή πάτησε για επιλογή</p>
+        <p className="text-[length:var(--fs-12-5)] text-muted-foreground">Οι εικόνες μετατρέπονται αυτόματα σε WebP 1920×1920</p>
         <Button
           type="button"
           variant="outline"
@@ -330,7 +330,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
         <div className="flex flex-col gap-3">
           {!hideDropzone && <div className="flex items-center gap-3">
             <Progress value={overallProgress} className="flex-1" />
-            <span className="shrink-0 text-[0.78125rem] tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-[length:var(--fs-12-5)] tabular-nums text-muted-foreground">
               {doneCount}/{total} ολοκληρώθηκαν{errorCount > 0 ? ` · ${errorCount} σφάλματα` : ''}
             </span>
           </div>}
@@ -356,10 +356,10 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[0.8125rem] font-medium">{item.name}</span>
+                    <span className="truncate text-[length:var(--fs-13)] font-medium">{item.name}</span>
                     <StatusBadge status={item.status} />
                   </div>
-                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 text-[0.75rem] text-muted-foreground">
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 text-[length:var(--fs-12)] text-muted-foreground">
                     <span className="shrink-0">
                       {formatBytes(item.originalSize)}
                       {item.convertedSize != null && <> → {formatBytes(item.convertedSize)}</>}
@@ -454,7 +454,7 @@ function ProgressRing({ status, progress }: { status: UploadStatus; progress: nu
           style={{ transition: 'stroke-dashoffset .2s ease' }}
         />
       </svg>
-      {!indeterminate && <span className="relative text-[0.625rem] font-extrabold text-white tabular-nums">{pct}%</span>}
+      {!indeterminate && <span className="relative text-[length:var(--fs-10)] font-extrabold text-white tabular-nums">{pct}%</span>}
     </span>
   )
 }

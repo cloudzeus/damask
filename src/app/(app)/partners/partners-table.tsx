@@ -41,7 +41,7 @@ function LogoAvatar({ name, logoUrl }: { name: string; logoUrl: string | null })
       <img src={logoUrl} alt="" className="thumb-ring size-8 shrink-0 rounded-full object-cover" width={32} height={32} loading="lazy" />
     )
   }
-  return <span className="avatar-ring size-8 shrink-0 text-[0.6875rem]">{initialsOf(name)}</span>
+  return <span className="avatar-ring size-8 shrink-0 text-[length:var(--fs-11)]">{initialsOf(name)}</span>
 }
 
 export function PartnersTable({ partners, referrerOptions }: { partners: PartnerRow[]; referrerOptions: ComboboxOption[] }) {
@@ -94,7 +94,7 @@ export function PartnersTable({ partners, referrerOptions }: { partners: Partner
         </Link>
       ),
     },
-    { id: 'city', header: 'Πόλη', width: 130, sortValue: p => p.city, cell: p => <span className="text-[0.71875rem] font-medium text-muted-foreground">{p.city ?? '—'}</span> },
+    { id: 'city', header: 'Πόλη', width: 130, sortValue: p => p.city, cell: p => <span className="text-[length:var(--fs-11-5)] font-medium text-muted-foreground">{p.city ?? '—'}</span> },
     {
       id: 'region',
       header: 'Περιφέρεια',

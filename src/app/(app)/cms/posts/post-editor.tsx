@@ -264,7 +264,7 @@ export function PostEditor({
             </div>
 
             <div className="glass p-4">
-              <label className="mb-1.5 block text-[0.75rem] font-bold">Εικόνα εξωφύλλου</label>
+              <label className="mb-1.5 block text-[length:var(--fs-12)] font-bold">Εικόνα εξωφύλλου</label>
               <div className="flex items-center gap-2.5">
                 <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-[10px]" style={{ background: 'var(--muted)' }}>
                   {values.featuredImage ? (
@@ -282,7 +282,7 @@ export function PostEditor({
                     <button
                       type="button"
                       onClick={() => setValues(v => ({ ...v, featuredImage: null }))}
-                      className="text-[0.6875rem] text-muted-foreground hover:text-destructive"
+                      className="text-[length:var(--fs-11)] text-muted-foreground hover:text-destructive"
                     >
                       Αφαίρεση
                     </button>
@@ -292,7 +292,7 @@ export function PostEditor({
             </div>
 
             <div className="glass p-4">
-              <label className="mb-1.5 block text-[0.75rem] font-bold">Άλλες εικόνες (gallery)</label>
+              <label className="mb-1.5 block text-[length:var(--fs-12)] font-bold">Άλλες εικόνες (gallery)</label>
               <div className="flex flex-wrap gap-2">
                 {values.otherImages.map((url, i) => (
                   <div key={`${url}-${i}`} className="relative size-16 overflow-hidden rounded-[10px]" style={{ background: 'var(--muted)' }}>
@@ -302,7 +302,7 @@ export function PostEditor({
                       type="button"
                       aria-label="Αφαίρεση"
                       onClick={() => setValues(v => ({ ...v, otherImages: v.otherImages.filter((_, idx) => idx !== i) }))}
-                      className="absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-[0.7rem] leading-none text-white hover:bg-destructive"
+                      className="absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-[length:var(--fs-11)] leading-none text-white hover:bg-destructive"
                     >×</button>
                   </div>
                 ))}

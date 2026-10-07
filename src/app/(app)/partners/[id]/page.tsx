@@ -105,7 +105,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div>
-      <div className="mb-3 flex items-center gap-1.5 text-[0.71875rem] font-semibold text-muted-foreground">
+      <div className="mb-3 flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-semibold text-muted-foreground">
         <Link href="/partners" className="hover:underline">Συναλλασσόμενοι</Link>
         <span aria-hidden>›</span>
         <b className="text-foreground">{trdr.NAME}</b>

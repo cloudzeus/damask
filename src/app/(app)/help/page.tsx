@@ -19,7 +19,7 @@ export default async function HelpPage() {
             href="/odigos-wwa.html"
             target="_blank"
             rel="noopener"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-4 text-[0.78125rem] font-semibold text-foreground transition-colors hover:bg-muted"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-4 text-[length:var(--fs-12-5)] font-semibold text-foreground transition-colors hover:bg-muted"
           >
             Άνοιγμα σε νέα καρτέλα
           </a>
