@@ -294,9 +294,28 @@ export async function listApplicationExpenses(applicationId: string): Promise<Pr
   }))
 }
 
+/** Γραμμή δαπάνης όπως στην προσφορά (lineTotal = καθαρό μερικό σύνολο, χωρίς ΦΠΑ). */
+export type ExpenseLineInput = {
+  product: string
+  description?: string | null
+  quantity?: number | null
+  unit?: string | null
+  unitPrice?: number | null
+  vatPct?: number | null
+  lineTotal: number
+}
+
+function cleanLines(lines: ExpenseLineInput[] | undefined) {
+  return (lines ?? [])
+    .map(l => ({ ...l, product: (l.product ?? '').trim(), lineTotal: Math.round((Number(l.lineTotal) || 0) * 100) / 100 }))
+    .filter(l => l.product && l.lineTotal > 0)
+}
+
 export async function createExpense(
   applicationId: string,
   input: {
+    /** Γραμμές όπως στην προσφορά — αν δοθούν, το ποσό = άθροισμα μερικών συνόλων. */
+    lines?: ExpenseLineInput[]
     description: string
     amount: number
     vatAmount?: number | null
@@ -315,11 +334,16 @@ export async function createExpense(
     const s = await prisma.trdr.findUnique({ where: { id: input.supplierTrdrId }, select: { NAME: true, AFM: true } })
     if (s) { vendor = s.NAME; vendorAfm = s.AFM }
   }
+  const lines = cleanLines(input.lines)
+  const amount = lines.length ? Math.round(lines.reduce((a, l) => a + l.lineTotal, 0) * 100) / 100 : input.amount
   const row = await prisma.programExpense.create({
     data: {
       applicationId,
-      description: input.description.trim(),
-      amount: input.amount,
+      description: input.description.trim() || lines.map(l => l.product).join(', ').slice(0, 480),
+      amount,
+      lines: lines.length
+        ? { create: lines.map((l, i) => ({ order: i, product: l.product, description: l.description?.trim() || null, quantity: l.quantity ?? null, unit: l.unit?.trim() || null, unitPrice: l.unitPrice ?? null, vatPct: l.vatPct ?? null, lineTotal: l.lineTotal })) }
+        : undefined,
       vatAmount: input.vatAmount ?? null,
       date: parseDateOrNull(input.date) ?? null,
       vendor,
@@ -767,4 +791,21 @@ export async function listTaxTemplateOptions(): Promise<TaxTemplateOption[]> {
     select: { id: true, code: true, name: true, year: true },
   })
   return rows
+}
+
+/** Αντικατάσταση γραμμών δαπάνης (όπως η προσφορά) — το ποσό γίνεται το άθροισμά τους. */
+export async function setExpenseLines(expenseId: string, input: ExpenseLineInput[]): Promise<{ ok: boolean; amount: number; message?: string }> {
+  await requirePermission('programs.manage')
+  const lines = cleanLines(input)
+  if (!lines.length) return { ok: false, amount: 0, message: 'Πρόσθεσε τουλάχιστον μία γραμμή με προϊόν και ποσό.' }
+  const amount = Math.round(lines.reduce((a, l) => a + l.lineTotal, 0) * 100) / 100
+  await prisma.$transaction([
+    prisma.programExpenseLine.deleteMany({ where: { expenseId } }),
+    prisma.programExpenseLine.createMany({
+      data: lines.map((l, i) => ({ expenseId, order: i, product: l.product, description: l.description?.trim() || null, quantity: l.quantity ?? null, unit: l.unit?.trim() || null, unitPrice: l.unitPrice ?? null, vatPct: l.vatPct ?? null, lineTotal: l.lineTotal })),
+    }),
+    prisma.programExpense.update({ where: { id: expenseId }, data: { amount } }),
+  ])
+  revalidatePath('/programs')
+  return { ok: true, amount }
 }

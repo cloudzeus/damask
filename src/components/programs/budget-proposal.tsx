@@ -14,7 +14,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import { createExpense, confirmExpenseCategory } from '@/lib/programs/actions'
+import { createExpense, confirmExpenseCategory, setExpenseLines } from '@/lib/programs/actions'
+import { ExpenseLinesEditor, newLine, linesFromInputs, toLineInputs, lineTotalOf, type EditorLine } from './expense-lines-editor'
 import {
   getBudgetProposal, findOrCreateSupplierByAfm, listCustomerSuppliers, uploadExpenseQuote, evaluateExpenseEligibility, budgetSanityCheck,
   type BudgetProposal, type ProposalCategory, type SupplierOption, type BudgetSanity,
@@ -266,6 +267,21 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
   const [showNote, setShowNote] = React.useState(false)
   const [suggestion, setSuggestion] = React.useState<{ id: string; name: string } | null>(null)
   const [moving, setMoving] = React.useState(false)
+  const [showLines, setShowLines] = React.useState(false)
+  const [editing, setEditing] = React.useState<EditorLine[] | null>(null)
+  const [savingLines, setSavingLines] = React.useState(false)
+
+  async function saveLines() {
+    if (!editing) return
+    setSavingLines(true)
+    try {
+      const res = await setExpenseLines(e.id, toLineInputs(editing))
+      if (!res.ok) { toast.error(res.message ?? 'Η αποθήκευση απέτυχε.'); return }
+      toast.success('Οι γραμμές αποθηκεύτηκαν.')
+      setEditing(null)
+      onReload()
+    } catch { toast.error('Η αποθήκευση απέτυχε.') } finally { setSavingLines(false) }
+  }
 
   async function upload(file: File) {
     setBusy(true)
@@ -313,6 +329,14 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
         <button type="button" onClick={evaluate} disabled={evaluating} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary" title="Αξιολόγηση επιλεξιμότητας με AI (τεκμηρίωση βάσει αποδελτίωσης)">
           {evaluating ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {e.eligibilityVerdict ? 'Ξανά' : 'Τεκμηρίωση AI'}
         </button>
+        <button
+          type="button"
+          onClick={() => (e.lines.length ? setShowLines(v => !v) : setEditing([newLine({ product: e.description, lineTotal: String(e.amount).replace('.', ',') })]))}
+          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary"
+          title={e.lines.length ? 'Γραμμές προσφοράς' : 'Πρόσθεσε γραμμές όπως στην προσφορά'}
+        >
+          {e.lines.length ? `${e.lines.length} ${e.lines.length === 1 ? 'γραμμή' : 'γραμμές'} ${showLines ? '▴' : '▾'}` : '+ γραμμές'}
+        </button>
         <span className="ml-auto font-bold tabular-nums">{EUR2.format(e.amount)} €</span>
         {e.hasQuote ? (
           <a href={`/expense-quotes/${e.id}`} className="badge-pill ok shrink-0"><LuFileCheck2 className="size-3" aria-hidden /> προσφορά</a>
@@ -325,6 +349,46 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
           </>
         )}
       </div>
+      {showLines && e.lines.length > 0 && (
+        <div className="mt-1.5 overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-[length:var(--fs-11-5)]">
+            <thead className="bg-muted/50 text-left text-[length:var(--fs-10)] font-bold tracking-wide text-muted-foreground uppercase">
+              <tr><th className="px-2 py-1">Προϊόν</th><th className="px-2 py-1">Περιγραφή</th><th className="px-2 py-1 text-right">Ποσ.</th><th className="px-2 py-1 text-right">Τιμή μον.</th><th className="px-2 py-1 text-right">Μερικό σύνολο</th></tr>
+            </thead>
+            <tbody>
+              {e.lines.map(l => (
+                <tr key={l.id} className="border-t border-border">
+                  <td className="px-2 py-1 font-semibold">{l.product}</td>
+                  <td className="px-2 py-1 text-muted-foreground">{l.description ?? '—'}</td>
+                  <td className="px-2 py-1 text-right tabular-nums">{l.quantity != null ? l.quantity.toLocaleString('el-GR') : '—'}{l.unit ? ` ${l.unit}` : ''}</td>
+                  <td className="px-2 py-1 text-right tabular-nums">{l.unitPrice != null ? `${EUR2.format(l.unitPrice)} €` : '—'}</td>
+                  <td className="px-2 py-1 text-right font-bold tabular-nums">{EUR2.format(l.lineTotal)} €</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="flex justify-end border-t border-border px-2 py-1">
+            <button type="button" onClick={() => setEditing(linesFromInputs(e.lines))} className="text-[length:var(--fs-11)] font-semibold text-primary hover:underline">Επεξεργασία γραμμών</button>
+          </div>
+        </div>
+      )}
+      {editing && (
+        <Dialog open onOpenChange={o => { if (!o && !savingLines) setEditing(null) }}>
+          <DialogContent className="glass sm:max-w-[760px]">
+            <DialogHeader>
+              <DialogTitle>Γραμμές δαπάνης</DialogTitle>
+              <DialogDescription>{e.description} — όπως στην προσφορά· το ποσό της δαπάνης γίνεται το άθροισμα.</DialogDescription>
+            </DialogHeader>
+            <ExpenseLinesEditor lines={editing} onChange={setEditing} disabled={savingLines} />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditing(null)} disabled={savingLines}>Άκυρο</Button>
+              <Button type="button" onClick={saveLines} disabled={savingLines}>
+                {savingLines ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuCircleCheck className="size-3.5" aria-hidden />} Αποθήκευση
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       {showNote && e.eligibilityNote && (
         <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[length:var(--fs-11)] text-muted-foreground"><strong>Τεκμηρίωση AI (έλεγξέ τη):</strong> {e.eligibilityNote}</p>
       )}
@@ -351,7 +415,8 @@ function AddExpenseDialog({
   onSaved: () => void
 }) {
   const [description, setDescription] = React.useState('')
-  const [amount, setAmount] = React.useState('')
+  const [lines, setLines] = React.useState<EditorLine[]>([newLine()])
+  const amountTotal = lines.reduce((a, l) => a + lineTotalOf(l), 0)
   const [afm, setAfm] = React.useState('')
   const [supplier, setSupplier] = React.useState<SupplierOption | null>(null)
   const [customerSuppliers, setCustomerSuppliers] = React.useState<SupplierOption[]>([])
@@ -377,12 +442,15 @@ function AddExpenseDialog({
       const ocr = await runOcrExtraction({ images, text: digitalText || undefined, docType: 'invoice' })
       if (!ocr.ok) { toast.error(ocr.message); return }
       const d = ocr.data
-      const gross = d.totals.gross ?? d.totals.net
-      if (!amount.trim() && gross != null) setAmount(String(gross).replace('.', ','))
-      if (!description.trim()) {
-        const desc = d.lines?.[0]?.description || d.notes || (d.issuer?.name ? `Προσφορά ${d.issuer.name}` : '')
-        if (desc) setDescription(desc.slice(0, 120))
+      // Γραμμές όπως στην προσφορά (προϊόν, ποσότητα, τιμή μονάδας, μερικό σύνολο).
+      const ocrLines = (d.lines ?? []).filter(l => l.description && (l.total ?? 0) > 0)
+      if (ocrLines.length && toLineInputs(lines).length === 0) {
+        setLines(linesFromInputs(ocrLines.map(l => ({ product: l.description!.slice(0, 200), quantity: l.quantity ?? null, unitPrice: l.unitPrice ?? null, lineTotal: l.total ?? 0 }))))
+      } else if (!ocrLines.length && toLineInputs(lines).length === 0) {
+        const net = d.totals.net ?? d.totals.gross
+        if (net != null) setLines([newLine({ product: d.notes?.slice(0, 120) || (d.issuer?.name ? `Προσφορά ${d.issuer.name}` : 'Δαπάνη'), lineTotal: String(net).replace('.', ',') })])
       }
+      if (!description.trim() && d.issuer?.name) setDescription(`Προσφορά ${d.issuer.name}`.slice(0, 120))
       if (!supplier && d.issuer?.afm) {
         const clean = d.issuer.afm.replace(/\D/g, '')
         if (clean.length === 9) {
@@ -415,12 +483,11 @@ function AddExpenseDialog({
   }
 
   async function save() {
-    const amt = Number(amount.replace(/\./g, '').replace(',', '.'))
-    if (!description.trim()) { toast.error('Γράψε τι είναι η δαπάνη.'); return }
-    if (!Number.isFinite(amt) || amt <= 0) { toast.error('Δώσε έγκυρο ποσό.'); return }
+    const lineInputs = toLineInputs(lines)
+    if (!lineInputs.length) { toast.error('Πρόσθεσε τουλάχιστον μία γραμμή με προϊόν και ποσό.'); return }
     setSaving(true)
     try {
-      const { id } = await createExpense(applicationId, { description: description.trim(), amount: amt, categoryId: category?.id ?? null, supplierTrdrId: supplier?.id ?? null })
+      const { id } = await createExpense(applicationId, { description: description.trim(), amount: amountTotal, lines: lineInputs, categoryId: category?.id ?? null, supplierTrdrId: supplier?.id ?? null })
       if (quote) {
         const { base64, ext } = await readFileBase64(quote)
         await uploadExpenseQuote(id, { name: quote.name, base64, mimeType: quote.type || 'application/octet-stream', ext })
@@ -432,19 +499,19 @@ function AddExpenseDialog({
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose() }}>
-      <DialogContent className="glass sm:max-w-[460px]">
+      <DialogContent className="glass sm:max-w-[760px]">
         <DialogHeader>
           <DialogTitle>Προδιαγραφή δαπάνης{category ? ` — ${category.name}` : ''}</DialogTitle>
           <DialogDescription>Συμπλήρωσε τα βασικά. Ο προμηθευτής βρίσκεται μόνο με το ΑΦΜ.</DialogDescription>
         </DialogHeader>
 
         <div className="field !mb-0">
-          <label htmlFor="ae-desc">Τι είναι η δαπάνη;</label>
-          <Input id="ae-desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="π.χ. Λογισμικό ERP" autoFocus disabled={saving} />
+          <label htmlFor="ae-desc">Τίτλος δαπάνης (προαιρετικό)</label>
+          <Input id="ae-desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="π.χ. Εξοπλισμός πληροφορικής — αλλιώς από τα προϊόντα" autoFocus disabled={saving} />
         </div>
         <div className="field !mb-0">
-          <label htmlFor="ae-amt">Ποσό (€)</label>
-          <Input id="ae-amt" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="π.χ. 12.500,00" disabled={saving} />
+          <label>Γραμμές όπως στην προσφορά</label>
+          <ExpenseLinesEditor lines={lines} onChange={setLines} disabled={saving} />
         </div>
 
         <div className="field !mb-0">
@@ -483,14 +550,14 @@ function AddExpenseDialog({
           </button>
           {quote && (
             <Button type="button" variant="outline" size="sm" className="mt-1.5" onClick={readQuote} disabled={readingQuote || saving}>
-              {readingQuote ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuScanText className="size-3.5" aria-hidden />} AI ανάγνωση προσφοράς (ποσό/προμηθευτής)
+              {readingQuote ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuScanText className="size-3.5" aria-hidden />} AI ανάγνωση προσφοράς (γραμμές/προμηθευτής)
             </Button>
           )}
         </div>
 
         <DialogFooter className="-mx-4 -mb-4 rounded-b-[22px] p-4 pt-3" style={{ borderTop: '1px dotted var(--dotted)' }}>
           <DialogClose render={<Button type="button" variant="outline" disabled={saving}>Άκυρο</Button>} />
-          <Button type="button" onClick={save} disabled={saving || !description.trim() || !amount.trim()}>
+          <Button type="button" onClick={save} disabled={saving || amountTotal <= 0}>
             {saving ? <><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Προσθήκη…</> : <><LuPlus className="size-3.5" aria-hidden /> Προσθήκη</>}
           </Button>
         </DialogFooter>

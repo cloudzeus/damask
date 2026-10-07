@@ -24,6 +24,7 @@ export type SupplierOption = { id: string; name: string; afm: string | null }
 // ── Πρόταση προϋπολογισμού (guided) ─────────────────────────────────────────
 
 export type ProposalExpense = {
+  lines: { id: string; product: string; description: string | null; quantity: number | null; unit: string | null; unitPrice: number | null; lineTotal: number }[]
   id: string
   description: string
   amount: number
@@ -98,7 +99,7 @@ export async function getBudgetProposal(applicationId: string): Promise<BudgetPr
   const rows = await prisma.programExpense.findMany({
     where: { applicationId, status: 'ACTIVE' },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, description: true, amount: true, categoryId: true, confirmed: true, quoteStorageKey: true, quoteName: true, supplier: { select: { NAME: true, AFM: true } }, vendor: true, vendorAfm: true, eligibilityVerdict: true, eligibilityNote: true },
+    select: { id: true, description: true, amount: true, categoryId: true, confirmed: true, quoteStorageKey: true, quoteName: true, supplier: { select: { NAME: true, AFM: true } }, vendor: true, vendorAfm: true, eligibilityVerdict: true, eligibilityNote: true, lines: { orderBy: { order: 'asc' }, select: { id: true, product: true, description: true, quantity: true, unit: true, unitPrice: true, lineTotal: true } } },
   })
 
   const cats = app.program.expenseCats.map(c => ({
@@ -130,6 +131,12 @@ export async function getBudgetProposal(applicationId: string): Promise<BudgetPr
     supplierName: r.supplier?.NAME ?? r.vendor ?? null, supplierAfm: r.supplier?.AFM ?? r.vendorAfm ?? null,
     hasQuote: !!r.quoteStorageKey, quoteName: r.quoteName,
     eligibilityVerdict: r.eligibilityVerdict, eligibilityNote: r.eligibilityNote,
+    lines: r.lines.map(l => ({
+      id: l.id, product: l.product, description: l.description, unit: l.unit,
+      quantity: l.quantity == null ? null : Number(l.quantity),
+      unitPrice: l.unitPrice == null ? null : Number(l.unitPrice),
+      lineTotal: Number(l.lineTotal),
+    })),
   }))
 
   return {
@@ -357,8 +364,12 @@ export async function budgetSanityCheck(applicationId: string): Promise<{ ok: tr
 // ── C4: Κύκλωμα προσφορών — σάρωση → προμηθευτής → γραμμές → δαπάνες ─────────
 
 export type QuoteLine = {
+  /** προϊόν/υπηρεσία (σύντομο όνομα ή κωδικός/μοντέλο) */
+  product: string
+  /** αναλυτική περιγραφή αν υπάρχει */
   description: string
   quantity: number | null
+  unit?: string | null
   unitPrice: number | null
   vatPct: number | null
   /** καθαρό ποσό γραμμής (χωρίς ΦΠΑ) */
@@ -405,11 +416,11 @@ export async function scanQuoteForApplication(
   const system = [
     'Διαβάζεις ελληνική ΠΡΟΣΦΟΡΑ προμηθευτή (οικονομική προσφορά/τιμολόγιο προφόρμα) για επενδυτικό σχέδιο ΕΣΠΑ.',
     'Εξήγαγε: ΑΦΜ και επωνυμία του ΠΡΟΜΗΘΕΥΤΗ (εκδότη — όχι του πελάτη), αριθμό & ημερομηνία προσφοράς,',
-    'και ΚΑΘΕ γραμμή προϊόντος/υπηρεσίας: περιγραφή, ποσότητα, τιμή μονάδας, ΦΠΑ %, καθαρό σύνολο γραμμής ΧΩΡΙΣ ΦΠΑ.',
+    'και ΚΑΘΕ γραμμή προϊόντος/υπηρεσίας: product = όνομα προϊόντος/υπηρεσίας (σύντομο, με κωδικό/μοντέλο αν υπάρχει), description = αναλυτική περιγραφή/προδιαγραφές αν υπάρχουν (αλλιώς null), ποσότητα, μονάδα, τιμή μονάδας, ΦΠΑ %, καθαρό μερικό σύνολο γραμμής ΧΩΡΙΣ ΦΠΑ.',
     'Μην ενώνεις γραμμές και μην παραλείπεις καμία· αγνόησε γραμμές συνόλων/εκπτώσεων εκτός αν είναι ξεχωριστό είδος.',
     `Για κάθε γραμμή πρότεινε την πιο κατάλληλη ΚΑΤΗΓΟΡΙΑ ΔΑΠΑΝΗΣ του προγράμματος «${app.program.title}» (id από τη λίστα ή null):\n${catList}`,
     'Ποσά με τελεία δεκαδικών. ΑΥΣΤΗΡΑ JSON: {"supplierAfm":"...","supplierName":"...","docNumber":"...","date":"YYYY-MM-DD",',
-    '"lines":[{"description":"...","quantity":n,"unitPrice":n,"vatPct":n,"total":n,"categoryId":"..."|null,"categoryReason":"σύντομα"}],',
+    '"lines":[{"product":"...","description":"..."|null,"quantity":n,"unit":"τεμ."|null,"unitPrice":n,"vatPct":n,"total":n,"categoryId":"..."|null,"categoryReason":"σύντομα"}],',
     '"totals":{"net":n,"vat":n,"gross":n}}',
   ].join(' ')
   try {
@@ -432,14 +443,16 @@ export async function scanQuoteForApplication(
         const total = amountOf(l.total) ?? (quantity != null && unitPrice != null ? Math.round(quantity * unitPrice * 100) / 100 : null)
         const cid = s(l.categoryId)
         return {
-          description: s(l.description) ?? '',
+          product: s(l.product) ?? s(l.description) ?? '',
+          description: s(l.product) ? (s(l.description) ?? '') : '',
+          unit: s(l.unit),
           quantity, unitPrice, vatPct: amountOf(l.vatPct),
           total: total ?? 0,
           categoryId: cid && validCat.has(cid) ? cid : null,
           categoryReason: s(l.categoryReason),
         }
       })
-      .filter(l => l.description && l.total > 0)
+      .filter(l => l.product && l.total > 0)
     const t = (p.totals ?? {}) as Record<string, unknown>
     const afm = s(p.supplierAfm)?.replace(/\D/g, '').slice(0, 9) || null
     const existing = afm
@@ -478,7 +491,7 @@ export async function createExpensesFromQuote(
   },
 ): Promise<{ ok: true; created: number; supplier: SupplierOption | null; supplierCreated: boolean } | { ok: false; message: string }> {
   await requirePermission('programs.manage')
-  const lines = input.lines.filter(l => l.description.trim() && l.total > 0)
+  const lines = input.lines.filter(l => l.product.trim() && l.total > 0)
   if (lines.length === 0) return { ok: false, message: 'Δεν επιλέχθηκε καμία γραμμή.' }
 
   // 1. Προμηθευτής
@@ -495,17 +508,18 @@ export async function createExpensesFromQuote(
   }
 
   // 2. Ομαδοποίηση
-  type Group = { description: string; amount: number; vat: number; categoryId: string | null }
+  type Group = { description: string; amount: number; vat: number; categoryId: string | null; lines: QuoteLine[] }
   const fmt = (n: number) => n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const lineDesc = (l: QuoteLine) =>
-    l.quantity != null && l.unitPrice != null && l.quantity !== 1 ? `${l.description} — ${l.quantity} × ${fmt(l.unitPrice)} €` : l.description
+    l.quantity != null && l.unitPrice != null && l.quantity !== 1 ? `${l.product} — ${l.quantity} × ${fmt(l.unitPrice)} €` : l.product
   const vatOf = (l: QuoteLine) => (l.vatPct != null ? Math.round(l.total * l.vatPct) / 100 : 0)
   let groups: Group[]
   if (input.groupBy === 'category') {
     const by = new Map<string, Group & { items: string[] }>()
     for (const l of lines) {
       const k = l.categoryId ?? '__none__'
-      const g = by.get(k) ?? { description: '', amount: 0, vat: 0, categoryId: l.categoryId, items: [] }
+      const g = by.get(k) ?? { description: '', amount: 0, vat: 0, categoryId: l.categoryId, items: [], lines: [] }
+      g.lines.push(l)
       g.amount += l.total
       g.vat += vatOf(l)
       g.items.push(lineDesc(l))
@@ -516,7 +530,7 @@ export async function createExpensesFromQuote(
       description: (g.items.length === 1 ? g.items[0] : `${g.items.slice(0, 3).join('· ')}${g.items.length > 3 ? ` κ.ά. (${g.items.length} είδη)` : ''}`).slice(0, 480),
     }))
   } else {
-    groups = lines.map(l => ({ description: lineDesc(l).slice(0, 480), amount: l.total, vat: vatOf(l), categoryId: l.categoryId }))
+    groups = lines.map(l => ({ description: lineDesc(l).slice(0, 480), amount: l.total, vat: vatOf(l), categoryId: l.categoryId, lines: [l] }))
   }
 
   // 3. Ένα upload προσφοράς — κοινό σε όλες τις δαπάνες.
@@ -533,6 +547,7 @@ export async function createExpensesFromQuote(
   for (const g of groups) {
     const { id } = await createExpense(applicationId, {
       description: g.description,
+      lines: g.lines.map(l => ({ product: l.product, description: l.description || null, quantity: l.quantity, unit: l.unit ?? null, unitPrice: l.unitPrice, vatPct: l.vatPct, lineTotal: l.total })),
       amount: Math.round(g.amount * 100) / 100,
       vatAmount: g.vat ? Math.round(g.vat * 100) / 100 : null,
       date: input.date ?? null,

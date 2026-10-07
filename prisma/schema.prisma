@@ -1676,6 +1676,7 @@ model ProgramExpense {
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
   deliverables         ExpenseDeliverable[]
+  lines                ProgramExpenseLine[]
 
   @@index([applicationId])
   @@index([categoryId])
@@ -2781,7 +2782,7 @@ model FileIndexEntry {
 /// Εκτελέσεις backup στο NAS (νυχτερινές & χειροκίνητες).
 model NasBackupRun {
   id            String    @id @default(cuid())
-  trigger       String    // cron | manual
+  trigger       String // cron | manual
   status        String    @default("RUNNING") // RUNNING | OK | PARTIAL | ERROR
   startedAt     DateTime  @default(now())
   finishedAt    DateTime?
@@ -2794,4 +2795,23 @@ model NasBackupRun {
   triggeredById String?
 
   @@index([startedAt])
+}
+
+/// Γραμμές δαπάνης όπως στην προσφορά: προϊόν, περιγραφή, ποσότητα, τιμή μονάδας, μερικό σύνολο.
+/// Όταν υπάρχουν, το ProgramExpense.amount = άθροισμα των lineTotal (καθαρά, χωρίς ΦΠΑ).
+model ProgramExpenseLine {
+  id          String         @id @default(cuid())
+  expenseId   String
+  expense     ProgramExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  order       Int            @default(0)
+  product     String
+  description String?
+  quantity    Decimal?       @db.Decimal(14, 3)
+  unit        String?
+  unitPrice   Decimal?       @db.Decimal(18, 2)
+  vatPct      Decimal?       @db.Decimal(5, 2)
+  lineTotal   Decimal        @db.Decimal(18, 2)
+  createdAt   DateTime       @default(now())
+
+  @@index([expenseId])
 }

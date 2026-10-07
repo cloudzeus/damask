@@ -81,7 +81,7 @@ export function QuoteScanDialog({
   }
 
   const patch = (key: string, p: Partial<Row>) => setRows(prev => prev.map(r => (r.key === key ? { ...r, ...p } : r)))
-  const chosen = rows.filter(r => r.include && r.total > 0 && r.description.trim())
+  const chosen = rows.filter(r => r.include && r.total > 0 && r.product.trim())
   const totalNet = chosen.reduce((a, r) => a + r.total, 0)
 
   // Σύνοψη ανά κατηγορία έναντι υπολοίπου ορίου της κατηγορίας.
@@ -104,7 +104,7 @@ export function QuoteScanDialog({
         docNumber: scan.docNumber,
         date: scan.date,
         groupBy,
-        lines: chosen.map(r => ({ description: r.description, quantity: r.quantity, unitPrice: r.unitPrice, vatPct: r.vatPct, total: r.total, categoryId: r.categoryId, categoryReason: r.categoryReason })),
+        lines: chosen.map(r => ({ product: r.product, description: r.description, quantity: r.quantity, unit: r.unit ?? null, unitPrice: r.unitPrice, vatPct: r.vatPct, total: r.total, categoryId: r.categoryId, categoryReason: r.categoryReason })),
         quote: { name: file.name.replace(/\.[^.]+$/, ''), base64, mimeType: file.type, ext },
       })
       if (!res.ok) { toast.error(res.message); setPhase('review'); return }
@@ -189,10 +189,11 @@ export function QuoteScanDialog({
                 <thead className="bg-muted/50 text-left text-[length:var(--fs-10-5)] font-bold tracking-wide text-muted-foreground uppercase">
                   <tr>
                     <th className="w-8 px-2 py-2"><span className="sr-only">Επιλογή</span></th>
-                    <th className="px-2 py-2">Είδος / υπηρεσία</th>
+                    <th className="px-2 py-2">Προϊόν / υπηρεσία</th>
+                    <th className="px-2 py-2">Περιγραφή</th>
                     <th className="w-16 px-2 py-2 text-right">Ποσ.</th>
                     <th className="w-24 px-2 py-2 text-right">Τιμή μον.</th>
-                    <th className="w-28 px-2 py-2 text-right">Καθαρό</th>
+                    <th className="w-28 px-2 py-2 text-right">Μερικό σύνολο</th>
                     <th className="w-56 px-2 py-2">Κατηγορία δαπάνης</th>
                   </tr>
                 </thead>
@@ -200,16 +201,24 @@ export function QuoteScanDialog({
                   {rows.map(r => (
                     <tr key={r.key} className={cn('border-t border-border align-middle', !r.include && 'opacity-50')}>
                       <td className="px-2 py-1.5 text-center">
-                        <input type="checkbox" checked={r.include} onChange={e => patch(r.key, { include: e.target.checked })} aria-label={`Συμπερίληψη: ${r.description}`} />
+                        <input type="checkbox" checked={r.include} onChange={e => patch(r.key, { include: e.target.checked })} aria-label={`Συμπερίληψη: ${r.product}`} />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={r.product}
+                          onChange={e => patch(r.key, { product: e.target.value })}
+                          className="w-full min-w-[11rem] rounded-md border border-transparent bg-transparent px-1.5 py-1 font-semibold outline-none hover:border-border focus:border-ring"
+                        />
                       </td>
                       <td className="px-2 py-1.5">
                         <input
                           value={r.description}
                           onChange={e => patch(r.key, { description: e.target.value })}
-                          className="w-full min-w-[14rem] rounded-md border border-transparent bg-transparent px-1.5 py-1 font-semibold outline-none hover:border-border focus:border-ring"
+                          placeholder="—"
+                          className="w-full min-w-[10rem] rounded-md border border-transparent bg-transparent px-1.5 py-1 text-muted-foreground outline-none hover:border-border focus:border-ring"
                         />
                       </td>
-                      <td className="px-2 py-1.5 text-right tabular-nums">{r.quantity ?? '—'}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums">{r.quantity ?? '—'}{r.unit ? ` ${r.unit}` : ''}</td>
                       <td className="px-2 py-1.5 text-right tabular-nums">{r.unitPrice != null ? EUR.format(r.unitPrice) : '—'}</td>
                       <td className="px-2 py-1.5 text-right">
                         <input
@@ -236,7 +245,7 @@ export function QuoteScanDialog({
                     </tr>
                   ))}
                   {rows.length === 0 && (
-                    <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">Δεν αναγνωρίστηκαν γραμμές.</td></tr>
+                    <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Δεν αναγνωρίστηκαν γραμμές.</td></tr>
                   )}
                 </tbody>
               </table>
