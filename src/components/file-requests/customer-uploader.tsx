@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from 'react'
 import {
-  UploadCloud, FileText, CheckCircle2, AlertTriangle, Loader2, X, PartyPopper, CircleDashed,
+  UploadCloud, FileText, CheckCircle2, AlertTriangle, Loader2, X, PartyPopper, CircleDashed, Sparkles,
 } from 'lucide-react'
 import { xhrUpload } from '@/components/ui/file-dropzone'
 import type { PublicFileRequest } from '@/lib/file-requests/public'
+import { recognizeFileForRequest } from '@/lib/file-requests/classify'
+import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType } from '@/lib/ocr/rasterize'
 
 /**
  * Δημόσιος uploader δικαιολογητικών (token-gated, ΧΩΡΙΣ session). Ο πελάτης
@@ -37,6 +39,26 @@ type QueuedFile = {
   status: QueueStatus
   progress: number
   error: string | null
+  /** αυτόματη αναγνώριση σε εξέλιξη */
+  recognizing: boolean
+  /** τι αναγνωρίστηκε (αν ταίριαξε αυτόματα σε στοιχείο) */
+  recognized: { typeName: string | null; confidence: number } | null
+}
+
+/** Κείμενο/εικόνες για την αναγνώριση — όλα client-side, τα bytes δεν φεύγουν δύο φορές. */
+async function readForRecognition(file: File): Promise<{ text?: string; images?: { base64: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }[] }> {
+  try {
+    if (isPdfFile(file)) {
+      const { pages, text } = await rasterizePdf(file, { maxPages: 2 })
+      if ((text ?? '').trim().length >= 80) return { text: text!.slice(0, 15_000) }
+      return { text: text || undefined, images: pages.slice(0, 2).map(p => ({ base64: p.base64, mimeType: p.mimeType })) }
+    }
+    if (normalizeImageMimeType(file)) {
+      const page = await imageFileToPage(file)
+      return { images: [{ base64: page.base64, mimeType: page.mimeType }] }
+    }
+  } catch { /* αναγνώριση μόνο από όνομα αρχείου */ }
+  return {}
 }
 
 type UploadResult = { ok?: true; url: string; name: string; size: number }
@@ -82,9 +104,30 @@ export function CustomerUploader({ token, request }: { token: string; request: O
     const newRows: QueuedFile[] = incoming.map(file => {
       const id = crypto.randomUUID()
       filesRef.current.set(id, file)
-      return { id, name: file.name, size: file.size, itemId: defaultItemId, status: 'idle', progress: 0, error: null }
+      return { id, name: file.name, size: file.size, itemId: defaultItemId, status: 'idle', progress: 0, error: null, recognizing: true, recognized: null }
     })
     setQueue(prev => [...prev, ...newRows])
+    void recognizeAll(newRows.map(r => r.id))
+  }
+
+  // Αυτόματη αναγνώριση & αντιστοίχιση (2 αρχεία τη φορά).
+  async function recognizeAll(ids: string[]) {
+    const work = [...ids]
+    const worker = async () => {
+      while (work.length) {
+        const id = work.shift()!
+        const file = filesRef.current.get(id)
+        if (!file) continue
+        const payload = await readForRecognition(file)
+        const res = await recognizeFileForRequest(token, { fileName: file.name, ...payload }).catch(() => null)
+        setQueue(prev => prev.map(q => {
+          if (q.id !== id) return q
+          if (!res || !res.ok || !res.itemId) return { ...q, recognizing: false }
+          return { ...q, recognizing: false, itemId: res.itemId, recognized: { typeName: res.typeName, confidence: res.confidence } }
+        }))
+      }
+    }
+    await Promise.all([worker(), worker()])
   }
 
   async function runUpload(id: string) {
@@ -203,7 +246,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
         <UploadCloud size={30} strokeWidth={1.6} aria-hidden style={{ color: 'var(--muted-foreground, #64748b)' }} />
         <p style={{ margin: '0.5rem 0 0', fontSize: 'var(--fs-14-5)', fontWeight: 600 }}>Σύρε αρχεία εδώ ή πάτησε για επιλογή</p>
         <p style={{ margin: '0.15rem 0 0', fontSize: 'var(--fs-12)', color: 'var(--muted-foreground, #94a3b8)' }}>
-          Για κάθε αρχείο, επίλεξε σε ποιο δικαιολογητικό αντιστοιχεί.
+          Αναγνωρίζουμε αυτόματα κάθε αρχείο και το αντιστοιχίζουμε στο σωστό δικαιολογητικό — απλώς έλεγξε.
         </p>
         <input
           ref={inputRef}
@@ -215,6 +258,16 @@ export function CustomerUploader({ token, request }: { token: string; request: O
       </div>
 
       {/* Ουρά αρχείων προς μεταφόρτωση */}
+      {queue.filter(q => q.status === 'idle' || q.status === 'error').length > 1 && (
+        <button
+          type="button"
+          onClick={() => queue.filter(q => (q.status === 'idle' || q.status === 'error') && q.itemId && !q.recognizing).forEach(q => void runUpload(q.id))}
+          disabled={queue.some(q => q.recognizing)}
+          style={{ ...primaryBtn, justifySelf: 'end', opacity: queue.some(q => q.recognizing) ? 0.6 : 1, cursor: 'pointer' }}
+        >
+          <UploadCloud size={15} aria-hidden /> Μεταφόρτωση όλων ({queue.filter(q => q.status === 'idle' || q.status === 'error').length})
+        </button>
+      )}
       {queue.length > 0 && (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.55rem' }}>
           {queue.map(row => {
@@ -235,7 +288,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                     id={selectId}
                     value={row.itemId}
                     disabled={busy || row.status === 'done'}
-                    onChange={e => updateQueued(row.id, { itemId: e.target.value, error: null })}
+                    onChange={e => updateQueued(row.id, { itemId: e.target.value, error: null, recognized: null })}
                     style={selectStyle}
                   >
                     {items.map(it => (
@@ -262,6 +315,17 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                   </button>
                 </div>
 
+                {row.recognizing && (
+                  <p style={recognizeNote}>
+                    <Loader2 size={13} className="animate-spin" aria-hidden /> Αναγνώριση εγγράφου…
+                  </p>
+                )}
+                {!row.recognizing && row.recognized && row.status !== 'done' && (
+                  <p style={{ ...recognizeNote, color: 'var(--success, #047857)' }}>
+                    <Sparkles size={13} aria-hidden />
+                    Αναγνωρίστηκε{row.recognized.typeName ? ` ως «${row.recognized.typeName}»` : ''} — αντιστοιχίστηκε αυτόματα. Έλεγξε και ανέβασε.
+                  </p>
+                )}
                 {busy && (
                   <div style={progressTrack} aria-hidden>
                     <div style={{ ...progressFill, width: `${row.progress}%` }} />
@@ -320,4 +384,5 @@ const primaryBtn: CSSProperties = { display: 'inline-flex', alignItems: 'center'
 const iconBtn: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '2.75rem', height: '2.75rem', flexShrink: 0, borderRadius: '0.6rem', border: '1px solid var(--border, #cbd5e1)', background: 'transparent', color: 'var(--muted-foreground, #64748b)', cursor: 'pointer' }
 const progressTrack: CSSProperties = { height: '0.4rem', borderRadius: '999px', background: 'var(--muted, #e2e8f0)', overflow: 'hidden' }
 const progressFill: CSSProperties = { height: '100%', borderRadius: '999px', background: 'var(--coral, #16323F)', transition: 'width .15s' }
+const recognizeNote: CSSProperties = { margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: 'var(--fs-12)', color: 'var(--muted-foreground, #64748b)' }
 const srOnly: CSSProperties = { position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 }
