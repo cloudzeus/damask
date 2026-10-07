@@ -19,14 +19,14 @@ import { isMmeTypeName, extractMmeWithAi, applyMmeToTrdr, govgrCodeFromText, typ
 
 // ── Τύποι δικαιολογητικών ────────────────────────────────────────────────────
 
-export type DocumentTypeOption = { id: string; name: string; expires: boolean }
+export type DocumentTypeOption = { id: string; name: string; expires: boolean; validityDays?: number | null }
 
 export async function listDocumentTypes(): Promise<DocumentTypeOption[]> {
   await requirePermission('customer.view')
   const rows = await prisma.documentType.findMany({
     where: { active: true },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, expires: true },
+    select: { id: true, name: true, expires: true, validityDays: true },
   })
   return rows
 }

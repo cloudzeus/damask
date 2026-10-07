@@ -2232,6 +2232,8 @@ model DocumentType {
   id              String                          @id @default(cuid())
   name            String                          @unique
   expires         Boolean                         @default(false)
+  /// Ισχύς σε ημέρες από την ημ. έκδοσης — όταν το έγγραφο δεν αναγράφει λήξη (π.χ. ΓΕΜΗ: 90).
+  validityDays    Int?
   active          Boolean                         @default(true)
   notes           String?
   createdAt       DateTime                        @default(now())

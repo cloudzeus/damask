@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { resolveExpiry } from '@/lib/documents/expiry-rule'
 import {
   uploadTrdrDossierDoc, listTrdrProgramsForDossier, checkDossierDuplicates, listProgramNeedsForTypes,
   type DocumentTypeOption, type DossierDuplicateCheck, type ProgramNeed,
@@ -42,6 +43,8 @@ type Row = {
   reusable: boolean
   hasExpiry: boolean
   expiresAt: string
+  /** Από πού προέκυψε η λήξη (έγγραφο ή κανόνας τύπου) — null όταν ορίστηκε χειροκίνητα. */
+  expiryNote: string | null
   /** SHA-256 περιεχομένου (εντοπισμός ίδιου αρχείου). */
   hash: string
   /** Διπλοεγγραφές στον πελάτη (ίδιο αρχείο / ίδιος τύπος). */
@@ -151,6 +154,7 @@ export function DossierSmartUpload({
         reusable: s.reusable,
         hasExpiry: !!(t?.expires || s.expiresAt),
         expiresAt: s.expiresAt ?? '',
+        expiryNote: s.expiryNote ?? null,
       })
     } catch (err) {
       patch(id, { phase: 'ready', error: err instanceof Error ? err.message : 'Η αναγνώριση απέτυχε.' })
@@ -173,7 +177,7 @@ export function DossierSmartUpload({
       files.current.set(id, file)
       return {
         id, file, phase: 'reading', error: null, snippet: '', suggestion: null,
-        typeId: '', programId: GENERAL, reusable: true, hasExpiry: false, expiresAt: '',
+        typeId: '', programId: GENERAL, reusable: true, hasExpiry: false, expiresAt: '', expiryNote: null,
         hash: '', dup: null, decision: 'keep', needs: null, covered: [],
       }
     })
@@ -437,7 +441,15 @@ function RowCard({
               value={row.typeId}
               onValueChange={v => {
                 const t = types.find(x => x.id === v)
-                onChange({ typeId: v ?? '', hasExpiry: t?.expires ? true : row.hasExpiry })
+                // Λήξη από κανόνα τύπου (π.χ. ΓΕΜΗ: έκδοση + 90 ημ.) — αν δεν την όρισε ο χρήστης με το χέρι.
+                const auto = !row.expiresAt || row.expiryNote != null
+                const sg = row.suggestion
+                const rule = auto && sg ? resolveExpiry(t, { issuedAt: sg.issuedAt, expiresAt: sg.statedExpiresAt, expiryBasis: sg.expiryBasis }) : null
+                onChange({
+                  typeId: v ?? '',
+                  hasExpiry: t?.expires ? true : row.hasExpiry,
+                  ...(rule?.expiresAt ? { expiresAt: rule.expiresAt, expiryNote: rule.expiryNote } : {}),
+                })
                 if (v) onTypeChange(v)
               }}
               disabled={locked}
@@ -482,11 +494,16 @@ function RowCard({
               <Input
                 type="date"
                 value={row.expiresAt}
-                onChange={e => onChange({ expiresAt: e.target.value })}
+                onChange={e => onChange({ expiresAt: e.target.value, expiryNote: null })}
                 disabled={locked}
                 aria-label="Ημερομηνία λήξης"
                 className={cn('h-8 w-auto flex-1 rounded-full text-[length:var(--fs-12)]', !row.expiresAt && 'border-[color:var(--warning)]')}
               />
+            )}
+            {row.hasExpiry && row.expiresAt && row.expiryNote && (
+              <span className="inline-flex w-full items-center gap-1 text-[length:var(--fs-11)] text-muted-foreground" title="Πώς υπολογίστηκε η λήξη — άλλαξέ την αν χρειάζεται">
+                <LuSparkles className="size-3 text-primary" aria-hidden /> {row.expiryNote}
+              </span>
             )}
           </div>
         </div>

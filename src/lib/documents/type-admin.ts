@@ -27,6 +27,7 @@ export type DocumentTypeAdminRow = {
   id: string
   name: string
   expires: boolean
+  validityDays: number | null
   active: boolean
   notes: string | null
   dossierCount: number
@@ -50,7 +51,7 @@ export async function listDocumentTypesAdmin(): Promise<DocumentTypeAdminRow[]> 
   const rows = await prisma.documentType.findMany({
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
     select: {
-      id: true, name: true, expires: true, active: true, notes: true,
+      id: true, name: true, expires: true, validityDays: true, active: true, notes: true,
       _count: { select: { dossierDocs: true, requiredForms: true } },
       templates: {
         orderBy: [{ year: 'desc' }, { name: 'asc' }],
@@ -59,7 +60,7 @@ export async function listDocumentTypesAdmin(): Promise<DocumentTypeAdminRow[]> 
     },
   })
   return rows.map(r => ({
-    id: r.id, name: r.name, expires: r.expires, active: r.active, notes: r.notes,
+    id: r.id, name: r.name, expires: r.expires, validityDays: r.validityDays, active: r.active, notes: r.notes,
     dossierCount: r._count.dossierDocs, requiredFormCount: r._count.requiredForms,
     templates: r.templates.map(t => ({ id: t.id, code: t.code, name: t.name, year: t.year, status: t.status, fieldCount: t._count.fields })),
   }))
@@ -75,12 +76,14 @@ export async function listFormGuidesForLink(): Promise<FormGuideOption[]> {
   return rows.map(t => ({ id: t.id, code: t.code, name: t.name, year: t.year, status: t.status, documentTypeId: t.documentTypeId, fieldCount: t._count.fields }))
 }
 
-export type DocumentTypeInput = { name: string; expires: boolean; active: boolean; notes: string | null }
+export type DocumentTypeInput = { name: string; expires: boolean; validityDays?: number | null; active: boolean; notes: string | null }
 
 function cleanInput(input: DocumentTypeInput): DocumentTypeInput {
   const name = input.name.trim()
   if (!name) throw new Error('Το όνομα του τύπου είναι υποχρεωτικό.')
-  return { name, expires: !!input.expires, active: !!input.active, notes: input.notes?.trim() || null }
+  const days = input.expires && input.validityDays != null && Number.isFinite(input.validityDays) ? Math.round(input.validityDays) : null
+  if (days != null && (days < 1 || days > 3650)) throw new Error('Η ισχύς πρέπει να είναι από 1 έως 3650 ημέρες.')
+  return { name, expires: !!input.expires, validityDays: days, active: !!input.active, notes: input.notes?.trim() || null }
 }
 
 export async function createDocumentTypeAdmin(input: DocumentTypeInput): Promise<{ id: string }> {

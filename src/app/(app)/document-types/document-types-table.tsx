@@ -65,7 +65,9 @@ export function DocumentTypesTable({ rows, guides }: { rows: DocumentTypeAdminRo
     {
       id: 'expires', header: 'Λήξη', width: 130, align: 'center', sortValue: r => r.expires,
       cell: r => r.expires
-        ? <span className="badge-pill warn" title="Ο χρήστης ορίζει ημ. λήξης κατά τη μεταφόρτωση"><CalendarClock className="size-3" aria-hidden /> Έχει λήξη</span>
+        ? r.validityDays
+          ? <span className="badge-pill warn" title={`Λήξη = ημ. έκδοσης + ${r.validityDays} ημέρες, όταν το έγγραφο δεν αναγράφει λήξη`}><CalendarClock className="size-3" aria-hidden /> {r.validityDays} ημ. από έκδοση</span>
+          : <span className="badge-pill warn" title="Ο χρήστης ορίζει ημ. λήξης κατά τη μεταφόρτωση"><CalendarClock className="size-3" aria-hidden /> Έχει λήξη</span>
         : <span className="text-muted-foreground">—</span>,
     },
     {
@@ -221,6 +223,7 @@ function TypeFormDialog({
 }) {
   const [name, setName] = React.useState(editing?.name ?? '')
   const [expires, setExpires] = React.useState(editing?.expires ?? false)
+  const [validityDays, setValidityDays] = React.useState(editing?.validityDays != null ? String(editing.validityDays) : '')
   const [active, setActive] = React.useState(editing?.active ?? true)
   const [notes, setNotes] = React.useState(editing?.notes ?? '')
   const [saving, setSaving] = React.useState(false)
@@ -228,7 +231,7 @@ function TypeFormDialog({
   async function handleSave() {
     if (!name.trim()) { toast.error('Το όνομα είναι υποχρεωτικό.'); return }
     setSaving(true)
-    const input: DocumentTypeInput = { name, expires, active, notes: notes || null }
+    const input: DocumentTypeInput = { name, expires, validityDays: validityDays.trim() ? Number(validityDays) : null, active, notes: notes || null }
     try {
       if (editing) await updateDocumentTypeAdmin(editing.id, input)
       else await createDocumentTypeAdmin(input)
@@ -262,6 +265,14 @@ function TypeFormDialog({
               <span className="block text-[length:var(--fs-11-5)] text-muted-foreground">Ο χρήστης θα ορίζει «valid μέχρι» κατά τη μεταφόρτωση (π.χ. φορολογική ενημερότητα).</span>
             </span>
           </label>
+
+          {expires && (
+            <div className="field !mb-0">
+              <label htmlFor="dt-validity">Ισχύς από την έκδοση (ημέρες)</label>
+              <Input id="dt-validity" className="w-full" type="number" inputMode="numeric" min={1} max={3650} value={validityDays} onChange={e => setValidityDays(e.target.value)} placeholder="π.χ. 90 για τρίμηνο" />
+              <span className="mt-1 block text-[length:var(--fs-11-5)] text-muted-foreground">Για έγγραφα που δεν γράφουν λήξη (π.χ. Γενικό Πιστοποιητικό ΓΕΜΗ = 90). Η AI διαβάζει την ημ. έκδοσης και η λήξη υπολογίζεται αυτόματα. Κενό = μόνο ό,τι αναγράφει το έγγραφο.</span>
+            </div>
+          )}
 
           <div className="field !mb-0">
             <label htmlFor="dt-notes">Σημειώσεις</label>
