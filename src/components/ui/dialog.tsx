@@ -39,6 +39,13 @@ function DialogOverlay({
   )
 }
 
+/** Modals με δικό τους layout (flex-col / p-0) κρατούν τη δική τους δομή. */
+const CUSTOM_LAYOUT = /(^|\s)(flex-col|p-0)(\s|$)/
+
+function isElementOf(node: React.ReactNode, type: React.ElementType): boolean {
+  return React.isValidElement(node) && node.type === type
+}
+
 function DialogContent({
   className,
   children,
@@ -47,35 +54,71 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
 }) {
+  const custom = typeof className === "string" && CUSTOM_LAYOUT.test(className)
+
+  // Τρεις ζώνες: σταθερός τίτλος (DialogHeader) πάνω, σταθερά κουμπιά (DialogFooter)
+  // κάτω, και ΜΟΝΟ το σώμα κάνει scroll — το scrollbar δεν φτάνει ποτέ στον τίτλο.
+  let header: React.ReactNode[] = []
+  let footer: React.ReactNode[] = []
+  let body: React.ReactNode[] = []
+  if (!custom) {
+    const items = React.Children.toArray(children)
+    let start = 0
+    while (start < items.length && isElementOf(items[start], DialogHeader)) start++
+    let end = items.length
+    while (end > start && isElementOf(items[end - 1], DialogFooter)) end--
+    header = items.slice(0, start)
+    body = items.slice(start, end)
+    footer = items.slice(end)
+  }
+
+  const closeButton = showCloseButton && (
+    <DialogPrimitive.Close
+      data-slot="dialog-close"
+      render={
+        <Button
+          variant="ghost"
+          className="absolute top-2 right-2 z-10"
+          size="icon-sm"
+        />
+      }
+    >
+      <XIcon
+      />
+      <span className="sr-only">Close</span>
+    </DialogPrimitive.Close>
+  )
+
+  const motion = "fixed top-1/2 left-1/2 z-50 w-full max-h-[calc(100dvh-2rem)] max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-popover text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        className={cn(
-          "dialog-scroll fixed top-1/2 left-1/2 z-50 grid grid-cols-1 w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Popup>
+      {custom ? (
+        <DialogPrimitive.Popup
+          data-slot="dialog-content"
+          className={cn("dialog-scroll grid grid-cols-1 gap-4 overflow-y-auto overscroll-contain p-4", motion, className)}
+          {...props}
+        >
+          {children}
+          {closeButton}
+        </DialogPrimitive.Popup>
+      ) : (
+        <DialogPrimitive.Popup
+          data-slot="dialog-content"
+          // overflow-hidden ΜΕΤΑ το className: τυχόν overflow-y-auto των καλούντων δεν
+          // ξαναβάζει scroll σε όλο το παράθυρο.
+          className={cn("dialog-scroll flex flex-col", motion, className, "gap-0 overflow-hidden p-0")}
+          {...props}
+        >
+          {header.length > 0 && <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-3 pr-11">{header}</div>}
+          <div className={cn("dialog-body grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto overscroll-contain px-4 pb-4", header.length ? "pt-1" : "pt-4")}>
+            {body}
+          </div>
+          {footer.length > 0 && <div className="shrink-0 px-4 pb-4">{footer}</div>}
+          {closeButton}
+        </DialogPrimitive.Popup>
+      )}
     </DialogPortal>
   )
 }
