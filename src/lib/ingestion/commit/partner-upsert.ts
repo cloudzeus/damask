@@ -7,6 +7,7 @@ import { getIntegration } from '@/lib/settings'
 import { emptyTotals, type ImportTotals } from '@/lib/import/product-upsert'
 import type { ParsedRow } from '@/lib/ingestion/validate'
 import type { CommitEnrichOptions } from '@/lib/ingestion/target'
+import { countryPatchFromCoords } from '@/lib/trdr/country'
 
 /**
  * server-only module (εισάγει prisma) — ΠΟΤΕ μην το κάνεις import από αρχείο
@@ -104,14 +105,14 @@ async function enrichTrdrRow(
   }
   if (opts.geocode) {
     try {
-      const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { ADDRESS: true, CITY: true, DISTRICT: true, ZIP: true, appLat: true } })
+      const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { ADDRESS: true, CITY: true, DISTRICT: true, ZIP: true, appLat: true, COUNTRY: true } })
       if (trdr && trdr.appLat == null && geocodeApiKey && (trdr.ADDRESS || trdr.CITY || trdr.ZIP)) {
         // ZIP-aware fallback chain — η ΑΑΔΕ «πόλη» είναι συχνά παραπλανητική (βλ. geocodeSearchParts).
         const hit = await geocodeSearchParts(
           { address: trdr.ADDRESS, city: trdr.DISTRICT ?? trdr.CITY, zip: trdr.ZIP },
           geocodeApiKey,
         )
-        if (hit) await prisma.trdr.update({ where: { id: trdrId }, data: { appLat: hit.lat, appLng: hit.lng } })
+        if (hit) await prisma.trdr.update({ where: { id: trdrId }, data: { appLat: hit.lat, appLng: hit.lng, ...(await countryPatchFromCoords(trdr.COUNTRY, hit.lat, hit.lng)) } })
       }
     } catch (err) {
       pushError(rowNum, 'Geodata', err instanceof Error ? err.message : 'Αποτυχία γεωκωδικοποίησης.')

@@ -23,6 +23,7 @@ import { resolveIrsdataCode } from '@/lib/trdr/irsdata'
 import { resolveKadForActivity } from '@/lib/registries/kad'
 import { matchRegion, type RegionMatch } from '@/lib/registries/regions'
 import { logActivity } from '@/lib/activity/log'
+import { greeceCountryId } from '@/lib/trdr/country'
 
 /**
  * Server actions πίσω από τον εμπλουτισμό Trdr με ΓΕΜΗ/ΑΑΔΕ/Geo (W2 spec §0.7).
@@ -126,6 +127,8 @@ export async function applyAadeToTrdr(trdrId: string) {
 
   // ΔΟΥ → Trdr.IRSDATA (soft ref στο Irsdata.CODE) — βλ. resolveIrsdataCode.
   const irsdataCode = await resolveIrsdataCode(mapped.doyCode, mapped.doyDescr)
+  // Εγγεγραμμένη σε ελληνική ΔΟΥ ⇒ Χώρα = Ελλάδα (μόνο αν λείπει).
+  const grId = irsdataCode && trdr.COUNTRY == null ? await greeceCountryId() : null
 
   await prisma.$transaction(async (tx) => {
     await tx.trdr.update({
@@ -134,6 +137,7 @@ export async function applyAadeToTrdr(trdrId: string) {
         NAME: mapped.NAME || undefined,
         ...omitNulls(mapped, ['ADDRESS', 'ZIP', 'CITY', 'foundingDate', 'aadeStatus', 'aadeFirmKind', 'appLegalForm']),
         ...(irsdataCode ? { IRSDATA: irsdataCode } : {}),
+        ...(grId != null ? { COUNTRY: grId } : {}),
         aadeSyncedAt: new Date(),
       },
     })

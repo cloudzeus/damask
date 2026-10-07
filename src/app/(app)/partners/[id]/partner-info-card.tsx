@@ -6,9 +6,18 @@ import {
   Hash, Landmark, Briefcase, MapPin, Phone, Mail, Globe, BadgeCheck, LoaderCircle, TriangleAlert, RefreshCw,
 } from 'lucide-react'
 import { lookupPartnerAfm } from '../actions'
+import { PhoneLink } from '@/components/ui/phone-link'
 import type { AadeCompany } from '@/lib/aade'
 
-type Field = { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null }
+type Field = {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: React.ReactNode
+  /** μικρή συμπληρωματική ένδειξη δίπλα στην τιμή (π.χ. κωδικός ΔΟΥ) */
+  hint?: string | null
+  /** πιάνει όλο το πλάτος (μεγάλα κείμενα, π.χ. δραστηριότητα) */
+  wide?: boolean
+}
 
 type VerifyState =
   | { status: 'idle' }
@@ -18,11 +27,12 @@ type VerifyState =
   | { status: 'error'; message: string }
 
 export function PartnerInfoCard({
-  trdrId, afm, irsdataName, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, phone2, email, emailAcc, website, employees, annualRevenue,
+  trdrId, afm, irsdataName, irsdataCode, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, phone2, email, emailAcc, website, employees, annualRevenue,
 }: {
   trdrId: string
   afm: string | null
   irsdataName: string | null
+  irsdataCode: string | null
   legalForm: string | null
   jobtypetrd: string | null
   address: string | null
@@ -46,17 +56,21 @@ export function PartnerInfoCard({
 
   const fields: Field[] = [
     { icon: Hash, label: 'ΑΦΜ', value: afm },
-    { icon: Landmark, label: 'ΔΟΥ', value: irsdataName },
+    { icon: Landmark, label: 'ΔΟΥ', value: irsdataName ?? irsdataCode, hint: irsdataName && irsdataCode ? `κωδ. ${irsdataCode}` : null },
     { icon: Briefcase, label: 'Νομική μορφή', value: legalForm },
-    { icon: Briefcase, label: 'Δραστηριότητα', value: jobtypetrd },
+    { icon: Briefcase, label: 'Κατηγορία', value: trdCategoryName },
+    { icon: Briefcase, label: 'Δραστηριότητα', value: jobtypetrd, wide: true },
     { icon: MapPin, label: 'Διεύθυνση', value: [address, city, zip].filter(Boolean).join(', ') || null },
     { icon: Globe, label: 'Χώρα', value: countryName },
-    { icon: Briefcase, label: 'Κατηγορία', value: trdCategoryName },
-    { icon: Phone, label: 'Τηλέφωνο', value: phone },
-    { icon: Phone, label: 'Τηλέφωνο 2', value: phone2 },
-    { icon: Mail, label: 'Email', value: email },
-    { icon: Mail, label: 'Email λογιστηρίου', value: emailAcc },
-    { icon: Globe, label: 'Website', value: website },
+    { icon: Phone, label: 'Τηλέφωνο', value: phone ? <PhoneLink phone={phone} /> : null },
+    { icon: Phone, label: 'Τηλέφωνο 2', value: phone2 ? <PhoneLink phone={phone2} /> : null },
+    { icon: Mail, label: 'Email', value: email ? <a href={`mailto:${email}`} className="text-primary hover:underline">{email}</a> : null },
+    { icon: Mail, label: 'Email λογιστηρίου', value: emailAcc ? <a href={`mailto:${emailAcc}`} className="text-primary hover:underline">{emailAcc}</a> : null },
+    {
+      icon: Globe,
+      label: 'Website',
+      value: website ? <a href={/^https?:\/\//i.test(website) ? website : `https://${website}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{website}</a> : null,
+    },
     { icon: Briefcase, label: 'Τρόπος πληρωμής', value: paymentName },
     { icon: Briefcase, label: 'Τρόπος αποστολής', value: shipmentName },
     { icon: Briefcase, label: 'Εργαζόμενοι', value: employees != null ? employees.toLocaleString('el-GR') : null },
@@ -88,15 +102,24 @@ export function PartnerInfoCard({
         </button>
       </div>
 
-      <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        {fields.map(f => (
-          <div key={f.label} className="min-w-0">
-            <dt className="mb-0.5 flex items-center gap-1.5 text-[length:var(--fs-11)] font-semibold text-muted-foreground">
-              <f.icon className="size-3" aria-hidden /> {f.label}
-            </dt>
-            <dd className="truncate text-[length:var(--fs-13)]">{f.value ?? '—'}</dd>
-          </div>
-        ))}
+      <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+        {fields.map(f => {
+          const empty = f.value == null || f.value === ''
+          return (
+            <div key={f.label} className={`min-w-0 border-b border-dashed border-border py-2 ${f.wide ? 'sm:col-span-2' : ''}`}>
+              <dt className="mb-1 flex items-center gap-1.5 text-[length:var(--fs-11-5)] font-bold tracking-[0.02em] text-muted-foreground uppercase">
+                <f.icon className="size-3.5 shrink-0" aria-hidden /> {f.label}
+              </dt>
+              <dd className={empty
+                ? 'text-[length:var(--fs-13)] text-muted-foreground/60'
+                : 'text-[length:var(--fs-14)] leading-snug font-semibold [overflow-wrap:anywhere] text-foreground'}
+              >
+                {empty ? '—' : f.value}
+                {!empty && f.hint && <span className="ml-2 text-[length:var(--fs-11)] font-medium text-muted-foreground">{f.hint}</span>}
+              </dd>
+            </div>
+          )
+        })}
       </dl>
 
       {verify.status === 'loading' && (

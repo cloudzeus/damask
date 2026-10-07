@@ -19,6 +19,7 @@ import { TrdrDossier } from '@/components/trdr/trdr-dossier'
 import {
   GemiAadeCard, TrdrKadCard, TrdrDocumentsCard, type TrdrKadRow, type TrdrDocumentRow,
 } from '@/components/trdr/trdr-enrich-cards'
+import { doyDisplayName } from '@/lib/trdr/irsdata'
 
 export default async function PartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requirePermission('customer.view')
@@ -44,7 +45,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
   // reference, όχι Prisma relation (βλ. σχόλιο Trdr στο schema.prisma).
   const [country, irsdata, trdCategory, payment, shipment] = await Promise.all([
     trdr.COUNTRY != null ? prisma.country.findUnique({ where: { COUNTRY: trdr.COUNTRY } }) : null,
-    trdr.IRSDATA ? prisma.irsdata.findFirst({ where: { CODE: trdr.IRSDATA } }) : null,
+    doyDisplayName(trdr.IRSDATA),
     trdr.TRDCATEGORY != null ? prisma.trdCategory.findUnique({ where: { TRDCATEGORY: trdr.TRDCATEGORY } }) : null,
     trdr.PAYMENT != null ? prisma.s1Payment.findUnique({ where: { PAYMENT: trdr.PAYMENT } }) : null,
     trdr.SHIPMENT != null ? prisma.shipment.findUnique({ where: { SHIPMENT: trdr.SHIPMENT } }) : null,
@@ -151,7 +152,8 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
             <PartnerInfoCard
               trdrId={trdr.id}
               afm={trdr.AFM}
-              irsdataName={irsdata?.NAME ?? trdr.IRSDATA}
+              irsdataName={irsdata}
+              irsdataCode={trdr.IRSDATA}
               legalForm={trdr.appLegalForm}
               jobtypetrd={trdr.JOBTYPETRD}
               address={trdr.ADDRESS}

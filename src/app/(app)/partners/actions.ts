@@ -11,6 +11,7 @@ import { resolveIrsdataCode } from '@/lib/trdr/irsdata'
 import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { geocodeSearch, geocodeSuggest, geocodeReverse, GeocodeError, type GeocodeResult } from '@/lib/geocode'
 import { logActivity } from '@/lib/activity/log'
+import { isInGreece, greeceCountryId, countryPatchFromCoords } from '@/lib/trdr/country'
 
 /**
  * Server actions πίσω από /partners (Συναλλασσόμενοι κατά SoftOne SODTYPE —
@@ -135,7 +136,7 @@ export async function createPartner(input: PartnerFormValues): Promise<ActionRes
         ADDRESS: n(data.ADDRESS),
         CITY: n(data.CITY),
         ZIP: n(data.ZIP),
-        COUNTRY: ni(data.COUNTRY),
+        COUNTRY: ni(data.COUNTRY) ?? (isInGreece(data.appLat, data.appLng) ? await greeceCountryId() : null),
         TRDCATEGORY: ni(data.TRDCATEGORY),
         PAYMENT: ni(data.PAYMENT),
         SHIPMENT: ni(data.SHIPMENT),
@@ -196,7 +197,7 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
         ADDRESS: n(data.ADDRESS),
         CITY: n(data.CITY),
         ZIP: n(data.ZIP),
-        COUNTRY: ni(data.COUNTRY),
+        COUNTRY: ni(data.COUNTRY) ?? (isInGreece(data.appLat, data.appLng) ? await greeceCountryId() : null),
         TRDCATEGORY: ni(data.TRDCATEGORY),
         PAYMENT: ni(data.PAYMENT),
         SHIPMENT: ni(data.SHIPMENT),
@@ -272,7 +273,9 @@ export async function lookupPartnerAfm(afm: string, applyDoyToTrdrId?: string): 
 
     const irsdataCode = await resolveIrsdataCode(company.doyCode, company.doy)
     if (applyDoyToTrdrId && irsdataCode) {
-      await prisma.trdr.update({ where: { id: applyDoyToTrdrId }, data: { IRSDATA: irsdataCode } })
+      const current = await prisma.trdr.findUnique({ where: { id: applyDoyToTrdrId }, select: { COUNTRY: true } })
+      const grId = current?.COUNTRY == null ? await greeceCountryId() : null
+      await prisma.trdr.update({ where: { id: applyDoyToTrdrId }, data: { IRSDATA: irsdataCode, ...(grId != null ? { COUNTRY: grId } : {}) } })
       revalidatePath(`/partners/${applyDoyToTrdrId}`)
     }
     return { ok: true, found: true, company, irsdataCode }
@@ -353,7 +356,10 @@ export async function updatePartnerCoordinates(id: string, lat: number, lng: num
   const existing = await prisma.trdr.findUnique({ where: { id } })
   if (!existing) return { ok: false, message: 'Ο συναλλασσόμενος δεν βρέθηκε.' }
 
-  await prisma.trdr.update({ where: { id }, data: { appLat: parsed.data.lat, appLng: parsed.data.lng } })
+  await prisma.trdr.update({
+    where: { id },
+    data: { appLat: parsed.data.lat, appLng: parsed.data.lng, ...(await countryPatchFromCoords(existing.COUNTRY, parsed.data.lat, parsed.data.lng)) },
+  })
   revalidatePartners(id)
   return { ok: true, message: 'Οι συντεταγμένες ενημερώθηκαν.' }
 }
@@ -372,7 +378,7 @@ export async function refreshCoordinatesFromAddress(id: string): Promise<ActionR
     const results = await geocodeSearch(address, apiKey)
     if (results.length === 0) return { ok: false, message: 'Δεν βρέθηκε τοποθεσία για τη διεύθυνση της καρτέλας.' }
     const { lat, lng } = results[0]
-    await prisma.trdr.update({ where: { id }, data: { appLat: lat, appLng: lng } })
+    await prisma.trdr.update({ where: { id }, data: { appLat: lat, appLng: lng, ...(await countryPatchFromCoords(existing.COUNTRY, lat, lng)) } })
     revalidatePartners(id)
     return { ok: true, message: 'Οι συντεταγμένες ενημερώθηκαν από τη διεύθυνση.' }
   } catch (err) {

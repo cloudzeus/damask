@@ -580,6 +580,14 @@ model Irsdata {
   EMAIL    String?
 }
 
+/// Μητρώο ΔΟΥ (κωδικός ΑΑΔΕ → ονομασία), συμπληρώνεται αυτόματα από κάθε απάντηση
+/// ΑΑΔΕ (doy / doy_descr). Fallback όταν ο S1 mirror Irsdata είναι κενός ή δεν έχει τον κωδικό.
+model DoyRegistry {
+  code      String   @id
+  name      String
+  updatedAt DateTime @updatedAt
+}
+
 model TrdCategory {
   TRDCATEGORY Int    @id
   CODE        String
