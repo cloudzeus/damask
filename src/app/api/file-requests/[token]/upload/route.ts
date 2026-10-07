@@ -6,7 +6,7 @@ import { hashToken } from '@/lib/pm/portal-token'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { attachUploadedFileToItem } from '@/lib/file-requests/public'
 import { trdrUploadFolder } from '@/lib/trdr/cdn-folder'
-import { EME_DOC_TYPE_NAME, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
+import { ensureEmeTemplate, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
 
 /**
  * Public upload endpoint (token-gated, ΧΩΡΙΣ session — βλ. proxy.ts /api/file-requests/).
@@ -94,7 +94,11 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
   // Αναγνωρίστηκε ως ΕΜΕ (Πίνακας ταξινόμησης βάσει μεγέθους) → ίδια αυτόματη ενέργεια
   // με τα δικαιολογητικά: εγγραφή χρήσης στον Οδηγό ΕΜΕ + εργαζόμενοι εταιρίας. Στο
   // παρασκήνιο, ώστε ο πελάτης να μην περιμένει την ανάγνωση.
-  if (formData.get('docType') === EME_DOC_TYPE_NAME && /pdf|image\//.test(file.type)) {
+  const docType = formData.get('docType')
+  const emeTypeName = typeof docType === 'string' && docType
+    ? (await prisma.documentType.findUnique({ where: { id: (await ensureEmeTemplate()).documentTypeId }, select: { name: true } }))?.name
+    : null
+  if (emeTypeName && docType === emeTypeName && /pdf|image\//.test(file.type)) {
     const base64 = Buffer.from(arrayBuffer).toString('base64')
     void extractEmeWithAi({ base64, mimeType: file.type })
       .then(data => (data ? applyEmeToTrdr({ trdrId: fr.trdrId, data, storageKey, name: file.name.replace(/\.[^.]+$/, ''), model: 'gemini' }) : null))

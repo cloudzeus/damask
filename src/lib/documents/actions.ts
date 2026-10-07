@@ -6,7 +6,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { coverObligationsFromDossierDoc } from '@/lib/pm/form-obligations'
-import { EME_DOC_TYPE_NAME, parseEmeText, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
+import { isEmeDocumentType, parseEmeText, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
 
 /**
  * Τύποι δικαιολογητικών (ελαφρύς κατάλογος) + αποθήκη δικαιολογητικών ανά πελάτη.
@@ -304,8 +304,7 @@ async function processEmeIfApplicable(input: {
   name: string
   userId: string
 }): Promise<EmeApplied | null> {
-  const type = await prisma.documentType.findUnique({ where: { id: input.documentTypeId }, select: { name: true } })
-  if (type?.name !== EME_DOC_TYPE_NAME) return null
+  if (!(await isEmeDocumentType(input.documentTypeId))) return null
   try {
     let data = input.fullText ? parseEmeText(input.fullText) : null
     let model: string | null = data ? 'parser' : null

@@ -132,42 +132,56 @@ export async function extractEmeWithAi(file: { base64: string; mimeType: string 
   return data.totalEme != null || data.employees.length ? data : null
 }
 
-/** Εξασφαλίζει τύπο δικαιολογητικού + Οδηγό Εντύπου «ΕΜΕ» (idempotent). */
+const EME_FIELDS = [
+  { fieldKey: 'eme_xrisi', label: 'Χρήση (έτος)', valueType: 'INTEGER' as const, kind: 'SINGLE' as const, order: 1, aiHint: 'Χρήση: ΕΕΕΕ' },
+  { fieldKey: 'eme', label: 'Ετήσιες Μονάδες Εργασίας (ΕΜΕ)', valueType: 'NUMBER' as const, kind: 'SINGLE' as const, order: 0, required: true, aiHint: 'Σύνολο Μέσου Όρου Εργαζομένων Εταιρίας — δεκαδικός.' },
+  { fieldKey: 'eme_plires', label: 'ΕΜΕ πλήρους απασχόλησης', valueType: 'NUMBER' as const, kind: 'SINGLE' as const, order: 2 },
+  { fieldKey: 'eme_merikis', label: 'ΕΜΕ μερικής απασχόλησης', valueType: 'NUMBER' as const, kind: 'SINGLE' as const, order: 3 },
+  {
+    fieldKey: 'eme_ergazomenoi', label: 'Εργαζόμενοι', valueType: 'NUMBER' as const, kind: 'TABLE' as const, order: 4,
+    config: { columns: ['Κωδικός', 'ΑΦΜ', 'Κατηγορία', 'Μήνες απασχόλησης', 'Μέσος όρος'] },
+  },
+]
+
+/** Εξασφαλίζει τον (ΕΝΑΝ) τύπο δικαιολογητικού «ΕΜΕ» + Οδηγό Εντύπου «ΕΜΕ» (idempotent).
+ * Ξαναχρησιμοποιεί τον υπάρχοντα τύπο «ΕΜΕ» (τον ζητούν ήδη προγράμματα) και τον
+ * υπάρχοντα οδηγό (κωδ. «ΕΜΕ»)· προσθέτει μόνο όσα πεδία λείπουν. */
 export async function ensureEmeTemplate(): Promise<{ templateId: string; documentTypeId: string }> {
-  const docType = await prisma.documentType.upsert({
-    where: { name: EME_DOC_TYPE_NAME },
-    create: { name: EME_DOC_TYPE_NAME, expires: false, notes: 'Μέσος όρος εργαζομένων (ΕΜΕ) ανά χρήση — από μισθοδοσία/λογιστήριο.' },
-    update: {},
-    select: { id: true },
+  let tpl = await prisma.taxFormTemplate.findFirst({
+    where: { code: { in: ['ΕΜΕ', EME_TEMPLATE_CODE] } },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, documentTypeId: true },
   })
-  let tpl = await prisma.taxFormTemplate.findFirst({ where: { code: EME_TEMPLATE_CODE }, select: { id: true } })
+  const docType =
+    (tpl?.documentTypeId ? await prisma.documentType.findUnique({ where: { id: tpl.documentTypeId }, select: { id: true } }) : null) ??
+    (await prisma.documentType.findFirst({ where: { name: { in: ['ΕΜΕ', EME_DOC_TYPE_NAME] } }, orderBy: { createdAt: 'asc' }, select: { id: true } })) ??
+    (await prisma.documentType.create({ data: { name: 'ΕΜΕ', expires: false, notes: 'Πίνακας ταξινόμησης οντοτήτων βάσει μεγέθους — μέσος όρος εργαζομένων (ΕΜΕ) ανά χρήση.' }, select: { id: true } }))
   if (!tpl) {
     tpl = await prisma.taxFormTemplate.create({
       data: {
-        code: EME_TEMPLATE_CODE,
-        name: 'ΕΜΕ — Πίνακας ταξινόμησης οντοτήτων βάσει μεγέθους',
-        description: 'Εργαζόμενοι ανά χρήση: μήνες απασχόλησης, μέσος όρος ανά εργαζόμενο, ΕΜΕ πλήρους/μερικής και σύνολο εταιρίας. Αυτόματη ανάγνωση στο ανέβασμα.',
+        code: 'ΕΜΕ',
+        name: 'ΕΜΕ — Ετήσιες Μονάδες Εργασίας',
+        description: 'Πίνακας ταξινόμησης οντοτήτων βάσει μεγέθους: εργαζόμενοι, μήνες απασχόλησης, μέσος όρος, ΕΜΕ πλήρους/μερικής και σύνολο. Αυτόματη ανάγνωση στο ανέβασμα.',
         status: 'READY',
         documentTypeId: docType.id,
-        fields: {
-          create: [
-            { fieldKey: 'eme_xrisi', label: 'Χρήση (έτος)', valueType: 'INTEGER', kind: 'SINGLE', order: 0, aiHint: 'Χρήση: ΕΕΕΕ' },
-            { fieldKey: 'eme', label: 'Σύνολο ΕΜΕ εταιρίας', valueType: 'NUMBER', kind: 'SINGLE', order: 1, required: true, aiHint: 'Σύνολο Μέσου Όρου Εργαζομένων Εταιρίας' },
-            { fieldKey: 'eme_plires', label: 'ΕΜΕ πλήρους απασχόλησης', valueType: 'NUMBER', kind: 'SINGLE', order: 2 },
-            { fieldKey: 'eme_merikis', label: 'ΕΜΕ μερικής απασχόλησης', valueType: 'NUMBER', kind: 'SINGLE', order: 3 },
-            {
-              fieldKey: 'eme_ergazomenoi', label: 'Εργαζόμενοι', valueType: 'NUMBER', kind: 'TABLE', order: 4,
-              config: { columns: ['Κωδικός', 'ΑΦΜ', 'Κατηγορία', 'Μήνες απασχόλησης', 'Μέσος όρος'] },
-            },
-          ],
-        },
       },
-      select: { id: true },
+      select: { id: true, documentTypeId: true },
     })
-  } else {
+  } else if (tpl.documentTypeId !== docType.id) {
     await prisma.taxFormTemplate.update({ where: { id: tpl.id }, data: { documentTypeId: docType.id } })
   }
+  const have = new Set((await prisma.taxFormTemplateField.findMany({ where: { templateId: tpl.id }, select: { fieldKey: true } })).map(f => f.fieldKey))
+  for (const f of EME_FIELDS) {
+    if (!have.has(f.fieldKey)) await prisma.taxFormTemplateField.create({ data: { templateId: tpl.id, ...f } })
+  }
   return { templateId: tpl.id, documentTypeId: docType.id }
+}
+
+/** Είναι ο τύπος δικαιολογητικού το ΕΜΕ; */
+export async function isEmeDocumentType(documentTypeId: string | null | undefined): Promise<boolean> {
+  if (!documentTypeId) return false
+  const { documentTypeId: emeId } = await ensureEmeTemplate()
+  return emeId === documentTypeId
 }
 
 /** Αποθηκεύει το ΕΜΕ ως εγγραφή χρήσης + τιμές και ενημερώνει τους εργαζόμενους της εταιρίας. */
