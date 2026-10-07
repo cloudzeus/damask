@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   HardDrive, Files, PieChart, Eye, Download, RotateCcw, LoaderCircle, CloudUpload, CheckCircle2, AlertTriangle,
-  Clock3, Ghost, Settings2,
+  Clock3, Ghost, Settings2, Sparkles, RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
@@ -16,6 +16,8 @@ import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-mo
 import { cn } from '@/lib/utils'
 import { relativeTime } from '@/lib/relative-time'
 import { startNasBackupNow, restoreFileFromNas, listBackupRuns, type BackupRunRow } from './actions'
+import { refreshSearchIndexAction } from '@/lib/search/actions'
+import { DocumentSearch } from '@/components/search/document-search'
 
 export type FileRow = {
   key: string
@@ -59,7 +61,8 @@ export function FilesClient({
   nas: { baseUrl: string; rootPath: string; enabled: boolean } | null
 }) {
   const router = useRouter()
-  const [tab, setTab] = React.useState<'files' | 'backup' | 'space'>('files')
+  const [tab, setTab] = React.useState<'search' | 'files' | 'backup' | 'space'>('search')
+  const [reindexing, startReindex] = React.useTransition()
   const [category, setCategory] = React.useState(ALL)
   const [backup, setBackup] = React.useState(ALL)
   const [customer, setCustomer] = React.useState<string | null>(null)
@@ -175,12 +178,32 @@ export function FilesClient({
 
       {/* Tabs */}
       <div className="glass flex flex-wrap items-center gap-1 rounded-full p-1">
-        {([['files', 'Αρχεία', Files], ['backup', 'Backup στο NAS', HardDrive], ['space', 'Χώρος & καθαρισμός', PieChart]] as const).map(([k, label, Icon]) => (
+        {([['search', 'Αναζήτηση', Sparkles], ['files', 'Αρχεία', Files], ['backup', 'Backup στο NAS', HardDrive], ['space', 'Χώρος & καθαρισμός', PieChart]] as const).map(([k, label, Icon]) => (
           <button key={k} type="button" onClick={() => setTab(k)} className={cn('inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[length:var(--fs-12-5)] font-semibold', tab === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}>
             <Icon className="size-3.5" /> {label}
           </button>
         ))}
       </div>
+
+      {tab === 'search' && (
+        <>
+          <DocumentSearch categoryLabels={categoryLabels} autoFocus />
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={reindexing}
+              onClick={() => startReindex(async () => {
+                const r = await refreshSearchIndexAction()
+                if (r.ok) { toast.success(r.message); router.refresh() } else toast.error(r.message)
+              })}
+            >
+              {reindexing ? <LoaderCircle className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Ανανέωση ευρετηρίου
+            </Button>
+          </div>
+        </>
+      )}
 
       {tab === 'files' && (
         <DataTable

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, LoaderCircle, Building2, Truck, Landmark, FolderKanban, UserPlus, CornerDownLeft } from 'lucide-react'
+import { Search, LoaderCircle, FileText, Building2, Truck, Landmark, FolderKanban, UserPlus, CornerDownLeft } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { searchEverything, type SearchResult, type SearchResultKind } from '@/lib/search/global'
 
@@ -12,6 +12,7 @@ const KIND: Record<SearchResultKind, { label: string; icon: typeof Building2 }> 
   program: { label: 'Πρόγραμμα', icon: Landmark },
   project: { label: 'Έργο', icon: FolderKanban },
   lead: { label: 'Lead', icon: UserPlus },
+  document: { label: 'Έγγραφο', icon: FileText },
 }
 
 /**
@@ -52,7 +53,11 @@ export function GlobalSearch() {
   }, [q])
 
   function reset() { setQ(''); setResults([]); setActive(0) }
-  function go(r: SearchResult) { setOpen(false); reset(); router.push(r.href) }
+  function go(r: SearchResult) {
+    setOpen(false); reset()
+    if (r.kind === 'document') window.open(r.href, '_blank', 'noopener')
+    else router.push(r.href)
+  }
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, results.length - 1)) }

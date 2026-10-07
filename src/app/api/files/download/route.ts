@@ -11,13 +11,21 @@ const MIME: Record<string, string> = {
   doc: 'application/msword', xls: 'application/vnd.ms-excel', txt: 'text/plain', csv: 'text/csv', mp4: 'video/mp4', zip: 'application/zip',
 }
 
-/** Gated λήψη ΟΠΟΙΟΥΔΗΠΟΤΕ αρχείου του ευρετηρίου (κεντρική σελίδα «Αρχεία & Backup»). */
+/** Gated λήψη αρχείου του ευρετηρίου (σελίδα «Αρχεία & Backup» + έξυπνη αναζήτηση). */
 export async function GET(request: Request) {
-  try { await requirePermission('files.manage') } catch { return NextResponse.json({ error: 'Δεν έχεις δικαίωμα.' }, { status: 403 }) }
+  let perms: Set<string>
+  try {
+    const session = await requirePermission('customer.view')
+    perms = new Set(session.user.permissions ?? [])
+  } catch { return NextResponse.json({ error: 'Δεν έχεις δικαίωμα.' }, { status: 403 }) }
   const url = new URL(request.url)
   const key = url.searchParams.get('key') ?? ''
-  const entry = await prisma.fileIndexEntry.findUnique({ where: { key }, select: { key: true } })
+  const entry = await prisma.fileIndexEntry.findUnique({ where: { key }, select: { key: true, category: true } })
   if (!entry) return NextResponse.json({ error: 'Το αρχείο δεν βρέθηκε στο ευρετήριο.' }, { status: 404 })
+  // Backups βάσης / πρότυπα: μόνο με files.manage.
+  if ((entry.category === 'db-backup' || entry.category === 'template') && !perms.has('files.manage')) {
+    return NextResponse.json({ error: 'Δεν έχεις δικαίωμα.' }, { status: 403 })
+  }
   let bytes: Buffer
   try { bytes = await bunnyDownload(entry.key) } catch { return NextResponse.json({ error: 'Το αρχείο δεν υπάρχει στην αποθήκη (δοκίμασε επαναφορά από NAS).' }, { status: 404 }) }
   const name = entry.key.split('/').pop() ?? 'file'

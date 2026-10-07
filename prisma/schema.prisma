@@ -2815,3 +2815,28 @@ model ProgramExpenseLine {
 
   @@index([expenseId])
 }
+
+/// Ευρετήριο αναζήτησης εγγράφων (ένα ανά αρχείο του FileIndexEntry): κείμενο & ετικέτες από
+/// τα μεταδεδομένα της εφαρμογής + embedding (pgvector) για σημασιολογική αναζήτηση.
+model DocumentSearch {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  title        String
+  tags         String[]
+  content      String   @db.Text
+  /// πεζά, χωρίς τόνους (trigram/ILIKE)
+  searchText   String   @db.Text
+  category     String
+  trdrId       String?
+  trdrName     String?
+  docType      String?
+  programTitle String?
+  year         Int?
+  contentHash  String
+  embedding    Unsupported("vector(768)")?
+  embeddedHash String?
+  updatedAt    DateTime @updatedAt
+
+  @@index([trdrId])
+  @@index([category])
+}

@@ -118,8 +118,12 @@ export async function startQueue(): Promise<void> {
   await boss.createQueue(QUEUE_NAS_BACKUP)
   await boss.work(QUEUE_NAS_BACKUP, async () => {
     try {
-      const { runNasBackup } = await import('@/lib/nas/backup')
-      const r = await runNasBackup({ trigger: 'cron' })
+      // 1. σάρωση αποθήκης + ευρετήριο αναζήτησης (πάντα) · 2. backup στο NAS (αν ρυθμισμένο)
+      const { scanStorage, runNasBackup } = await import('@/lib/nas/backup')
+      const { reindexDocuments } = await import('@/lib/search/documents')
+      await scanStorage()
+      await reindexDocuments().catch(err => console.error('[pg-boss] search reindex απέτυχε', err))
+      const r = await runNasBackup({ trigger: 'cron', skipScan: true })
       if (r.skipped) console.log('[pg-boss] nas-backup:', r.skipped)
     } catch (err) {
       console.error('[pg-boss] nas-backup απέτυχε', err) // never rethrow — scheduled tick, ιστορικό στο NasBackupRun

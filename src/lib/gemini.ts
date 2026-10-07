@@ -155,3 +155,48 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
     }
   })
 }
+
+// ── Embeddings (σημασιολογική αναζήτηση — pgvector) ──────────────────────────
+
+export const EMBEDDING_MODEL = 'gemini-embedding-001'
+export const EMBEDDING_DIM = 768
+
+/**
+ * Embeddings κειμένων (batch έως 100) — `RETRIEVAL_DOCUMENT` για ευρετηρίαση,
+ * `RETRIEVAL_QUERY` για ερωτήματα. Διάσταση 768 (Matryoshka) — αρκετή και φθηνή.
+ */
+export async function geminiEmbed(
+  texts: string[],
+  opts: { task: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY'; refType?: string; userId?: string | null } = { task: 'RETRIEVAL_DOCUMENT' },
+): Promise<number[][]> {
+  if (texts.length === 0) return []
+  const { apiKey } = await resolveConfig({ parts: [] } as unknown as GeminiOptions)
+  const out: number[][] = []
+  for (let i = 0; i < texts.length; i += 100) {
+    const chunk = texts.slice(i, i + 100)
+    const startedAt = Date.now()
+    const res = await fetch(`${GEMINI_API_BASE}/${EMBEDDING_MODEL}:batchEmbedContents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        requests: chunk.map(text => ({
+          model: `models/${EMBEDDING_MODEL}`,
+          content: { parts: [{ text: text.slice(0, 8000) }] },
+          taskType: opts.task,
+          outputDimensionality: EMBEDDING_DIM,
+        })),
+      }),
+    })
+    if (!res.ok) throw new Error(`Gemini embeddings HTTP ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`)
+    const data = (await res.json()) as { embeddings?: { values: number[] }[] }
+    const vecs = data.embeddings?.map(e => e.values) ?? []
+    if (vecs.length !== chunk.length) throw new Error('Gemini embeddings: λάθος πλήθος αποτελεσμάτων.')
+    out.push(...vecs)
+    void logAiUsage({
+      scope: 'OTHER', provider: 'gemini', model: EMBEDDING_MODEL, operation: 'embed',
+      inputTokens: Math.ceil(chunk.reduce((a, t) => a + Math.min(t.length, 8000), 0) / 4), outputTokens: 0,
+      durationMs: Date.now() - startedAt, userId: opts.userId ?? null, refType: opts.refType ?? 'search-embed',
+    })
+  }
+  return out
+}

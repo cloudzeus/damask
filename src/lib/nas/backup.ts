@@ -213,7 +213,7 @@ export async function backupPending(opts: { budgetMs?: number } = {}): Promise<{
 
 // ── 3. Εκτέλεση με κλείδωμα & ιστορικό ───────────────────────────────────────
 
-export async function runNasBackup(opts: { trigger: 'cron' | 'manual'; userId?: string | null; budgetMs?: number }): Promise<{ runId: string | null; skipped?: string }> {
+export async function runNasBackup(opts: { trigger: 'cron' | 'manual'; userId?: string | null; budgetMs?: number; skipScan?: boolean }): Promise<{ runId: string | null; skipped?: string }> {
   const cfg = await getSynologyConfig()
   if (!cfg) return { runId: null, skipped: 'Δεν έχει ρυθμιστεί το Synology NAS.' }
   if (opts.trigger === 'cron' && !cfg.enabled) return { runId: null, skipped: 'Το νυχτερινό backup είναι απενεργοποιημένο.' }
@@ -222,10 +222,17 @@ export async function runNasBackup(opts: { trigger: 'cron' | 'manual'; userId?: 
 
   const run = await prisma.nasBackupRun.create({ data: { trigger: opts.trigger, triggeredById: opts.userId ?? null }, select: { id: true } })
   try {
-    const { scanned } = await scanStorage({
-      onProgress: n => { void prisma.nasBackupRun.update({ where: { id: run.id }, data: { scanned: n } }).catch(() => {}) },
-    })
+    const scanned = opts.skipScan
+      ? await prisma.fileIndexEntry.count({ where: { missingAt: null } })
+      : (await scanStorage({
+          onProgress: n => { void prisma.nasBackupRun.update({ where: { id: run.id }, data: { scanned: n } }).catch(() => {}) },
+        })).scanned
     await prisma.nasBackupRun.update({ where: { id: run.id }, data: { scanned } })
+    // Ευρετήριο αναζήτησης (μετά τη σάρωση) — μη κρίσιμο για το backup.
+    if (!opts.skipScan) {
+      const { reindexDocuments } = await import('@/lib/search/documents')
+      await reindexDocuments().catch(err => console.error('[search] reindex failed', err))
+    }
     const r = await backupPending({ budgetMs: opts.budgetMs })
     await prisma.nasBackupRun.update({
       where: { id: run.id },

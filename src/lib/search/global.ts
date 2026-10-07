@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
  * Session-only gate· οι σελίδες-στόχοι έχουν τα δικά τους permissions.
  */
 
-export type SearchResultKind = 'customer' | 'supplier' | 'program' | 'project' | 'lead'
+export type SearchResultKind = 'customer' | 'supplier' | 'program' | 'project' | 'lead' | 'document'
 export type SearchResult = { id: string; kind: SearchResultKind; title: string; subtitle: string | null; href: string }
 
 export async function searchEverything(qRaw: string): Promise<SearchResult[]> {
@@ -18,6 +18,11 @@ export async function searchEverything(qRaw: string): Promise<SearchResult[]> {
   const q = qRaw.trim()
   if (q.length < 2) return []
 
+  const perms = new Set(session.user.permissions ?? [])
+  // Έγγραφα: έξυπνη αναζήτηση (σημασιολογική + κειμένου) — μόνο για όσους βλέπουν πελάτες.
+  const docsPromise = perms.has('customer.view') && q.length >= 3
+    ? import('@/lib/search/documents').then(m => m.searchDocuments(q, { limit: 6 })).catch(() => [])
+    : Promise.resolve([])
   const [trdrs, programs, apps, leads] = await Promise.all([
     prisma.trdr.findMany({
       where: { OR: [{ NAME: { contains: q, mode: 'insensitive' } }, { AFM: { contains: q } }] },
@@ -54,6 +59,14 @@ export async function searchEverything(qRaw: string): Promise<SearchResult[]> {
   }
   for (const l of leads) {
     out.push({ id: l.id, kind: 'lead', title: l.companyName || l.email, subtitle: l.afm ? `ΑΦΜ ${l.afm}` : l.email, href: '/leads' })
+  }
+  const docs = (await docsPromise).filter(d => perms.has('files.manage') || (d.category !== 'db-backup' && d.category !== 'template'))
+  for (const d of docs) {
+    out.push({
+      id: d.key, kind: 'document', title: d.title,
+      subtitle: [d.trdrName, d.snippet].filter(Boolean).join(' · ').slice(0, 140) || null,
+      href: `/api/files/download?key=${encodeURIComponent(d.key)}&disp=inline`,
+    })
   }
   return out
 }
