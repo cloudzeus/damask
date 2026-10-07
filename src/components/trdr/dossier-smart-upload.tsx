@@ -244,12 +244,22 @@ export function DossierSmartUpload({
           fullText: r.snippet || null,
         })
         patch(r.id, { phase: 'saved', covered: res.coveredPrograms })
+        if (res.e3) {
+          const eur = new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' })
+          toast.success(`Ε3 ${res.e3.year}: κύκλος εργασιών ${res.e3.turnover != null ? eur.format(res.e3.turnover) : '—'}`, {
+            description: [
+              res.e3.afmMismatch ? null : res.e3.updatedCompany ? 'Ενημερώθηκε ο κύκλος εργασιών στην καρτέλα της εταιρίας.' : 'Η καρτέλα έχει ήδη νεότερο έτος — καταχωρίστηκαν μόνο τα στοιχεία του έτους.',
+              res.e3.years.length > 1 ? `Στοιχεία για τα έτη ${res.e3.years.join(', ')}.` : null,
+              res.e3.afmMismatch ? '⚠ Το ΑΦΜ του εντύπου ανήκει σε άλλη εταιρία — δεν καταχωρίστηκαν στοιχεία.' : null,
+            ].filter(Boolean).join(' '),
+          })
+        }
         if (res.eme) {
           const nf = new Intl.NumberFormat('el-GR', { maximumFractionDigits: 2 })
           toast.success(`ΕΜΕ χρήσης ${res.eme.year}: ${res.eme.eme != null ? nf.format(res.eme.eme) : '—'} (${res.eme.employees} εργαζόμενοι)`, {
             description: [
-              res.eme.updatedCompany ? 'Ενημερώθηκαν οι εργαζόμενοι στην καρτέλα της εταιρίας.' : 'Η καρτέλα έχει ήδη νεότερη χρήση — δεν άλλαξε.',
-              res.eme.afmMismatch ? '⚠ Το ΑΦΜ του εγγράφου δεν ταιριάζει με την εταιρία.' : null,
+              res.eme.afmMismatch ? null : res.eme.updatedCompany ? 'Ενημερώθηκαν οι εργαζόμενοι στην καρτέλα της εταιρίας.' : 'Η καρτέλα έχει ήδη νεότερη χρήση — δεν άλλαξε.',
+              res.eme.afmMismatch ? '⚠ Το ΑΦΜ του εγγράφου ανήκει σε άλλη εταιρία — δεν καταχωρίστηκαν στοιχεία.' : null,
             ].filter(Boolean).join(' '),
           })
         }

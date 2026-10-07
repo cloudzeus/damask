@@ -207,6 +207,8 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
         // Χειροκίνητη αλλαγή εργαζομένων: κρατιέται μέχρι να ανέβει νεότερο ΕΜΕ.
         ...(ni(data.appEmployees) !== existing.appEmployees ? { appEmployeesSource: 'MANUAL', appEme: null } : {}),
         appAnnualRevenue: nDec(data.appAnnualRevenue),
+        // Χειροκίνητη αλλαγή κύκλου εργασιών: κρατιέται μέχρι να ανέβει νεότερο Ε3.
+        ...(String(nDec(data.appAnnualRevenue) ?? '') !== String(existing.appAnnualRevenue ?? '') ? { appRevenueSource: 'MANUAL' } : {}),
         appNotes: n(data.appNotes),
         referrerId: n(data.referrerId),
       },

@@ -29,7 +29,7 @@ type VerifyState =
   | { status: 'error'; message: string }
 
 export function PartnerInfoCard({
-  trdrId, afm, irsdataName, irsdataCode, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, phone2, email, emailAcc, website, employees, eme, employeesYear, employeesSource, annualRevenue,
+  trdrId, afm, irsdataName, irsdataCode, legalForm, jobtypetrd, address, city, zip, countryName, trdCategoryName, paymentName, shipmentName, phone, phone2, email, emailAcc, website, employees, eme, employeesYear, employeesSource, annualRevenue, revenueYear, revenueSource,
 }: {
   trdrId: string
   afm: string | null
@@ -54,6 +54,8 @@ export function PartnerInfoCard({
   employeesYear?: number | null
   employeesSource?: string | null
   annualRevenue: number | null
+  revenueYear?: number | null
+  revenueSource?: string | null
 }) {
   const router = useRouter()
   const [verify, setVerify] = useState<VerifyState>({ status: 'idle' })
@@ -86,7 +88,12 @@ export function PartnerInfoCard({
         ? `ΕΜΕ ${employeesYear ?? ''}: ${eme != null ? eme.toLocaleString('el-GR', { maximumFractionDigits: 2 }) : '—'}`
         : employeesSource === 'MANUAL' ? 'χειροκίνητα' : null,
     },
-    { icon: Briefcase, label: 'Ετήσια έσοδα', value: annualRevenue != null ? `${annualRevenue.toLocaleString('el-GR')} €` : null },
+    {
+      icon: Briefcase,
+      label: 'Κύκλος εργασιών',
+      value: annualRevenue != null ? `${annualRevenue.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : null,
+      hint: revenueSource === 'E3' ? `Ε3 ${revenueYear ?? ''}` : revenueSource === 'MANUAL' ? 'χειροκίνητα' : null,
+    },
   ]
 
   function handleVerify() {

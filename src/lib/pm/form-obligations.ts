@@ -220,7 +220,11 @@ export async function seedFormObligationsForApplication(applicationId: string, p
  * του πελάτη (σεβόμενο το «μόνο για ένα πρόγραμμα»): status → SUBMITTED + αντίγραφο
  * αναφοράς του εγγράφου, ώστε να μένει μόνο ο έλεγχος/έγκριση.
  */
-export async function coverObligationsFromDossierDoc(docId: string): Promise<{ covered: number; programs: string[] }> {
+export async function coverObligationsFromDossierDoc(
+  docId: string,
+  /** Κάλυψη ΚΑΙ για άλλον (ισοδύναμο) τύπο — π.χ. γενικό «Ε3» ↔ «Έντυπο Ε3 2024». */
+  opts: { asTypeId?: string } = {},
+): Promise<{ covered: number; programs: string[] }> {
   const doc = await prisma.trdrDossierDocument.findUnique({
     where: { id: docId },
     select: { trdrId: true, documentTypeId: true, programId: true, reusable: true, name: true, storageKey: true, mimeType: true, sizeBytes: true, expiresAt: true },
@@ -230,7 +234,7 @@ export async function coverObligationsFromDossierDoc(docId: string): Promise<{ c
 
   const forms = await prisma.programRequiredForm.findMany({
     where: {
-      documentTypeId: doc.documentTypeId,
+      documentTypeId: opts.asTypeId ?? doc.documentTypeId,
       ...(doc.programId && !doc.reusable ? { programId: doc.programId } : {}),
     },
     select: { id: true, programId: true, program: { select: { title: true } } },

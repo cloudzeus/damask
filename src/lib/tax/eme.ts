@@ -198,6 +198,8 @@ export async function applyEmeToTrdr(input: {
   const d = input.data
   const year = d.year ?? new Date().getFullYear() - 1
   const afmMismatch = !!(d.afm && trdr?.AFM && d.afm !== trdr.AFM)
+  // Έγγραφο άλλης εταιρίας → ΔΕΝ γράφεται τίποτα, μόνο προειδοποίηση.
+  if (afmMismatch) return { year, eme: d.totalEme, employees: d.employees.length, updatedCompany: false, afmMismatch }
 
   const table = {
     columns: ['Κωδικός', 'ΑΦΜ', 'Κατηγορία', 'Μήνες απασχόλησης', 'Μέσος όρος'],

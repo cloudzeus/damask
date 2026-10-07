@@ -347,6 +347,10 @@ model Trdr {
   /// 'EME' = από ανεβασμένο ΕΜΕ · 'MANUAL' = διόρθωση χρήστη · 'IMPORT'
   appEmployeesSource   String?
   appAnnualRevenue     Decimal?                 @db.Decimal(14, 2) // τελευταία ετήσια έσοδα € (app-only)
+  /// Χρήση από την οποία προέρχεται ο κύκλος εργασιών (νεότερο Ε3 → ενημέρωση).
+  appRevenueYear       Int?
+  /// 'E3' = από ανεβασμένο Ε3 · 'MANUAL' = διόρθωση χρήστη
+  appRevenueSource     String?
   cdnFolder            String? // path στο Bunny (private) — αυτόματος φάκελος ανά συναλλασσόμενο (partners/<type>/<ΑΦΜ>/)
   syncedAt             DateTime?
   // ΓΕΜΗ (Open Data businessportal.gr)

@@ -7,6 +7,7 @@ import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { attachUploadedFileToItem } from '@/lib/file-requests/public'
 import { trdrUploadFolder } from '@/lib/trdr/cdn-folder'
 import { ensureEmeTemplate, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
+import { isE3TypeName, extractE3WithAi, applyE3ToTrdr } from '@/lib/tax/e3'
 
 /**
  * Public upload endpoint (token-gated, ΧΩΡΙΣ session — βλ. proxy.ts /api/file-requests/).
@@ -103,6 +104,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
     void extractEmeWithAi({ base64, mimeType: file.type })
       .then(data => (data ? applyEmeToTrdr({ trdrId: fr.trdrId, data, storageKey, name: file.name.replace(/\.[^.]+$/, ''), model: 'gemini' }) : null))
       .catch(err => console.error('[eme] file-request processing failed', err))
+  }
+  // Αναγνωρίστηκε ως Ε3 → κύκλος εργασιών/αποτελέσματα ανά έτος (στο παρασκήνιο).
+  if (typeof docType === 'string' && isE3TypeName(docType) && /pdf|image\//.test(file.type)) {
+    const base64 = Buffer.from(arrayBuffer).toString('base64')
+    void extractE3WithAi({ base64, mimeType: file.type })
+      .then(data => (data ? applyE3ToTrdr({ trdrId: fr.trdrId, data, storageKey, name: file.name.replace(/\.[^.]+$/, ''), model: 'gemini' }) : null))
+      .catch(err => console.error('[e3] file-request processing failed', err))
   }
   return NextResponse.json({ ok: true, name: file.name, size: file.size })
 }

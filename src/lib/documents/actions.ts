@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { coverObligationsFromDossierDoc } from '@/lib/pm/form-obligations'
 import { isEmeDocumentType, parseEmeText, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
+import { isE3TypeName, extractE3WithAi, applyE3ToTrdr, type E3Applied } from '@/lib/tax/e3'
 
 /**
  * Τύποι δικαιολογητικών (ελαφρύς κατάλογος) + αποθήκη δικαιολογητικών ανά πελάτη.
@@ -100,7 +101,7 @@ export async function uploadTrdrDossierDoc(
     /** Πλήρες ψηφιακό κείμενο (αν υπάρχει) — για ειδικούς τύπους όπως το ΕΜΕ. */
     fullText?: string | null
   },
-): Promise<{ id: string; covered: number; coveredPrograms: string[]; eme?: EmeApplied | null }> {
+): Promise<{ id: string; covered: number; coveredPrograms: string[]; eme?: EmeApplied | null; e3?: E3Applied | null }> {
   const session = await requirePermission('customer.edit')
   const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { id: true } })
   if (!trdr) throw new Error('Ο συναλλασσόμενος δεν βρέθηκε.')
@@ -148,8 +149,11 @@ export async function uploadTrdrDossierDoc(
   const cover = await coverObligationsFromDossierDoc(id).catch(() => ({ covered: 0, programs: [] as string[] }))
   // ΕΜΕ: αυτόματη ανάγνωση εργαζομένων/μέσου όρου → Οδηγός Εντύπων + εργαζόμενοι εταιρίας.
   const eme = await processEmeIfApplicable({ trdrId, documentTypeId: input.documentTypeId, fullText: input.fullText ?? null, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id })
+  // Ε3: αυτόματη ανάγνωση κύκλου εργασιών/αποτελεσμάτων ανά έτος + κάλυψη εκκρεμοτήτων «Ε3 <έτος>».
+  const e3 = await processE3IfApplicable({ docId: id, trdrId, documentTypeId: input.documentTypeId, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id })
+  if (e3?.coveredExtra) { cover.covered += e3.coveredExtra.covered; cover.programs.push(...e3.coveredExtra.programs) }
   revalidatePath(`/partners/${trdrId}`)
-  return { id, covered: cover.covered, coveredPrograms: cover.programs, eme }
+  return { id, covered: cover.covered, coveredPrograms: cover.programs, eme, e3: e3?.applied ?? null }
 }
 
 export async function updateTrdrDossierDoc(
@@ -318,6 +322,40 @@ async function processEmeIfApplicable(input: {
     return await applyEmeToTrdr({ trdrId: input.trdrId, data, storageKey: input.storageKey, name: input.name, userId: input.userId, model })
   } catch (err) {
     console.error('[eme] processing failed', err)
+    return null
+  }
+}
+
+// ── Ε3 (Κατάσταση Οικονομικών Στοιχείων) ─────────────────────────────────────
+
+async function processE3IfApplicable(input: {
+  docId: string
+  trdrId: string
+  documentTypeId: string
+  base64: string
+  mimeType: string
+  storageKey: string
+  name: string
+  userId: string
+}): Promise<{ applied: E3Applied; coveredExtra: { covered: number; programs: string[] } } | null> {
+  const type = await prisma.documentType.findUnique({ where: { id: input.documentTypeId }, select: { name: true } })
+  if (!isE3TypeName(type?.name) || !/pdf|image\//.test(input.mimeType)) return null
+  try {
+    const data = await extractE3WithAi({ base64: input.base64, mimeType: input.mimeType }, { userId: input.userId })
+    if (!data) return null
+    const applied = await applyE3ToTrdr({ trdrId: input.trdrId, data, storageKey: input.storageKey, name: input.name, userId: input.userId, model: 'gemini' })
+    // Προγράμματα που ζητούν «Ε3 <έτος>» με δικό τους τύπο → καλύπτονται από αυτό το Ε3.
+    const sameYearTypes = (await prisma.documentType.findMany({ where: { name: { contains: String(applied.year) }, id: { not: input.documentTypeId } }, select: { id: true, name: true } }))
+      .filter(t => isE3TypeName(t.name))
+    const coveredExtra = { covered: 0, programs: [] as string[] }
+    for (const t of sameYearTypes) {
+      const r = await coverObligationsFromDossierDoc(input.docId, { asTypeId: t.id }).catch(() => ({ covered: 0, programs: [] as string[] }))
+      coveredExtra.covered += r.covered
+      coveredExtra.programs.push(...r.programs)
+    }
+    return { applied, coveredExtra }
+  } catch (err) {
+    console.error('[e3] processing failed', err)
     return null
   }
 }
