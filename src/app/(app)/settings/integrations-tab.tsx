@@ -11,6 +11,7 @@ import { FacebookCard } from './cards/facebook-card'
 import { VivaCard, type VivaEnvCardData } from './cards/viva-card'
 import { MapsCard } from './cards/maps-card'
 import { GemiCard } from './cards/gemi-card'
+import { SynologyCard } from './cards/synology-card'
 
 function str(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
@@ -38,7 +39,7 @@ function vivaEnvCardData(config: VivaEnvConfig): VivaEnvCardData {
 }
 
 export async function IntegrationsTab() {
-  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi] = await Promise.all([
+  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi, synology] = await Promise.all([
     getIntegration('softone'),
     getIntegration('mailgun'),
     getIntegration('bunny'),
@@ -50,6 +51,7 @@ export async function IntegrationsTab() {
     getVivaSettings(),
     getIntegration('maps'),
     getIntegration('gemi'),
+    getIntegration('synology'),
   ])
 
   return (
@@ -134,6 +136,18 @@ export async function IntegrationsTab() {
         maskedApiKey={maskSecret(gemi.apiKey)}
         configured={isIntegrationConfigured('gemi', gemi)}
         lastCheck={checkOf(gemi)}
+      />
+      <SynologyCard
+        initial={{
+          baseUrl: str(synology.baseUrl) || 'http://100.127.38.86:5000',
+          username: str(synology.username),
+          rootPath: str(synology.rootPath) || '/WWA-Backup',
+          allowSelfSigned: str(synology.allowSelfSigned) === '1' ? '1' : '0',
+          enabled: str(synology.enabled) === '0' ? '0' : '1',
+        }}
+        maskedPassword={maskSecret(synology.password)}
+        configured={isIntegrationConfigured('synology', synology)}
+        lastCheck={checkOf(synology)}
       />
     </div>
   )

@@ -552,3 +552,52 @@ export async function saveSeoDefaults(values: SeoDefaultsValues): Promise<Action
   revalidateSettings()
   return { ok: true, message: 'Οι ρυθμίσεις SEO αποθηκεύτηκαν.' }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Synology NAS (integration.synology) — backup αρχείων μέσω File Station API
+// (src/lib/nas/*). Ο κωδικός είναι secret (κενό = κράτα τον αποθηκευμένο).
+// ══════════════════════════════════════════════════════════════════════════
+
+export type SynologyValues = { baseUrl: string; username: string; password: string; rootPath: string; allowSelfSigned: string; enabled: string }
+
+const synologySchema = z.object({
+  baseUrl: z.string().trim().max(300).refine(v => v === '' || /^https?:\/\/[^\s/]+(:\d+)?\/?$/.test(v), 'π.χ. http://100.127.38.86:5000'),
+  username: z.string().trim().max(120),
+  password: z.string().max(300),
+  rootPath: z.string().trim().max(300).refine(v => v === '' || v.startsWith('/'), 'Απόλυτη διαδρομή, π.χ. /WWA-Backup'),
+  allowSelfSigned: z.enum(['0', '1']),
+  enabled: z.enum(['0', '1']),
+})
+
+export async function saveSynologySettings(values: SynologyValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = synologySchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
+  await saveIntegration('synology', parsed.data, ['password'])
+  revalidateSettings()
+  return { ok: true, message: 'Οι ρυθμίσεις Synology αποθηκεύτηκαν.' }
+}
+
+export async function testSynologySettings(values: SynologyValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const stored = await getIntegration<Record<string, string>>('synology')
+  const merged = mergeNonEmpty(stored, values) as Record<string, string>
+  const { testSynology } = await import('@/lib/nas/synology')
+  let result: { ok: boolean; message: string }
+  const baseUrl = (merged.baseUrl ?? '').trim().replace(/\/+$/, '')
+  if (!baseUrl || !merged.username || !merged.password) {
+    result = { ok: false, message: 'Συμπλήρωσε διεύθυνση NAS, χρήστη και κωδικό.' }
+  } else {
+    result = await testSynology({
+      baseUrl,
+      username: merged.username.trim(),
+      password: merged.password,
+      rootPath: `/${(merged.rootPath || '/WWA-Backup').replace(/^\/+|\/+$/g, '')}`,
+      allowSelfSigned: merged.allowSelfSigned === '1',
+      enabled: true,
+    })
+  }
+  const check = await saveLastCheck('synology', result)
+  revalidateSettings()
+  return check
+}

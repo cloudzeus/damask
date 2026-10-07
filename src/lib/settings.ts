@@ -37,7 +37,7 @@ export const PUBLIC_TRACKING_CACHE_TAG = 'public-tracking-settings'
  * — η αναζήτηση vat.wwa.gr (src/lib/aade.ts) δεν χρειάζεται credentials, οπότε δεν αποθηκεύεται εδώ.
  * 'gemi' (W2): κλειδί ΓΕΜΗ opendata-api.businessportal.gr — DB-only, ΟΧΙ env (βλ. src/lib/trdr/gemi.ts).
  * Ξεχωριστό από το ήδη υπάρχον (αχρησιμοποίητο) `maps.gemiApiKey` — αυτό είναι το ενεργό. */
-export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook' | 'maps' | 'gemi'
+export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook' | 'maps' | 'gemi' | 'synology'
 
 function settingKeyFor(name: IntegrationName): string {
   return `integration.${name}`
@@ -178,6 +178,7 @@ const REQUIRED_FIELDS: Record<IntegrationName, string[]> = {
   // δεν χρησιμοποιείται ακόμα σε καμία ροή, άρα δεν πρέπει να μπλοκάρει το badge «Ρυθμισμένο».
   maps: ['googleMapsApiKey', 'maptilerApiKey', 'geocodeApiKey'],
   gemi: ['apiKey'],
+  synology: ['baseUrl', 'username', 'password'],
 }
 
 function nonEmpty(value: unknown): boolean {
