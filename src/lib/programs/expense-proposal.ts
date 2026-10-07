@@ -353,3 +353,199 @@ export async function budgetSanityCheck(applicationId: string): Promise<{ ok: tr
     return { ok: false, message: err instanceof Error ? err.message : 'Ο έλεγχος απέτυχε.' }
   }
 }
+
+// ── C4: Κύκλωμα προσφορών — σάρωση → προμηθευτής → γραμμές → δαπάνες ─────────
+
+export type QuoteLine = {
+  description: string
+  quantity: number | null
+  unitPrice: number | null
+  vatPct: number | null
+  /** καθαρό ποσό γραμμής (χωρίς ΦΠΑ) */
+  total: number
+  categoryId: string | null
+  categoryReason: string | null
+}
+export type QuoteScan = {
+  supplier: { afm: string | null; name: string | null; existing: SupplierOption | null }
+  docNumber: string | null
+  date: string | null
+  lines: QuoteLine[]
+  totals: { net: number | null; vat: number | null; gross: number | null }
+}
+
+const amountOf = (v: unknown): number | null => {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null
+  if (typeof v !== 'string') return null
+  let s = v.trim().replace(/[€\s]/g, '')
+  if (!s) return null
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.')
+  const n = Number(s)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Διαβάζει προσφορά (PDF/εικόνα) με Gemini και σε ΜΙΑ κλήση: προμηθευτής (ΑΦΜ/επωνυμία),
+ * αριθμός/ημερομηνία, ΟΛΕΣ οι γραμμές (περιγραφή, ποσότητα, τιμή μονάδας, ΦΠΑ, καθαρό σύνολο)
+ * και πρόταση κατηγορίας δαπάνης του προγράμματος για κάθε γραμμή.
+ */
+export async function scanQuoteForApplication(
+  applicationId: string,
+  file: { base64: string; mimeType: string },
+): Promise<{ ok: true; scan: QuoteScan } | { ok: false; message: string }> {
+  const session = await requirePermission('programs.manage')
+  const app = await prisma.programApplication.findUnique({
+    where: { id: applicationId },
+    select: { program: { select: { title: true, expenseCats: { orderBy: { order: 'asc' }, select: { id: true, name: true, notes: true } } } } },
+  })
+  if (!app) return { ok: false, message: 'Το έργο δεν βρέθηκε.' }
+  const cats = app.program.expenseCats
+  const catList = cats.map(c => `- id=${c.id}: ${c.name}${c.notes ? ` — ${c.notes.slice(0, 160)}` : ''}`).join('\n') || '(το πρόγραμμα δεν έχει κατηγορίες)'
+  const { geminiGenerate } = await import('@/lib/gemini')
+  const system = [
+    'Διαβάζεις ελληνική ΠΡΟΣΦΟΡΑ προμηθευτή (οικονομική προσφορά/τιμολόγιο προφόρμα) για επενδυτικό σχέδιο ΕΣΠΑ.',
+    'Εξήγαγε: ΑΦΜ και επωνυμία του ΠΡΟΜΗΘΕΥΤΗ (εκδότη — όχι του πελάτη), αριθμό & ημερομηνία προσφοράς,',
+    'και ΚΑΘΕ γραμμή προϊόντος/υπηρεσίας: περιγραφή, ποσότητα, τιμή μονάδας, ΦΠΑ %, καθαρό σύνολο γραμμής ΧΩΡΙΣ ΦΠΑ.',
+    'Μην ενώνεις γραμμές και μην παραλείπεις καμία· αγνόησε γραμμές συνόλων/εκπτώσεων εκτός αν είναι ξεχωριστό είδος.',
+    `Για κάθε γραμμή πρότεινε την πιο κατάλληλη ΚΑΤΗΓΟΡΙΑ ΔΑΠΑΝΗΣ του προγράμματος «${app.program.title}» (id από τη λίστα ή null):\n${catList}`,
+    'Ποσά με τελεία δεκαδικών. ΑΥΣΤΗΡΑ JSON: {"supplierAfm":"...","supplierName":"...","docNumber":"...","date":"YYYY-MM-DD",',
+    '"lines":[{"description":"...","quantity":n,"unitPrice":n,"vatPct":n,"total":n,"categoryId":"..."|null,"categoryReason":"σύντομα"}],',
+    '"totals":{"net":n,"vat":n,"gross":n}}',
+  ].join(' ')
+  try {
+    const res = await geminiGenerate({
+      parts: [{ inlineData: { data: file.base64, mimeType: file.mimeType } }, { text: 'Εξήγαγε την προσφορά.' }],
+      systemInstruction: system,
+      json: true,
+      scope: 'OCR_VISION',
+      refType: 'quote-scan',
+      refId: applicationId,
+      userId: session.user.id,
+    })
+    const p = (parseJsonLoose(res.text) ?? {}) as Record<string, unknown>
+    const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+    const validCat = new Set(cats.map(c => c.id))
+    const lines: QuoteLine[] = (Array.isArray(p.lines) ? (p.lines as Record<string, unknown>[]) : [])
+      .map(l => {
+        const quantity = amountOf(l.quantity)
+        const unitPrice = amountOf(l.unitPrice)
+        const total = amountOf(l.total) ?? (quantity != null && unitPrice != null ? Math.round(quantity * unitPrice * 100) / 100 : null)
+        const cid = s(l.categoryId)
+        return {
+          description: s(l.description) ?? '',
+          quantity, unitPrice, vatPct: amountOf(l.vatPct),
+          total: total ?? 0,
+          categoryId: cid && validCat.has(cid) ? cid : null,
+          categoryReason: s(l.categoryReason),
+        }
+      })
+      .filter(l => l.description && l.total > 0)
+    const t = (p.totals ?? {}) as Record<string, unknown>
+    const afm = s(p.supplierAfm)?.replace(/\D/g, '').slice(0, 9) || null
+    const existing = afm
+      ? await prisma.trdr.findFirst({ where: { AFM: afm, SODTYPE: SUPPLIER_SODTYPE }, select: { id: true, NAME: true, AFM: true } })
+      : null
+    return {
+      ok: true,
+      scan: {
+        supplier: { afm, name: s(p.supplierName), existing: existing ? { id: existing.id, name: existing.NAME, afm: existing.AFM } : null },
+        docNumber: s(p.docNumber),
+        date: s(p.date) && /^\d{4}-\d{2}-\d{2}$/.test(s(p.date)!) ? s(p.date) : null,
+        lines,
+        totals: { net: amountOf(t.net), vat: amountOf(t.vat), gross: amountOf(t.gross) },
+      },
+    }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Η ανάγνωση της προσφοράς απέτυχε.' }
+  }
+}
+
+/**
+ * Δημιουργεί δαπάνες από προσφορά: εύρεση/δημιουργία προμηθευτή (ΑΦΜ → ΑΑΔΕ), μία δαπάνη ανά
+ * γραμμή ή ομαδοποιημένες ανά κατηγορία, με το ΙΔΙΟ αρχείο προσφοράς συνημμένο σε όλες
+ * (ένα upload). Ο προμηθευτής «συνδέεται» με τον πελάτη μέσω των δαπανών του έργου.
+ */
+export async function createExpensesFromQuote(
+  applicationId: string,
+  input: {
+    supplierAfm: string | null
+    supplierTrdrId?: string | null
+    docNumber?: string | null
+    date?: string | null
+    groupBy: 'line' | 'category'
+    lines: QuoteLine[]
+    quote: { name: string; base64: string; mimeType: string; ext: string } | null
+  },
+): Promise<{ ok: true; created: number; supplier: SupplierOption | null; supplierCreated: boolean } | { ok: false; message: string }> {
+  await requirePermission('programs.manage')
+  const lines = input.lines.filter(l => l.description.trim() && l.total > 0)
+  if (lines.length === 0) return { ok: false, message: 'Δεν επιλέχθηκε καμία γραμμή.' }
+
+  // 1. Προμηθευτής
+  let supplier: SupplierOption | null = null
+  let supplierCreated = false
+  if (input.supplierTrdrId) {
+    const s = await prisma.trdr.findUnique({ where: { id: input.supplierTrdrId }, select: { id: true, NAME: true, AFM: true } })
+    if (s) supplier = { id: s.id, name: s.NAME, afm: s.AFM }
+  } else if (input.supplierAfm) {
+    const r = await findOrCreateSupplierByAfm(input.supplierAfm)
+    if (!r.ok) return { ok: false, message: r.message ?? 'Αδυναμία εύρεσης προμηθευτή.' }
+    supplier = r.supplier ?? null
+    supplierCreated = !!r.created
+  }
+
+  // 2. Ομαδοποίηση
+  type Group = { description: string; amount: number; vat: number; categoryId: string | null }
+  const fmt = (n: number) => n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const lineDesc = (l: QuoteLine) =>
+    l.quantity != null && l.unitPrice != null && l.quantity !== 1 ? `${l.description} — ${l.quantity} × ${fmt(l.unitPrice)} €` : l.description
+  const vatOf = (l: QuoteLine) => (l.vatPct != null ? Math.round(l.total * l.vatPct) / 100 : 0)
+  let groups: Group[]
+  if (input.groupBy === 'category') {
+    const by = new Map<string, Group & { items: string[] }>()
+    for (const l of lines) {
+      const k = l.categoryId ?? '__none__'
+      const g = by.get(k) ?? { description: '', amount: 0, vat: 0, categoryId: l.categoryId, items: [] }
+      g.amount += l.total
+      g.vat += vatOf(l)
+      g.items.push(lineDesc(l))
+      by.set(k, g)
+    }
+    groups = [...by.values()].map(g => ({
+      ...g,
+      description: (g.items.length === 1 ? g.items[0] : `${g.items.slice(0, 3).join('· ')}${g.items.length > 3 ? ` κ.ά. (${g.items.length} είδη)` : ''}`).slice(0, 480),
+    }))
+  } else {
+    groups = lines.map(l => ({ description: lineDesc(l).slice(0, 480), amount: l.total, vat: vatOf(l), categoryId: l.categoryId }))
+  }
+
+  // 3. Ένα upload προσφοράς — κοινό σε όλες τις δαπάνες.
+  let quoteKey: string | null = null
+  if (input.quote) {
+    const ext = (input.quote.ext || 'pdf').replace(/[^a-z0-9]/gi, '').toLowerCase() || 'pdf'
+    quoteKey = `expense-quotes/app-${applicationId}/${crypto.randomUUID()}.${ext}`
+    await bunnyUploadPrivate({ key: quoteKey, body: Buffer.from(input.quote.base64, 'base64'), contentType: input.quote.mimeType })
+  }
+
+  // 4. Δαπάνες
+  const { createExpense } = await import('@/lib/programs/actions')
+  let created = 0
+  for (const g of groups) {
+    const { id } = await createExpense(applicationId, {
+      description: g.description,
+      amount: Math.round(g.amount * 100) / 100,
+      vatAmount: g.vat ? Math.round(g.vat * 100) / 100 : null,
+      date: input.date ?? null,
+      docNumber: input.docNumber ?? null,
+      categoryId: g.categoryId,
+      supplierTrdrId: supplier?.id ?? null,
+    })
+    if (quoteKey && input.quote) {
+      await prisma.programExpense.update({ where: { id }, data: { quoteStorageKey: quoteKey, quoteName: input.quote.name.trim() || 'Προσφορά', quoteMimeType: input.quote.mimeType } })
+      await syncQuoteObligation(id)
+    }
+    created++
+  }
+  revalidatePath('/programs')
+  return { ok: true, created, supplier, supplierCreated }
+}

@@ -94,6 +94,8 @@ export async function processProgramInvoice(input: ProcessProgramInvoiceInput): 
     vendor: supplier.name ?? null,
     vendorAfm: afm,
     docNumber: input.extracted.documentNumber ?? null,
+    // Σύνδεση προμηθευτή με τη δαπάνη (→ «προμηθευτές του πελάτη»).
+    supplierTrdrId: trdrRow?.id ?? null,
   })
 
   let suggested: Awaited<ReturnType<typeof suggestExpenseCategory>> | null = null

@@ -20,6 +20,7 @@ import {
   type BudgetProposal, type ProposalCategory, type SupplierOption, type BudgetSanity,
 } from '@/lib/programs/expense-proposal'
 import { openProposal } from '@/lib/programs/proposal-html'
+import { QuoteScanDialog } from './quote-scan-dialog'
 import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType, MAX_RASTERIZE_PAGES } from '@/lib/ocr/rasterize'
 import { runOcrExtraction } from '@/lib/ocr/actions'
 
@@ -48,6 +49,7 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
   const [addCat, setAddCat] = React.useState<ProposalCategory | 'none' | null>(null)
   const [sanity, setSanity] = React.useState<BudgetSanity | null>(null)
   const [checking, setChecking] = React.useState(false)
+  const [quoteOpen, setQuoteOpen] = React.useState(false)
 
   const load = React.useCallback(() => {
     getBudgetProposal(applicationId).then(d => setData(d)).catch(() => toast.error('Αποτυχία φόρτωσης.')).finally(() => setLoading(false))
@@ -80,6 +82,9 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" onClick={() => setQuoteOpen(true)}>
+            <LuScanText className="size-3.5" aria-hidden /> Σάρωση προσφοράς
+          </Button>
           <Button type="button" variant="outline" onClick={runSanity} disabled={checking}>
             {checking ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuSparkles className="size-3.5" aria-hidden />} AI έλεγχος σχεδίου
           </Button>
@@ -117,6 +122,8 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
           <CategoryCard category={null} expenses={expensesByCat(null)} onAdd={() => setAddCat('none')} onReload={load} />
         )}
       </div>
+
+      <QuoteScanDialog applicationId={applicationId} categories={data.categories} open={quoteOpen} onOpenChange={setQuoteOpen} onSaved={load} />
 
       {addCat && (
         <AddExpenseDialog
