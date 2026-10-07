@@ -163,6 +163,14 @@ export class SynologyClient {
     return { exists: true, writable: f.additional?.perm?.acl?.write !== false }
   }
 
+  /** Κοινόχρηστοι φάκελοι στους οποίους έχει πρόσβαση ο χρήστης. */
+  async listShares(): Promise<{ name: string; writable: boolean }[]> {
+    const d = await this.call<{ shares: { name: string; additional?: { perm?: { acl?: { write?: boolean }; share_right?: string } } }[] }>('entry.cgi', {
+      api: 'SYNO.FileStation.List', version: '2', method: 'list_share', additional: JSON.stringify(['perm']),
+    })
+    return (d.shares ?? []).map(x => ({ name: x.name, writable: x.additional?.perm?.share_right !== 'RO' && x.additional?.perm?.acl?.write !== false }))
+  }
+
   /** Ελεύθερος χώρος του volume (MB) — από τις πληροφορίες κοινόχρηστων φακέλων. */
   async shareSpace(shareName: string): Promise<{ freeBytes: number | null; totalBytes: number | null }> {
     const d = await this.call<{ shares: { name: string; additional?: { volume_status?: { freespace?: number; totalspace?: number } } }[] }>('entry.cgi', {
@@ -178,14 +186,24 @@ export async function testSynology(cfg: SynologyConfig): Promise<{ ok: boolean; 
   const c = new SynologyClient(cfg)
   try {
     await c.login()
-    await c.ensureFolder(cfg.rootPath).catch(() => {})
+    const segs = cfg.rootPath.split('/').filter(Boolean)
+    const share = segs[0]
+    const shares = await c.listShares().catch(() => [])
+    if (shares.length && !shares.some(s => s.name === share)) {
+      const avail = shares.map(s => `/${s.name}`).join(', ')
+      return { ok: false, message: `Ο κοινόχρηστος φάκελος «/${share}» δεν υπάρχει. Διαθέσιμοι: ${avail}. Όρισε π.χ. «/${shares.find(s => s.writable)?.name ?? shares[0].name}/WWA-Backup» — ο υποφάκελος δημιουργείται αυτόματα.` }
+    }
+    if (segs.length < 2) {
+      return { ok: false, message: `Όρισε υποφάκελο μέσα στον κοινόχρηστο, π.χ. «/${share}/WWA-Backup» — δημιουργείται αυτόματα.` }
+    }
+    // Δημιουργία του φακέλου backup (αναδρομικά) μέσα στον κοινόχρηστο.
+    await c.ensureFolder(cfg.rootPath)
     const info = await c.folderInfo(cfg.rootPath)
-    if (!info.exists) return { ok: false, message: `Συνδέθηκε, αλλά ο φάκελος ${cfg.rootPath} δεν υπάρχει και δεν δημιουργήθηκε (έλεγξε τον κοινόχρηστο φάκελο).` }
+    if (!info.exists) return { ok: false, message: `Δεν ήταν δυνατή η δημιουργία του φακέλου ${cfg.rootPath} (έλεγξε δικαιώματα εγγραφής στον «/${share}»).` }
     await c.upload(cfg.rootPath, '.wwa-backup-test', Buffer.from(`WWA backup test ${new Date().toISOString()}`), 'text/plain')
-    const share = cfg.rootPath.split('/').filter(Boolean)[0]
     const space = await c.shareSpace(share).catch(() => ({ freeBytes: null, totalBytes: null }))
     const gb = (b: number | null) => (b == null ? '—' : `${(b / 1024 ** 3).toLocaleString('el-GR', { maximumFractionDigits: 1 })} GB`)
-    return { ok: true, message: `Επιτυχής σύνδεση & εγγραφή στο ${cfg.rootPath}. Ελεύθερος χώρος: ${gb(space.freeBytes)} από ${gb(space.totalBytes)}.` }
+    return { ok: true, message: `Επιτυχής σύνδεση· ο φάκελος ${cfg.rootPath} είναι έτοιμος και εγγράψιμος. Ελεύθερος χώρος: ${gb(space.freeBytes)} από ${gb(space.totalBytes)}.` }
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Αποτυχία σύνδεσης με το NAS.' }
   } finally {

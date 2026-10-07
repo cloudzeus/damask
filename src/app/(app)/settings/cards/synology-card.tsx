@@ -65,7 +65,7 @@ export function SynologyCard({
       />
       <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
         <TextField id="syn-url" label="Διεύθυνση NAS" icon={Link2} value={values.baseUrl} onChange={v => set('baseUrl', v)} placeholder="http://100.127.38.86:5000" error={fieldErrors.baseUrl} help="Tailscale IP + θύρα DSM (5000 http / 5001 https)." />
-        <TextField id="syn-root" label="Φάκελος backup" icon={FolderTree} value={values.rootPath} onChange={v => set('rootPath', v)} placeholder="/WWA-Backup" error={fieldErrors.rootPath} help="Κοινόχρηστος φάκελος (και υποφάκελος) στο NAS." />
+        <TextField id="syn-root" label="Φάκελος backup" icon={FolderTree} value={values.rootPath} onChange={v => set('rootPath', v)} placeholder="/backup/WWA-Backup" error={fieldErrors.rootPath} help="/<κοινόχρηστος φάκελος>/<υποφάκελος> — ο υποφάκελος δημιουργείται αυτόματα· η Δοκιμή δείχνει τους διαθέσιμους κοινόχρηστους." />
         <TextField id="syn-user" label="Χρήστης DSM" icon={User} value={values.username} onChange={v => set('username', v)} error={fieldErrors.username} help="Προτείνεται ξεχωριστός χρήστης μόνο για backup, χωρίς 2FA." />
         <SecretField id="syn-pass" label="Κωδικός" icon={KeyRound} value={values.password} onChange={v => set('password', v)} maskedHint={maskedHint} error={fieldErrors.password} />
       </div>

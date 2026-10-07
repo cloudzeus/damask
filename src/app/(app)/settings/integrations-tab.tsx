@@ -141,7 +141,7 @@ export async function IntegrationsTab() {
         initial={{
           baseUrl: str(synology.baseUrl) || 'http://100.127.38.86:5000',
           username: str(synology.username),
-          rootPath: str(synology.rootPath) || '/WWA-Backup',
+          rootPath: str(synology.rootPath),
           allowSelfSigned: str(synology.allowSelfSigned) === '1' ? '1' : '0',
           enabled: str(synology.enabled) === '0' ? '0' : '1',
         }}

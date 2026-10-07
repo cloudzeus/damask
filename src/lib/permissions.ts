@@ -69,6 +69,7 @@ const PERMISSION_GROUP_LABELS: Record<string, string> = {
   sync: 'Διαχείριση',
   user: 'Διαχείριση',
   settings: 'Διαχείριση',
+  files: 'Διαχείριση',
   cms: 'Διαχείριση',
   costs: 'Διαχείριση',
   mail: 'Διαχείριση',

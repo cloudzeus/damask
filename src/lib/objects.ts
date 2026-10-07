@@ -4,7 +4,7 @@ import {
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
   Cookie, CreditCard, ScanText, Coins, FileText, Landmark, FolderKanban,
   MapPin, Tags, MailCheck, UserPlus, Activity, Mails, UsersRound, Gauge,
-  Sparkles, FileCheck,
+  Sparkles, FileCheck, HardDrive,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -140,6 +140,9 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     { key: 'settings', href: '/settings', label: 'Ρυθμίσεις', icon: Settings, menuPermission: 'settings.manage', core: true, permissions: [
       { key: 'settings.manage', description: 'Ρυθμίσεις συστήματος' },
       { key: 'sync.run', description: 'Εκτέλεση sync με SoftOne' },
+    ] },
+    { key: 'files', href: '/files', label: 'Αρχεία & Backup', icon: HardDrive, menuPermission: 'files.manage', core: true, permissions: [
+      { key: 'files.manage', description: 'Κεντρική διαχείριση αρχείων, χώρος, backup στο Synology NAS & επαναφορά' },
     ] },
     { key: 'document-types', href: '/document-types', label: 'Τύποι Δικαιολογητικών', icon: FileCheck, menuPermission: 'doctype.manage', core: true, permissions: [
       { key: 'doctype.manage', description: 'Διαχείριση τύπων δικαιολογητικών (όνομα/λήξη/σάρωση + σύνδεση Οδηγού Εντύπων)' },

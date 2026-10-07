@@ -26,6 +26,8 @@ export const QUEUE_S1_REF_SYNC = 's1-ref-sync'
  * no-op αν δεν έχει ρυθμιστεί Mailgun) και καταγράφει ReminderLog (idempotent —
  * ένα SENT/ημέρα/χρήστη). */
 export const QUEUE_PM_REMINDERS = 'pm-reminders'
+/** Νυχτερινό incremental backup αρχείων στο Synology NAS (src/lib/nas/backup.ts). */
+export const QUEUE_NAS_BACKUP = 'nas-backup'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
 
@@ -112,6 +114,19 @@ export async function startQueue(): Promise<void> {
     catch (err) { console.error('[pg-boss] doc-expiry dispatcher απέτυχε', err) }
   })
   await boss.schedule(QUEUE_PM_REMINDERS, '0 8 * * *', null, { tz: 'Europe/Athens' })
+
+  await boss.createQueue(QUEUE_NAS_BACKUP)
+  await boss.work(QUEUE_NAS_BACKUP, async () => {
+    try {
+      const { runNasBackup } = await import('@/lib/nas/backup')
+      const r = await runNasBackup({ trigger: 'cron' })
+      if (r.skipped) console.log('[pg-boss] nas-backup:', r.skipped)
+    } catch (err) {
+      console.error('[pg-boss] nas-backup απέτυχε', err) // never rethrow — scheduled tick, ιστορικό στο NasBackupRun
+    }
+  })
+  // Κάθε βράδυ 02:00 Ελλάδα — πριν το backup βάσης (03:30), το οποίο πιάνεται την επόμενη νύχτα.
+  await boss.schedule(QUEUE_NAS_BACKUP, '0 2 * * *', null, { tz: 'Europe/Athens' })
 
   console.log('[pg-boss] started')
 }
