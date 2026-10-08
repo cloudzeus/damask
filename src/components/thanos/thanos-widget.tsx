@@ -21,6 +21,8 @@ type Status = Awaited<ReturnType<typeof thanosStatus>>
 const STORE = 'thanos:chat'
 const VOICE = 'thanos:voice'
 const VOICE_LIMIT = 'thanos:voice-limit'
+/** 0 δείγματα — αρκεί για να «ξεκλειδώσει» ο ήχος μέσα σε κλικ του χρήστη. */
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
 
 function pageFromPath(path: string): PageContext {
   const app = path.match(/^\/programs\/([^/]+)\/applications\/([^/]+)/)
@@ -81,6 +83,14 @@ function RichText({ text }: { text: string }) {
   })}</>
 }
 
+/** Παίζει url στο (μόνιμο) audio στοιχείο· false αν ο browser το μπλόκαρε. */
+async function playUrl(a: HTMLAudioElement, url: string, onEnd?: () => void): Promise<boolean> {
+  a.pause()
+  a.src = url
+  a.onended = () => { if (url.startsWith('blob:')) URL.revokeObjectURL(url); onEnd?.() }
+  try { await a.play(); return true } catch { return false }
+}
+
 const plain = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^#{1,4}\s+/gm, '')
 
 export function ThanosWidget({ firstName }: { firstName?: string }) {
@@ -97,6 +107,9 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
   const [voiceLimited, setVoiceLimited] = useState(false)
   const recRef = useRef<MediaRecorder | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const speakSeq = useRef(0)
+  const [speaking, setSpeaking] = useState<string | null>(null)
+  const [audioBlocked, setAudioBlocked] = useState(false)
   const listRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -114,13 +127,25 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
       setMsgs(read('session', STORE, []))
       const limitedToday = read<string | null>('local', VOICE_LIMIT, null) === new Date().toDateString()
       setVoiceLimited(limitedToday)
-      setVoice(!limitedToday && read('local', VOICE, false))
+      setVoice(!limitedToday && read('local', VOICE, true))
     }
     setOpen(true)
   }
 
-  const speak = useCallback(async (text: string) => {
-    if (!voice || !status?.tts) return
+  /**
+   * Ένα ΜΟΝΙΜΟ <audio>, «ξεκλειδωμένο» σε κλικ του χρήστη (Safari/Chrome μπλοκάρουν play() που γίνεται
+   * μετά από αναμονή δικτύου). Μετά, κάθε απάντηση παίζει στο ίδιο στοιχείο χωρίς να μπλοκάρεται.
+   */
+  const unlockAudio = useCallback(() => {
+    if (audioRef.current) return
+    audioRef.current = new Audio()
+    void playUrl(audioRef.current, SILENT_WAV)
+  }, [])
+
+  const speak = useCallback(async (text: string, force = false) => {
+    if ((!voice && !force) || !status?.tts) return
+    const id = ++speakSeq.current
+    setSpeaking(text)
     try {
       const res = await fetch('/api/thanos/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: plain(text) }) })
       if (res.status === 429) {
@@ -129,18 +154,25 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
         write('local', VOICE, false)
         write('local', VOICE_LIMIT, new Date().toDateString())
         setVoiceLimited(true)
+        setSpeaking(null)
         setMsgs(m => [...m, { role: 'assistant', content: 'Ολοκληρώθηκαν τα 2 λεπτά φωνητικής συνομιλίας για σήμερα — από εδώ και πέρα θα σας απαντώ γραπτώς. Η φωνή θα είναι ξανά διαθέσιμη αύριο.' }])
         return
       }
-      if (!res.ok) return
+      if (!res.ok || id !== speakSeq.current) { if (id === speakSeq.current) setSpeaking(null); return }
       const url = URL.createObjectURL(await res.blob())
-      audioRef.current?.pause()
-      const a = new Audio(url)
-      audioRef.current = a
-      a.onended = () => URL.revokeObjectURL(url)
-      void a.play()
-    } catch { /* σιωπηλά — το κείμενο υπάρχει ήδη */ }
+      if (!audioRef.current) audioRef.current = new Audio()
+      const played = await playUrl(audioRef.current, url, () => setSpeaking(s => (s === text ? null : s)))
+      if (!played) { setSpeaking(null); setAudioBlocked(true) }
+    } catch {
+      setSpeaking(null)
+    }
   }, [voice, status?.tts])
+
+  function stopSpeaking() {
+    speakSeq.current++
+    audioRef.current?.pause()
+    setSpeaking(null)
+  }
 
   const send = useCallback(async (text: string) => {
     const message = text.trim()
@@ -188,10 +220,12 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
   }
 
   function toggleVoice() {
+    unlockAudio()
+    setAudioBlocked(false)
     const next = !voice
     setVoice(next)
     write('local', VOICE, next)
-    if (!next) audioRef.current?.pause()
+    if (!next) stopSpeaking()
   }
 
   const updateCard = (id: string, patch: CardPatch) =>
@@ -271,7 +305,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {suggestions.map(s => (
-                    <button key={s} type="button" onClick={() => void send(s)}
+                    <button key={s} type="button" onClick={() => { unlockAudio(); void send(s) }}
                       className="rounded-full border border-border px-3 py-1.5 text-left text-[length:var(--fs-12-5)] hover:border-primary hover:text-primary">
                       {s}
                     </button>
@@ -289,10 +323,21 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
                 )}>
                   <RichText text={m.content} />
                 </div>
+                {m.role === 'assistant' && !m.error && status?.tts && !voiceLimited && (
+                  <button type="button"
+                    onClick={() => { unlockAudio(); setAudioBlocked(false); if (speaking === m.content) stopSpeaking(); else void speak(m.content, true) }}
+                    aria-label={speaking === m.content ? 'Διακοπή ακρόασης' : 'Ακρόαση απάντησης'} title={speaking === m.content ? 'Διακοπή' : 'Ακρόαση'}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+                    {speaking === m.content ? <Square className="size-3.5" /> : <Volume2 className="size-4" />}
+                  </button>
+                )}
                 </div>
                 {m.actions?.map(a => <ActionCard key={a.id} card={a} onChange={patch => updateCard(a.id, patch)} />)}
               </div>
             ))}
+            {audioBlocked && (
+              <p className="text-[length:var(--fs-12)] text-muted-foreground">Ο browser μπλόκαρε την αυτόματη αναπαραγωγή — πατήστε το ηχείο δίπλα στην απάντηση.</p>
+            )}
             {(busy || transcribing) && (
               <div className="flex items-center gap-2 text-[length:var(--fs-12-5)] text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" aria-hidden />{transcribing ? 'Ακούω…' : 'Σκέφτομαι…'}
@@ -302,7 +347,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
 
           <form
             className="flex items-end gap-2 border-t border-border p-3"
-            onSubmit={e => { e.preventDefault(); void send(input) }}
+            onSubmit={e => { e.preventDefault(); unlockAudio(); void send(input) }}
           >
             <textarea
               ref={inputRef}
@@ -310,12 +355,12 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
               value={input}
               disabled={!ready}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(input) } }}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); unlockAudio(); void send(input) } }}
               placeholder={recording ? 'Ηχογράφηση… πατήστε ■ για τέλος' : 'Γράψτε μια ερώτηση…'}
               aria-label="Μήνυμα προς Thanos"
               className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-[length:var(--fs-13-5)] outline-none focus:border-primary"
             />
-            <button type="button" onClick={() => void toggleMic()} disabled={!ready || busy || transcribing}
+            <button type="button" onClick={() => { unlockAudio(); void toggleMic() }} disabled={!ready || busy || transcribing}
               aria-label={recording ? 'Τέλος ηχογράφησης' : 'Φωνητική ερώτηση'}
               className={cn('flex size-11 shrink-0 items-center justify-center rounded-full border border-border disabled:opacity-40',
                 recording ? 'animate-pulse border-destructive bg-destructive text-white' : 'hover:bg-muted')}>
