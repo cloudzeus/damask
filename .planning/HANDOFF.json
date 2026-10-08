@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-08T14:54:18.106Z",
+  "timestamp": "2026-10-08T15:18:54.634Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n89ea76e feat(thanos): AI βοηθός Thanos για χρήστες & πελάτες (portal)\n94705ec chore: ενημέρωση HANDOFF\nf61efa2 chore: ενημέρωση HANDOFF\n7eec5e1 fix(programs): ορατό σφάλμα φόρτωσης/εκκίνησης στις «Ιδέες εφαρμογών»\n25451f1 feat(programs): «Ιδέες εφαρμογών» — τι μπορούμε να αναπτύξουμε ώστε να είναι επιλέξιμη δαπάνη ανά πρόγραμμα"
+  "context_notes": "Recent commits:\n490e687 feat(thanos): DeepSeek απευθείας, φιλικός σύντομος λόγος, επιλογέας ελληνικών φωνών, σωστή εκφώνηση Α.Ε./κεφαλαίων\ned4c0c6 feat(thanos): καλωσόρισμα πελατών (κείμενο + φωνή) με όνομα, πορεία έργων και εκκρεμή δικαιολογητικά\na1d5a5c fix(thanos): η φωνή παίζει (ξεκλείδωμα ήχου σε κλικ, ακρόαση ανά απάντηση, ανοιχτή από προεπιλογή)· πιο ανθρώπινος λόγος\n74a22b5 fix(thanos): ASCII header X-Title στο OpenRouter (το em dash έσπαγε το fetch)\n1d2d403 chore: ενημέρωση HANDOFF"
 }
