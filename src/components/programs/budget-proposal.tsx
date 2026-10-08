@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { ExpenseEligibilityPanel } from './expense-eligibility-panel'
+import { ExpenseDossierButton } from './expense-dossier-button'
 import {
   LuPlus, LuLoaderCircle, LuPrinter, LuUpload, LuFileCheck2, LuTriangleAlert, LuSearch, LuCircleCheck, LuSparkles, LuArrowRightLeft, LuChevronRight, LuEllipsisVertical, LuScanText,
 } from 'react-icons/lu'
@@ -93,6 +94,7 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
           <Button type="button" variant="outline" onClick={() => { if (!openProposal(data)) toast.error('Επίτρεψε τα popups.') }}>
             <LuPrinter className="size-3.5" aria-hidden /> Εκτύπωση πρότασης
           </Button>
+          <ExpenseDossierButton applicationId={applicationId} />
         </div>
       </div>
 

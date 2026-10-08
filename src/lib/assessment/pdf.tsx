@@ -10,7 +10,7 @@ import type { CompanyProfile } from './company-profile'
 
 const FONT_DIR = path.join(process.cwd(), 'public', 'fonts', 'pdf')
 let fontsReady = false
-function ensureFonts() {
+export function ensureFonts() {
   if (fontsReady) return
   Font.register({
     family: 'Roboto',
@@ -33,7 +33,7 @@ function ensureFonts() {
   fontsReady = true
 }
 
-const C = {
+export const C = {
   navy: '#001B72', navy950: '#000022', navy50: '#EEF1FA', navy200: '#B9C4E6', cyan: '#34C8F6',
   ink: '#0B0F2A', fg2: '#474C60', muted: '#666C80', rule: '#DFE2EA', canvas: '#F6F7FA',
   ok: '#117235', okBg: '#E1F3E7', warn: '#8F4B00', warnBg: '#FBEEDC', bad: '#B3261E', badBg: '#FBE4E2', info: '#001B72', infoBg: '#E7EBF7',

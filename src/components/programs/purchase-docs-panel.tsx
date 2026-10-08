@@ -9,6 +9,7 @@ import { OcrUploader } from '@/components/ocr/ocr-uploader'
 import type { ExtractedDocument } from '@/lib/ocr/schema'
 import { ComposeEmailDialog } from '@/components/email/compose-email-dialog'
 import { ExpenseEligibilityPanel } from './expense-eligibility-panel'
+import { ExpenseDossierButton } from './expense-dossier-button'
 import { evaluateExpenseEligibility } from '@/lib/programs/expense-proposal'
 import {
   listExpensePurchases, savePurchaseMeta, uploadPurchaseDoc, removePurchaseDoc, reconcileExpensePurchase, saveInvoiceOcr, draftDocRequestEmail,
@@ -55,7 +56,10 @@ export function PurchaseDocsPanel({ applicationId }: { applicationId: string }) 
 
   return (
     <section className="glass rounded-[22px] p-4">
-      <div className="dotted-leader mb-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Στοιχεία αγορών & τεκμηρίωση</div>
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">Στοιχεία αγορών & τεκμηρίωση</div>
+        <ExpenseDossierButton applicationId={applicationId} />
+      </div>
       <p className="mb-3 text-[length:var(--fs-11-5)] text-muted-foreground">Για κάθε εγκεκριμένη δαπάνη ανέβασε <strong>παραστατικό</strong>, <strong>extrait τράπεζας</strong> και <strong>βεβαίωση προμηθευτή</strong>, καταχώρισε το πληρωμένο ποσό/serial, και τρέξε την <strong>AI διασταύρωση</strong> πριν το αίτημα αποπληρωμής.</p>
       {items.length === 0 ? (
         <p className="py-2 text-[length:var(--fs-12)] text-muted-foreground">Δεν υπάρχουν δαπάνες προς υλοποίηση.</p>
