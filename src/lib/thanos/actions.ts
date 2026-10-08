@@ -5,8 +5,7 @@ import { deliverCustomerEmail } from '@/lib/email/deliver'
 import { openrouterTranscribe } from '@/lib/openrouter'
 import { isTtsConfigured, getVoiceSpeed } from '@/lib/voice/elevenlabs'
 import { getIntegration } from '@/lib/settings'
-import { resolveThanosContext, can, type PageContext } from './context'
-import { runThanos, type ChatTurn, type ThanosReply } from './agent'
+import { resolveThanosContext, can } from './context'
 import { rateTurn } from './learning'
 import type { ActionPayload } from './tools'
 import { executeOperation, type OperationPayload } from './operations'
@@ -60,20 +59,6 @@ async function customerWelcome(name: string, company: string, applicationIds: st
   }
   parts.push('Μπορείτε επίσης να με ρωτήσετε αν μια δαπάνη που σκέφτεστε μπορεί να χρηματοδοτηθεί, ή ποια προγράμματα είναι ανοιχτά αυτή την περίοδο. Γράψτε μου ή πατήστε το μικρόφωνο και μιλήστε μου — ό,τι σας βολεύει.')
   return parts.join(' ')
-}
-
-export async function thanosChat(input: { history: ChatTurn[]; message: string; page?: PageContext; conversationId?: string }): Promise<Res<ThanosReply>> {
-  const ctx = await resolveThanosContext()
-  if (!ctx) return { ok: false, error: 'Δεν είστε συνδεδεμένοι.' }
-  const message = input.message?.trim()
-  if (!message) return { ok: false, error: 'Κενό μήνυμα.' }
-  try {
-    const history = (Array.isArray(input.history) ? input.history : [])
-      .filter(h => (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string')
-    return { ok: true, data: await runThanos(ctx, history, message, input.page, input.conversationId) }
-  } catch (err) {
-    return { ok: false, error: errMsg(err) }
-  }
 }
 
 export async function thanosTranscribe(audioBase64: string, format: string): Promise<Res<string>> {

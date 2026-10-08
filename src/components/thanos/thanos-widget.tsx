@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Check, Loader2, Mic, Send, Square, ThumbsDown, ThumbsUp, Trash2, Volume2, VolumeX, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { thanosChat, thanosStatus, thanosTranscribe, executeThanosAction, cancelThanosAction, rateThanosTurn } from '@/lib/thanos/actions'
-import type { ThanosActionCard } from '@/lib/thanos/agent'
+import { thanosStatus, thanosTranscribe, executeThanosAction, cancelThanosAction, rateThanosTurn } from '@/lib/thanos/actions'
+import type { ThanosActionCard, ThanosEvent, ThanosReply } from '@/lib/thanos/agent'
 import type { PageContext } from '@/lib/thanos/context'
 
 /**
@@ -136,6 +136,9 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  /** Ροή: τι κάνει τώρα ο Thanos + το κείμενο που γράφεται. */
+  const [liveStatus, setLiveStatus] = useState<string | null>(null)
+  const [liveText, setLiveText] = useState('')
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
   const [voice, setVoice] = useState(false)
@@ -151,7 +154,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
   const hydrated = useRef(false)
 
   useEffect(() => { if (hydrated.current) write('session', STORE, msgs.slice(-40)) }, [msgs])
-  useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }) }, [msgs, busy])
+  useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }) }, [msgs, busy, liveText, liveStatus])
   useEffect(() => { if (open) inputRef.current?.focus() }, [open])
 
   // Η συζήτηση (ανά tab) και η προτίμηση φωνής φορτώνονται με το πρώτο άνοιγμα.
@@ -244,11 +247,44 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
     setBusy(true)
     let conversationId = read<string | null>('session', CONVERSATION, null)
     if (!conversationId || msgs.length === 0) { conversationId = crypto.randomUUID(); write('session', CONVERSATION, conversationId) }
-    const res = await thanosChat({ history, message, page, conversationId }).catch(e => ({ ok: false as const, error: String(e) }))
+    setLiveStatus('Σκέφτομαι…')
+    setLiveText('')
+    let final: ThanosReply | null = null
+    let error: string | null = null
+    try {
+      // Ροή NDJSON: status → (delta…) → done. Το κείμενο γράφεται καθώς παράγεται.
+      const res = await fetch('/api/thanos/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ history, message, page, conversationId }) })
+      if (!res.ok || !res.body) throw new Error(res.status === 401 ? 'Δεν είστε συνδεδεμένοι.' : 'Ο Thanos δεν απάντησε — δοκιμάστε ξανά.')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        let nl: number
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim()
+          buf = buf.slice(nl + 1)
+          if (!line) continue
+          const e = JSON.parse(line) as ThanosEvent
+          if (e.type === 'status') { setLiveStatus(e.text); setLiveText('') }
+          else if (e.type === 'delta') setLiveText(t => t + e.text)
+          else if (e.type === 'reset') setLiveText('')
+          else if (e.type === 'done') final = e.data
+          else if (e.type === 'error') error = e.error
+        }
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err)
+    }
     setBusy(false)
-    if (!res.ok) { setMsgs(m => [...m, { role: 'assistant', content: res.error, error: true }]); return }
-    setMsgs(m => [...m, { role: 'assistant', content: res.data.reply, speech: res.data.speech, actions: res.data.actions, turnId: res.data.turnId }])
-    void speak(res.data.speech)
+    setLiveText('')
+    setLiveStatus(null)
+    if (!final) { setMsgs(m => [...m, { role: 'assistant', content: error ?? 'Ο Thanos δεν απάντησε — δοκιμάστε ξανά.', error: true }]); return }
+    const reply: ThanosReply = final
+    setMsgs(m => [...m, { role: 'assistant', content: reply.reply, speech: reply.speech, actions: reply.actions, turnId: reply.turnId }])
+    void speak(reply.speech)
   }, [busy, msgs, page, speak])
 
   async function toggleMic() {
@@ -404,9 +440,21 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
             {audioBlocked && (
               <p className="text-[length:var(--fs-12)] text-muted-foreground">Ο browser μπλόκαρε την αυτόματη αναπαραγωγή — πατήστε το ηχείο δίπλα στην απάντηση.</p>
             )}
-            {(busy || transcribing) && (
-              <div className="flex items-center gap-2 text-[length:var(--fs-12-5)] text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" aria-hidden />{transcribing ? 'Ακούω…' : 'Σκέφτομαι…'}
+            {busy && liveText && (
+              <div className="flex items-end gap-2">
+                <Avatar className="size-7 shrink-0" />
+                <div className="max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-bl-md bg-muted px-3.5 py-2.5 text-[length:var(--fs-15)] font-medium leading-relaxed">
+                  <RichText text={liveText} /><span className="ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse bg-foreground/60 motion-reduce:animate-none" aria-hidden />
+                </div>
+              </div>
+            )}
+            {((busy && !liveText) || transcribing) && (
+              <div className="flex items-center gap-2 text-[length:var(--fs-13)] text-muted-foreground" role="status">
+                <Avatar className="size-7 shrink-0" />
+                <span className="flex items-center gap-2 rounded-full bg-muted px-3 py-1.5">
+                  <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+                  <span className="animate-pulse motion-reduce:animate-none">{transcribing ? 'Ακούω…' : liveStatus ?? 'Σκέφτομαι…'}</span>
+                </span>
               </div>
             )}
           </div>

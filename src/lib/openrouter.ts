@@ -59,47 +59,99 @@ export const DEEPSEEK_DIRECT_MODEL = 'deepseek-v4-pro'
  * Δρομολόγηση: αν στις Ρυθμίσεις δεν έχει οριστεί μοντέλο OpenRouter ΚΑΙ υπάρχει κλειδί DeepSeek → απευθείας DeepSeek
  * (χαμηλό reasoning για ταχύτητα)· αλλιώς OpenRouter με το μοντέλο των ρυθμίσεων.
  */
-export async function openrouterChat(messages: ORMessage[], opts: { tools?: ORTool[]; userId?: string | null; refType?: string; maxTokens?: number } = {}) {
+export async function openrouterChat(
+  messages: ORMessage[],
+  opts: { tools?: ORTool[]; userId?: string | null; refType?: string; maxTokens?: number; onDelta?: (text: string) => void } = {},
+) {
   const or = await getIntegration<OpenRouterConfig>('openrouter')
   const direct = or.chatModel?.trim() ? null : await deepseekDirect()
   const t0 = Date.now()
-  let json: Awaited<ReturnType<typeof call>>
+  let url: string
+  let headers: Record<string, string>
   let provider: string
   let model: string
+  let extra: Record<string, unknown> = {}
   if (direct) {
-    provider = 'deepseek'
-    model = DEEPSEEK_DIRECT_MODEL
-    const res = await fetch(direct.apiUrl, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${direct.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model, messages, reasoning_effort: 'low',
-        ...(opts.tools?.length ? { tools: opts.tools, tool_choice: 'auto' } : {}),
-        max_tokens: opts.maxTokens ?? 3000, temperature: 0.5,
-      }),
-      signal: AbortSignal.timeout(120_000),
-    })
-    const j = await res.json().catch(() => null) as Record<string, unknown> | null
-    if (!res.ok) throw new Error(`DeepSeek: ${(j?.error as { message?: string } | undefined)?.message ?? `HTTP ${res.status}`}`)
-    json = j as typeof json
+    provider = 'deepseek'; model = DEEPSEEK_DIRECT_MODEL; url = direct.apiUrl
+    headers = { Authorization: `Bearer ${direct.apiKey}`, 'Content-Type': 'application/json' }
+    extra = { reasoning_effort: 'low' }
   } else {
     const c = await cfg()
-    provider = 'openrouter'
-    model = c.chatModel
-    json = await call(c.apiKey, {
-      model, messages,
-      ...(opts.tools?.length ? { tools: opts.tools, tool_choice: 'auto' } : {}),
-      max_tokens: opts.maxTokens ?? 3000,
-      temperature: 0.5,
-    })
+    provider = 'openrouter'; model = c.chatModel; url = `${OPENROUTER_BASE}/chat/completions`
+    headers = { Authorization: `Bearer ${c.apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': process.env.AUTH_URL ?? 'https://wwa.gr', 'X-Title': 'WWA Thanos' }
   }
-  const choice = json.choices?.[0]
+  const res = await fetch(url, {
+    method: 'POST', headers,
+    body: JSON.stringify({
+      model, messages, ...extra,
+      ...(opts.tools?.length ? { tools: opts.tools, tool_choice: 'auto' } : {}),
+      max_tokens: opts.maxTokens ?? 3000, temperature: 0.5,
+      stream: true, stream_options: { include_usage: true },
+    }),
+    signal: AbortSignal.timeout(120_000),
+  })
+  if (!res.ok || !res.body) {
+    const j = await res.json().catch(() => null) as { error?: { message?: string } } | null
+    throw new Error(`${provider === 'deepseek' ? 'DeepSeek' : 'OpenRouter'}: ${j?.error?.message ?? `HTTP ${res.status}`}`)
+  }
+
+  // SSE (OpenAI-compatible): συναρμολόγηση κειμένου, reasoning και tool_calls (ανά index) από τα deltas.
+  let content = ''
+  let reasoning = ''
+  let finishReason: string | null = null
+  let usedModel = model
+  let usage: { prompt_tokens?: number; completion_tokens?: number } | undefined
+  const calls: { id: string; type: 'function'; function: { name: string; arguments: string } }[] = []
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buf = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += decoder.decode(value, { stream: true })
+    let nl: number
+    while ((nl = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, nl).trim()
+      buf = buf.slice(nl + 1)
+      if (!line.startsWith('data:')) continue // σχόλια keep-alive («: OPENROUTER PROCESSING»)
+      const data = line.slice(5).trim()
+      if (data === '[DONE]') continue
+      let chunk: {
+        model?: string; usage?: typeof usage
+        choices?: { delta?: { content?: string | null; reasoning_content?: string | null; tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[] }; finish_reason?: string | null }[]
+      }
+      try { chunk = JSON.parse(data) } catch { continue }
+      if (chunk.model) usedModel = chunk.model
+      if (chunk.usage) usage = chunk.usage
+      const ch = chunk.choices?.[0]
+      if (!ch) continue
+      if (ch.finish_reason) finishReason = ch.finish_reason
+      const d = ch.delta
+      if (d?.reasoning_content) reasoning += d.reasoning_content
+      if (d?.content) { content += d.content; opts.onDelta?.(d.content) }
+      for (const tc of d?.tool_calls ?? []) {
+        const cur = calls[tc.index] ?? (calls[tc.index] = { id: '', type: 'function', function: { name: '', arguments: '' } })
+        if (tc.id) cur.id = tc.id
+        if (tc.function?.name) cur.function.name += tc.function.name
+        if (tc.function?.arguments) cur.function.arguments += tc.function.arguments
+      }
+    }
+  }
   void logAiUsage({
-    provider, model: json.model ?? model, scope: 'OTHER', operation: 'chat',
-    inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens,
+    provider, model: usedModel, scope: 'OTHER', operation: 'chat',
+    inputTokens: usage?.prompt_tokens, outputTokens: usage?.completion_tokens,
     durationMs: Date.now() - t0, refType: opts.refType ?? 'thanos', userId: opts.userId ?? null,
   }).catch(() => {})
-  return { message: choice?.message ?? { content: '' }, model: json.model ?? model, finishReason: choice?.finish_reason ?? null }
+  const toolCalls = calls.filter(Boolean)
+  return {
+    message: {
+      content: content || null,
+      ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
+      ...(reasoning ? { reasoning_content: reasoning } : {}),
+    } as { content: string | null; tool_calls?: ORToolCall[]; reasoning_content?: string },
+    model: usedModel,
+    finishReason,
+  }
 }
 
 /** Speech-to-text: ηχογράφηση (base64) → κείμενο, μέσω μοντέλου με audio input. */

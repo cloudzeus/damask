@@ -27,6 +27,43 @@ export type ThanosReply = {
 }
 type LoopResult = Omit<ThanosReply, 'speech' | 'turnId'> & { tools: string[]; programId: string | null }
 
+/** Γεγονότα ροής (streaming) προς το widget. */
+export type ThanosEvent =
+  | { type: 'status'; text: string }
+  | { type: 'delta'; text: string }
+  | { type: 'reset' }
+  | { type: 'done'; data: ThanosReply }
+  | { type: 'error'; error: string }
+type Emit = (e: ThanosEvent) => void
+
+/** Τι κάνει ο Thanos αυτή τη στιγμή — ανθρώπινη ένδειξη ανά εργαλείο. */
+async function statusFor(name: string, args: Record<string, unknown>): Promise<string> {
+  const programTitle = async () => {
+    if (typeof args.programId !== 'string') return null
+    const p = await prisma.program.findUnique({ where: { id: args.programId }, select: { title: true } }).catch(() => null)
+    if (!p) return null
+    // Σύντομο όνομα: κωδικός σε παρένθεση (π.χ. «STEP») ή κοπή σε ολόκληρη λέξη.
+    const code = p.title.match(/\(([A-Za-zΑ-Ωα-ω0-9.\- ]{2,15})\)/)?.[1]
+    if (code) return code
+    if (p.title.length <= 45) return p.title
+    return `${p.title.slice(0, 45).replace(/\s+\S*$/, '')}…`
+  }
+  switch (name) {
+    case 'program_question': { const t = await programTitle(); return t ? `Διαβάζω τον οδηγό του «${t}»…` : 'Διαβάζω τον οδηγό του προγράμματος…' }
+    case 'check_expense': { const t = await programTitle(); return t ? `Ελέγχω τη δαπάνη στον οδηγό του «${t}»…` : 'Ελέγχω τη δαπάνη στον οδηγό…' }
+    case 'list_open_programs': return 'Βλέπω τα ανοιχτά προγράμματα…'
+    case 'my_programs': return 'Κοιτάζω τα έργα σας…'
+    case 'find_customer': return 'Ψάχνω τον πελάτη…'
+    case 'customer_overview': return 'Ανοίγω την καρτέλα του πελάτη…'
+    case 'application_details': return 'Κοιτάζω το έργο…'
+    case 'program_gaps': return 'Μαζεύω τις ελλείψεις των πελατών…'
+    case 'app_help': return 'Ψάχνω στον οδηγό χρήσης…'
+    case 'prepare_accountant_link': return 'Ετοιμάζω το email για τον λογιστή…'
+    case 'prepare_document_request': return 'Ετοιμάζω το αίτημα δικαιολογητικών…'
+    default: return name.startsWith('prepare_op_') ? 'Ετοιμάζω την ενέργεια…' : 'Δουλεύω…'
+  }
+}
+
 /**
  * Κείμενο → εκφώνηση. Με ενέργειες: μόνο η εισαγωγική πρόταση (π.χ. «Ετοίμασα το email για τον λογιστή σας…»),
  * όχι η λίστα δικαιολογητικών. Χωρίς ενέργειες: όλο το κείμενο εκτός από γραμμές-λίστας όταν είναι πολλές.
@@ -111,13 +148,13 @@ function systemPrompt(ctx: ThanosContext, pageNote: string): string {
   return [...common, ...role, pageNote].filter(Boolean).join('\n')
 }
 
-export async function runThanos(ctx: ThanosContext, history: ChatTurn[], message: string, page?: PageContext, conversationId?: string | null): Promise<ThanosReply> {
-  const r = await runLoop(ctx, history, message, page)
+export async function runThanos(ctx: ThanosContext, history: ChatTurn[], message: string, page?: PageContext, conversationId?: string | null, emit?: Emit): Promise<ThanosReply> {
+  const r = await runLoop(ctx, history, message, page, emit ?? (() => {}))
   const turnId = await recordTurn(ctx, { conversationId, question: message, reply: r.reply, toolsUsed: r.tools, programId: r.programId, model: r.model, cached: r.cached })
   return { reply: r.reply, speech: speechFor(r.reply, r.actions.length > 0), actions: r.actions, model: r.model, cached: r.cached, turnId }
 }
 
-async function runLoop(ctx: ThanosContext, history: ChatTurn[], message: string, page?: PageContext): Promise<LoopResult> {
+async function runLoop(ctx: ThanosContext, history: ChatTurn[], message: string, page: PageContext | undefined, emit: Emit): Promise<LoopResult> {
   // Συνηθισμένη ερώτηση στην αρχή συζήτησης → από την cache (χωρίς κλήση AI).
   const fresh = history.length === 0
   if (fresh) {
@@ -140,7 +177,11 @@ async function runLoop(ctx: ThanosContext, history: ChatTurn[], message: string,
 
   for (let step = 0; step < MAX_STEPS; step++) {
     const last = step === MAX_STEPS - 1
-    const res = await openrouterChat(messages, { tools: last ? undefined : tools.map(t => t.tool), userId: ctx.userId, refType: 'thanos' })
+    let streamed = false
+    const res = await openrouterChat(messages, {
+      tools: last ? undefined : tools.map(t => t.tool), userId: ctx.userId, refType: 'thanos',
+      onDelta: text => { streamed = true; emit({ type: 'delta', text }) },
+    })
     model = res.model
     const calls = res.message.tool_calls ?? []
     if (!calls.length) {
@@ -150,6 +191,7 @@ async function runLoop(ctx: ThanosContext, history: ChatTurn[], message: string,
       return { reply, actions: await loadCards(actionIds), model, tools: [...usedTools], programId }
     }
     // Το DeepSeek (thinking) θέλει πίσω το reasoning_content του ίδιου γύρου μαζί με τα tool_calls.
+    if (streamed) emit({ type: 'reset' }) // έγραψε κείμενο αλλά τελικά καλεί εργαλείο — καθάρισε το προσωρινό
     messages.push({ role: 'assistant', content: res.message.content ?? null, tool_calls: calls, ...(res.message.reasoning_content ? { reasoning_content: res.message.reasoning_content } : {}) })
     for (const c of calls) {
       usedTools.add(c.function.name)
@@ -160,6 +202,7 @@ async function runLoop(ctx: ThanosContext, history: ChatTurn[], message: string,
         try {
           const args = c.function.arguments ? JSON.parse(c.function.arguments) as Record<string, unknown> : {}
           if (typeof args.programId === 'string' && args.programId) programId = args.programId
+          emit({ type: 'status', text: await statusFor(c.function.name, args) })
           out = await def.run(ctx, args)
         } catch (err) {
           out = { error: err instanceof Error ? err.message : String(err) }
