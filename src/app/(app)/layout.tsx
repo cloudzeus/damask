@@ -5,6 +5,7 @@ import { Topbar } from '@/components/shell/topbar'
 import { PageTransition } from '@/components/shell/page-transition'
 import { MobileNavProvider } from '@/components/shell/mobile-nav'
 import { getEnabledObjectKeys } from '@/lib/objects-server'
+import { ThanosWidget } from '@/components/thanos/thanos-widget'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -37,6 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </div>
+      <ThanosWidget firstName={session.user.name?.split(' ')[0]} />
     </MobileNavProvider>
   )
 }

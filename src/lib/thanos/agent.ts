@@ -1,0 +1,121 @@
+import { prisma } from '@/lib/prisma'
+import { openrouterChat, type ORMessage } from '@/lib/openrouter'
+import { toolsFor, type ActionPayload } from './tools'
+import type { PageContext, ThanosContext } from './context'
+import type { OperationPayload } from './operations'
+import { CACHEABLE_TOOLS, getCachedAnswer, putCachedAnswer } from './cache'
+
+/**
+ * (Plain module.) Ο βρόχος του Thanos: μήνυμα χρήστη → μοντέλο (OpenRouter) → εργαλεία → απάντηση.
+ * Οι ενέργειες (prepare_*) επιστρέφονται ως κάρτες προεπισκόπησης — η αποστολή γίνεται ΜΟΝΟ με «Αποστολή».
+ */
+
+export type ChatTurn = { role: 'user' | 'assistant'; content: string }
+export type ThanosActionCard =
+  | { id: string; kind: 'DOC_REQUEST' | 'ACCOUNTANT_LINK'; status: string; payload: ActionPayload }
+  | { id: string; kind: 'OPERATION'; status: string; payload: OperationPayload }
+export type ThanosReply = { reply: string; actions: ThanosActionCard[]; model: string | null; cached?: boolean }
+
+const MAX_STEPS = 6
+const HISTORY_TURNS = 12
+
+async function describePage(ctx: ThanosContext, page: PageContext | undefined): Promise<string> {
+  if (!page) return ''
+  const bits: string[] = []
+  if (page.applicationId && (ctx.mode === 'STAFF' || ctx.applicationIds.includes(page.applicationId))) {
+    const a = await prisma.programApplication.findUnique({ where: { id: page.applicationId }, select: { id: true, trdr: { select: { NAME: true } }, program: { select: { id: true, title: true } } } })
+    if (a) bits.push(`έργο applicationId=${a.id} (πελάτης «${a.trdr.NAME}», πρόγραμμα «${a.program.title}» programId=${a.program.id})`)
+  } else if (page.programId) {
+    const p = await prisma.program.findUnique({ where: { id: page.programId }, select: { id: true, title: true } })
+    if (p) bits.push(`πρόγραμμα «${p.title}» programId=${p.id}`)
+  }
+  if (ctx.mode === 'STAFF' && page.trdrId && !page.applicationId) {
+    const t = await prisma.trdr.findUnique({ where: { id: page.trdrId }, select: { id: true, NAME: true } })
+    if (t) bits.push(`καρτέλα πελάτη «${t.NAME}» trdrId=${t.id}`)
+  }
+  return bits.length ? `Ο χρήστης βλέπει αυτή τη στιγμή: ${bits.join('· ')}. Όταν λέει «αυτό/αυτός/εδώ», εννοεί αυτά.` : ''
+}
+
+function systemPrompt(ctx: ThanosContext, pageNote: string): string {
+  const today = new Date().toISOString().slice(0, 10)
+  const common = [
+    'Είσαι ο Thanos, ο ψηφιακός σύμβουλος της World Wide Associates (WWA) για προγράμματα ΕΣΠΑ και επιδοτήσεις.',
+    `Σήμερα: ${today}. Μιλάς ελληνικά, σύντομα και συγκεκριμένα (2-6 προτάσεις ή σύντομη λίστα). Χωρίς markdown πινάκων.`,
+    'ΠΟΤΕ μην επινοείς κανόνες προγράμματος: για επιλεξιμότητα/δαπάνες/προθεσμίες ΧΡΗΣΙΜΟΠΟΙΗΣΕ τα εργαλεία program_question / check_expense, και πες από πού προκύπτει (οδηγός/ενότητα). Αν δεν ξέρεις το programId, βρες το πρώτα (list_open_programs).',
+    'Τα εργαλεία prepare_* ΔΕΝ στέλνουν: ετοιμάζουν προεπισκόπηση. Μετά πες στον χρήστη να ελέγξει την κάρτα και να πατήσει «Αποστολή». ΜΗΝ λες ποτέ ότι κάτι στάλθηκε.',
+    'Μην εμφανίζεις εσωτερικά IDs στον χρήστη — μόνο ονόματα.',
+    'ΘΕΜΑΤΙΚΟ ΠΕΔΙΟ (αυστηρό): απαντάς ΜΟΝΟ για (α) ευρωπαϊκά/εθνικά προγράμματα χρηματοδότησης (ΕΣΠΑ, επιδοτήσεις, επιλεξιμότητα, δαπάνες, δικαιολογητικά), (β) την εφαρμογή WWA και τα δεδομένα της, (γ) τα έργα/πελάτες, και (δ) ΣΧΕΤΙΚΕΣ πρακτικές ερωτήσεις που εξυπηρετούν τα παραπάνω — π.χ. από πού βγαίνει το Ε3/Ε1/ΕΜΕ/φορολογική-ασφαλιστική ενημερότητα/πιστοποιητικό ΓΕΜΗ (TaxisNet/myAADE, e-ΕΦΚΑ, ΓΕΜΗ, λογιστής), τι είναι ένας ΚΑΔ, de minimis κ.λπ.',
+    'Για ΟΤΙΔΗΠΟΤΕ άσχετο (γενικές γνώσεις, κώδικας, συνταγές, πολιτική, αθλητικά, μεταφράσεις, ψυχαγωγία κ.λπ.) απάντα ΜΟΝΟ με μία πρόταση: «Μπορώ να βοηθήσω μόνο με προγράμματα χρηματοδότησης και την εφαρμογή της WWA.» — χωρίς εργαλεία, χωρίς επιπλέον κείμενο.',
+    'Τηλέφωνα και μεγάλοι αριθμοί-κωδικοί (ΑΦΜ, ΓΕΜΗ) γράφονται σε ομάδες των 3 ψηφίων (π.χ. «694 096 0701», «210 721 8758», ΑΦΜ «094 183 948») — ποτέ ως ένας ενιαίος αριθμός.',
+  ]
+  const role = ctx.mode === 'CUSTOMER'
+    ? [
+        `Μιλάς με ${ctx.name}, εκπρόσωπο της επιχείρησης «${ctx.companyName}» (πελάτης μας, μέσω του portal).`,
+        'Βοηθάς με: την πορεία των έργων της (my_programs), τα ενεργά προγράμματα και αν ταιριάζουν, αν μια δαπάνη που σκέφτεται είναι επιλέξιμη, και αποστολή ασφαλούς συνδέσμου στον λογιστή της για να ανεβάσει δικαιολογητικά (prepare_accountant_link).',
+        'Δεν βλέπεις και δεν συζητάς άλλους πελάτες. Για ζητήματα σύμβασης/αμοιβών παραπέμπεις στον σύμβουλό τους στη WWA. Μην υπόσχεσαι έγκριση — μιλάς για πιθανότητες και προϋποθέσεις.',
+      ]
+    : [
+        `Μιλάς με ${ctx.name}, σύμβουλο/χρήστη της WWA. Μπορείς να είσαι τεχνικός και αναλυτικός.`,
+        'Βοηθάς με: ερωτήσεις πάνω στους οδηγούς των προγραμμάτων, επιλεξιμότητα δαπανών, εικόνα πελάτη (customer_overview / application_details), ελλείψεις πελατών ανά πρόγραμμα (program_gaps) και αιτήματα δικαιολογητικών με email προς πελάτες (prepare_document_request — μία κλήση ανά έργο, ακόμα και για πολλούς πελάτες).',
+        'Για «πώς κάνω… / πού βρίσκεται… / τι σημαίνει…» στην εφαρμογή, ψάξε ΠΡΩΤΑ στον Οδηγό χρήσης (app_help) και απάντα με βάση αυτόν, με σύντομα βήματα.',
+        'ΕΝΕΡΓΕΙΕΣ ΓΙΑ ΛΟΓΑΡΙΑΣΜΟ ΤΟΥ ΧΡΗΣΤΗ: όταν ζητά να γίνει κάτι (αλλαγή σταδίου, νέο δικαιολογητικό/εργασία, ενημέρωση κατάστασης/προθεσμίας, ανάθεση, δυνητικοί σε πρόγραμμα, καταγραφή επικοινωνίας/κατάσταση lead), χρησιμοποίησε τα prepare_op_* — ετοιμάζουν κάρτα και ο χρήστης πατά «Εκτέλεση». ΠΟΤΕ μη λες ότι έγινε. Αν ζητά κάτι για το οποίο δεν υπάρχει εργαλείο, εξήγησε πώς γίνεται από την οθόνη (app_help) και δώσε σύνδεσμο.',
+        'Σύνδεσμοι σελίδων: γράψε τους ως [κείμενο](/διαδρομή) — π.χ. καρτέλα πελάτη /partners/<trdrId>, πρόγραμμα /programs/<programId>, έργο /programs/<programId>/applications/<applicationId>, leads /leads, αναθέσεις /assignments. (Μόνο εδώ επιτρέπονται IDs, μέσα στον σύνδεσμο.)',
+      ]
+  return [...common, ...role, pageNote].filter(Boolean).join('\n')
+}
+
+export async function runThanos(ctx: ThanosContext, history: ChatTurn[], message: string, page?: PageContext): Promise<ThanosReply> {
+  // Συνηθισμένη ερώτηση στην αρχή συζήτησης → από την cache (χωρίς κλήση AI).
+  const fresh = history.length === 0
+  if (fresh) {
+    const hit = await getCachedAnswer(ctx, page, message)
+    if (hit) return { reply: hit.reply, actions: [], model: hit.model, cached: true }
+  }
+  const usedTools = new Set<string>()
+  const tools = toolsFor(ctx)
+  const byName = new Map(tools.map(t => [t.tool.function.name, t]))
+  const messages: ORMessage[] = [
+    { role: 'system', content: systemPrompt(ctx, await describePage(ctx, page)) },
+    ...history.slice(-HISTORY_TURNS).map(h => ({ role: h.role, content: h.content.slice(0, 4000) }) as ORMessage),
+    { role: 'user', content: message.slice(0, 4000) },
+  ]
+  const actionIds: string[] = []
+  let model: string | null = null
+
+  for (let step = 0; step < MAX_STEPS; step++) {
+    const last = step === MAX_STEPS - 1
+    const res = await openrouterChat(messages, { tools: last ? undefined : tools.map(t => t.tool), userId: ctx.userId, refType: 'thanos' })
+    model = res.model
+    const calls = res.message.tool_calls ?? []
+    if (!calls.length) {
+      const reply = (res.message.content ?? '').trim()
+      if (!reply) return { reply: 'Δεν έχω απάντηση γι’ αυτό — δοκίμασε να το διατυπώσεις αλλιώς.', actions: await loadCards(actionIds), model }
+      if (fresh && !actionIds.length && [...usedTools].every(t => CACHEABLE_TOOLS.has(t))) await putCachedAnswer(ctx, page, message, reply, model)
+      return { reply, actions: await loadCards(actionIds), model }
+    }
+    messages.push({ role: 'assistant', content: res.message.content ?? null, tool_calls: calls })
+    for (const c of calls) {
+      usedTools.add(c.function.name)
+      const def = byName.get(c.function.name)
+      let out: Record<string, unknown>
+      if (!def) out = { error: `Άγνωστο εργαλείο ${c.function.name}` }
+      else {
+        try {
+          const args = c.function.arguments ? JSON.parse(c.function.arguments) as Record<string, unknown> : {}
+          out = await def.run(ctx, args)
+        } catch (err) {
+          out = { error: err instanceof Error ? err.message : String(err) }
+        }
+      }
+      if (typeof out.actionId === 'string') actionIds.push(out.actionId)
+      messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(out).slice(0, 24_000) })
+    }
+  }
+  return { reply: 'Η ερώτηση χρειάστηκε πολλά βήματα — δες τις κάρτες παρακάτω ή ρώτα πιο συγκεκριμένα.', actions: await loadCards(actionIds), model }
+}
+
+async function loadCards(ids: string[]): Promise<ThanosActionCard[]> {
+  if (!ids.length) return []
+  const rows = await prisma.thanosAction.findMany({ where: { id: { in: ids } }, orderBy: { createdAt: 'asc' }, select: { id: true, kind: true, status: true, payload: true } })
+  return rows.map(r => ({ id: r.id, kind: r.kind, status: r.status, payload: r.payload }) as unknown as ThanosActionCard)
+}

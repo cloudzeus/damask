@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth, signOut } from '@/auth'
 import { getContactPortalDashboard } from '@/lib/pm/portal-contact'
 import { PortalPrograms } from './_components/portal-programs'
+import { ThanosWidget } from '@/components/thanos/thanos-widget'
 
 export const metadata = { title: 'Portal — World Wide Associates' }
 
@@ -43,6 +44,7 @@ export default async function PortalPage() {
               </p>
             </div>
             <PortalPrograms applications={dash.applications} />
+            <ThanosWidget firstName={session.user.name?.split(' ')[0]} />
           </>
         )}
       </main>

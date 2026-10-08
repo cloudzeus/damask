@@ -28,7 +28,7 @@ export type ExpenseEligibilityDetail = {
 const GUIDE_MAX_BYTES = 18 * 1024 * 1024
 // Ο οδηγός ξαναδιαβάζεται για κάθε δαπάνη («για όλες» = σειριακά) — μικρό cache στη μνήμη.
 const guideCache = new Map<string, { at: number; buf: Buffer | null }>()
-async function loadGuide(storageKey: string | null, size: number | null): Promise<Buffer | null> {
+export async function loadGuide(storageKey: string | null, size: number | null): Promise<Buffer | null> {
   if (!storageKey || (size ?? 0) > GUIDE_MAX_BYTES) return null
   const hit = guideCache.get(storageKey)
   if (hit && Date.now() - hit.at < 15 * 60_000) return hit.buf

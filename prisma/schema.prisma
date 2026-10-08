@@ -2924,3 +2924,55 @@ model ProgramIdeaSet {
 
   @@index([programId, createdAt])
 }
+
+/// Ενέργεια που ετοίμασε ο Thanos (email/link) και περιμένει «Αποστολή» από τον χρήστη — ποτέ αυτόματα.
+/// mode STAFF (χρήστης εφαρμογής) ή CUSTOMER (πελάτης portal)· ο εκτελών πρέπει να είναι ο ίδιος χρήστης.
+model ThanosAction {
+  id          String    @id @default(cuid())
+  userId      String
+  mode        String // STAFF | CUSTOMER
+  kind        String // DOC_REQUEST | ACCOUNTANT_LINK
+  status      String    @default("PENDING") // PENDING | SENT | CANCELLED | ERROR
+  payload     Json
+  result      Json?
+  error       String?
+  createdAt   DateTime  @default(now())
+  executedAt  DateTime?
+
+  @@index([userId, createdAt])
+}
+
+/// Cache συνηθισμένων ερωτήσεων του Thanos (χωρίς προσωπικά δεδομένα) — ίδια ερώτηση → ίδια απάντηση χωρίς κλήση AI.
+model ThanosAnswerCache {
+  key       String   @id // sha256(mode|σελίδα-πρόγραμμα|κανονικοποιημένη ερώτηση)
+  mode      String
+  question  String
+  reply     String
+  model     String?
+  hits      Int      @default(0)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+/// Cache φωνής (ElevenLabs): ίδιο κείμενο → ίδιο mp3, χωρίς νέα χρέωση.
+model ThanosTtsCache {
+  hash      String   @id // sha256(voiceId|model|κείμενο)
+  audio     Bytes
+  chars     Int
+  hits      Int      @default(0)
+  createdAt DateTime @default(now())
+  lastHitAt DateTime @default(now())
+
+  @@index([lastHitAt])
+}
+
+/// Χρόνος φωνής (ElevenLabs) ανά χρήστη/ημέρα — πελάτες portal έχουν όριο 2 λεπτά/ημέρα, μετά μόνο κείμενο.
+model ThanosVoiceUsage {
+  userId  String
+  day     String // YYYY-MM-DD (ώρα Ελλάδας)
+  seconds Float  @default(0)
+
+  @@id([userId, day])
+}

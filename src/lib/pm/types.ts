@@ -5,7 +5,7 @@ export type VerdictStr = 'PENDING' | 'ELIGIBLE' | 'INELIGIBLE'
 
 export const STAGE_ORDER: StageStr[] = ['ASSESSMENT', 'DOCUMENTS', 'EXPENSES_DELIVERABLES', 'OPSKE_SUBMISSION', 'INSPECTION', 'MONITORING']
 
-const STAGE_LABELS: Record<StageStr, string> = {
+export const STAGE_LABELS: Record<StageStr, string> = {
   ASSESSMENT: 'Αξιολόγηση',
   DOCUMENTS: 'Δικαιολογητικά',
   EXPENSES_DELIVERABLES: 'Δαπάνες & Παραδοτέα',
@@ -22,7 +22,7 @@ const KIND_LABELS: Record<ObligationKindStr, string> = {
   CUSTOM: 'Άλλο',
 }
 
-const STATUS_LABELS: Record<ObligationStatusStr, string> = {
+export const STATUS_LABELS: Record<ObligationStatusStr, string> = {
   PENDING: 'Εκκρεμεί',
   IN_PROGRESS: 'Σε εξέλιξη',
   SUBMITTED: 'Υποβλήθηκε',
@@ -42,7 +42,7 @@ export type LifecycleStr = 'POTENTIAL' | 'SUBMITTING' | 'IMPLEMENTATION' | 'MODI
 
 export const LIFECYCLE_ORDER: LifecycleStr[] = ['POTENTIAL', 'SUBMITTING', 'IMPLEMENTATION', 'MODIFICATIONS', 'PAYMENT']
 
-const LIFECYCLE_LABELS: Record<LifecycleStr, string> = {
+export const LIFECYCLE_LABELS: Record<LifecycleStr, string> = {
   POTENTIAL: 'Δυνητικός',
   SUBMITTING: 'Υποβαλλόμενος',
   IMPLEMENTATION: 'Υλοποίηση',

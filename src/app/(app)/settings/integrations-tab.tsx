@@ -13,6 +13,7 @@ import { VivaCard, type VivaEnvCardData } from './cards/viva-card'
 import { MapsCard } from './cards/maps-card'
 import { GemiCard } from './cards/gemi-card'
 import { SynologyCard } from './cards/synology-card'
+import { OpenRouterCard, ElevenLabsCard } from './cards/thanos-cards'
 
 function str(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
@@ -40,7 +41,7 @@ function vivaEnvCardData(config: VivaEnvConfig): VivaEnvCardData {
 }
 
 export async function IntegrationsTab() {
-  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi, synology] = await Promise.all([
+  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi, synology, openrouter, elevenlabs] = await Promise.all([
     getIntegration('softone'),
     getIntegration('mailgun'),
     getIntegration('bunny'),
@@ -53,6 +54,8 @@ export async function IntegrationsTab() {
     getIntegration('maps'),
     getIntegration('gemi'),
     getIntegration('synology'),
+    getIntegration('openrouter'),
+    getIntegration('elevenlabs'),
   ])
 
   return (
@@ -137,6 +140,18 @@ export async function IntegrationsTab() {
         maskedApiKey={maskSecret(gemi.apiKey)}
         configured={isIntegrationConfigured('gemi', gemi)}
         lastCheck={checkOf(gemi)}
+      />
+      <OpenRouterCard
+        initial={{ chatModel: str(openrouter.chatModel), sttModel: str(openrouter.sttModel) }}
+        maskedApiKey={maskSecret(openrouter.apiKey)}
+        configured={isIntegrationConfigured('openrouter', openrouter)}
+        lastCheck={checkOf(openrouter)}
+      />
+      <ElevenLabsCard
+        initial={{ voiceId: str(elevenlabs.voiceId), model: str(elevenlabs.model) }}
+        maskedApiKey={maskSecret(elevenlabs.apiKey)}
+        configured={isIntegrationConfigured('elevenlabs', elevenlabs)}
+        lastCheck={checkOf(elevenlabs)}
       />
       <SynologyCard
         initial={{

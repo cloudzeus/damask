@@ -601,3 +601,51 @@ export async function testSynologySettings(values: SynologyValues): Promise<Chec
   revalidateSettings()
   return check
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Thanos — OpenRouter (συνομιλία με εργαλεία + speech-to-text) & ElevenLabs (φωνή)
+// ══════════════════════════════════════════════════════════════════════════
+
+export type OpenRouterValues = { apiKey: string; chatModel: string; sttModel: string }
+const openrouterSchema = z.object({ apiKey: z.string().max(300), chatModel: z.string().trim().max(120), sttModel: z.string().trim().max(120) })
+
+export async function saveOpenRouterSettings(values: OpenRouterValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = openrouterSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
+  await saveIntegration('openrouter', parsed.data, ['apiKey'])
+  revalidateSettings()
+  return { ok: true, message: 'Οι ρυθμίσεις OpenRouter αποθηκεύτηκαν.' }
+}
+
+export async function testOpenRouterSettings(values: OpenRouterValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const { testOpenRouter } = await import('@/lib/openrouter')
+  const stored = await getIntegration<Record<string, string>>('openrouter')
+  const result = await testOpenRouter(mergeNonEmpty(stored, { apiKey: values.apiKey }))
+  const check = await saveLastCheck('openrouter', result)
+  revalidateSettings()
+  return check
+}
+
+export type ElevenLabsValues = { apiKey: string; voiceId: string; model: string }
+const elevenlabsSchema = z.object({ apiKey: z.string().max(300), voiceId: z.string().trim().max(80), model: z.string().trim().max(80) })
+
+export async function saveElevenLabsSettings(values: ElevenLabsValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = elevenlabsSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
+  await saveIntegration('elevenlabs', parsed.data, ['apiKey'])
+  revalidateSettings()
+  return { ok: true, message: 'Οι ρυθμίσεις ElevenLabs αποθηκεύτηκαν.' }
+}
+
+export async function testElevenLabsSettings(values: ElevenLabsValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const { testElevenLabs } = await import('@/lib/voice/elevenlabs')
+  const stored = await getIntegration<Record<string, string>>('elevenlabs')
+  const result = await testElevenLabs(mergeNonEmpty(stored, { apiKey: values.apiKey, voiceId: values.voiceId }))
+  const check = await saveLastCheck('elevenlabs', result)
+  revalidateSettings()
+  return check
+}
