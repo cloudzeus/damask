@@ -33,7 +33,7 @@ async function call(apiKey: string, body: Record<string, unknown>, timeoutMs = 1
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': process.env.AUTH_URL ?? 'https://wwa.gr',
-      'X-Title': 'WWA — Thanos',
+      'X-Title': 'WWA Thanos',
     },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(timeoutMs),
