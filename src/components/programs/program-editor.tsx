@@ -10,6 +10,7 @@ import {
 } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { updateProgramMeta, extractProgram, setProgramImage } from '@/lib/programs/actions'
@@ -653,6 +654,26 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
   return <p className="py-4 text-center text-[length:var(--fs-12-5)] text-muted-foreground">{children}</p>
 }
 
+const EXPENSE_CAT_COLUMNS: DataTableColumn<ProgramExpenseCatData>[] = [
+  {
+    id: 'name', header: 'Κατηγορία', width: 320, enableHide: false, sortValue: c => c.name, searchValue: c => `${c.name} ${c.notes ?? ''}`,
+    cell: c => (
+      <div className="py-1 whitespace-normal">
+        <b>{c.name}</b>
+        {c.notes && <div className="mt-0.5 text-[length:var(--fs-11-5)] text-muted-foreground">{c.notes}</div>}
+      </div>
+    ),
+  },
+  { id: 'minPct', header: 'Ελάχ. %', width: 90, align: 'right', nowrap: true, sortValue: c => c.minPercentage ?? -1, cell: c => formatPct(c.minPercentage) },
+  { id: 'maxPct', header: 'Μέγ. %', width: 90, align: 'right', nowrap: true, sortValue: c => c.maxPercentage ?? -1, cell: c => formatPct(c.maxPercentage) },
+  { id: 'minEur', header: 'Ελάχ. €', width: 110, align: 'right', nowrap: true, sortValue: c => c.minAmount ?? -1, cell: c => formatEUR(c.minAmount) },
+  { id: 'maxEur', header: 'Μέγ. €', width: 110, align: 'right', nowrap: true, sortValue: c => c.maxAmount ?? -1, cell: c => formatEUR(c.maxAmount) },
+  {
+    id: 'mandatory', header: 'Υποχρεωτική', width: 130, sortValue: c => (c.mandatory ? 0 : 1), searchValue: c => (c.mandatory ? 'Υποχρεωτική' : 'Προαιρετική'),
+    cell: c => (c.mandatory ? <span className="badge-pill ok">Υποχρεωτική</span> : <span className="badge-pill muted">Προαιρετική</span>),
+  },
+]
+
 function ExpenseCategoriesSection({ categories }: { categories: ProgramExpenseCatData[] }) {
   return (
     <section className="glass rounded-[22px] p-4">
@@ -660,35 +681,15 @@ function ExpenseCategoriesSection({ categories }: { categories: ProgramExpenseCa
       {categories.length === 0 ? (
         <EmptyNote>Δεν έχουν εξαχθεί κατηγορίες δαπανών ακόμη — τρέξε (επανα)αποδελτίωση για να τις γεμίσεις.</EmptyNote>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Κατηγορία</th>
-                <th className="num">Ελάχ. %</th>
-                <th className="num">Μέγ. %</th>
-                <th className="num">Ελάχ. €</th>
-                <th className="num">Μέγ. €</th>
-                <th>Υποχρεωτική</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map(c => (
-                <tr key={c.id} className="dotted-row-bottom">
-                  <td style={{ height: 'auto', whiteSpace: 'normal', padding: '10px' }}>
-                    <b>{c.name}</b>
-                    {c.notes && <div className="mt-0.5 text-[length:var(--fs-11-5)] text-muted-foreground">{c.notes}</div>}
-                  </td>
-                  <td className="num">{formatPct(c.minPercentage)}</td>
-                  <td className="num">{formatPct(c.maxPercentage)}</td>
-                  <td className="num">{formatEUR(c.minAmount)}</td>
-                  <td className="num">{formatEUR(c.maxAmount)}</td>
-                  <td>{c.mandatory ? <span className="badge-pill ok">Υποχρεωτική</span> : <span className="badge-pill muted">Προαιρετική</span>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          bare
+          tableId="program-expense-cats"
+          rows={categories}
+          rowKey={c => c.id}
+          columns={EXPENSE_CAT_COLUMNS}
+          searchable={categories.length > 8}
+          searchPlaceholder="Αναζήτηση κατηγορίας…"
+        />
       )}
     </section>
   )

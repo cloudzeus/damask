@@ -54,6 +54,25 @@ const BACKUP_BADGE: Record<FileRow['backup'], { label: string; cls: string; icon
   MISSING: { label: 'Σβήστηκε', cls: 'muted', icon: Ghost },
 }
 
+const RUN_STATUS: Record<string, { label: string; cls: string }> = {
+  OK: { label: 'Επιτυχία', cls: 'ok' },
+  RUNNING: { label: 'Σε εξέλιξη', cls: 'info' },
+  PARTIAL: { label: 'Μερικό', cls: 'warn' },
+  SKIPPED: { label: 'Δεν έγινε', cls: 'warn' },
+  ERROR: { label: 'Σφάλμα', cls: 'danger' },
+}
+
+const RUN_COLUMNS: DataTableColumn<BackupRunRow>[] = [
+  { id: 'started', header: 'Έναρξη', width: 120, nowrap: true, sortValue: r => new Date(r.startedAt).getTime(), cell: r => <span title={new Date(r.startedAt).toLocaleString('el-GR')}>{relativeTime(r.startedAt)}</span> },
+  { id: 'trigger', header: 'Τύπος', width: 110, sortValue: r => r.trigger, cell: r => (r.trigger === 'cron' ? 'Νυχτερινό' : 'Χειροκίνητο') },
+  { id: 'status', header: 'Κατάσταση', width: 120, sortValue: r => r.status, cell: r => { const m = RUN_STATUS[r.status] ?? RUN_STATUS.ERROR; return <span className={cn('badge-pill', m.cls)}>{m.label}</span> } },
+  { id: 'scanned', header: 'Σαρώθηκαν', width: 100, align: 'right', nowrap: true, sortValue: r => r.scanned, cell: r => <span className="tabular-nums">{r.scanned.toLocaleString('el-GR')}</span> },
+  { id: 'uploaded', header: 'Ανέβηκαν', width: 100, align: 'right', nowrap: true, sortValue: r => r.uploaded, cell: r => <span className="tabular-nums">{r.uploaded.toLocaleString('el-GR')}</span> },
+  { id: 'bytes', header: 'Όγκος', width: 100, align: 'right', nowrap: true, sortValue: r => Number(r.uploadedBytes), cell: r => <span className="tabular-nums">{formatBytes(r.uploadedBytes)}</span> },
+  { id: 'failed', header: 'Σφάλματα', width: 90, align: 'right', nowrap: true, sortValue: r => r.failed, cell: r => <span className="tabular-nums">{r.failed || '—'}</span> },
+  { id: 'message', header: 'Σημείωση', width: 320, cell: r => <span className="text-muted-foreground">{r.message ?? (r.pending ? `${r.pending} σε αναμονή` : '')}</span> },
+]
+
 export function FilesClient({
   rows, runs: initialRuns, categoryLabels, nas, nasForm,
 }: {
@@ -278,28 +297,15 @@ export function FilesClient({
               Σάρωση αποθήκης: <b className="tabular-nums">{runningRun.scanned.toLocaleString('el-GR')}</b> αρχεία… (μετά ανεβαίνουν στο NAS μόνο τα νέα/αλλαγμένα)
             </div>
           )}
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full text-[length:var(--fs-12)]">
-              <thead className="bg-muted/50 text-left text-[length:var(--fs-10-5)] font-bold tracking-wide text-muted-foreground uppercase">
-                <tr><th className="px-3 py-2">Έναρξη</th><th className="px-3 py-2">Τύπος</th><th className="px-3 py-2">Κατάσταση</th><th className="px-3 py-2 text-right">Σαρώθηκαν</th><th className="px-3 py-2 text-right">Ανέβηκαν</th><th className="px-3 py-2 text-right">Όγκος</th><th className="px-3 py-2 text-right">Σφάλματα</th><th className="px-3 py-2">Σημείωση</th></tr>
-              </thead>
-              <tbody>
-                {runs.map(r => (
-                  <tr key={r.id} className="border-t border-border">
-                    <td className="px-3 py-1.5" title={new Date(r.startedAt).toLocaleString('el-GR')}>{relativeTime(r.startedAt)}</td>
-                    <td className="px-3 py-1.5">{r.trigger === 'cron' ? 'Νυχτερινό' : 'Χειροκίνητο'}</td>
-                    <td className="px-3 py-1.5"><span className={cn('badge-pill', r.status === 'OK' ? 'ok' : r.status === 'RUNNING' ? 'info' : r.status === 'PARTIAL' || r.status === 'SKIPPED' ? 'warn' : 'danger')}>{r.status === 'OK' ? 'Επιτυχία' : r.status === 'RUNNING' ? 'Σε εξέλιξη' : r.status === 'PARTIAL' ? 'Μερικό' : r.status === 'SKIPPED' ? 'Δεν έγινε' : 'Σφάλμα'}</span></td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">{r.scanned.toLocaleString('el-GR')}</td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">{r.uploaded.toLocaleString('el-GR')}</td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">{formatBytes(r.uploadedBytes)}</td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">{r.failed || '—'}</td>
-                    <td className="px-3 py-1.5 text-muted-foreground">{r.message ?? (r.pending ? `${r.pending} σε αναμονή` : '')}</td>
-                  </tr>
-                ))}
-                {runs.length === 0 && <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">Δεν έχει γίνει ακόμα backup.</td></tr>}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            bare
+            tableId="nas-backup-runs"
+            rows={runs}
+            rowKey={r => r.id}
+            columns={RUN_COLUMNS}
+            searchable={false}
+            emptyMessage="Δεν έχει γίνει ακόμα backup."
+          />
         </section>
       )}
 

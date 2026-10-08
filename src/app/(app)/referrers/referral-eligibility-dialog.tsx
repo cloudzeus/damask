@@ -4,9 +4,10 @@ import * as React from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
-  Upload, LoaderCircle, FileSpreadsheet, CheckCircle2, XCircle, AlertTriangle, UserCheck, Download, ArrowRight,
+  Upload, LoaderCircle, FileSpreadsheet, Download, ArrowRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ReferralResultsTable } from '@/components/referrals/referral-results-table'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
@@ -93,13 +94,6 @@ function MapSelect({ role, value, onChange, required, colOptions }: {
       </Select>
     </div>
   )
-}
-
-const STATUS_META: Record<string, { label: string; cls: string; Icon: typeof CheckCircle2 }> = {
-  ELIGIBLE: { label: 'Επιλέξιμη', cls: 'ok', Icon: CheckCircle2 },
-  INELIGIBLE: { label: 'Μη επιλέξιμη', cls: 'muted', Icon: XCircle },
-  NOT_FOUND: { label: 'Δεν βρέθηκε στην ΑΑΔΕ', cls: 'warn', Icon: AlertTriangle },
-  ERROR: { label: 'Σφάλμα', cls: 'warn', Icon: AlertTriangle },
 }
 
 export function ReferralEligibilityDialog({
@@ -276,60 +270,7 @@ export function ReferralEligibilityDialog({
                 <Download className="size-3.5" aria-hidden /> Εξαγωγή επιλέξιμων
               </Button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[length:var(--fs-12-5)]">
-                <thead>
-                  <tr className="text-left text-[length:var(--fs-11)] font-bold text-muted-foreground uppercase">
-                    <th className="py-1.5 pr-3">ΑΦΜ</th>
-                    <th className="py-1.5 pr-3">Επωνυμία</th>
-                    <th className="py-1.5 pr-3">Περιοχή</th>
-                    <th className="py-1.5 pr-3">Κατάσταση</th>
-                    <th className="py-1.5 pr-3">Επιλέξιμα προγράμματα</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map(c => {
-                    const meta = STATUS_META[c.status] ?? STATUS_META.INELIGIBLE
-                    return (
-                      <tr key={c.id} className="border-t border-border align-top">
-                        <td className="py-2 pr-3 tabular-nums whitespace-nowrap">{c.afm}</td>
-                        <td className="py-2 pr-3">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-semibold">{c.name ?? '—'}</span>
-                            {c.existingTrdrId && (
-                              <span className={`badge-pill shrink-0 self-start ${c.existingIsCustomer ? 'warn' : 'muted'}`}>
-                                <UserCheck className="size-3" aria-hidden /> {c.existingIsCustomer ? 'Ήδη πελάτης' : 'Ήδη καταχωρημένη'}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-2 pr-3 whitespace-nowrap">
-                          {c.regionName ?? '—'}
-                          {c.regionName && !c.regionConfident && <span className="badge-pill muted ml-1 shrink-0" title="Εκτίμηση Περιφέρειας από ΤΚ">εκτ.</span>}
-                        </td>
-                        <td className="py-2 pr-3">
-                          <span className={`badge-pill shrink-0 ${meta.cls}`}><meta.Icon className="size-3" aria-hidden /> {meta.label}</span>
-                          {c.error && <div className="mt-0.5 text-[length:var(--fs-11)] text-muted-foreground">{c.error}</div>}
-                        </td>
-                        <td className="py-2 pr-3">
-                          {c.eligiblePrograms.length === 0
-                            ? <span className="text-muted-foreground">—</span>
-                            : (
-                              <div className="flex flex-wrap gap-1">
-                                {c.eligiblePrograms.map(p => (
-                                  <span key={p.programId} className="badge-pill ok shrink-0">
-                                    {p.title}{p.fundingRate != null ? ` · ${p.fundingRate}%` : ''}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <ReferralResultsTable results={results} tableId="referrer-eligibility-results" />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/50 p-3">
               <p className="text-[length:var(--fs-11-5)] text-muted-foreground">
                 Οι επιλέξιμες εταιρίες <strong>δεν προστέθηκαν</strong> στους συναλλασσόμενους. Αποθηκεύτηκαν στους «Επιλέξιμους ανά παραπομπή»,
