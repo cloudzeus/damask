@@ -44,8 +44,13 @@ export async function recordTurn(ctx: ThanosContext, t: {
 }
 
 /** Σχετικά ενεργά μαθήματα για την ερώτηση → μπλοκ για το system prompt ('' αν δεν υπάρχουν). */
+let activeCount: { n: number; at: number } | null = null
+
 export async function lessonsFor(question: string, programId?: string | null): Promise<string> {
   try {
+    // Χωρίς ενεργά μαθήματα δεν αξίζει το embedding (~0,8″) — ο αριθμός κρατιέται 60″.
+    if (!activeCount || Date.now() - activeCount.at > 60_000) activeCount = { n: await prisma.thanosLesson.count({ where: { status: 'ACTIVE' } }), at: Date.now() }
+    if (!activeCount.n) return ''
     const [qv] = await geminiEmbed([question], { task: 'RETRIEVAL_QUERY', refType: 'thanos-lessons' })
     if (!qv) return ''
     const rows = await prisma.$queryRaw<{ id: string; question: string; answer: string; sim: number }[]>`

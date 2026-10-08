@@ -43,7 +43,7 @@ export async function answerProgramQuestion(programId: string, question: string,
         : 'Ο συνομιλητής είναι επιχειρηματίας χωρίς ειδικές γνώσεις: εξήγησε με απλά λόγια τι σημαίνει για την επιχείρησή του. 3-5 σύντομες προτάσεις, μόνο ό,τι ρωτήθηκε — όχι ανάλυση. Παραπομπή μόνο στο τέλος, σύντομα.',
       'Αν η απάντηση δεν προκύπτει από τις πηγές, πες το ρητά και πρότεινε επικοινωνία με τον σύμβουλο. Μην επινοείς αριθμούς. Ελληνικά.',
     ].join('\n'),
-    temperature: 0.2, maxOutputTokens: 6000, scope: 'OTHER', refType: 'thanos-guide-qa', refId: programId, userId: opts.userId ?? null,
+    temperature: 0.2, maxOutputTokens: 2000, fast: true, scope: 'OTHER', refType: 'thanos-guide-qa', refId: programId, userId: opts.userId ?? null,
   })
   return { answer: res.text.trim(), usedGuide: !!guide }
 }
@@ -70,7 +70,7 @@ export async function checkProposedExpense(programId: string, input: { descripti
       'Αν δεν προκύπτει καθαρά, verdict=UNCERTAIN. Ελληνικά, απλά και ανθρώπινα για επιχειρηματία (όχι ξύλινη γλώσσα), ακρωνύμια ολόκληρα.',
       'ΑΥΣΤΗΡΑ JSON: {"verdict":"ELIGIBLE|INELIGIBLE|UNCERTAIN","category":"… ή null","explanation":"2-4 προτάσεις","conditions":["…"],"guideRefs":["σελ. …"]}',
     ].join('\n'),
-    json: true, temperature: 0.1, maxOutputTokens: 6000, scope: 'OTHER', refType: 'thanos-expense-check', refId: programId, userId: opts.userId ?? null,
+    json: true, temperature: 0.1, maxOutputTokens: 2500, fast: true, scope: 'OTHER', refType: 'thanos-expense-check', refId: programId, userId: opts.userId ?? null,
   })
   let p: Record<string, unknown> = {}
   try { p = (parseJsonLoose(res.text) ?? {}) as Record<string, unknown> } catch { /* UNCERTAIN */ }

@@ -98,6 +98,34 @@ async function playUrl(a: HTMLAudioElement, url: string, onEnd?: () => void, rat
   try { await a.play(); return true } catch { return false }
 }
 
+/** Παίζει ένα κομμάτι και περιμένει να τελειώσει: 'ended' | 'stopped' (διακοπή/άλλο κομμάτι) | 'blocked' (browser). */
+function playToEnd(a: HTMLAudioElement, url: string, rate: number): Promise<'ended' | 'stopped' | 'blocked'> {
+  return new Promise(resolve => {
+    a.pause()
+    a.src = url
+    a.preservesPitch = true
+    a.playbackRate = rate
+    // Το «σταμάτησε» μετρά μόνο αφού ξεκίνησε ΑΥΤΟ το κομμάτι (το pause() του προηγούμενου φτάνει ασύγχρονα).
+    let started = false
+    a.onplaying = () => { started = true }
+    a.onended = () => { URL.revokeObjectURL(url); resolve('ended') }
+    a.onpause = () => { if (started && !a.ended) resolve('stopped') }
+    a.play().catch(() => resolve('blocked'))
+  })
+}
+
+/** Πρώτη πρόταση (≥40 χαρ.) χωριστά, το υπόλοιπο σε ένα κομμάτι — για γρήγορη έναρξη φωνής. */
+function splitForSpeech(text: string): string[] {
+  const t = text.replace(/\s+/g, ' ').trim()
+  const re = /[.!;;](\s|$)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(t))) {
+    const cut = m.index + 1
+    if (cut >= 40) return cut < t.length - 15 ? [t.slice(0, cut).trim(), t.slice(cut).trim()] : [t]
+  }
+  return [t]
+}
+
 const plain = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^#{1,4}\s+/gm, '')
 
 export function ThanosWidget({ firstName }: { firstName?: string }) {
@@ -149,27 +177,40 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
     void playUrl(audioRef.current, SILENT_WAV)
   }
 
+  /**
+   * Φωνή σε κομμάτια: η ΠΡΩΤΗ πρόταση ζητείται και παίζει αμέσως, ενώ το υπόλοιπο ετοιμάζεται ΠΑΡΑΛΛΗΛΑ
+   * και παίζει αμέσως μετά — ο χρήστης ακούει σε ~1″ αντί να περιμένει όλο το κείμενο.
+   */
   const speak = useCallback(async (text: string, force = false, ttsReady?: boolean) => {
     if ((!voice && !force) || !(ttsReady ?? status?.tts)) return
     const id = ++speakSeq.current
     setSpeaking(text)
+    const done = () => setSpeaking(s => (s === text ? null : s))
+    const tts = (t: string) => fetch('/api/thanos/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: t }) })
     try {
-      const res = await fetch('/api/thanos/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: plain(text) }) })
-      if (res.status === 429) {
-        // Ημερήσιο όριο φωνής (πελάτες): κλείνει η φωνή μέχρι αύριο, οι απαντήσεις συνεχίζουν σε κείμενο.
-        setVoice(false)
-        write('local', VOICE, false)
-        write('local', VOICE_LIMIT, new Date().toDateString())
-        setVoiceLimited(true)
-        setSpeaking(null)
-        setMsgs(m => [...m, { role: 'assistant', content: 'Ολοκληρώθηκαν τα 2 λεπτά φωνητικής συνομιλίας για σήμερα — από εδώ και πέρα θα σας απαντώ γραπτώς. Η φωνή θα είναι ξανά διαθέσιμη αύριο.' }])
-        return
+      const chunks = splitForSpeech(plain(text))
+      const pending = chunks.map(tts) // όλα μαζί, παράλληλα
+      for (const p of pending) {
+        const res = await p
+        if (id !== speakSeq.current) return
+        if (res.status === 429) {
+          // Ημερήσιο όριο φωνής (πελάτες): κλείνει η φωνή μέχρι αύριο, οι απαντήσεις συνεχίζουν σε κείμενο.
+          setVoice(false)
+          write('local', VOICE, false)
+          write('local', VOICE_LIMIT, new Date().toDateString())
+          setVoiceLimited(true)
+          setSpeaking(null)
+          setMsgs(m => [...m, { role: 'assistant', content: 'Ολοκληρώθηκαν τα 2 λεπτά φωνητικής συνομιλίας για σήμερα — από εδώ και πέρα θα σας απαντώ γραπτώς. Η φωνή θα είναι ξανά διαθέσιμη αύριο.' }])
+          return
+        }
+        if (!res.ok) { done(); return }
+        const url = URL.createObjectURL(await res.blob())
+        if (!audioRef.current) audioRef.current = new Audio()
+        const ended = await playToEnd(audioRef.current, url, status?.speed ?? 1.15)
+        if (ended === 'blocked') { setSpeaking(null); setAudioBlocked(true); return }
+        if (ended === 'stopped' || id !== speakSeq.current) return
       }
-      if (!res.ok || id !== speakSeq.current) { if (id === speakSeq.current) setSpeaking(null); return }
-      const url = URL.createObjectURL(await res.blob())
-      if (!audioRef.current) audioRef.current = new Audio()
-      const played = await playUrl(audioRef.current, url, () => setSpeaking(s => (s === text ? null : s)), status?.speed ?? 1.15)
-      if (!played) { setSpeaking(null); setAudioBlocked(true) }
+      done()
     } catch {
       setSpeaking(null)
     }

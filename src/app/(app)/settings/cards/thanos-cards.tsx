@@ -66,14 +66,14 @@ export function ElevenLabsCard(p: CardProps<ElevenLabsValues>) {
       <SecretField id="el-key" label="API key" icon={KeyRound} value={c.values.apiKey} onChange={v => c.set('apiKey', v)} maskedHint={c.masked} error={c.errors.apiKey} />
       <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
         <TextField id="el-voice" label="Voice ID" icon={UserRound} value={c.values.voiceId} onChange={v => c.set('voiceId', v)} placeholder="Διάλεξε από τη λίστα παρακάτω" help="Συμπληρώνεται αυτόματα με «Επιλογή» στη λίστα φωνών." error={c.errors.voiceId} />
-        <SelectField id="el-model" label="Μοντέλο φωνής" value={c.values.model || 'eleven_v3'} onChange={v => c.set('model', v)}
-          options={MODELS} help="Το v3 ακούγεται πιο φυσικό· το Flash είναι γρηγορότερο." />
+        <SelectField id="el-model" label="Μοντέλο φωνής" value={c.values.model || 'eleven_turbo_v2_5'} onChange={v => c.set('model', v)}
+          options={MODELS} help="Το Turbo ξεκινά σε ~1″· το v3 είναι πιο εκφραστικό αλλά αργεί πολύ." />
       </div>
       <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
         <SelectField id="el-speed" label="Ταχύτητα ομιλίας" value={c.values.speed || '1.15'} onChange={v => c.set('speed', v)}
           options={SPEEDS} help="Πόσο γρήγορα μιλά ο Thanos (ο τόνος της φωνής δεν αλλάζει)." />
       </div>
-      <VoicePicker selected={c.values.voiceId} model={c.values.model || 'eleven_v3'} speed={Number(c.values.speed || '1.15')} onSelect={id => c.set('voiceId', id)} />
+      <VoicePicker selected={c.values.voiceId} model={c.values.model || 'eleven_turbo_v2_5'} speed={Number(c.values.speed || '1.15')} onSelect={id => c.set('voiceId', id)} />
       <div className="flex items-center gap-2">
         <Button type="button" onClick={c.onSave} disabled={c.saving}>{c.saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Button>
         <Button type="button" variant="outline" onClick={c.onTest} disabled={c.testing}>{c.testing ? 'Έλεγχος…' : 'Δοκιμή σύνδεσης'}</Button>
@@ -91,9 +91,10 @@ const SPEEDS = [
 ]
 
 const MODELS = [
-  { value: 'eleven_v3', label: 'Eleven v3 — πιο φυσική & εκφραστική (προτείνεται)' },
-  { value: 'eleven_multilingual_v2', label: 'Multilingual v2 — σταθερή' },
-  { value: 'eleven_flash_v2_5', label: 'Flash v2.5 — η πιο γρήγορη' },
+  { value: 'eleven_turbo_v2_5', label: 'Turbo v2.5 — γρήγορη & φυσική (προτείνεται, ~1″)' },
+  { value: 'eleven_flash_v2_5', label: 'Flash v2.5 — πολύ γρήγορη' },
+  { value: 'eleven_multilingual_v2', label: 'Multilingual v2 — σταθερή (πιο αργή)' },
+  { value: 'eleven_v3', label: 'Eleven v3 — πιο εκφραστική (αργή: 9-17″)' },
 ]
 
 async function playSrc(a: HTMLAudioElement, src: string, onEnd: () => void, rate = 1): Promise<boolean> {

@@ -65,6 +65,14 @@ async function describePage(ctx: ThanosContext, page: PageContext | undefined): 
   return bits.length ? `Ο χρήστης βλέπει αυτή τη στιγμή: ${bits.join('· ')}. Όταν λέει «αυτό/αυτός/εδώ», εννοεί αυτά.` : ''
 }
 
+/** Ενεργά προγράμματα (τίτλος → programId) στο prompt: ο Thanos καλεί κατευθείαν program_question χωρίς επιπλέον γύρο. */
+async function activeProgramsNote(): Promise<string> {
+  const ps = await prisma.program.findMany({ where: { status: 'ACTIVE' }, orderBy: { submissionEnd: 'asc' }, take: 30, select: { id: true, title: true, submissionEnd: true } })
+  if (!ps.length) return ''
+  return ['ΕΝΕΡΓΑ ΠΡΟΓΡΑΜΜΑΤΑ (programId για τα εργαλεία — μη τα δείχνεις στον χρήστη):',
+    ...ps.map(p => `- ${p.title} = ${p.id}${p.submissionEnd ? ` (λήξη υποβολών ${p.submissionEnd.toISOString().slice(0, 10)})` : ''}`)].join('\n')
+}
+
 function systemPrompt(ctx: ThanosContext, pageNote: string): string {
   const today = new Date().toISOString().slice(0, 10)
   const common = [
@@ -78,7 +86,7 @@ function systemPrompt(ctx: ThanosContext, pageNote: string): string {
     'Είσαι ΕΡΓΑΛΕΙΟ δουλειάς, όχι σεμινάριο: ευχάριστος και ανθρώπινος λόγος, αλλά ακριβής και στο ψητό — ό,τι χρειάζεται για να προχωρήσει ο χρήστης, τίποτα παραπάνω.',
     'Τα αποτελέσματα των εργαλείων είναι ΥΛΙΚΟ — μην τα αντιγράφεις αυτούσια· ξαναπές τα με δικά σου, ανθρώπινα λόγια.',
     'ΑΚΡΩΝΥΜΙΑ: γράφε τα ΟΛΟΚΛΗΡΑ — την πρώτη φορά το πλήρες όνομα με το ακρωνύμιο σε παρένθεση, π.χ. «Ετήσιες Μονάδες Εργασίας (ΕΜΕ)», «Κωδικός Αριθμός Δραστηριότητας (ΚΑΔ)», «Γενικό Εμπορικό Μητρώο (ΓΕΜΗ)», «Ανεξάρτητη Αρχή Δημοσίων Εσόδων (ΑΑΔΕ)»· μετά μπορείς να γράφεις το ακρωνύμιο.',
-    'ΠΟΤΕ μην επινοείς κανόνες προγράμματος: για επιλεξιμότητα/δαπάνες/προθεσμίες ΧΡΗΣΙΜΟΠΟΙΗΣΕ τα εργαλεία program_question / check_expense, και πες από πού προκύπτει (οδηγός/ενότητα). Αν δεν ξέρεις το programId, βρες το πρώτα (list_open_programs).',
+    'ΠΟΤΕ μην επινοείς κανόνες προγράμματος: για επιλεξιμότητα/δαπάνες/προθεσμίες ΧΡΗΣΙΜΟΠΟΙΗΣΕ τα εργαλεία program_question / check_expense, και πες από πού προκύπτει (οδηγός/ενότητα). Το programId ενός ενεργού προγράμματος το βρίσκεις στη λίστα «ΕΝΕΡΓΑ ΠΡΟΓΡΑΜΜΑΤΑ» παρακάτω (μην καλείς list_open_programs μόνο γι’ αυτό).',
     'Τα εργαλεία prepare_* ΔΕΝ στέλνουν: ετοιμάζουν προεπισκόπηση. ΜΗΝ λες ποτέ ότι κάτι στάλθηκε.',
     'Όταν ετοιμάζεις ενέργεια: η ΠΡΩΤΗ πρόταση λέει σύντομα τι ετοίμασες και τι να κάνει ο χρήστης (π.χ. «Ετοίμασα το email για τον λογιστή σας — ελέγξτε το και πατήστε «Αποστολή».») — ΜΟΝΟ αυτή ακούγεται στη φωνή. Μετά, στο κείμενο, γράψε ΟΛΟΚΛΗΡΩΜΕΝΗ τη λίστα (π.χ. όλα τα έγγραφα, ένα ανά γραμμή με «- »).',
     'Μην εμφανίζεις εσωτερικά IDs στον χρήστη — μόνο ονόματα.',
@@ -121,9 +129,9 @@ async function runLoop(ctx: ThanosContext, history: ChatTurn[], message: string,
   const tools = toolsFor(ctx)
   const byName = new Map(tools.map(t => [t.tool.function.name, t]))
   // Σελίδα + σχετικά «μαθήματα» από προηγούμενες συζητήσεις (σημασιολογική ανάκτηση) — παράλληλα.
-  const [pageNote, lessons] = await Promise.all([describePage(ctx, page), lessonsFor(message, page?.programId)])
+  const [pageNote, lessons, programs] = await Promise.all([describePage(ctx, page), lessonsFor(message, page?.programId), activeProgramsNote()])
   const messages: ORMessage[] = [
-    { role: 'system', content: [systemPrompt(ctx, pageNote), lessons].filter(Boolean).join('\n\n') },
+    { role: 'system', content: [systemPrompt(ctx, pageNote), programs, lessons].filter(Boolean).join('\n\n') },
     ...history.slice(-HISTORY_TURNS).map(h => ({ role: h.role, content: h.content.slice(0, 4000) }) as ORMessage),
     { role: 'user', content: message.slice(0, 4000) },
   ]

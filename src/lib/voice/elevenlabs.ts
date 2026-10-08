@@ -5,7 +5,8 @@ import { logApiUsage } from '@/lib/api-usage'
 
 /** ElevenLabs text-to-speech (φωνή του Thanos). integration.elevenlabs { apiKey, voiceId, model }. */
 
-export const DEFAULT_TTS_MODEL = 'eleven_v3'
+/** Turbo v2.5: ~1″ ανά απάντηση (το v3 θέλει 9-17″) — με επιβολή ελληνικών. */
+export const DEFAULT_TTS_MODEL = 'eleven_turbo_v2_5'
 /** Μοντέλα που δέχονται επιβολή γλώσσας (language_code) — έτσι τα ελληνικά δεν «διαβάζονται» με αγγλική λογική. */
 const LANG_MODELS = new Set(['eleven_v3', 'eleven_turbo_v2_5', 'eleven_flash_v2_5'])
 

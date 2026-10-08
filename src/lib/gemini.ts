@@ -39,6 +39,8 @@ export type GeminiOptions = {
   json?: boolean
   temperature?: number
   maxOutputTokens?: number
+  /** Ελάχιστη «σκέψη» για γρήγορες απαντήσεις (π.χ. Thanos): 2.5 → thinkingBudget 0, 3.x → thinkingLevel low. */
+  fast?: boolean
   /** Override του αποθηκευμένου API key (π.χ. «Δοκιμή σύνδεσης» με μη-αποθηκευμένη ακόμα τιμή). */
   apiKey?: string
   /** Override της αποθηκευμένης αλυσίδας fallback μοντέλων. */
@@ -112,6 +114,7 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
               temperature: opts.temperature ?? 0.1,
               ...(opts.maxOutputTokens ? { maxOutputTokens: opts.maxOutputTokens } : {}),
               ...(opts.json ? { responseMimeType: 'application/json' } : {}),
+              ...(opts.fast ? { thinkingConfig: m.startsWith('gemini-2.5') ? { thinkingBudget: m.includes('pro') ? 128 : 0 } : m.startsWith('gemini-3') ? { thinkingLevel: 'low' } : {} } : {}),
             },
           }),
         },
