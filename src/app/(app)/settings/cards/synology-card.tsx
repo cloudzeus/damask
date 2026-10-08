@@ -14,13 +14,20 @@ import type { CheckResult } from '@/lib/settings'
  * μέσω Tailscale (π.χ. http://100.x.y.z:5000). «Δοκιμή σύνδεσης»: login, φάκελος backup,
  * δοκιμαστικό αρχείο, ελεύθερος χώρος.
  */
-export function SynologyCard({
-  initial, maskedPassword, configured: initialConfigured, lastCheck: initialLastCheck,
-}: {
+export type SynologyCardProps = {
   initial: Omit<SynologyValues, 'password'>
   maskedPassword: string | null
   configured: boolean
   lastCheck: CheckResult | null
+}
+
+export function SynologyCard({
+  initial, maskedPassword, configured: initialConfigured, lastCheck: initialLastCheck, embedded, onSaved,
+}: SynologyCardProps & {
+  /** Μέσα σε modal (π.χ. Αρχεία & Backup) — χωρίς δικό του πλαίσιο. */
+  embedded?: boolean
+  /** Μετά από επιτυχή αποθήκευση (π.χ. «Αποθήκευση & backup τώρα»). */
+  onSaved?: () => void
 }) {
   const [values, setValues] = useState<SynologyValues>({ ...initial, password: '' })
   const [maskedHint, setMaskedHint] = useState(maskedPassword)
@@ -42,6 +49,7 @@ export function SynologyCard({
       toast.success(res.message)
       if (values.password) { setMaskedHint(maskSecretPreview(values.password)); set('password', '') }
       setConfigured(Boolean(values.baseUrl && values.username && (values.password || maskedHint)))
+      onSaved?.()
     })
   }
 
@@ -55,14 +63,17 @@ export function SynologyCard({
   }
 
   return (
-    <div className="glass p-4">
-      <CardHeader
+    <div className={embedded ? '' : 'glass p-4'}>
+      {!embedded && <CardHeader
         icon={HardDrive}
         title="Synology NAS (backup αρχείων)"
         description="Νυχτερινό incremental backup όλων των αρχείων (πελάτες, δικαιολογητικά, Media, backups βάσης) στο NAS μέσω Tailscale — File Station API."
         configured={configured}
         lastCheck={lastCheck}
-      />
+      />}
+      {embedded && lastCheck && (
+        <p className={`mb-3 text-[length:var(--fs-12)] ${lastCheck.ok ? 'text-[color:var(--success)]' : 'text-[color:var(--warning)]'}`}>{lastCheck.message}</p>
+      )}
       <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
         <TextField id="syn-url" label="Διεύθυνση NAS" icon={Link2} value={values.baseUrl} onChange={v => set('baseUrl', v)} placeholder="http://100.127.38.86:5000" error={fieldErrors.baseUrl} help="Tailscale IP + θύρα DSM (5000 http / 5001 https)." />
         <TextField id="syn-root" label="Φάκελος backup" icon={FolderTree} value={values.rootPath} onChange={v => set('rootPath', v)} placeholder="/backup/WWA-Backup" error={fieldErrors.rootPath} help="/<κοινόχρηστος φάκελος>/<υποφάκελος> — ο υποφάκελος δημιουργείται αυτόματα· η Δοκιμή δείχνει τους διαθέσιμους κοινόχρηστους." />
@@ -78,7 +89,7 @@ export function SynologyCard({
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <Button type="button" onClick={handleSave} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Button>
+        <Button type="button" onClick={handleSave} disabled={saving}>{saving ? 'Αποθήκευση…' : onSaved ? 'Αποθήκευση & backup τώρα' : 'Αποθήκευση'}</Button>
         <Button type="button" variant="outline" onClick={handleTest} disabled={testing}>{testing ? 'Έλεγχος…' : 'Δοκιμή σύνδεσης'}</Button>
       </div>
     </div>

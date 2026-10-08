@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { PageHeader } from '@/components/ui/page-header'
 import { getSynologyConfig } from '@/lib/nas/synology'
 import { CATEGORY_LABELS } from '@/lib/nas/backup'
-import { getIntegration } from '@/lib/settings'
+import { getIntegration, isIntegrationConfigured, maskSecret, type CheckResult } from '@/lib/settings'
 import { listBackupRuns } from './actions'
 import { FilesClient, type FileRow } from './files-client'
 
@@ -13,12 +13,27 @@ const ORPHAN_CATEGORIES = new Set(['dossier', 'project', 'quote', 'tax', 'reques
 export default async function FilesPage() {
   await requirePermission('files.manage')
 
-  const [entries, cfg, runs, bunny] = await Promise.all([
+  const [entries, cfg, runs, bunny, syn] = await Promise.all([
     prisma.fileIndexEntry.findMany({ orderBy: { lastChanged: 'desc' }, take: 20_000 }),
     getSynologyConfig(),
     listBackupRuns(),
     getIntegration<{ pullZoneUrl?: string }>('bunny'),
+    getIntegration('synology'),
   ])
+  const str = (v: unknown) => (typeof v === 'string' ? v : '')
+  const lc = syn._lastCheck as CheckResult | undefined
+  const nasForm = {
+    initial: {
+      baseUrl: str(syn.baseUrl) || 'http://100.127.38.86:5000',
+      username: str(syn.username),
+      rootPath: str(syn.rootPath),
+      allowSelfSigned: (str(syn.allowSelfSigned) === '1' ? '1' : '0') as '0' | '1',
+      enabled: (str(syn.enabled) === '0' ? '0' : '1') as '0' | '1',
+    },
+    maskedPassword: maskSecret(syn.password),
+    configured: isIntegrationConfigured('synology', syn),
+    lastCheck: lc && typeof lc === 'object' && 'ok' in lc ? lc : null,
+  }
 
   const trdrIds = [...new Set(entries.map(e => e.trdrId).filter((x): x is string => !!x))]
   const trdrs = trdrIds.length ? await prisma.trdr.findMany({ where: { id: { in: trdrIds } }, select: { id: true, NAME: true } }) : []
@@ -76,6 +91,7 @@ export default async function FilesPage() {
         runs={runs}
         categoryLabels={CATEGORY_LABELS}
         nas={cfg ? { baseUrl: cfg.baseUrl, rootPath: cfg.rootPath, enabled: cfg.enabled } : null}
+        nasForm={nasForm}
       />
     </div>
   )

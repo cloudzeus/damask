@@ -18,6 +18,8 @@ import { relativeTime } from '@/lib/relative-time'
 import { startNasBackupNow, restoreFileFromNas, listBackupRuns, type BackupRunRow } from './actions'
 import { refreshSearchIndexAction } from '@/lib/search/actions'
 import { DocumentSearch } from '@/components/search/document-search'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SynologyCard, type SynologyCardProps } from '../settings/cards/synology-card'
 
 export type FileRow = {
   key: string
@@ -53,12 +55,13 @@ const BACKUP_BADGE: Record<FileRow['backup'], { label: string; cls: string; icon
 }
 
 export function FilesClient({
-  rows, runs: initialRuns, categoryLabels, nas,
+  rows, runs: initialRuns, categoryLabels, nas, nasForm,
 }: {
   rows: FileRow[]
   runs: BackupRunRow[]
   categoryLabels: Record<string, string>
   nas: { baseUrl: string; rootPath: string; enabled: boolean } | null
+  nasForm: SynologyCardProps
 }) {
   const router = useRouter()
   const [tab, setTab] = React.useState<'search' | 'files' | 'backup' | 'space'>('search')
@@ -69,6 +72,12 @@ export function FilesClient({
   const [viewer, setViewer] = React.useState<ViewerFile | null>(null)
   const [runs, setRuns] = React.useState(initialRuns)
   const [starting, startTransition] = React.useTransition()
+  const [nasSetup, setNasSetup] = React.useState(false)
+  // Backup τώρα — αν δεν υπάρχει NAS, πρώτα το παράθυρο σύνδεσης και μετά αυτόματη εκκίνηση.
+  const backupNow = () => startTransition(async () => {
+    const r = await startNasBackupNow()
+    if (r.ok) { toast.success(r.message); setRuns(await listBackupRuns()) } else toast.warning(r.message)
+  })
   const [restoring, setRestoring] = React.useState<string | null>(null)
 
   const running = runs.some(r => r.status === 'RUNNING')
@@ -247,7 +256,7 @@ export function FilesClient({
             <div className="text-[length:var(--fs-12-5)]">
               {nas
                 ? <>Προορισμός: <b>{nas.baseUrl}</b> → <b>{nas.rootPath}</b> · νυχτερινό incremental 02:00 {nas.enabled ? '(ενεργό)' : '(ανενεργό)'}</>
-                : <span className="text-[color:var(--warning)]">Δεν έχει ρυθμιστεί NAS — Ρυθμίσεις → Διασυνδέσεις → «Synology NAS».</span>}
+                : <span className="text-[color:var(--warning)]">Δεν έχει ρυθμιστεί NAS — πάτησε «Backup τώρα» για να βάλεις τα στοιχεία σύνδεσης.</span>}
             </div>
             <div className="flex items-center gap-2">
               <Button type="button" variant="outline" nativeButton={false} render={<Link href="/settings?tab=integrations" />}>
@@ -255,11 +264,8 @@ export function FilesClient({
               </Button>
               <Button
                 type="button"
-                disabled={!nas || running || starting}
-                onClick={() => startTransition(async () => {
-                  const r = await startNasBackupNow()
-                  if (r.ok) { toast.success(r.message); setRuns(await listBackupRuns()) } else toast.warning(r.message)
-                })}
+                disabled={running || starting}
+                onClick={() => (nas ? backupNow() : setNasSetup(true))}
               >
                 {running || starting ? <LoaderCircle className="size-3.5 animate-spin" /> : <CloudUpload className="size-3.5" />}
                 {running ? 'Backup σε εξέλιξη…' : 'Backup τώρα'}
@@ -299,6 +305,19 @@ export function FilesClient({
 
       {tab === 'space' && <SpaceTab rows={rows} categoryLabels={categoryLabels} onShowOrphans={() => { setBackup('ORPHAN'); setCategory(ALL); setCustomer(null); setTab('files') }} />}
 
+      <Dialog open={nasSetup} onOpenChange={setNasSetup}>
+        <DialogContent className="glass sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle>Σύνδεση με το Synology NAS</DialogTitle>
+            <DialogDescription>Συμπλήρωσε τα στοιχεία και πάτησε «Αποθήκευση & backup τώρα» — τα αρχεία αρχίζουν να αποθηκεύονται αμέσως. Με «Δοκιμή σύνδεσης» ελέγχεις πρώτα ότι όλα είναι σωστά.</DialogDescription>
+          </DialogHeader>
+          <SynologyCard
+            {...nasForm}
+            embedded
+            onSaved={() => { setNasSetup(false); backupNow(); router.refresh() }}
+          />
+        </DialogContent>
+      </Dialog>
       <FileViewerModal open={!!viewer} onOpenChange={o => { if (!o) setViewer(null) }} file={viewer} />
     </div>
   )
