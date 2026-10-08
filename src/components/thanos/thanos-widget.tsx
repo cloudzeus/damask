@@ -75,12 +75,15 @@ function Avatar({ className }: { className?: string }) {
   return <img src="/thanos/avatar.webp" alt="" aria-hidden width={96} height={96} className={cn('rounded-full bg-muted object-cover', className)} />
 }
 
-/** Κείμενο απάντησης με εσωτερικούς συνδέσμους [κείμενο](/διαδρομή) — μόνο σχετικές διαδρομές της εφαρμογής. */
+/** Κείμενο απάντησης με **έντονα** και εσωτερικούς συνδέσμους [κείμενο](/διαδρομή) — μόνο σχετικές διαδρομές της εφαρμογής. */
 function RichText({ text }: { text: string }) {
-  const parts = plain(text).split(/(\[[^\]]+\]\(\/[^)\s]*\))/g)
+  const parts = text.replace(/^#{1,4}\s+/gm, '').split(/(\[[^\]]+\]\(\/[^)\s]*\)|\*\*[^*]+\*\*)/g)
   return <>{parts.map((part, i) => {
-    const m = part.match(/^\[([^\]]+)\]\((\/[^)\s]*)\)$/)
-    return m ? <Link key={i} href={m[2]} className="font-medium text-primary underline underline-offset-2">{m[1]}</Link> : <span key={i}>{part}</span>
+    const link = part.match(/^\[([^\]]+)\]\((\/[^)\s]*)\)$/)
+    if (link) return <Link key={i} href={link[2]} className="font-semibold text-primary underline underline-offset-2">{link[1]}</Link>
+    const bold = part.match(/^\*\*([^*]+)\*\*$/)
+    if (bold) return <strong key={i} className="font-bold">{bold[1]}</strong>
+    return <span key={i}>{part}</span>
   })}</>
 }
 
@@ -312,7 +315,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
             )}
             {msgs.length === 0 && ready && (
               <div className="space-y-3">
-                <p className="text-[length:var(--fs-13-5)]">
+                <p className="text-[length:var(--fs-15)] font-medium">
                   Γεια σας{firstName ? ` ${firstName}` : ''}! Είμαι ο Thanos. {status?.mode === 'CUSTOMER'
                     ? 'Ρωτήστε με για τα προγράμματά σας, για δαπάνες που σκέφτεστε ή ζητήστε μου να στείλω στον λογιστή σας σύνδεσμο για δικαιολογητικά.'
                     : 'Ρώτα με για οδηγούς προγραμμάτων, επιλεξιμότητα δαπανών, ελλείψεις πελατών ή ζήτα μου να ετοιμάσω αιτήματα δικαιολογητικών.'}
@@ -320,7 +323,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
                 <div className="flex flex-wrap gap-2">
                   {suggestions.map(s => (
                     <button key={s} type="button" onClick={() => { unlockAudio(); void send(s) }}
-                      className="rounded-full border border-border px-3 py-1.5 text-left text-[length:var(--fs-12-5)] hover:border-primary hover:text-primary">
+                      className="rounded-full border border-border px-3 py-1.5 text-left text-[length:var(--fs-13-5)] font-medium hover:border-primary hover:text-primary">
                       {s}
                     </button>
                   ))}
@@ -332,7 +335,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
                 <div className={cn('flex max-w-full items-end gap-2', m.role === 'user' && 'justify-end')}>
                 {m.role === 'assistant' && <Avatar className="size-7 shrink-0" />}
                 <div className={cn(
-                  'max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-[length:var(--fs-13-5)] leading-relaxed',
+                  'max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-[length:var(--fs-15)] font-medium leading-relaxed',
                   m.role === 'user' ? 'rounded-br-md bg-primary text-primary-foreground' : m.error ? 'rounded-bl-md bg-destructive/10 text-destructive' : 'rounded-bl-md bg-muted',
                 )}>
                   <RichText text={m.content} />
@@ -372,7 +375,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); unlockAudio(); void send(input) } }}
               placeholder={recording ? 'Ηχογράφηση… πατήστε ■ για τέλος' : 'Γράψτε μια ερώτηση…'}
               aria-label="Μήνυμα προς Thanos"
-              className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-[length:var(--fs-13-5)] outline-none focus:border-primary"
+              className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-[length:var(--fs-15)] outline-none focus:border-primary"
             />
             <button type="button" onClick={() => { unlockAudio(); void toggleMic() }} disabled={!ready || busy || transcribing}
               aria-label={recording ? 'Τέλος ηχογράφησης' : 'Φωνητική ερώτηση'}
@@ -415,7 +418,7 @@ function OperationCard({ card, onChange }: { card: OpCard; onChange: (patch: Car
     onChange({ status: execute ? 'SENT' : 'CANCELLED' })
   }
   return (
-    <div className="w-full rounded-xl border border-border bg-background p-3 text-[length:var(--fs-12-5)]">
+    <div className="w-full rounded-xl border border-border bg-background p-3 text-[length:var(--fs-13-5)]">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="font-semibold">{p.title}</span>
         <span className={cn('rounded-full px-2 py-0.5 text-[length:var(--fs-11)]',
@@ -465,7 +468,7 @@ function EmailActionCard({ card, onChange }: { card: EmailCard; onChange: (patch
   }
 
   return (
-    <div className="w-full rounded-xl border border-border bg-background p-3 text-[length:var(--fs-12-5)]">
+    <div className="w-full rounded-xl border border-border bg-background p-3 text-[length:var(--fs-13-5)]">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="font-semibold">{card.kind === 'ACCOUNTANT_LINK' ? 'Σύνδεσμος προς λογιστή' : 'Αίτημα δικαιολογητικών'}</span>
         <span className={cn('rounded-full px-2 py-0.5 text-[length:var(--fs-11)]',

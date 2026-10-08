@@ -649,3 +649,28 @@ export async function testElevenLabsSettings(values: ElevenLabsValues): Promise<
   revalidateSettings()
   return check
 }
+
+/** Ελληνικές φωνές ElevenLabs (λογαριασμός + βιβλιοθήκη) για τον επιλογέα φωνής του Thanos. */
+export async function listGreekVoicesAction(): Promise<{ ok: true; voices: import('@/lib/voice/elevenlabs').GreekVoice[] } | { ok: false; message: string }> {
+  await requirePermission('settings.manage')
+  const { listGreekVoices } = await import('@/lib/voice/elevenlabs')
+  try {
+    return { ok: true, voices: await listGreekVoices() }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+/** Δείγμα φωνής (ίδιο κείμενο για όλες, με cache) → mp3 base64. */
+export async function sampleVoiceAction(voiceId: string, model?: string): Promise<{ ok: true; audio: string } | { ok: false; message: string }> {
+  await requirePermission('settings.manage')
+  const { elevenlabsTtsCached, VOICE_SAMPLE_TEXT } = await import('@/lib/voice/elevenlabs')
+  const { speakable } = await import('@/lib/voice/speakable')
+  if (!/^[A-Za-z0-9]{10,40}$/.test(voiceId)) return { ok: false, message: 'Μη έγκυρο Voice ID.' }
+  try {
+    const audio = await elevenlabsTtsCached(speakable(VOICE_SAMPLE_TEXT), { voiceId, model: model?.trim() || undefined })
+    return { ok: true, audio: audio.toString('base64') }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) }
+  }
+}
