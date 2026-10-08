@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-08T15:21:45.219Z",
+  "timestamp": "2026-10-08T17:35:55.749Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n3c0b62b feat(thanos): γρηγορότερη ομιλία (1,15× προεπιλογή, με διατήρηση τόνου) + ρύθμιση «Ταχύτητα ομιλίας»\nd028545 chore: ενημέρωση HANDOFF\n490e687 feat(thanos): DeepSeek απευθείας, φιλικός σύντομος λόγος, επιλογέας ελληνικών φωνών, σωστή εκφώνηση Α.Ε./κεφαλαίων\ned4c0c6 feat(thanos): καλωσόρισμα πελατών (κείμενο + φωνή) με όνομα, πορεία έργων και εκκρεμή δικαιολογητικά\na1d5a5c fix(thanos): η φωνή παίζει (ξεκλείδωμα ήχου σε κλικ, ακρόαση ανά απάντηση, ανοιχτή από προεπιλογή)· πιο ανθρώπινος λόγος"
+  "context_notes": "Recent commits:\n3ae2995 feat(costs): ElevenLabs στα κόστη (ανά χαρακτήρα) + καταγραφή speech-to-text OpenRouter + τιμή DeepSeek V4 Pro\nd50b0ab feat(thanos): μάθηση από τις συζητήσεις + σύντομη φωνή στις ενέργειες\n81a5f8e chore: ενημέρωση HANDOFF\n3c0b62b feat(thanos): γρηγορότερη ομιλία (1,15× προεπιλογή, με διατήρηση τόνου) + ρύθμιση «Ταχύτητα ομιλίας»\nd028545 chore: ενημέρωση HANDOFF"
 }
