@@ -15,7 +15,7 @@ import {
 import { cn } from '@/lib/utils'
 import { resolveExpiry } from '@/lib/documents/expiry-rule'
 import {
-  uploadTrdrDossierDoc, listTrdrProgramsForDossier, checkDossierDuplicates, listProgramNeedsForTypes,
+  uploadTrdrDossierDoc, listTrdrProgramsForDossier, checkDossierDuplicates, listProgramNeedsForTypes, listDocumentTypes,
   type DocumentTypeOption, type DossierDuplicateCheck, type ProgramNeed,
 } from '@/lib/documents/actions'
 import { classifyDocumentSmart, type SmartClassifyResult } from '@/lib/documents/smart-classify'
@@ -104,12 +104,20 @@ async function extractText(file: File): Promise<string> {
 }
 
 export function DossierSmartUpload({
-  trdrId, types, onDone,
+  trdrId, types: typesProp, onDone, defaultProgramId, label = 'Δικαιολογητικά', variant = 'outline',
 }: {
   trdrId: string
-  types: DocumentTypeOption[]
+  /** Αν λείπει, φορτώνονται στο άνοιγμα (για χρήση εκτός καρτέλας Δικαιολογητικά). */
+  types?: DocumentTypeOption[]
   onDone: () => void
+  /** Προεπιλεγμένο πρόγραμμα (π.χ. από το έργο) όταν η AI δεν βρίσκει ρητή αναφορά. */
+  defaultProgramId?: string | null
+  label?: string
+  variant?: 'outline' | 'default'
 }) {
+  const [loadedTypes, setLoadedTypes] = React.useState<DocumentTypeOption[]>([])
+  const types = typesProp ?? loadedTypes
+  const fallbackProgram = defaultProgramId ?? GENERAL
   const [open, setOpen] = React.useState(false)
   const [rows, setRows] = React.useState<Row[]>([])
   const [programs, setPrograms] = React.useState<{ id: string; title: string }[]>([])
@@ -152,7 +160,7 @@ export function DossierSmartUpload({
         phase: 'ready',
         suggestion: s,
         typeId: s.typeId ?? '',
-        programId: s.programId ?? GENERAL,
+        programId: s.programId ?? fallbackProgram,
         reusable: s.reusable,
         hasExpiry: !!(t?.expires || s.expiresAt),
         expiresAt: s.expiresAt ?? '',
@@ -179,7 +187,7 @@ export function DossierSmartUpload({
       files.current.set(id, file)
       return {
         id, file, phase: 'reading', error: null, snippet: '', suggestion: null,
-        typeId: '', programId: GENERAL, reusable: true, hasExpiry: false, expiresAt: '', expiryNote: null,
+        typeId: '', programId: fallbackProgram, reusable: true, hasExpiry: false, expiresAt: '', expiryNote: null,
         hash: '', dup: null, decision: 'keep', needs: null, covered: [],
       }
     })
@@ -190,6 +198,7 @@ export function DossierSmartUpload({
 
   function openDialog() {
     setOpen(true)
+    if (!typesProp) listDocumentTypes().then(setLoadedTypes).catch(() => setLoadedTypes([]))
     listTrdrProgramsForDossier(trdrId).then(setPrograms).catch(() => setPrograms([]))
   }
 
@@ -300,8 +309,8 @@ export function DossierSmartUpload({
 
   return (
     <>
-      <Button type="button" variant="outline" onClick={openDialog}>
-        <LuSparkles className="size-3.5" aria-hidden /> Δικαιολογητικά
+      <Button type="button" variant={variant} onClick={openDialog}>
+        <LuSparkles className="size-3.5" aria-hidden /> {label}
       </Button>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="glass max-h-[90vh] overflow-y-auto sm:max-w-[760px]">

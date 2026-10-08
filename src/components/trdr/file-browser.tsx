@@ -13,6 +13,7 @@ import {
 import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import { DocumentPreviewDialog } from '@/components/ui/document-preview'
 import { FileDropzone, xhrUpload } from '@/components/ui/file-dropzone'
+import { DossierSmartUpload } from '@/components/trdr/dossier-smart-upload'
 import {
   listTrdrTree, deleteTrdrFile, createTrdrSubfolder, renameTrdrFile, type TrdrTreeListing, type BrowserFile,
 } from '@/lib/trdr/files'
@@ -187,11 +188,14 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
         <h3 className="flex items-center gap-2 text-[length:var(--fs-15)] font-bold">
           <Folder className="size-4 text-muted-foreground" aria-hidden /> Αρχεία
         </h3>
-        {canEdit && listing?.canCreateFolder && (
-          <Button type="button" variant="outline" onClick={() => { setFolderName(''); setFolderOpen(true) }}>
-            <FolderPlus className="size-4" aria-hidden /> Νέος φάκελος
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {canEdit && <DossierSmartUpload trdrId={trdrId} onDone={() => void reload()} label="Ανέβασμα με AI" />}
+          {canEdit && listing?.canCreateFolder && (
+            <Button type="button" variant="outline" onClick={() => { setFolderName(''); setFolderOpen(true) }}>
+              <FolderPlus className="size-4" aria-hidden /> Νέος φάκελος
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Breadcrumb */}
