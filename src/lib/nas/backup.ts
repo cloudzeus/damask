@@ -243,7 +243,10 @@ export async function runNasBackup(opts: { trigger: 'cron' | 'manual'; userId?: 
   // Παράλειψη του νυχτερινού → γράφεται στο ιστορικό, ώστε να φαίνεται ότι ΔΕΝ έγινε backup και γιατί.
   const skip = async (reason: string) => {
     if (opts.trigger === 'cron') {
+      const prev = await prisma.nasBackupRun.findFirst({ orderBy: { startedAt: 'desc' }, select: { status: true, message: true } })
       await prisma.nasBackupRun.create({ data: { trigger: 'cron', status: 'SKIPPED', finishedAt: new Date(), message: reason } })
+      // Ειδοποίηση μία φορά ανά νέο πρόβλημα (όχι κάθε βράδυ για το ίδιο).
+      if (!(prev?.status === 'SKIPPED' && prev.message === reason)) await notifyBackup('Δεν έγινε το νυχτερινό backup στο NAS', reason)
     }
     return { runId: null, skipped: reason }
   }
@@ -266,6 +269,7 @@ export async function runNasBackup(opts: { trigger: 'cron' | 'manual'; userId?: 
       await reindexDocuments().catch(err => console.error('[search] reindex failed', err))
     }
     const r = await backupPending({ budgetMs: opts.budgetMs })
+    if (r.failed) await notifyBackup('Backup NAS: κάποια αρχεία δεν αποθηκεύτηκαν', `${r.failed} αρχεία απέτυχαν (${r.uploaded} αποθηκεύτηκαν). Θα ξαναδοκιμαστούν στην επόμενη εκτέλεση — δες Αρχεία & Backup.`)
     await prisma.nasBackupRun.update({
       where: { id: run.id },
       data: {
@@ -279,12 +283,28 @@ export async function runNasBackup(opts: { trigger: 'cron' | 'manual'; userId?: 
       },
     })
   } catch (err) {
-    await prisma.nasBackupRun.update({
-      where: { id: run.id },
-      data: { status: 'ERROR', finishedAt: new Date(), message: (err instanceof Error ? err.message : String(err)).slice(0, 500) },
-    })
+    const message = (err instanceof Error ? err.message : String(err)).slice(0, 500)
+    await prisma.nasBackupRun.update({ where: { id: run.id }, data: { status: 'ERROR', finishedAt: new Date(), message } })
+    await notifyBackup('Το backup στο NAS απέτυχε', message)
   }
   return { runId: run.id }
+}
+
+/** Ειδοποίηση στο καμπανάκι της ομάδας για πρόβλημα backup. */
+async function notifyBackup(title: string, body: string) {
+  const { createNotification } = await import('@/lib/notifications/service')
+  await createNotification({ title, body, entityType: 'NasBackupRun' })
+}
+
+/**
+ * Αναπλήρωση: αν ο server ήταν κλειστός την ώρα του νυχτερινού (π.χ. Mac σε ύπνο), το backup
+ * γίνεται στην εκκίνηση — όταν δεν υπάρχει επιτυχημένο τις τελευταίες 26 ώρες.
+ */
+export async function nasBackupOverdue(): Promise<boolean> {
+  const cfg = await getSynologyConfig()
+  if (!cfg?.enabled) return false
+  const last = await prisma.nasBackupRun.findFirst({ where: { status: { in: ['OK', 'PARTIAL', 'RUNNING'] } }, orderBy: { startedAt: 'desc' }, select: { startedAt: true } })
+  return !last || Date.now() - last.startedAt.getTime() > 26 * 3600_000
 }
 
 /** Επαναφορά αρχείου από το NAS στην αποθήκη (π.χ. όταν σβήστηκε κατά λάθος). */

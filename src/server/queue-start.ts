@@ -131,6 +131,16 @@ export async function startQueue(): Promise<void> {
   })
   // Κάθε βράδυ 02:00 Ελλάδα — πριν το backup βάσης (03:30), το οποίο πιάνεται την επόμενη νύχτα.
   await boss.schedule(QUEUE_NAS_BACKUP, '0 2 * * *', null, { tz: 'Europe/Athens' })
+  // Χάθηκε το νυχτερινό (server κλειστός στις 02:00); → αναπλήρωση σε 2′ από την εκκίνηση.
+  try {
+    const { nasBackupOverdue } = await import('@/lib/nas/backup')
+    if (await nasBackupOverdue()) {
+      await boss.send(QUEUE_NAS_BACKUP, null, { startAfter: 120, singletonKey: 'nas-catchup' })
+      console.log('[pg-boss] nas-backup: αναπλήρωση χαμένου νυχτερινού σε 2′')
+    }
+  } catch (err) {
+    console.error('[pg-boss] nas catch-up check απέτυχε', err)
+  }
 
   // Άμεση ευρετηρίαση: κάθε upload/διαγραφή → καταχώριση στον κατάλογο + reindex (μόνο τα αλλαγμένα παίρνουν embedding).
   const { QUEUE_SEARCH_INDEX } = await import('@/lib/search/live-index')

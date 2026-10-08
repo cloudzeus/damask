@@ -26,10 +26,20 @@ ENV NODE_ENV=production
 # στο bare "pg_dump"/"pg_restore" που δεν υπάρχει καθόλου στο image → κάθε backup
 # αποτυγχάνει με φιλικό ελληνικό ENOENT μήνυμα (βλ. runBackup) αλλά ποτέ δεν τρέχει.
 RUN apk add --no-cache postgresql16-client
+# Prisma CLI (ίδια έκδοση με το project) για αυτόματο `migrate deploy` στην εκκίνηση —
+# το standalone output δεν περιέχει το CLI. Μένει απομονωμένο στο /opt/migrate.
+COPY package.json /tmp/app-package.json
+RUN mkdir -p /opt/migrate && cd /opt/migrate \
+  && PRISMA_VERSION=$(node -p "require('/tmp/app-package.json').devDependencies.prisma.replace(/^[^0-9]*/, '')") \
+  && echo '{"name":"migrate","private":true,"type":"module"}' > package.json \
+  && npm install --no-audit --no-fund --omit=dev "prisma@${PRISMA_VERSION}" \
+  && npm cache clean --force && rm /tmp/app-package.json
+COPY docker/prisma.migrate.config.mjs /opt/migrate/prisma.config.mjs
+COPY docker/start.sh /app/start.sh
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["/app/start.sh"]
