@@ -20,11 +20,45 @@ const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
-export async function thanosStatus(): Promise<{ chat: boolean; tts: boolean; mode: 'STAFF' | 'CUSTOMER' | null }> {
+export async function thanosStatus(): Promise<{ chat: boolean; tts: boolean; mode: 'STAFF' | 'CUSTOMER' | null; welcome?: string }> {
   const ctx = await resolveThanosContext()
   if (!ctx) return { chat: false, tts: false, mode: null }
   const or = await getIntegration<{ apiKey?: string }>('openrouter')
-  return { chat: !!or.apiKey?.trim(), tts: await isTtsConfigured(), mode: ctx.mode }
+  return {
+    chat: !!or.apiKey?.trim(), tts: await isTtsConfigured(), mode: ctx.mode,
+    ...(ctx.mode === 'CUSTOMER' ? { welcome: await customerWelcome(ctx.name, ctx.companyName, ctx.applicationIds) } : {}),
+  }
+}
+
+/** Κλητική μικρού ονόματος για τον χαιρετισμό (Γιάννης→Γιάννη, Κώστας→Κώστα, Νίκος→Νίκο). */
+function vocative(first: string): string {
+  if (!/^[\u0370-\u03ff\u1f00-\u1fff]+$/.test(first)) return first
+  return first.replace(/ης$/, 'η').replace(/ας$/, 'α').replace(/ος$/, 'ο').replace(/ής$/, 'ή').replace(/άς$/, 'ά').replace(/ός$/, 'ό')
+}
+
+/**
+ * Καλωσόρισμα πελάτη (χωρίς AI — μηδενικό κόστος tokens): χαιρετισμός με όνομα, πού βρίσκονται τα έργα του,
+ * πόσα δικαιολογητικά περιμένουμε και τι μπορεί να κάνει ο Thanos για αυτόν.
+ */
+async function customerWelcome(name: string, company: string, applicationIds: string[]): Promise<string> {
+  const hour = Number(new Date().toLocaleString('en-GB', { timeZone: 'Europe/Athens', hour: '2-digit', hour12: false }))
+  const hello = hour >= 5 && hour < 13 ? 'Καλημέρα σας' : 'Καλησπέρα σας'
+  const first = vocative(name.trim().split(/\s+/)[0] ?? '')
+  const pending = applicationIds.length
+    ? await prisma.applicationObligation.count({ where: { applicationId: { in: applicationIds }, kind: 'FORM', status: { in: ['PENDING', 'IN_PROGRESS', 'REJECTED'] } } })
+    : 0
+  const n = applicationIds.length
+  const parts = [
+    `${hello}${first ? `, ${first}` : ''}, και καλώς ήρθατε! Είμαι ο Thanos, ο ψηφιακός σας σύμβουλος στη World Wide Associates. Είμαι εδώ για να σας βοηθάω με ό,τι αφορά τα προγράμματα χρηματοδότησης${company ? ` της επιχείρησής σας «${company}»` : ''}, όποτε το χρειαστείτε.`,
+  ]
+  if (n) {
+    parts.push(`Αυτή τη στιγμή παρακολουθούμε μαζί σας ${n === 1 ? 'ένα πρόγραμμα' : `${n} προγράμματα`}.`)
+    parts.push(pending
+      ? `Για να προχωρήσει ο φάκελός σας, περιμένουμε ακόμα ${pending === 1 ? 'ένα δικαιολογητικό' : `${pending} δικαιολογητικά`}. Αν θέλετε, μπορώ να σας πω ποια είναι και από πού τα βγάζετε, ή να στείλω στον λογιστή σας έναν ασφαλή σύνδεσμο για να τα ανεβάσει ο ίδιος.`
+      : 'Τα δικαιολογητικά σας είναι όλα σε καλό δρόμο — δεν εκκρεμεί κάτι από εσάς αυτή τη στιγμή.')
+  }
+  parts.push('Μπορείτε επίσης να με ρωτήσετε αν μια δαπάνη που σκέφτεστε μπορεί να χρηματοδοτηθεί, ή ποια προγράμματα είναι ανοιχτά αυτή την περίοδο. Γράψτε μου ή πατήστε το μικρόφωνο και μιλήστε μου — ό,τι σας βολεύει.')
+  return parts.join(' ')
 }
 
 export async function thanosChat(input: { history: ChatTurn[]; message: string; page?: PageContext }): Promise<Res<ThanosReply>> {

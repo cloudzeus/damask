@@ -21,6 +21,7 @@ type Status = Awaited<ReturnType<typeof thanosStatus>>
 const STORE = 'thanos:chat'
 const VOICE = 'thanos:voice'
 const VOICE_LIMIT = 'thanos:voice-limit'
+const WELCOMED = 'thanos:welcomed'
 /** 0 δείγματα — αρκεί για να «ξεκλειδώσει» ο ήχος μέσα σε κλικ του χρήστη. */
 const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
 
@@ -116,7 +117,6 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
   const hydrated = useRef(false)
 
   useEffect(() => { if (hydrated.current) write('session', STORE, msgs.slice(-40)) }, [msgs])
-  useEffect(() => { if (open && !status) void thanosStatus().then(setStatus) }, [open, status])
   useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }) }, [msgs, busy])
   useEffect(() => { if (open) inputRef.current?.focus() }, [open])
 
@@ -129,6 +129,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
       setVoiceLimited(limitedToday)
       setVoice(!limitedToday && read('local', VOICE, true))
     }
+    unlockAudio()
     setOpen(true)
   }
 
@@ -136,14 +137,14 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
    * Ένα ΜΟΝΙΜΟ <audio>, «ξεκλειδωμένο» σε κλικ του χρήστη (Safari/Chrome μπλοκάρουν play() που γίνεται
    * μετά από αναμονή δικτύου). Μετά, κάθε απάντηση παίζει στο ίδιο στοιχείο χωρίς να μπλοκάρεται.
    */
-  const unlockAudio = useCallback(() => {
+  function unlockAudio() {
     if (audioRef.current) return
     audioRef.current = new Audio()
     void playUrl(audioRef.current, SILENT_WAV)
-  }, [])
+  }
 
-  const speak = useCallback(async (text: string, force = false) => {
-    if ((!voice && !force) || !status?.tts) return
+  const speak = useCallback(async (text: string, force = false, ttsReady?: boolean) => {
+    if ((!voice && !force) || !(ttsReady ?? status?.tts)) return
     const id = ++speakSeq.current
     setSpeaking(text)
     try {
@@ -167,6 +168,19 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
       setSpeaking(null)
     }
   }, [voice, status?.tts])
+
+  /** Πελάτες: καλωσόρισμα μία φορά ανά συνεδρία (κείμενο + φωνή, αν είναι διαθέσιμη). */
+  function onStatus(s: Status) {
+    setStatus(s)
+    if (s.mode !== 'CUSTOMER' || !s.welcome || !s.chat) return
+    if (read('session', WELCOMED, false) || read<Msg[]>('session', STORE, []).length) return
+    write('session', WELCOMED, true)
+    setMsgs([{ role: 'assistant', content: s.welcome }])
+    const limitedToday = read<string | null>('local', VOICE_LIMIT, null) === new Date().toDateString()
+    if (!limitedToday && read('local', VOICE, true)) void speak(s.welcome, true, s.tts)
+  }
+
+  useEffect(() => { if (open && !status) void thanosStatus().then(onStatus) }, [open, status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function stopSpeaking() {
     speakSeq.current++
