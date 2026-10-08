@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-08T17:35:55.749Z",
+  "timestamp": "2026-10-08T18:24:21.272Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n3ae2995 feat(costs): ElevenLabs στα κόστη (ανά χαρακτήρα) + καταγραφή speech-to-text OpenRouter + τιμή DeepSeek V4 Pro\nd50b0ab feat(thanos): μάθηση από τις συζητήσεις + σύντομη φωνή στις ενέργειες\n81a5f8e chore: ενημέρωση HANDOFF\n3c0b62b feat(thanos): γρηγορότερη ομιλία (1,15× προεπιλογή, με διατήρηση τόνου) + ρύθμιση «Ταχύτητα ομιλίας»\nd028545 chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\n5c0dfbe feat(thanos): απαντήσεις σε ροή (streaming) με ένδειξη «τι κάνει τώρα»\nd0b01aa perf(thanos): γρηγορότερη απάντηση & φωνή\n2f94abd chore: ενημέρωση HANDOFF\n3ae2995 feat(costs): ElevenLabs στα κόστη (ανά χαρακτήρα) + καταγραφή speech-to-text OpenRouter + τιμή DeepSeek V4 Pro\nd50b0ab feat(thanos): μάθηση από τις συζητήσεις + σύντομη φωνή στις ενέργειες"
 }
