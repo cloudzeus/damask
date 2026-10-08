@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { OcrUploader } from '@/components/ocr/ocr-uploader'
 import type { ExtractedDocument } from '@/lib/ocr/schema'
 import { ComposeEmailDialog } from '@/components/email/compose-email-dialog'
+import { ExpenseEligibilityPanel } from './expense-eligibility-panel'
+import { evaluateExpenseEligibility } from '@/lib/programs/expense-proposal'
 import {
   listExpensePurchases, savePurchaseMeta, uploadPurchaseDoc, removePurchaseDoc, reconcileExpensePurchase, saveInvoiceOcr, draftDocRequestEmail,
   type PurchaseItem, type PurchaseDocKind, type PurchaseVerdict, type DocRequestDraft,
@@ -38,6 +40,10 @@ function readFileBase64(file: File): Promise<{ base64: string; ext: string }> {
  * τα 3 έγγραφα αγοράς (παραστατικό/extrait/βεβαίωση) + serial + πληρωμένο ποσό +
  * AI διασταύρωση απέναντι στην εγκεκριμένη δαπάνη. Self-fetching.
  */
+const ELIG_META: Record<string, { label: string; cls: string }> = {
+  ELIGIBLE: { label: 'Επιλέξιμη', cls: 'ok' }, INELIGIBLE: { label: 'ΜΗ επιλέξιμη', cls: 'warn' }, UNCERTAIN: { label: 'Αβέβαιη', cls: 'muted' },
+}
+
 export function PurchaseDocsPanel({ applicationId }: { applicationId: string }) {
   const [items, setItems] = React.useState<PurchaseItem[] | null>(null)
   const load = React.useCallback(() => {
@@ -66,6 +72,8 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
   const [serial, setSerial] = React.useState(it.serial ?? '')
   const [paid, setPaid] = React.useState(it.paidAmount != null ? String(it.paidAmount) : '')
   const [reconciling, setReconciling] = React.useState(false)
+  const [checking, setChecking] = React.useState(false)
+  const [showElig, setShowElig] = React.useState(false)
   const [showNote, setShowNote] = React.useState(false)
   const [ocrOpen, setOcrOpen] = React.useState(false)
   const [drafting, setDrafting] = React.useState(false)
@@ -99,6 +107,17 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
       onReload()
     } catch { toast.error('Η αποθήκευση απέτυχε.') }
   }
+  // Επιλεξιμότητα δαπάνης βάσει του ΠΑΡΑΣΤΑΤΙΚΟΥ (π.χ. προγράμματα χωρίς προσφορές) — on demand.
+  async function checkEligibility() {
+    setChecking(true)
+    try {
+      const res = await evaluateExpenseEligibility(it.expenseId)
+      if (!res.ok) { toast.error(res.message); return }
+      toast.success('Ο έλεγχος επιλεξιμότητας ολοκληρώθηκε.')
+      setShowElig(true); onReload()
+    } catch { toast.error('Ο έλεγχος απέτυχε.') } finally { setChecking(false) }
+  }
+
   async function reconcile() {
     setReconciling(true)
     try {
@@ -167,6 +186,12 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
           {reconciling ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {it.reconVerdict ? 'Ξανά διασταύρωση' : 'AI διασταύρωση'}
         </button>
         {vm && <button type="button" onClick={() => setShowNote(s => !s)} className={`badge-pill ${vm.cls} shrink-0`}>{vm.label} ▾</button>}
+        <button type="button" onClick={checkEligibility} disabled={checking} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary disabled:opacity-60" title="Μπορεί η δαπάνη να υπαχθεί στο πρόγραμμα; — έλεγχος με τον οδηγό και το παραστατικό">
+          {checking ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {it.eligibilityDetail ? 'Νέος έλεγχος επιλεξιμότητας' : 'Έλεγχος επιλεξιμότητας'}
+        </button>
+        {it.eligibilityDetail && (
+          <button type="button" onClick={() => setShowElig(v => !v)} className={`badge-pill shrink-0 ${ELIG_META[it.eligibilityDetail.verdict].cls}`}>{ELIG_META[it.eligibilityDetail.verdict].label} ▾</button>
+        )}
         {it.missingDocs.length > 0 && <span className="inline-flex items-center gap-1 text-[length:var(--fs-10-5)] text-[color:var(--warning)]"><LuTriangleAlert className="size-3" aria-hidden /> λείπουν: {it.missingDocs.join(', ')}</span>}
         {it.missingDocs.length === 0 && <span className="inline-flex items-center gap-1 text-[length:var(--fs-10-5)] text-[color:var(--success)]"><LuCircleCheck className="size-3" aria-hidden /> όλα τα έγγραφα</span>}
         {it.missingDocs.length > 0 && (
@@ -187,6 +212,7 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
           defaultBody={draft.body}
         />
       )}
+      {showElig && it.eligibilityDetail && <ExpenseEligibilityPanel detail={it.eligibilityDetail} amount={it.amount} />}
       {showNote && it.reconNote && (
         <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[length:var(--fs-11)] text-muted-foreground"><strong>AI τεκμηρίωση:</strong> {it.reconNote}</p>
       )}

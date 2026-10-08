@@ -1658,6 +1658,8 @@ model ProgramExpense {
   eligibilityVerdict   String?
   eligibilityNote      String?
   eligibilityCheckedAt DateTime?
+  /// Αναλυτικός έλεγχος επιλεξιμότητας (κανόνες οδηγού, ποσό επιλέξιμο, προϋποθέσεις) — βλ. expense-eligibility.ts.
+  eligibilityDetail    Json?
   docNumber            String?
   suggestedCategoryId  String?
   suggestionReason     String?

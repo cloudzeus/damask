@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
+import { ExpenseEligibilityPanel } from './expense-eligibility-panel'
 import {
   LuPlus, LuLoaderCircle, LuPrinter, LuUpload, LuFileCheck2, LuTriangleAlert, LuSearch, LuCircleCheck, LuSparkles, LuArrowRightLeft, LuChevronRight, LuEllipsisVertical, LuScanText,
 } from 'react-icons/lu'
@@ -327,7 +328,7 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
         {e.supplierName && <span className="text-[length:var(--fs-11)] text-muted-foreground">· {e.supplierName}{e.supplierAfm ? ` (${e.supplierAfm})` : ''}</span>}
         {vm && <button type="button" onClick={() => setShowNote(s => !s)} className={`badge-pill shrink-0 ${vm.cls}`} title="Τεκμηρίωση AI — έλεγξέ τη">{vm.label} ▾</button>}
         <button type="button" onClick={evaluate} disabled={evaluating} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary" title="Αξιολόγηση επιλεξιμότητας με AI (τεκμηρίωση βάσει αποδελτίωσης)">
-          {evaluating ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {e.eligibilityVerdict ? 'Ξανά' : 'Τεκμηρίωση AI'}
+          {evaluating ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuSparkles className="size-3" aria-hidden />} {e.eligibilityVerdict ? 'Νέος έλεγχος' : 'Έλεγχος επιλεξιμότητας'}
         </button>
         <button
           type="button"
@@ -389,8 +390,8 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
           </DialogContent>
         </Dialog>
       )}
-      {showNote && e.eligibilityNote && (
-        <p className="mt-1 rounded-md bg-muted/60 px-2 py-1 text-[length:var(--fs-11)] text-muted-foreground"><strong>Τεκμηρίωση AI (έλεγξέ τη):</strong> {e.eligibilityNote}</p>
+      {showNote && (e.eligibilityDetail || e.eligibilityNote) && (
+        <ExpenseEligibilityPanel detail={e.eligibilityDetail} fallbackNote={e.eligibilityNote} amount={e.amount} />
       )}
       {suggestion && (
         <div className="mt-1 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-[length:var(--fs-11)]">
