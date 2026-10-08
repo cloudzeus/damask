@@ -192,10 +192,23 @@ export function AssessmentTab({ applicationId, canManage }: { applicationId: str
                 <td className="ctr">
                   <div className="inline-flex items-center gap-1">
                     <input
+                      // key με τον βαθμό: μετά το clamp/αποθήκευση το πεδίο δείχνει την πραγματική τιμή.
+                      key={`${row.id}:${row.score ?? ''}`}
                       type="number"
                       min={0}
                       max={row.maxScore}
+                      step="any"
+                      inputMode="decimal"
                       defaultValue={row.score ?? ''}
+                      aria-label={`Βαθμός (0-${row.maxScore})`}
+                      onChange={e => {
+                        // Όριο ήδη την ώρα της πληκτρολόγησης: πάνω από το μέγιστο → μέγιστο, αρνητικό → 0.
+                        const n = Number(e.target.value)
+                        if (e.target.value !== '' && Number.isFinite(n)) {
+                          if (n > row.maxScore) { e.target.value = String(row.maxScore); toast.info(`Μέγιστος βαθμός: ${row.maxScore}`, { id: 'score-max' }) }
+                          else if (n < 0) e.target.value = '0'
+                        }
+                      }}
                       onBlur={e => handleScoreBlur(row, e.target.value)}
                       className="w-16 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-center text-[length:var(--fs-13)] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
                     />

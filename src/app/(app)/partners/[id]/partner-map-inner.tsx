@@ -63,12 +63,24 @@ export function PartnerMapInner({
     }
 
     if (editable) {
+      // Μονό κλικ = νέα θέση· διπλό κλικ = ζουμ (ακυρώνει το μονό). Ένα μόνο toast επιβεβαίωσης
+      // (σταθερό id → αντικαθιστά το προηγούμενο) και μόνο για το τελευταίο κλικ.
+      let clickTimer: ReturnType<typeof setTimeout> | null = null
+      let seq = 0
+      map.on('dblclick', () => { if (clickTimer) { clearTimeout(clickTimer); clickTimer = null } })
       map.on('click', (e: L.LeafletMouseEvent) => {
+        if (clickTimer) clearTimeout(clickTimer)
+        clickTimer = setTimeout(() => { clickTimer = null; pick(e) }, 300)
+      })
+      const pick = (e: L.LeafletMouseEvent) => {
+        const mine = ++seq
         setPending(true)
         reverseGeocodeAction(e.latlng.lat, e.latlng.lng)
           .then(res => {
+            if (mine !== seq) return
             const label = res.ok ? (res.result.displayName || res.result.address || 'Άγνωστη διεύθυνση') : 'Άγνωστη διεύθυνση'
             toast(`Ενημέρωση συντεταγμένων στο: ${label};`, {
+              id: 'map-pick-confirm',
               action: {
                 label: 'Επιβεβαίωση',
                 onClick: () => {
@@ -88,7 +100,7 @@ export function PartnerMapInner({
             })
           })
           .finally(() => setPending(false))
-      })
+      }
     }
 
     return () => {

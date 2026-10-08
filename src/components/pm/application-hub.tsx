@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  LuBuilding2, LuCircleCheck, LuCircleX, LuClock3, LuChevronRight, LuCheck, LuUserRound,
+  LuBuilding2, LuCircleCheck, LuCircleX, LuClock3, LuChevronRight, LuChevronLeft, LuCheck, LuUserRound,
 } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -59,6 +59,8 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
   const [changingStage, setChangingStage] = React.useState(false)
 
   const next = nextStage(app.stage)
+  const prevIdx = STAGE_ORDER.indexOf(app.stage) - 1
+  const prev = prevIdx >= 0 ? STAGE_ORDER[prevIdx] : null
 
   function handleStageChange(stage: StageStr) {
     if (stage === app.stage || changingStage) return
@@ -143,9 +145,14 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
               </SelectContent>
             </Select>
           </div>
-          <Button type="button" onClick={() => next && handleStageChange(next)} disabled={!next || changingStage}>
-            {changingStage ? 'Ενημέρωση…' : (<>Επόμενο στάδιο <LuChevronRight className="size-3.5" aria-hidden /></>)}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" onClick={() => prev && handleStageChange(prev)} disabled={!prev || changingStage} title={prev ? `Επιστροφή σε «${stageLabel(prev)}»` : undefined}>
+              <LuChevronLeft className="size-3.5" aria-hidden /> Προηγούμενο στάδιο
+            </Button>
+            <Button type="button" onClick={() => next && handleStageChange(next)} disabled={!next || changingStage}>
+              {changingStage ? 'Ενημέρωση…' : (<>Επόμενο στάδιο <LuChevronRight className="size-3.5" aria-hidden /></>)}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -299,11 +306,13 @@ const TAB_GROUPS: { label: string; tabs: TabDef[] }[] = [
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
   return (
-    <div role="tablist" aria-label="Ενότητες έργου" className="glass flex flex-wrap items-center gap-x-1 gap-y-1.5 rounded-[22px] p-2">
+    // Κάθε φάση = στήλη: ετικέτα από πάνω, κουμπιά από κάτω (αναδιπλώνονται μέσα στη στήλη) —
+    // έτσι η στοίχιση δεν σπάει όταν δεν χωράνε όλα σε μία γραμμή.
+    <div role="tablist" aria-label="Ενότητες έργου" className="glass flex flex-wrap items-stretch gap-x-2 gap-y-2 rounded-[22px] p-2">
       {TAB_GROUPS.map((g, gi) => (
-        <div key={g.label} className="flex items-center gap-1">
-          {gi > 0 && <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden />}
-          <span className="mr-0.5 hidden text-[length:var(--fs-9)] font-bold uppercase tracking-[0.08em] text-muted-foreground lg:inline">{g.label}</span>
+        <div key={g.label} className={cn('flex min-w-0 flex-col gap-1 px-1', gi > 0 && 'sm:border-l sm:border-border sm:pl-3')}>
+          <span className="px-2 text-[length:var(--fs-9)] font-bold tracking-[0.08em] text-muted-foreground uppercase">{g.label}</span>
+          <div className="flex flex-wrap items-center gap-1">
           {g.tabs.map(t => (
             <button
               key={t.key}
@@ -322,6 +331,7 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) 
               {t.label}
             </button>
           ))}
+          </div>
         </div>
       ))}
     </div>

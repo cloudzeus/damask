@@ -30,6 +30,29 @@ function extOf(name: string): string {
   return i >= 0 ? name.slice(i + 1).toLowerCase() : ''
 }
 
+/** Αναγνώριση από τα πρώτα bytes (magic numbers) — για αρχεία με γενικό mime/χωρίς κατάληξη. */
+function sniffKind(buf: ArrayBuffer): Kind | null {
+  const b = new Uint8Array(buf.slice(0, 8))
+  const at = (...xs: number[]) => xs.every((x, i) => b[i] === x)
+  if (at(0x25, 0x50, 0x44, 0x46)) return 'pdf' // %PDF
+  if (at(0x89, 0x50, 0x4e, 0x47) || at(0xff, 0xd8, 0xff) || at(0x47, 0x49, 0x46) || (at(0x52, 0x49, 0x46, 0x46))) return 'image'
+  if (at(0x50, 0x4b, 0x03, 0x04)) {
+    // ZIP: docx ή xlsx — διάκριση από το περιεχόμενο του αρχείου.
+    const head = new TextDecoder('latin1').decode(new Uint8Array(buf.slice(0, Math.min(buf.byteLength, 4000))))
+    if (head.includes('word/')) return 'docx'
+    if (head.includes('xl/')) return 'sheet'
+  }
+  return null
+}
+
+function sniffImageType(buf: ArrayBuffer): string {
+  const b = new Uint8Array(buf.slice(0, 4))
+  if (b[0] === 0x89) return 'image/png'
+  if (b[0] === 0xff) return 'image/jpeg'
+  if (b[0] === 0x47) return 'image/gif'
+  return 'image/webp'
+}
+
 function kindOf(name: string, mimeType?: string | null): Kind {
   const ext = extOf(name)
   const mt = (mimeType ?? '').toLowerCase()
@@ -70,13 +93,17 @@ export function DocumentPreviewDialog({
       setLoaded(null)
       revoke()
       try {
-        const kind = kindOf(name, mimeType)
         const res = await fetch(url, { cache: 'no-store' })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const buf = await res.arrayBuffer()
         if (!alive) return
+        // Τύπος: όνομα/mime· αν είναι γενικός (π.χ. octet-stream, χωρίς κατάληξη) → από τα bytes.
+        const named = kindOf(name, mimeType)
+        const sniffed = sniffKind(buf)
+        const kind = named === 'unsupported' || (sniffed && sniffed !== named) ? (sniffed ?? named) : named
         if (kind === 'pdf' || kind === 'image') {
-          const blob = new Blob([buf], { type: mimeType ?? (kind === 'pdf' ? 'application/pdf' : 'application/octet-stream') })
+          const type = kind === 'pdf' ? 'application/pdf' : (mimeType?.startsWith('image/') ? mimeType : sniffImageType(buf))
+          const blob = new Blob([buf], { type })
           const blobUrl = URL.createObjectURL(blob)
           blobUrlRef.current = blobUrl
           setLoaded({ kind, blobUrl })

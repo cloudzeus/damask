@@ -31,15 +31,18 @@ export function useMobileNav() {
 /** Hamburger — εμφανίζεται μόνο σε mobile (lg:hidden). */
 export function MobileNavToggle() {
   const { open, setOpen } = useMobileNav()
+  // Wrapper: το `.icon-pill` (unlayered CSS) νικά το `lg:hidden` αν μπει στο ίδιο στοιχείο.
   return (
-    <button
-      type="button"
-      className="icon-pill lg:hidden"
-      aria-label="Μενού"
-      aria-expanded={open}
-      onClick={() => setOpen(!open)}
-    >
-      <Menu className="size-4" strokeWidth={1.8} />
-    </button>
+    <span className="contents lg:hidden">
+      <button
+        type="button"
+        className="icon-pill"
+        aria-label="Μενού"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <Menu className="size-4" strokeWidth={1.8} />
+      </button>
+    </span>
   )
 }

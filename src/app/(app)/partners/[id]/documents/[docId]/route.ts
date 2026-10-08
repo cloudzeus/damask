@@ -40,13 +40,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   // storageKey πάντα καταλήγει σε ".{ext}" (βλ. gemiDocKey στο enrich-actions.ts) — το
   // χρησιμοποιούμε ως πηγή της αλήθειας για την επέκταση, ΟΧΙ το mimeType (πιο αξιόπιστο).
-  const ext = doc.storageKey.split('.').pop() || 'bin'
+  // Τα έγγραφα ΓΕΜΗ έχουν αποθηκευτεί ως octet-stream — ο πραγματικός τύπος από τα bytes,
+  // ώστε «Νέα καρτέλα» να ανοίγει το PDF αντί να το κατεβάζει. ?download=1 → αποθήκευση.
+  const isPdf = bytes.subarray(0, 4).toString('latin1') === '%PDF'
+  const ext = isPdf ? 'pdf' : (doc.storageKey.split('.').pop() || 'bin')
+  const type = isPdf ? 'application/pdf' : (doc.mimeType && doc.mimeType !== 'application/octet-stream' ? doc.mimeType : 'application/octet-stream')
+  const inline = isPdf && new URL(_request.url).searchParams.get('download') !== '1'
+  const fileName = `${doc.title}.${ext}`
   return new Response(new Uint8Array(bytes), {
     status: 200,
     headers: {
-      'Content-Type': doc.mimeType ?? 'application/octet-stream',
+      'Content-Type': type,
       'Content-Length': String(bytes.length),
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(doc.title)}.${ext}"`,
+      'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="document.${ext}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       'Cache-Control': 'private, no-store',
     },
   })

@@ -7,6 +7,7 @@ import { RefreshCw, BadgeCheck, Download, Trash2, ScanEye, LoaderCircle } from '
 import { Button } from '@/components/ui/button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { DocumentPreviewButton } from '@/components/ui/document-preview'
+import { ListFilter, matchesFilter } from '@/components/ui/list-filter'
 import { removeTrdrDocument } from '@/lib/trdr/enrich-actions'
 import { GemiSyncConfirmDialog } from './gemi-sync-dialog'
 import { AadeCheckDialog } from './aade-check-dialog'
@@ -174,6 +175,8 @@ export function TrdrDocumentsCard({
 }) {
   const router = useRouter()
   const [gemiOpen, setGemiOpen] = React.useState(false)
+  const [q, setQ] = React.useState('')
+  const shown = documents.filter(d => matchesFilter(q, d.title, DOC_KIND_LABEL[d.docKind], d.dateLabel))
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
 
   async function handleDelete(doc: TrdrDocumentRow) {
@@ -194,8 +197,9 @@ export function TrdrDocumentsCard({
     <div className="glass stagger p-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
-          Έγγραφα ({documents.length})
+          Έγγραφα ({q ? `${shown.length}/${documents.length}` : documents.length})
         </div>
+        {documents.length > 3 && <ListFilter value={q} onChange={setQ} placeholder="Αναζήτηση εγγράφου…" className="w-full sm:w-64" />}
         <Button type="button" variant="outline" size="sm" disabled={!arGemi} onClick={() => setGemiOpen(true)}>
           <ScanEye className="size-3.5" aria-hidden /> Προβολή εγγράφων ΓΕΜΗ
         </Button>
@@ -205,7 +209,8 @@ export function TrdrDocumentsCard({
         <p className="py-4 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Δεν υπάρχουν αποθηκευμένα έγγραφα.</p>
       ) : (
         <div className="flex flex-col">
-          {documents.map(doc => (
+          {shown.length === 0 && <p className="py-4 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Κανένα έγγραφο δεν ταιριάζει με «{q}».</p>}
+          {shown.map(doc => (
             <div key={doc.id} className="dotted-row-bottom flex flex-wrap items-center gap-2.5 py-2.5">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -223,7 +228,7 @@ export function TrdrDocumentsCard({
                     label="Προβολή"
                     className="btn-pill btn-glass h-8 px-3 text-[length:var(--fs-12)]"
                   />
-                  <a href={`/partners/${trdrId}/documents/${doc.id}`} className="btn-pill btn-glass h-8 px-3 text-[length:var(--fs-12)]">
+                  <a href={`/partners/${trdrId}/documents/${doc.id}?download=1`} className="btn-pill btn-glass h-8 px-3 text-[length:var(--fs-12)]">
                     <Download className="size-3.5" aria-hidden /> Λήψη
                   </a>
                 </>

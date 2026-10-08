@@ -4,6 +4,7 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { LuLoaderCircle, LuTrash2, LuDownload, LuFileCheck2, LuTriangleAlert, LuCalendarClock, LuScanText } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
+import { ListFilter, matchesFilter } from '@/components/ui/list-filter'
 import {
   listTrdrDossier, listDocumentTypes, updateTrdrDossierDoc, removeTrdrDossierDoc,
   type DossierDocItem, type DocumentTypeOption,
@@ -26,6 +27,8 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [scanOpen, setScanOpen] = React.useState(false)
+  const [q, setQ] = React.useState('')
+  const shown = docs.filter(d => matchesFilter(q, d.documentTypeName, d.name, d.programTitle, d.expired ? 'έληξε ληγμένο' : ''))
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -96,6 +99,7 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
       <p className="mb-3 text-[length:var(--fs-11-5)] text-muted-foreground">
         Ό,τι δικαιολογητικά έχει ήδη η εταιρία (με ημ. λήξης όπου ισχύει). Στην ένταξη σε πρόγραμμα, όσα υπάρχουν <strong>σε ισχύ</strong> δεν ξαναζητούνται.
       </p>
+      {docs.length > 3 && <ListFilter value={q} onChange={setQ} placeholder="Αναζήτηση δικαιολογητικού, τύπου, προγράμματος…" className="mb-3 sm:max-w-md" />}
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-8 text-[length:var(--fs-12-5)] text-muted-foreground">
@@ -109,7 +113,8 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
         </p>
       ) : (
         <div className="flex flex-col gap-2">
-          {docs.map(doc => (
+          {shown.length === 0 && <p className="py-4 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Κανένα δικαιολογητικό δεν ταιριάζει με «{q}».</p>}
+          {shown.map(doc => (
             <div key={doc.id} className="rounded-2xl border border-border bg-card/60 p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">

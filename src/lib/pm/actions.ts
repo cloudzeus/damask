@@ -376,12 +376,14 @@ export async function listCriterionScores(applicationId: string): Promise<Criter
 }
 
 export async function saveCriterionScore(scoreId: string, input: { score?: number | null; note?: string | null }): Promise<void> {
-  const row = await prisma.applicationCriterionScore.findUniqueOrThrow({ where: { id: scoreId }, select: { applicationId: true } })
+  const row = await prisma.applicationCriterionScore.findUniqueOrThrow({ where: { id: scoreId }, select: { applicationId: true, maxScore: true } })
   await requireVisibleApplication(row.applicationId)
+  // Ο βαθμός πάντα μέσα στο [0, μέγιστο] — ανεξάρτητα από τον client.
+  const score = input.score == null || !Number.isFinite(input.score) ? null : Math.min(row.maxScore, Math.max(0, input.score))
   await prisma.applicationCriterionScore.update({
     where: { id: scoreId },
     data: {
-      ...(input.score !== undefined ? { score: input.score } : {}),
+      ...(input.score !== undefined ? { score } : {}),
       ...(input.note !== undefined ? { note: input.note } : {}),
     },
   })

@@ -44,10 +44,10 @@ export function MediaGallery({
 
   // Full-screen drag & drop: αρχεία που σέρνονται ΟΠΟΥΔΗΠΟΤΕ στη σελίδα → overlay,
   // και στο drop ανοίγει η μεταφόρτωση στον τρέχοντα φάκελο. Μετρητής depth γιατί
-  // τα dragenter/dragleave πυροδοτούνται σε κάθε παιδί. Ανενεργό όταν είναι ήδη
-  // ανοιχτό το dialog (εκεί δουλεύει το δικό του dropzone).
+  // τα dragenter/dragleave πυροδοτούνται σε κάθε παιδί. Λειτουργεί ΚΑΙ με ανοιχτό το
+  // dialog μεταφόρτωσης: drop μέσα στο κουτάκι → το χειρίζεται το κουτάκι (defaultPrevented)·
+  // drop οπουδήποτε αλλού → κλείνει το dialog και ανεβαίνουν στο panel προόδου.
   useEffect(() => {
-    if (uploadOpen) return
     let depth = 0
     const hasFiles = (e: DragEvent) => !!e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')
     const onEnter = (e: DragEvent) => {
@@ -68,9 +68,11 @@ export function MediaGallery({
     }
     const onDrop = (e: DragEvent) => {
       if (!hasFiles(e)) return
-      e.preventDefault()
       depth = 0
       setDragActive(false)
+      if (e.defaultPrevented) return // το πήρε το dropzone του dialog
+      e.preventDefault()
+      setUploadOpen(false)
       const files = Array.from(e.dataTransfer?.files ?? [])
       if (files.length === 0) return
       // Προορισμός = ο τρέχων φάκελος. Αν άλλαξε φάκελος, το panel ξαναστήνεται (key) για τον νέο.
@@ -86,7 +88,7 @@ export function MediaGallery({
       window.removeEventListener('dragleave', onLeave)
       window.removeEventListener('drop', onDrop)
     }
-  }, [uploadOpen, selectedFolderId])
+  }, [selectedFolderId])
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickedImages, setPickedImages] = useState<CollectionImage[]>([])
 
@@ -264,7 +266,7 @@ export function MediaGallery({
       )}
 
       {/* Portal: ένα fixed μέσα στο page-transition transform θα «παγιδευόταν» (βλ. bulk-action-bar). */}
-      {dragActive && !uploadOpen && createPortal(
+      {dragActive && createPortal(
         <div className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center bg-background/70 p-6 backdrop-blur-sm" aria-hidden>
           <div className="flex w-full max-w-xl flex-col items-center gap-3 rounded-[28px] border-2 border-dashed border-primary bg-card/95 px-8 py-12 text-center shadow-xl">
             <UploadCloud className="size-12 text-primary" strokeWidth={1.5} />
