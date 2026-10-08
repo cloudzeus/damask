@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { getIntegration } from '@/lib/settings'
+import { logApiUsage } from '@/lib/api-usage'
 
 /** ElevenLabs text-to-speech (φωνή του Thanos). integration.elevenlabs { apiKey, voiceId, model }. */
 
@@ -48,6 +49,8 @@ export async function elevenlabsTts(text: string, override: { voiceId?: string; 
     const detail = await res.text().catch(() => '')
     throw new Error(`ElevenLabs HTTP ${res.status}${detail ? ` — ${detail.slice(0, 200)}` : ''}`)
   }
+  // Κόστος (/costs → ElevenLabs): χρεώνονται οι χαρακτήρες που στάλθηκαν — μόνο σε πραγματική κλήση, όχι από cache.
+  void logApiUsage({ service: 'elevenlabs', operation: `tts:${model}`, units: Math.min(text.length, 2500), refType: 'thanos' })
   return Buffer.from(await res.arrayBuffer())
 }
 

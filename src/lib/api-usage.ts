@@ -7,7 +7,7 @@ import { loadApiCostConfig } from '@/lib/api-costs'
  * ασφαλή γενικά defaults) ώστε ένα μελλοντικό service (π.χ. νέο geocoding
  * provider) να μην απαιτεί αλλαγή εδώ — το type είναι μόνο τεκμηρίωση/DX.
  */
-export type ApiService = 'mailgun' | 'bunnycdn' | 'viva' | 'aade' | 'geocoding' | (string & {})
+export type ApiService = 'mailgun' | 'bunnycdn' | 'viva' | 'aade' | 'geocoding' | 'elevenlabs' | (string & {})
 
 interface LogApiUsageInput {
   service: ApiService

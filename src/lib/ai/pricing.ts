@@ -14,6 +14,9 @@ const PRICING: Record<string, PricingEntry> = {
   // DeepSeek (official API)
   'deepseek-chat':       { inputPerMTokens: 0.27, outputPerMTokens: 1.10 },
   'deepseek-reasoner':   { inputPerMTokens: 0.55, outputPerMTokens: 2.19 },
+  // Thanos: DeepSeek V4 Pro (απευθείας ή μέσω OpenRouter)
+  'deepseek-v4-pro':           { inputPerMTokens: 0.29, outputPerMTokens: 0.58 },
+  'deepseek/deepseek-v4-pro':  { inputPerMTokens: 0.29, outputPerMTokens: 0.58 },
 
   // Google Gemini (AI Studio)
   'gemini-2.5-flash':         { inputPerMTokens: 0.30, outputPerMTokens: 2.50 },

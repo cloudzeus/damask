@@ -117,7 +117,10 @@ export async function openrouterTranscribe(audioBase64: string, format: string, 
     max_tokens: 1500,
     temperature: 0,
   }, 60_000)
-  void opts
+  void logAiUsage({
+    provider: 'openrouter', model: json.model ?? c.sttModel, scope: 'OTHER', operation: 'speech-to-text',
+    inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens, refType: 'thanos-stt', userId: opts.userId ?? null,
+  }).catch(() => {})
   return (json.choices?.[0]?.message?.content ?? '').trim()
 }
 

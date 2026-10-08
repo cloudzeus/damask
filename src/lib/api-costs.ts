@@ -13,8 +13,9 @@ import { getSetting } from '@/lib/settings'
  *  - per_transaction:   1 συναλλαγή = 1 μονάδα
  *  - per_lookup:        1 αναζήτηση = 1 μονάδα
  *  - per_request:       1 κλήση = 1 μονάδα (γενικό fallback, π.χ. geocoding)
+ *  - per_character:     χαρακτήρες κειμένου (π.χ. ElevenLabs φωνή)
  */
-export type ApiCostModel = 'per_email' | 'per_gb' | 'per_transaction' | 'per_lookup' | 'per_request'
+export type ApiCostModel = 'per_email' | 'per_gb' | 'per_transaction' | 'per_lookup' | 'per_request' | 'per_character'
 
 export type ApiCostDefault = {
   displayName: string
@@ -78,6 +79,18 @@ export const DEFAULT_API_COSTS: Record<string, ApiCostDefault> = {
     quotaResetDay: 1,
     markupPercent: 0,
     documentationUrl: 'https://vat.wwa.gr',
+  },
+  elevenlabs: {
+    displayName: 'ElevenLabs (φωνή Thanos)',
+    costModel: 'per_character',
+    unitLabel: 'χαρακτήρες',
+    // ≈ €0,0002/χαρακτήρα (πακέτο Creator ~$22 / 100.000 χαρακτήρες). Οι επαναλήψεις από cache ΔΕΝ χρεώνονται/καταγράφονται.
+    // Άλλαξέ το από το /costs («Ρυθμίσεις API κόστους») ανάλογα με το πακέτο σας.
+    basePrice: 0.0002,
+    freeQuota: 0,
+    quotaResetDay: 1,
+    markupPercent: 0,
+    documentationUrl: 'https://elevenlabs.io/pricing',
   },
   geocoding: {
     displayName: 'Geocoding',
