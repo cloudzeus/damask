@@ -6,6 +6,7 @@ import {
   normRegion,
   regionNameMatches,
   evaluateTrdrEligibility,
+  yearsSince,
   type ProgramKadInput,
 } from '@/lib/prospects/eligibility'
 
@@ -257,5 +258,55 @@ describe('evaluateTrdrEligibility', () => {
     expect(r.matched).toEqual(['region'])
     expect(r.failed.sort()).toEqual(['kad', 'legalForm'])
     expect(r.eligible).toBe(false)
+  })
+})
+
+describe('μέγεθος (ΕΜΕ) & έτη λειτουργίας', () => {
+  const program = { kadRule: 'UNSPECIFIED' as const, kads: [], regionNames: [], legalFormNames: [], minEme: 2, minYears: 1 }
+  const base = { trdrCodes: [], legalForm: null, regionName: null }
+  const only = { kad: false, region: false, legalForm: false, size: true, age: true }
+
+  it('περνά όταν ΕΜΕ και έτη καλύπτουν τα ελάχιστα', () => {
+    const r = evaluateTrdrEligibility({ ...base, eme: 2, operationalYears: 3.5 }, program, only)
+    expect(r.matched).toEqual(['size', 'age'])
+    expect(r.eligible).toBe(true)
+  })
+
+  it('αποκλείει όταν οι ΕΜΕ είναι λιγότερες από τις ελάχιστες', () => {
+    const r = evaluateTrdrEligibility({ ...base, eme: 1.4, operationalYears: 3 }, program, only)
+    expect(r.failed).toEqual(['size'])
+    expect(r.eligible).toBe(false)
+  })
+
+  it('άγνωστη τιμή → «unknown», ΔΕΝ αποκλείει', () => {
+    const r = evaluateTrdrEligibility({ ...base, eme: null }, program, only)
+    expect(r.unknown).toEqual(['size', 'age'])
+    expect(r.failed).toEqual([])
+    expect(r.eligible).toBe(true)
+  })
+
+  it('χωρίς όριο στο πρόγραμμα → περνά ακόμα και χωρίς τιμή', () => {
+    const r = evaluateTrdrEligibility({ ...base }, { ...program, minEme: null, minYears: 0 }, only)
+    expect(r.matched).toEqual(['size', 'age'])
+    expect(r.unknown).toEqual([])
+  })
+
+  it('παλιοί καλούντες χωρίς size/age δεν επηρεάζονται', () => {
+    const r = evaluateTrdrEligibility({ ...base, eme: 0 }, program, { kad: false, region: false, legalForm: false })
+    expect(r.matched).toEqual([])
+    expect(r.failed).toEqual([])
+  })
+
+  it('yearsSince: πλήρη έτη με ένα δεκαδικό, null χωρίς ημερομηνία', () => {
+    expect(yearsSince(new Date('2020-10-08'), new Date('2026-10-08'))).toBe(6)
+    expect(yearsSince(null, new Date())).toBeNull()
+  })
+})
+
+describe('yearsSince ακρίβεια', () => {
+  it('επέτειος = ακέραια έτη· μία μέρα πριν = λιγότερο', () => {
+    expect(yearsSince(new Date('2016-02-29'), new Date('2026-03-01'))).toBe(10)
+    expect(yearsSince(new Date('2020-10-08'), new Date('2026-10-07'))).toBe(5.9)
+    expect(yearsSince(new Date('2026-10-09'), new Date('2026-10-08'))).toBe(0)
   })
 })

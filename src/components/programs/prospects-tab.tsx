@@ -39,12 +39,28 @@ const CRITERIA_COLOR: Record<EligibilityCriterionKey, string> = {
   kad: 'info',       // μπλε
   region: 'teal',    // τιρκουάζ
   legalForm: 'violet', // μωβ
+  size: 'ok',
+  age: 'ok',
 }
 
 const CRITERIA_LABELS: Record<EligibilityCriterionKey, string> = {
   kad: 'ΚΑΔ',
   region: 'Περιφέρεια',
   legalForm: 'Νομ. μορφή',
+  size: 'ΕΜΕ',
+  age: 'Έτη λειτ.',
+}
+
+const NUM1 = new Intl.NumberFormat('el-GR', { maximumFractionDigits: 1 })
+/** Ετικέτα κριτηρίου με την τιμή της εταιρίας όπου υπάρχει (π.χ. «ΕΜΕ 4,2»). */
+function critLabel(k: EligibilityCriterionKey, row: ProspectRow): string {
+  if (k === 'size' && row.eme != null) return `ΕΜΕ ${NUM1.format(row.eme)}`
+  if (k === 'age' && row.operationalYears != null) return `${NUM1.format(row.operationalYears)} έτη`
+  return CRITERIA_LABELS[k]
+}
+const UNKNOWN_HINT: Partial<Record<EligibilityCriterionKey, string>> = {
+  size: 'Δεν είναι γνωστές οι ΕΜΕ της εταιρίας — ανέβασε ΕΜΕ ή Δήλωση ΜΜΕ στα Δικαιολογητικά της (ή συμπλήρωσέ τες στην καρτέλα).',
+  age: 'Δεν είναι γνωστή η ημερομηνία ίδρυσης — συγχρόνισε από ΓΕΜΗ στην καρτέλα της εταιρίας.',
 }
 
 const LEAD_STATUS_META: Record<string, { label: string; badgeClass: string; style?: React.CSSProperties }> = {
@@ -69,6 +85,8 @@ export function ProspectsTab({ programId }: { programId: string }) {
   const [critKad, setCritKad] = React.useState(true)
   const [critRegion, setCritRegion] = React.useState(true)
   const [critLegalForm, setCritLegalForm] = React.useState(true)
+  const [critSize, setCritSize] = React.useState(true)
+  const [critAge, setCritAge] = React.useState(true)
   const [searching, setSearching] = React.useState(false)
   const [results, setResults] = React.useState<ProspectRow[] | null>(null)
   const [searchError, setSearchError] = React.useState<string | null>(null)
@@ -76,11 +94,11 @@ export function ProspectsTab({ programId }: { programId: string }) {
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
 
   async function handleSearch() {
-    if (!critKad && !critRegion && !critLegalForm) {
+    if (!critKad && !critRegion && !critLegalForm && !critSize && !critAge) {
       toast.error('Επίλεξε τουλάχιστον ένα κριτήριο.')
       return
     }
-    const selectedCriteria: SelectedCriteria = { kad: critKad, region: critRegion, legalForm: critLegalForm }
+    const selectedCriteria: SelectedCriteria = { kad: critKad, region: critRegion, legalForm: critLegalForm, size: critSize, age: critAge }
     setSearching(true)
     setSearchError(null)
     try {
@@ -268,14 +286,17 @@ export function ProspectsTab({ programId }: { programId: string }) {
     {
       id: 'criteria',
       header: 'Κριτήρια',
-      width: 180,
+      width: 220,
       cell: row => (
         <div className="flex flex-wrap gap-1">
           {row.matched.map(k => (
-            <span key={k} className={cn('badge-pill', CRITERIA_COLOR[k])}>{CRITERIA_LABELS[k]}</span>
+            <span key={k} className={cn('badge-pill', CRITERIA_COLOR[k])}>{critLabel(k, row)}</span>
           ))}
           {row.failed.map(k => (
-            <span key={k} className="badge-pill danger">{CRITERIA_LABELS[k]}</span>
+            <span key={k} className="badge-pill danger" title={k === 'size' ? 'Λιγότερες ΕΜΕ από τις ελάχιστες του προγράμματος' : k === 'age' ? 'Λιγότερα έτη λειτουργίας από τα ελάχιστα του προγράμματος' : undefined}>{critLabel(k, row)}</span>
+          ))}
+          {row.unknown.map(k => (
+            <span key={k} className="badge-pill muted" title={UNKNOWN_HINT[k]}>{CRITERIA_LABELS[k]} ?</span>
           ))}
         </div>
       ),
@@ -355,6 +376,14 @@ export function ProspectsTab({ programId }: { programId: string }) {
           <label className="flex cursor-pointer items-center gap-2 text-[length:var(--fs-12-5)] font-semibold">
             <input type="checkbox" checked={critLegalForm} onChange={e => setCritLegalForm(e.target.checked)} disabled={searching} className="size-3.5" />
             Νομική μορφή
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-[length:var(--fs-12-5)] font-semibold" title="ΕΜΕ της εταιρίας (από ΕΜΕ / Δήλωση ΜΜΕ) ≥ ελάχιστες του προγράμματος· χωρίς στοιχεία = «ΕΜΕ ?», δεν αποκλείεται">
+            <input type="checkbox" checked={critSize} onChange={e => setCritSize(e.target.checked)} disabled={searching} className="size-3.5" />
+            Ελάχιστες ΕΜΕ
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-[length:var(--fs-12-5)] font-semibold" title="Έτη από την ίδρυση (ΓΕΜΗ) ≥ ελάχιστα του προγράμματος· χωρίς στοιχεία = «Έτη λειτ. ?», δεν αποκλείεται">
+            <input type="checkbox" checked={critAge} onChange={e => setCritAge(e.target.checked)} disabled={searching} className="size-3.5" />
+            Έτη λειτουργίας
           </label>
           <div className="flex-1" />
           <Button type="button" onClick={handleSearch} disabled={searching}>

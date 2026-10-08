@@ -29,7 +29,11 @@ import {
 } from '@/lib/pm/types'
 import type { ApplicationLifecycle } from '@prisma/client'
 
-const CRITERIA_LABELS: Record<string, string> = { kad: 'ΚΑΔ', region: 'Περιφέρεια', legalForm: 'Νομ. μορφή' }
+const CRITERIA_LABELS: Record<string, string> = { kad: 'ΚΑΔ', region: 'Περιφέρεια', legalForm: 'Νομ. μορφή', size: 'Ελάχιστες ΕΜΕ', age: 'Έτη λειτουργίας' }
+const UNKNOWN_HINT: Record<string, string> = {
+  size: 'Δεν είναι γνωστές οι ΕΜΕ — ανέβασε ΕΜΕ ή Δήλωση ΜΜΕ στα Δικαιολογητικά (ή συμπλήρωσέ τες στα Στοιχεία).',
+  age: 'Δεν είναι γνωστή η ημερομηνία ίδρυσης — συγχρόνισε από ΓΕΜΗ.',
+}
 
 export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canManage: boolean }) {
   const router = useRouter()
@@ -221,6 +225,10 @@ function CriteriaBadges({ snapshot }: { snapshot: SinglePairEligibility | null }
           <span key={k} className="badge-pill" style={{ color: 'var(--coral)', background: 'var(--coral-soft)' }}>
             <CircleX className="size-3" aria-hidden /> {CRITERIA_LABELS[k] ?? k}
           </span>
+        ))}
+        {/* Παλιές αποθηκευμένες αξιολογήσεις δεν έχουν `unknown`. */}
+        {(snapshot.unknown ?? []).map(k => (
+          <span key={k} className="badge-pill muted" title={UNKNOWN_HINT[k]}>{CRITERIA_LABELS[k] ?? k} ? — λείπει τιμή</span>
         ))}
       </div>
       {snapshot.matchedKads.length > 0 && (

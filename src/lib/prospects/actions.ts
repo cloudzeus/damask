@@ -11,6 +11,7 @@ import { logActivity } from '@/lib/activity/log'
 import { deriveHierarchyFromMap, type RegionNodeLookup } from '@/lib/registries/regions-tree'
 import {
   evaluateTrdrEligibility,
+  yearsSince,
   type EligibilityCriterionKey,
   type KadRule,
   type SelectedCriteria,
@@ -54,6 +55,11 @@ export type ProspectRow = {
   eligible: boolean
   matched: EligibilityCriterionKey[]
   failed: EligibilityCriterionKey[]
+  /** Κριτήρια που δεν ελέγχθηκαν γιατί λείπει τιμή της εταιρίας (π.χ. ΕΜΕ). */
+  unknown: EligibilityCriterionKey[]
+  /** ΕΜΕ / έτη λειτουργίας της εταιρίας (για εμφάνιση δίπλα στο κριτήριο). */
+  eme: number | null
+  operationalYears: number | null
   /** Οι ΚΑΔ του πελάτη που ταίριαξαν με το πρόγραμμα (code + περιγραφή + αν είναι κύριος). */
   matchedKads: { code: string; description: string | null; primary: boolean }[]
 }
@@ -80,6 +86,8 @@ export async function findProspects(programId: string, selected: SelectedCriteri
       kads: { select: { code: true } },
       regions: { select: { name: true } },
       legalForms: { select: { name: true } },
+      minEmployeesFte: true,
+      minOperationalYears: true,
     },
   })
 
@@ -90,7 +98,10 @@ export async function findProspects(programId: string, selected: SelectedCriteri
     kads: program.kads.map(k => ({ code: k.code, excluded: false })),
     regionNames: program.regions.map(r => r.name),
     legalFormNames: program.legalForms.map(f => f.name),
+    minEme: program.minEmployeesFte == null ? null : Number(program.minEmployeesFte),
+    minYears: program.minOperationalYears == null ? null : Number(program.minOperationalYears),
   }
+  const now = new Date()
 
   const [trdrs, regions] = await Promise.all([
     prisma.trdr.findMany({
@@ -101,6 +112,8 @@ export async function findProspects(programId: string, selected: SelectedCriteri
         EMAIL: true,
         appLegalForm: true,
         regionCode: true,
+        appEme: true,
+        foundingDate: true,
         kads: { select: { code: true, kind: true, description: true } },
       },
     }),
@@ -113,8 +126,10 @@ export async function findProspects(programId: string, selected: SelectedCriteri
     const regionName = t.regionCode
       ? (deriveHierarchyFromMap(t.regionCode, regionMap).region?.nameEL ?? null)
       : null
+    const eme = t.appEme == null ? null : Number(t.appEme)
+    const operationalYears = yearsSince(t.foundingDate, now)
     const result = evaluateTrdrEligibility(
-      { trdrCodes: t.kads.map(k => k.code), legalForm: t.appLegalForm, regionName },
+      { trdrCodes: t.kads.map(k => k.code), legalForm: t.appLegalForm, regionName, eme, operationalYears },
       programInput,
       selected,
     )
@@ -126,6 +141,9 @@ export async function findProspects(programId: string, selected: SelectedCriteri
       eligible: result.eligible,
       matched: result.matched,
       failed: result.failed,
+      unknown: result.unknown ?? [],
+      eme,
+      operationalYears,
       matchedKads: result.matchedKads.map(code => {
         const info = kadInfo.get(code)
         return { code, description: info?.description ?? null, primary: info?.kind === 'PRIMARY' }

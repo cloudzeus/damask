@@ -26,12 +26,16 @@ export interface KadRuleResult {
   matchedCodes: string[]
 }
 
-export type EligibilityCriterionKey = 'kad' | 'region' | 'legalForm'
+export type EligibilityCriterionKey = 'kad' | 'region' | 'legalForm' | 'size' | 'age'
 
 export interface TrdrEligibilityInput {
   trdrCodes: string[]
   legalForm: string | null
   regionName: string | null
+  /** ΕΜΕ της εταιρίας (από ανεβασμένο ΕΜΕ/Δήλωση ΜΜΕ ή χειροκίνητα)· null = άγνωστο. */
+  eme?: number | null
+  /** Έτη λειτουργίας (από ημ. ίδρυσης — τα υπολογίζει ο καλών)· null = άγνωστο. */
+  operationalYears?: number | null
 }
 
 export interface ProgramEligibilityInput {
@@ -39,18 +43,29 @@ export interface ProgramEligibilityInput {
   kads: ProgramKadInput[]
   regionNames: string[]
   legalFormNames: string[]
+  /** Ελάχιστες ΕΜΕ (Program.minEmployeesFte)· null = χωρίς όριο. */
+  minEme?: number | null
+  /** Ελάχιστα έτη λειτουργίας (Program.minOperationalYears)· null = χωρίς όριο. */
+  minYears?: number | null
 }
 
 export interface SelectedCriteria {
   kad: boolean
   region: boolean
   legalForm: boolean
+  /** ΕΜΕ ≥ ελάχιστες του προγράμματος. */
+  size?: boolean
+  /** Έτη λειτουργίας ≥ ελάχιστα του προγράμματος. */
+  age?: boolean
 }
 
 export interface EligibilityEvalResult {
   eligible: boolean
   matched: EligibilityCriterionKey[]
   failed: EligibilityCriterionKey[]
+  /** Κριτήρια που ΔΕΝ ελέγχθηκαν γιατί λείπει η τιμή της εταιρίας (π.χ. δεν έχει ανέβει ΕΜΕ) —
+   * δεν αποκλείουν, αλλά δείχνουν τι πρέπει να ζητηθεί. */
+  unknown?: EligibilityCriterionKey[]
   /** Οι ΚΑΔ του Trdr που ταίριαξαν με το πρόγραμμα (μόνο όταν το κριτήριο ΚΑΔ είναι επιλεγμένο). */
   matchedKads: string[]
 }
@@ -244,5 +259,30 @@ export function evaluateTrdrEligibility(
     }
   }
 
-  return { eligible: failed.length === 0, matched, failed, matchedKads }
+  const unknown: EligibilityCriterionKey[] = []
+  // Αριθμητικό κατώφλι: χωρίς όριο → pass· χωρίς τιμή εταιρίας → «άγνωστο» (δεν αποκλείει).
+  const threshold = (key: EligibilityCriterionKey, value: number | null | undefined, min: number | null | undefined) => {
+    if (min == null || min <= 0) matched.push(key)
+    else if (value == null) unknown.push(key)
+    else if (value >= min) matched.push(key)
+    else failed.push(key)
+  }
+  if (selected.size) threshold('size', input.eme, program.minEme)
+  if (selected.age) threshold('age', input.operationalYears, program.minYears)
+
+  return { eligible: failed.length === 0, matched, failed, unknown, matchedKads }
+}
+
+/** Πλήρη έτη λειτουργίας από την ημ. ίδρυσης ως `now` (καθαρό — ο καλών δίνει το «τώρα»). */
+export function yearsSince(founded: Date | null | undefined, now: Date): number | null {
+  if (!founded) return null
+  if (now <= founded) return 0
+  // Ημερολογιακά πλήρη έτη (επέτειος ίδρυσης) + κλάσμα του τρέχοντος έτους — ώστε ακριβώς
+  // 6 χρόνια να είναι 6 (όχι 5,9 λόγω δίσεκτων), κρίσιμο σε όρια «ελάχιστα Χ έτη».
+  let years = now.getUTCFullYear() - founded.getUTCFullYear()
+  const anniversary = (y: number) => new Date(Date.UTC(founded.getUTCFullYear() + y, founded.getUTCMonth(), founded.getUTCDate()))
+  if (anniversary(years) > now) years -= 1
+  const from = anniversary(years).getTime()
+  const frac = (now.getTime() - from) / (anniversary(years + 1).getTime() - from)
+  return Math.floor((years + frac) * 10) / 10
 }

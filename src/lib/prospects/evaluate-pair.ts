@@ -5,7 +5,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { deriveHierarchyFromMap, type RegionNodeLookup } from '@/lib/registries/regions-tree'
-import { evaluateTrdrEligibility, type KadRule, type EligibilityCriterionKey } from '@/lib/prospects/eligibility'
+import { evaluateTrdrEligibility, yearsSince, type KadRule, type EligibilityCriterionKey } from '@/lib/prospects/eligibility'
 
 const VALID_KAD_RULES = new Set<KadRule>(['ALL_EXCEPT_LISTED', 'ONLY_LISTED', 'MIXED', 'UNSPECIFIED'])
 
@@ -22,10 +22,12 @@ export type SinglePairEligibility = {
   eligible: boolean
   matched: EligibilityCriterionKey[]
   failed: EligibilityCriterionKey[]
+  /** Κριτήρια που δεν ελέγχθηκαν γιατί λείπει τιμή (ΕΜΕ / ημ. ίδρυσης). */
+  unknown: EligibilityCriterionKey[]
   matchedKads: string[]
 }
 
-/** Αξιολόγηση πελάτη×προγράμματος σε ΟΛΑ τα κριτήρια (kad/region/legalForm). */
+/** Αξιολόγηση πελάτη×προγράμματος σε ΟΛΑ τα κριτήρια (ΚΑΔ/περιφέρεια/νομ. μορφή/ΕΜΕ/έτη λειτουργίας). */
 export async function computeSinglePair(trdrId: string, programId: string): Promise<SinglePairEligibility> {
   const [program, trdr, regions] = await Promise.all([
     prisma.program.findUniqueOrThrow({
@@ -35,11 +37,13 @@ export async function computeSinglePair(trdrId: string, programId: string): Prom
         kads: { select: { code: true } },
         regions: { select: { name: true } },
         legalForms: { select: { name: true } },
+        minEmployeesFte: true,
+        minOperationalYears: true,
       },
     }),
     prisma.trdr.findUniqueOrThrow({
       where: { id: trdrId },
-      select: { appLegalForm: true, regionCode: true, kads: { select: { code: true } } },
+      select: { appLegalForm: true, regionCode: true, appEme: true, foundingDate: true, kads: { select: { code: true } } },
     }),
     prisma.region.findMany({ select: { code: true, nameEL: true, level: true, parentCode: true } }),
   ])
@@ -50,15 +54,21 @@ export async function computeSinglePair(trdrId: string, programId: string): Prom
     : null
 
   const r = evaluateTrdrEligibility(
-    { trdrCodes: trdr.kads.map(k => k.code), legalForm: trdr.appLegalForm, regionName },
+    {
+      trdrCodes: trdr.kads.map(k => k.code), legalForm: trdr.appLegalForm, regionName,
+      eme: trdr.appEme == null ? null : Number(trdr.appEme),
+      operationalYears: yearsSince(trdr.foundingDate, new Date()),
+    },
     {
       kadRule: extractKadRule(program.extractedData),
       // DAMASK ProgramKad δεν έχει `excluded` column — όλοι non-excluded.
       kads: program.kads.map(k => ({ code: k.code, excluded: false })),
       regionNames: program.regions.map(x => x.name),
       legalFormNames: program.legalForms.map(f => f.name),
+      minEme: program.minEmployeesFte == null ? null : Number(program.minEmployeesFte),
+      minYears: program.minOperationalYears == null ? null : Number(program.minOperationalYears),
     },
-    { kad: true, region: true, legalForm: true },
+    { kad: true, region: true, legalForm: true, size: true, age: true },
   )
-  return { eligible: r.eligible, matched: r.matched, failed: r.failed, matchedKads: r.matchedKads }
+  return { eligible: r.eligible, matched: r.matched, failed: r.failed, unknown: r.unknown ?? [], matchedKads: r.matchedKads }
 }
