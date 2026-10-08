@@ -28,6 +28,8 @@ export const QUEUE_S1_REF_SYNC = 's1-ref-sync'
 export const QUEUE_PM_REMINDERS = 'pm-reminders'
 /** Νυχτερινό incremental backup αρχείων στο Synology NAS (src/lib/nas/backup.ts). */
 export const QUEUE_NAS_BACKUP = 'nas-backup'
+/** Νυχτερινή «απόσταξη» συζητήσεων του Thanos σε μαθήματα (src/lib/thanos/learning.ts distillTurns). */
+export const QUEUE_THANOS_DISTILL = 'thanos-distill'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
 
@@ -156,6 +158,18 @@ export async function startQueue(): Promise<void> {
     await indexStorageChanges(jobs.map(j => j.data))
     await reindexDocuments()
   })
+
+  await boss.createQueue(QUEUE_THANOS_DISTILL)
+  await boss.work(QUEUE_THANOS_DISTILL, async () => {
+    try {
+      const { distillTurns } = await import('@/lib/thanos/learning')
+      const r = await distillTurns()
+      if (r.turns) console.log(`[pg-boss] thanos-distill: ${r.turns} συζητήσεις → ${r.lessons} νέα μαθήματα`)
+    } catch (err) {
+      console.error('[pg-boss] thanos-distill απέτυχε', err) // never rethrow — scheduled tick
+    }
+  })
+  await boss.schedule(QUEUE_THANOS_DISTILL, '30 4 * * *', null, { tz: 'Europe/Athens' })
 
   console.log('[pg-boss] started')
 }

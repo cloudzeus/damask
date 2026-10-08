@@ -8,6 +8,7 @@ import { SeoTab } from './seo-tab'
 import { BackupsTab } from './backups-tab'
 import { ObjectsTab } from './objects-tab'
 import { SyncTab } from './sync-tab'
+import { ThanosTab } from './thanos-tab'
 import { FEATURES } from '@/lib/features'
 import { PageHeader } from '@/components/ui/page-header'
 
@@ -32,6 +33,7 @@ export default async function SettingsPage() {
         integrations={<IntegrationsTab />}
         seo={<SeoTab />}
         backups={<BackupsTab />}
+        thanos={['SUPER_ADMIN', 'ADMIN'].includes(session.user.role) ? <ThanosTab /> : undefined}
         objects={isSuperAdmin ? <ObjectsTab enabled={enabledObjects} /> : undefined}
         sync={syncConfigs ? <SyncTab configs={syncConfigs} /> : undefined}
       />

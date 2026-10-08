@@ -2976,3 +2976,43 @@ model ThanosVoiceUsage {
 
   @@id([userId, day])
 }
+
+/// Κάθε ερώτηση→απάντηση του Thanos (για μάθηση & αξιολόγηση). rating: 1 👍 / -1 👎.
+model ThanosTurn {
+  id             String    @id @default(cuid())
+  userId         String
+  mode           String // STAFF | CUSTOMER
+  conversationId String?
+  question       String    @db.Text
+  reply          String    @db.Text
+  toolsUsed      String[]
+  programId      String?
+  model          String?
+  cached         Boolean   @default(false)
+  rating         Int?
+  note           String?
+  distilledAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([distilledAt])
+}
+
+/// «Μαθήματα» του Thanos: γενική, επαναχρησιμοποιήσιμη γνώση (χωρίς προσωπικά δεδομένα) από συζητήσεις
+/// (👍, νυχτερινή απόσταξη) ή χειροκίνητα. Ανακτώνται σημασιολογικά (pgvector) σε κάθε νέα ερώτηση.
+model ThanosLesson {
+  id           String   @id @default(cuid())
+  question     String   @db.Text
+  answer       String   @db.Text
+  programId    String?
+  status       String   @default("SUGGESTED") // ACTIVE | SUGGESTED | REJECTED
+  source       String // FEEDBACK | DISTILLED | MANUAL | CORRECTION
+  sourceTurnId String?
+  uses         Int      @default(0)
+  embedding    Unsupported("vector(768)")?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([programId])
+}

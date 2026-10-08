@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Check, Loader2, Mic, Send, Square, Trash2, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, Loader2, Mic, Send, Square, ThumbsDown, ThumbsUp, Trash2, Volume2, VolumeX, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { thanosChat, thanosStatus, thanosTranscribe, executeThanosAction, cancelThanosAction } from '@/lib/thanos/actions'
+import { thanosChat, thanosStatus, thanosTranscribe, executeThanosAction, cancelThanosAction, rateThanosTurn } from '@/lib/thanos/actions'
 import type { ThanosActionCard } from '@/lib/thanos/agent'
 import type { PageContext } from '@/lib/thanos/context'
 
@@ -15,13 +15,14 @@ import type { PageContext } from '@/lib/thanos/context'
  * Οι ενέργειες εμφανίζονται ως κάρτες με προεπισκόπηση και «Αποστολή» — τίποτα δεν στέλνεται αυτόματα.
  */
 
-type Msg = { role: 'user' | 'assistant'; content: string; actions?: ThanosActionCard[]; error?: boolean }
+type Msg = { role: 'user' | 'assistant'; content: string; speech?: string; actions?: ThanosActionCard[]; error?: boolean; turnId?: string | null; rating?: 1 | -1 }
 type Status = Awaited<ReturnType<typeof thanosStatus>>
 
 const STORE = 'thanos:chat'
 const VOICE = 'thanos:voice'
 const VOICE_LIMIT = 'thanos:voice-limit'
 const WELCOMED = 'thanos:welcomed'
+const CONVERSATION = 'thanos:conversation'
 /** 0 δείγματα — αρκεί για να «ξεκλειδώσει» ο ήχος μέσα σε κλικ του χρήστη. */
 const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
 
@@ -200,11 +201,13 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
     setMsgs(m => [...m, { role: 'user', content: message }])
     setInput('')
     setBusy(true)
-    const res = await thanosChat({ history, message, page }).catch(e => ({ ok: false as const, error: String(e) }))
+    let conversationId = read<string | null>('session', CONVERSATION, null)
+    if (!conversationId || msgs.length === 0) { conversationId = crypto.randomUUID(); write('session', CONVERSATION, conversationId) }
+    const res = await thanosChat({ history, message, page, conversationId }).catch(e => ({ ok: false as const, error: String(e) }))
     setBusy(false)
     if (!res.ok) { setMsgs(m => [...m, { role: 'assistant', content: res.error, error: true }]); return }
-    setMsgs(m => [...m, { role: 'assistant', content: res.data.reply, actions: res.data.actions }])
-    void speak(res.data.reply)
+    setMsgs(m => [...m, { role: 'assistant', content: res.data.reply, speech: res.data.speech, actions: res.data.actions, turnId: res.data.turnId }])
+    void speak(res.data.speech)
   }, [busy, msgs, page, speak])
 
   async function toggleMic() {
@@ -344,13 +347,16 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
                 </div>
                 {m.role === 'assistant' && !m.error && status?.tts && !voiceLimited && (
                   <button type="button"
-                    onClick={() => { unlockAudio(); setAudioBlocked(false); if (speaking === m.content) stopSpeaking(); else void speak(m.content, true) }}
-                    aria-label={speaking === m.content ? 'Διακοπή ακρόασης' : 'Ακρόαση απάντησης'} title={speaking === m.content ? 'Διακοπή' : 'Ακρόαση'}
+                    onClick={() => { unlockAudio(); setAudioBlocked(false); if (speaking === (m.speech ?? m.content)) stopSpeaking(); else void speak(m.speech ?? m.content, true) }}
+                    aria-label={speaking === (m.speech ?? m.content) ? 'Διακοπή ακρόασης' : 'Ακρόαση απάντησης'} title={speaking === (m.speech ?? m.content) ? 'Διακοπή' : 'Ακρόαση'}
                     className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
-                    {speaking === m.content ? <Square className="size-3.5" /> : <Volume2 className="size-4" />}
+                    {speaking === (m.speech ?? m.content) ? <Square className="size-3.5" /> : <Volume2 className="size-4" />}
                   </button>
                 )}
                 </div>
+                {m.role === 'assistant' && m.turnId && !m.error && (
+                  <Feedback turnId={m.turnId} rating={m.rating} onRated={r => setMsgs(ms => ms.map((x, j) => (j === i ? { ...x, rating: r } : x)))} />
+                )}
                 {m.actions?.map(a => <ActionCard key={a.id} card={a} onChange={patch => updateCard(a.id, patch)} />)}
               </div>
             ))}
@@ -393,6 +399,39 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
         </section>
       )}
     </>
+  )
+}
+
+/** 👍 / 👎 — ο Thanos μαθαίνει από αυτά (👎 με σχόλιο = διόρθωση). */
+function Feedback({ turnId, rating, onRated }: { turnId: string; rating?: 1 | -1; onRated: (r: 1 | -1) => void }) {
+  const [asking, setAsking] = useState(false)
+  const [note, setNote] = useState('')
+  const [pending, setPending] = useState(false)
+  async function rate(r: 1 | -1, withNote?: string) {
+    setPending(true)
+    const res = await rateThanosTurn(turnId, r, withNote)
+    setPending(false)
+    if (res.ok) { onRated(r); setAsking(false) }
+  }
+  if (rating) {
+    return <p className="pl-9 text-[length:var(--fs-12)] text-muted-foreground">{rating === 1 ? 'Ευχαριστώ — το κρατάω!' : 'Ευχαριστώ — θα το διορθώσω.'}</p>
+  }
+  if (asking) {
+    return (
+      <form className="flex w-full items-center gap-2 pl-9" onSubmit={e => { e.preventDefault(); void rate(-1, note) }}>
+        <input autoFocus value={note} onChange={e => setNote(e.target.value)} placeholder="Τι ήταν λάθος; Ποιο είναι το σωστό; (προαιρετικό)"
+          aria-label="Διόρθωση απάντησης" className="h-9 min-w-0 flex-1 rounded-lg border border-input bg-background px-2.5 text-[length:var(--fs-13)] outline-none focus:border-primary" />
+        <button type="submit" disabled={pending} className="h-9 rounded-full bg-primary px-3 text-[length:var(--fs-12-5)] font-semibold text-primary-foreground disabled:opacity-50">Αποστολή</button>
+      </form>
+    )
+  }
+  return (
+    <div className="flex items-center gap-1 pl-9">
+      <button type="button" disabled={pending} onClick={() => void rate(1)} aria-label="Καλή απάντηση" title="Καλή απάντηση"
+        className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ThumbsUp className="size-3.5" /></button>
+      <button type="button" disabled={pending} onClick={() => setAsking(true)} aria-label="Κακή απάντηση" title="Κακή απάντηση — διόρθωσέ με"
+        className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><ThumbsDown className="size-3.5" /></button>
+    </div>
   )
 }
 

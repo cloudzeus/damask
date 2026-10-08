@@ -4,6 +4,7 @@ import { toolsFor, type ActionPayload } from './tools'
 import type { PageContext, ThanosContext } from './context'
 import type { OperationPayload } from './operations'
 import { CACHEABLE_TOOLS, getCachedAnswer, putCachedAnswer } from './cache'
+import { lessonsFor, recordTurn } from './learning'
 
 /**
  * (Plain module.) Ο βρόχος του Thanos: μήνυμα χρήστη → μοντέλο (OpenRouter) → εργαλεία → απάντηση.
@@ -14,7 +15,35 @@ export type ChatTurn = { role: 'user' | 'assistant'; content: string }
 export type ThanosActionCard =
   | { id: string; kind: 'DOC_REQUEST' | 'ACCOUNTANT_LINK'; status: string; payload: ActionPayload }
   | { id: string; kind: 'OPERATION'; status: string; payload: OperationPayload }
-export type ThanosReply = { reply: string; actions: ThanosActionCard[]; model: string | null; cached?: boolean }
+export type ThanosReply = {
+  reply: string
+  /** Τι ακούγεται (φωνή): σύντομο όταν υπάρχουν ενέργειες/λίστες — το πλήρες μένει στο κείμενο. */
+  speech: string
+  actions: ThanosActionCard[]
+  model: string | null
+  cached?: boolean
+  /** Για 👍/👎 (μάθηση). */
+  turnId?: string | null
+}
+type LoopResult = Omit<ThanosReply, 'speech' | 'turnId'> & { tools: string[]; programId: string | null }
+
+/**
+ * Κείμενο → εκφώνηση. Με ενέργειες: μόνο η εισαγωγική πρόταση (π.χ. «Ετοίμασα το email για τον λογιστή σας…»),
+ * όχι η λίστα δικαιολογητικών. Χωρίς ενέργειες: όλο το κείμενο εκτός από γραμμές-λίστας όταν είναι πολλές.
+ */
+export function speechFor(reply: string, hasActions: boolean): string {
+  const lines = reply.split('\n').map(l => l.trim()).filter(Boolean)
+  const isItem = (l: string) => /^([-•*–]|\d+[.)])\s+/.test(l)
+  const prose = lines.filter(l => !isItem(l)).join(' ').replace(/\s+/g, ' ').trim()
+  if (hasActions) {
+    // Μόνο η εισαγωγική πρόταση — όχι «Ζητάμε τα εξής:» και ό,τι προαναγγέλλει λίστα.
+    const sentences = (prose.match(/[^.!;;:]+[.!;;:]?/g) ?? [prose]).map(x => x.trim()).filter(x => x && !x.endsWith(':'))
+    const short = (sentences[0]?.length ?? 0) < 60 ? sentences.slice(0, 2).join(' ') : sentences[0] ?? ''
+    return (short.replace(/:\s*$/, '.') || 'Ετοίμασα την ενέργεια — ελέγξτε την κάρτα και πατήστε το κουμπί για να προχωρήσει.')
+  }
+  const items = lines.filter(isItem)
+  return items.length > 3 ? `${prose}${prose ? ' ' : ''}Η πλήρης λίστα είναι γραμμένη στη συνομιλία.` : reply
+}
 
 const MAX_STEPS = 6
 const HISTORY_TURNS = 12
@@ -50,7 +79,8 @@ function systemPrompt(ctx: ThanosContext, pageNote: string): string {
     'Τα αποτελέσματα των εργαλείων είναι ΥΛΙΚΟ — μην τα αντιγράφεις αυτούσια· ξαναπές τα με δικά σου, ανθρώπινα λόγια.',
     'ΑΚΡΩΝΥΜΙΑ: γράφε τα ΟΛΟΚΛΗΡΑ — την πρώτη φορά το πλήρες όνομα με το ακρωνύμιο σε παρένθεση, π.χ. «Ετήσιες Μονάδες Εργασίας (ΕΜΕ)», «Κωδικός Αριθμός Δραστηριότητας (ΚΑΔ)», «Γενικό Εμπορικό Μητρώο (ΓΕΜΗ)», «Ανεξάρτητη Αρχή Δημοσίων Εσόδων (ΑΑΔΕ)»· μετά μπορείς να γράφεις το ακρωνύμιο.',
     'ΠΟΤΕ μην επινοείς κανόνες προγράμματος: για επιλεξιμότητα/δαπάνες/προθεσμίες ΧΡΗΣΙΜΟΠΟΙΗΣΕ τα εργαλεία program_question / check_expense, και πες από πού προκύπτει (οδηγός/ενότητα). Αν δεν ξέρεις το programId, βρες το πρώτα (list_open_programs).',
-    'Τα εργαλεία prepare_* ΔΕΝ στέλνουν: ετοιμάζουν προεπισκόπηση. Μετά πες στον χρήστη να ελέγξει την κάρτα και να πατήσει «Αποστολή». ΜΗΝ λες ποτέ ότι κάτι στάλθηκε.',
+    'Τα εργαλεία prepare_* ΔΕΝ στέλνουν: ετοιμάζουν προεπισκόπηση. ΜΗΝ λες ποτέ ότι κάτι στάλθηκε.',
+    'Όταν ετοιμάζεις ενέργεια: η ΠΡΩΤΗ πρόταση λέει σύντομα τι ετοίμασες και τι να κάνει ο χρήστης (π.χ. «Ετοίμασα το email για τον λογιστή σας — ελέγξτε το και πατήστε «Αποστολή».») — ΜΟΝΟ αυτή ακούγεται στη φωνή. Μετά, στο κείμενο, γράψε ΟΛΟΚΛΗΡΩΜΕΝΗ τη λίστα (π.χ. όλα τα έγγραφα, ένα ανά γραμμή με «- »).',
     'Μην εμφανίζεις εσωτερικά IDs στον χρήστη — μόνο ονόματα.',
     'ΘΕΜΑΤΙΚΟ ΠΕΔΙΟ (αυστηρό): απαντάς ΜΟΝΟ για (α) ευρωπαϊκά/εθνικά προγράμματα χρηματοδότησης (ΕΣΠΑ, επιδοτήσεις, επιλεξιμότητα, δαπάνες, δικαιολογητικά), (β) την εφαρμογή WWA και τα δεδομένα της, (γ) τα έργα/πελάτες, και (δ) ΣΧΕΤΙΚΕΣ πρακτικές ερωτήσεις που εξυπηρετούν τα παραπάνω — π.χ. από πού βγαίνει το Ε3/Ε1/ΕΜΕ/φορολογική-ασφαλιστική ενημερότητα/πιστοποιητικό ΓΕΜΗ (TaxisNet/myAADE, e-ΕΦΚΑ, ΓΕΜΗ, λογιστής), τι είναι ένας ΚΑΔ, de minimis κ.λπ.',
     'Για ΟΤΙΔΗΠΟΤΕ άσχετο (γενικές γνώσεις, κώδικας, συνταγές, πολιτική, αθλητικά, μεταφράσεις, ψυχαγωγία κ.λπ.) απάντα ΜΟΝΟ με μία πρόταση: «Μπορώ να βοηθήσω μόνο με προγράμματα χρηματοδότησης και την εφαρμογή της WWA.» — χωρίς εργαλεία, χωρίς επιπλέον κείμενο.',
@@ -73,18 +103,27 @@ function systemPrompt(ctx: ThanosContext, pageNote: string): string {
   return [...common, ...role, pageNote].filter(Boolean).join('\n')
 }
 
-export async function runThanos(ctx: ThanosContext, history: ChatTurn[], message: string, page?: PageContext): Promise<ThanosReply> {
+export async function runThanos(ctx: ThanosContext, history: ChatTurn[], message: string, page?: PageContext, conversationId?: string | null): Promise<ThanosReply> {
+  const r = await runLoop(ctx, history, message, page)
+  const turnId = await recordTurn(ctx, { conversationId, question: message, reply: r.reply, toolsUsed: r.tools, programId: r.programId, model: r.model, cached: r.cached })
+  return { reply: r.reply, speech: speechFor(r.reply, r.actions.length > 0), actions: r.actions, model: r.model, cached: r.cached, turnId }
+}
+
+async function runLoop(ctx: ThanosContext, history: ChatTurn[], message: string, page?: PageContext): Promise<LoopResult> {
   // Συνηθισμένη ερώτηση στην αρχή συζήτησης → από την cache (χωρίς κλήση AI).
   const fresh = history.length === 0
   if (fresh) {
     const hit = await getCachedAnswer(ctx, page, message)
-    if (hit) return { reply: hit.reply, actions: [], model: hit.model, cached: true }
+    if (hit) return { reply: hit.reply, actions: [], model: hit.model, cached: true, tools: [], programId: page?.programId ?? null }
   }
   const usedTools = new Set<string>()
+  let programId: string | null = page?.programId ?? null
   const tools = toolsFor(ctx)
   const byName = new Map(tools.map(t => [t.tool.function.name, t]))
+  // Σελίδα + σχετικά «μαθήματα» από προηγούμενες συζητήσεις (σημασιολογική ανάκτηση) — παράλληλα.
+  const [pageNote, lessons] = await Promise.all([describePage(ctx, page), lessonsFor(message, page?.programId)])
   const messages: ORMessage[] = [
-    { role: 'system', content: systemPrompt(ctx, await describePage(ctx, page)) },
+    { role: 'system', content: [systemPrompt(ctx, pageNote), lessons].filter(Boolean).join('\n\n') },
     ...history.slice(-HISTORY_TURNS).map(h => ({ role: h.role, content: h.content.slice(0, 4000) }) as ORMessage),
     { role: 'user', content: message.slice(0, 4000) },
   ]
@@ -98,9 +137,9 @@ export async function runThanos(ctx: ThanosContext, history: ChatTurn[], message
     const calls = res.message.tool_calls ?? []
     if (!calls.length) {
       const reply = (res.message.content ?? '').trim()
-      if (!reply) return { reply: 'Δεν έχω απάντηση γι’ αυτό — δοκίμασε να το διατυπώσεις αλλιώς.', actions: await loadCards(actionIds), model }
+      if (!reply) return { reply: 'Δεν έχω απάντηση γι’ αυτό — δοκίμασε να το διατυπώσεις αλλιώς.', actions: await loadCards(actionIds), model, tools: [...usedTools], programId }
       if (fresh && !actionIds.length && [...usedTools].every(t => CACHEABLE_TOOLS.has(t))) await putCachedAnswer(ctx, page, message, reply, model)
-      return { reply, actions: await loadCards(actionIds), model }
+      return { reply, actions: await loadCards(actionIds), model, tools: [...usedTools], programId }
     }
     // Το DeepSeek (thinking) θέλει πίσω το reasoning_content του ίδιου γύρου μαζί με τα tool_calls.
     messages.push({ role: 'assistant', content: res.message.content ?? null, tool_calls: calls, ...(res.message.reasoning_content ? { reasoning_content: res.message.reasoning_content } : {}) })
@@ -112,6 +151,7 @@ export async function runThanos(ctx: ThanosContext, history: ChatTurn[], message
       else {
         try {
           const args = c.function.arguments ? JSON.parse(c.function.arguments) as Record<string, unknown> : {}
+          if (typeof args.programId === 'string' && args.programId) programId = args.programId
           out = await def.run(ctx, args)
         } catch (err) {
           out = { error: err instanceof Error ? err.message : String(err) }
@@ -121,7 +161,7 @@ export async function runThanos(ctx: ThanosContext, history: ChatTurn[], message
       messages.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(out).slice(0, 24_000) })
     }
   }
-  return { reply: 'Η ερώτηση χρειάστηκε πολλά βήματα — δες τις κάρτες παρακάτω ή ρώτα πιο συγκεκριμένα.', actions: await loadCards(actionIds), model }
+  return { reply: 'Η ερώτηση χρειάστηκε πολλά βήματα — δες τις κάρτες παρακάτω ή ρώτα πιο συγκεκριμένα.', actions: await loadCards(actionIds), model, tools: [...usedTools], programId }
 }
 
 async function loadCards(ids: string[]): Promise<ThanosActionCard[]> {

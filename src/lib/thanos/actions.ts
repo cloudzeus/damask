@@ -7,6 +7,7 @@ import { isTtsConfigured, getVoiceSpeed } from '@/lib/voice/elevenlabs'
 import { getIntegration } from '@/lib/settings'
 import { resolveThanosContext, can, type PageContext } from './context'
 import { runThanos, type ChatTurn, type ThanosReply } from './agent'
+import { rateTurn } from './learning'
 import type { ActionPayload } from './tools'
 import { executeOperation, type OperationPayload } from './operations'
 
@@ -61,7 +62,7 @@ async function customerWelcome(name: string, company: string, applicationIds: st
   return parts.join(' ')
 }
 
-export async function thanosChat(input: { history: ChatTurn[]; message: string; page?: PageContext }): Promise<Res<ThanosReply>> {
+export async function thanosChat(input: { history: ChatTurn[]; message: string; page?: PageContext; conversationId?: string }): Promise<Res<ThanosReply>> {
   const ctx = await resolveThanosContext()
   if (!ctx) return { ok: false, error: 'Δεν είστε συνδεδεμένοι.' }
   const message = input.message?.trim()
@@ -69,7 +70,7 @@ export async function thanosChat(input: { history: ChatTurn[]; message: string; 
   try {
     const history = (Array.isArray(input.history) ? input.history : [])
       .filter(h => (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string')
-    return { ok: true, data: await runThanos(ctx, history, message, input.page) }
+    return { ok: true, data: await runThanos(ctx, history, message, input.page, input.conversationId) }
   } catch (err) {
     return { ok: false, error: errMsg(err) }
   }
@@ -159,4 +160,16 @@ export async function cancelThanosAction(id: string): Promise<Res<null>> {
   if (!ctx) return { ok: false, error: 'Δεν είστε συνδεδεμένοι.' }
   const r = await prisma.thanosAction.updateMany({ where: { id, userId: ctx.userId, status: 'PENDING' }, data: { status: 'CANCELLED' } })
   return r.count ? { ok: true, data: null } : { ok: false, error: 'Η ενέργεια δεν είναι πλέον ενεργή.' }
+}
+
+/** 👍 / 👎 σε απάντηση του Thanos (μάθηση). Ο χρήστης βαθμολογεί μόνο τις δικές του συζητήσεις. */
+export async function rateThanosTurn(turnId: string, rating: 1 | -1, note?: string): Promise<Res<null>> {
+  const ctx = await resolveThanosContext()
+  if (!ctx) return { ok: false, error: 'Δεν είστε συνδεδεμένοι.' }
+  if (rating !== 1 && rating !== -1) return { ok: false, error: 'Μη έγκυρη βαθμολογία.' }
+  try {
+    return (await rateTurn(ctx, turnId, rating, note)) ? { ok: true, data: null } : { ok: false, error: 'Η απάντηση δεν βρέθηκε.' }
+  } catch (err) {
+    return { ok: false, error: errMsg(err) }
+  }
 }
