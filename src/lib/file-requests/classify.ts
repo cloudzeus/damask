@@ -25,7 +25,7 @@ const inputSchema = z.object({
 })
 
 export type FileRequestRecognition =
-  | { ok: true; itemId: string | null; typeName: string | null; confidence: number; reason: string | null }
+  | { ok: true; itemId: string | null; typeName: string | null; confidence: number; reason: string | null; foreignNote?: string | null }
   | { ok: false; message: string }
 
 function fold(s: string) {
@@ -65,6 +65,10 @@ export async function recognizeFileForRequest(token: string, raw: z.input<typeof
 
     // 2. Τύπος δικαιολογητικού (ίδια «μνήμη» με το staff).
     const cls = await classifyDocumentCore({ trdrId: fr.trdrId, fileName: input.fileName, text })
+    // Έγγραφο άλλης επιχείρησης (άλλο ΑΦΜ) → δεν αντιστοιχίζεται, προειδοποίηση στον πελάτη.
+    if (cls.ok && cls.result.company.status === 'MISMATCH') {
+      return { ok: true, itemId: null, typeName: null, confidence: 0, reason: null, foreignNote: 'Το έγγραφο φαίνεται να αφορά άλλη επιχείρηση (διαφορετικό ΑΦΜ). Ελέγξτε ότι ανεβάσατε το σωστό αρχείο.' }
+    }
     const typeName = cls.ok && cls.result.typeId
       ? (await prisma.documentType.findUnique({ where: { id: cls.result.typeId }, select: { name: true } }))?.name ?? null
       : null

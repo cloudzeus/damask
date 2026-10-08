@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { deepseekChat } from '@/lib/deepseek'
 import { parseJsonLoose } from '@/lib/ocr/extract'
 import { resolveExpiry } from './expiry-rule'
+import { matchCompany, type CompanyMatch } from './company-match'
 
 /**
  * (Plain module — ΟΧΙ server action.) Έξυπνη αναγνώριση δικαιολογητικού που «μαθαίνει» (Δικαιολογητικά πελάτη).
@@ -31,6 +32,8 @@ export type SmartClassifyResult = {
   /** Ό,τι διάβασε η AI ως λήξη μέσα στο έγγραφο (πριν τον κανόνα τύπου) — για επανυπολογισμό όταν αλλάζει ο τύπος. */
   statedExpiresAt: string | null
   expiryBasis: string | null
+  /** Αφορά την επιλεγμένη επιχείρηση; (ΑΦΜ/επωνυμία μέσα στο έγγραφο) */
+  company: CompanyMatch
 }
 
 type TypeRow = { id: string; name: string; expires: boolean; validityDays: number | null; notes: string | null }
@@ -95,7 +98,7 @@ export async function classifyDocumentCore(input: {
   const snippet = withExpiryClues(input.text)
   const probe = tokens(`${input.fileName.replace(/\.[^.]+$/, '')} ${snippet.slice(0, 800)}`)
 
-  const [types, examples, apps] = await Promise.all([
+  const [types, examples, apps, trdr] = await Promise.all([
     prisma.documentType.findMany({ where: { active: true }, select: { id: true, name: true, expires: true, validityDays: true, notes: true }, orderBy: { name: 'asc' } }),
     prisma.documentClassificationExample.findMany({
       orderBy: { createdAt: 'desc' },
@@ -106,7 +109,9 @@ export async function classifyDocumentCore(input: {
       where: { trdrId: input.trdrId },
       select: { programId: true, program: { select: { title: true, referenceCode: true } } },
     }),
+    prisma.trdr.findUnique({ where: { id: input.trdrId }, select: { AFM: true, NAME: true } }),
   ])
+  const company = matchCompany(input.text, { afm: trdr?.AFM ?? null, name: trdr?.NAME ?? '' })
   if (types.length === 0) return { ok: false, message: 'Δεν υπάρχουν τύποι δικαιολογητικών.' }
   const activeIds = new Set(types.map(t => t.id))
   const typeById = new Map(types.map(t => [t.id, t]))
@@ -142,6 +147,7 @@ export async function classifyDocumentCore(input: {
           ...resolveExpiry(t, ai),
           statedExpiresAt: ai?.expiresAt ?? null,
           expiryBasis: ai?.expiryBasis ?? null,
+          company,
         },
       }
     }
@@ -164,6 +170,7 @@ export async function classifyDocumentCore(input: {
         ...resolveExpiry(t, ai),
         statedExpiresAt: ai.expiresAt,
         expiryBasis: ai.expiryBasis,
+        company,
       },
     }
   } catch (err) {

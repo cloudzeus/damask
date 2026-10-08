@@ -43,6 +43,8 @@ type QueuedFile = {
   recognizing: boolean
   /** τι αναγνωρίστηκε (αν ταίριαξε αυτόματα σε στοιχείο) */
   recognized: { typeName: string | null; confidence: number } | null
+  /** Το έγγραφο φαίνεται να αφορά άλλη επιχείρηση — δεν ανεβαίνει χωρίς ρητή επιβεβαίωση. */
+  foreign?: string | null
 }
 
 /** Κείμενο/εικόνες για την αναγνώριση — όλα client-side, τα bytes δεν φεύγουν δύο φορές. */
@@ -122,6 +124,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
         const res = await recognizeFileForRequest(token, { fileName: file.name, ...payload }).catch(() => null)
         setQueue(prev => prev.map(q => {
           if (q.id !== id) return q
+          if (res?.ok && res.foreignNote) return { ...q, recognizing: false, foreign: res.foreignNote }
           if (!res || !res.ok || !res.itemId) return { ...q, recognizing: false }
           return { ...q, recognizing: false, itemId: res.itemId, recognized: { typeName: res.typeName, confidence: res.confidence } }
         }))
@@ -262,7 +265,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
       {queue.filter(q => q.status === 'idle' || q.status === 'error').length > 1 && (
         <button
           type="button"
-          onClick={() => queue.filter(q => (q.status === 'idle' || q.status === 'error') && q.itemId && !q.recognizing).forEach(q => void runUpload(q.id))}
+          onClick={() => queue.filter(q => (q.status === 'idle' || q.status === 'error') && q.itemId && !q.recognizing && !q.foreign).forEach(q => void runUpload(q.id))}
           disabled={queue.some(q => q.recognizing)}
           style={{ ...primaryBtn, justifySelf: 'end', opacity: queue.some(q => q.recognizing) ? 0.6 : 1, cursor: 'pointer' }}
         >
@@ -303,8 +306,8 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                     <button
                       type="button"
                       onClick={() => runUpload(row.id)}
-                      disabled={busy || !row.itemId}
-                      style={{ ...primaryBtn, opacity: busy || !row.itemId ? 0.6 : 1, cursor: busy || !row.itemId ? 'default' : 'pointer' }}
+                      disabled={busy || !row.itemId || !!row.foreign}
+                      style={{ ...primaryBtn, opacity: busy || !row.itemId || row.foreign ? 0.6 : 1, cursor: busy || !row.itemId || row.foreign ? 'default' : 'pointer' }}
                     >
                       {busy ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <UploadCloud size={13} aria-hidden />}
                       {row.status === 'error' ? 'Επανάληψη' : 'Μεταφόρτωση'}
@@ -316,6 +319,14 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                   </button>
                 </div>
 
+                {!row.recognizing && row.foreign && row.status !== 'done' && (
+                  <div role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', borderRadius: 10, border: '1px solid var(--danger, #b3261e)', background: 'rgba(179,38,30,0.06)', padding: '0.45rem 0.65rem', fontSize: 'var(--fs-12)', color: 'var(--danger, #b3261e)' }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>{row.foreign}</span>
+                    <button type="button" onClick={() => updateQueued(row.id, { foreign: null })} style={{ ...iconBtn, width: 'auto', padding: '0.2rem 0.6rem', fontSize: 'var(--fs-11-5)', fontWeight: 700 }}>
+                      Είναι σωστό — συνέχεια
+                    </button>
+                  </div>
+                )}
                 {row.recognizing && (
                   <p style={recognizeNote}>
                     <Loader2 size={13} className="animate-spin" aria-hidden /> Αναγνώριση εγγράφου…

@@ -143,10 +143,12 @@ export function DossierSmartUpload({
         checkDossierDuplicates(trdrId, [{ key: id, hash, typeId: s.typeId }]).catch(() => [null]),
         s.typeId ? listProgramNeedsForTypes(trdrId, [s.typeId]).catch(() => ({} as Record<string, ProgramNeed[]>)) : Promise.resolve({} as Record<string, ProgramNeed[]>),
       ])
+      // Έγγραφο άλλης επιχείρησης (άλλο ΑΦΜ) → απορρίπτεται από προεπιλογή.
+      const foreign = s.company?.status === 'MISMATCH'
       patch(id, {
         dup: dup ?? null,
         needs: s.typeId ? (needs[s.typeId] ?? []) : null,
-        decision: defaultDecision(dup ?? null, !!t?.expires),
+        decision: foreign ? 'skip' : defaultDecision(dup ?? null, !!t?.expires),
         phase: 'ready',
         suggestion: s,
         typeId: s.typeId ?? '',
@@ -425,7 +427,25 @@ function RowCard({
         )}
       </div>
 
-      {!working && row.phase !== 'saved' && (
+      {!working && row.phase !== 'saved' && row.suggestion?.company?.status === 'MISMATCH' && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-[length:var(--fs-12)]" style={{ borderColor: 'var(--danger)', background: 'color-mix(in oklab, var(--danger) 8%, transparent)' }}>
+          <LuTriangleAlert className="size-4 shrink-0" style={{ color: 'var(--danger)' }} aria-hidden />
+          <span className="min-w-0 flex-1">
+            <b>{row.decision === 'skip' ? 'Απορρίφθηκε — αφορά άλλη επιχείρηση.' : 'Αφορά άλλη επιχείρηση — θα αποθηκευτεί παρ’ όλα αυτά.'}</b>{' '}
+            {row.suggestion.company.note}
+          </span>
+          <button
+            type="button"
+            className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[length:var(--fs-11-5)] font-semibold hover:bg-muted"
+            onClick={() => onChange({ decision: row.decision === 'skip' ? 'keep' : 'skip' })}
+            disabled={locked}
+          >
+            {row.decision === 'skip' ? 'Αφορά αυτή την επιχείρηση — κράτα το' : 'Απόρριψη'}
+          </button>
+        </div>
+      )}
+
+      {!working && row.phase !== 'saved' && !(row.suggestion?.company?.status === 'MISMATCH' && row.decision === 'skip') && (
         <DuplicateNotice row={row} batchDupOf={batchDupOf} onDecision={d => onChange({ decision: d })} />
       )}
 
