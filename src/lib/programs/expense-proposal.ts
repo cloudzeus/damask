@@ -316,6 +316,8 @@ export async function budgetSanityCheck(applicationId: string): Promise<{ ok: tr
   if (!bp) return { ok: false, message: 'Δεν βρέθηκε το έργο.' }
 
   const eur = (n: number | null) => n == null ? '—' : `${n}€`
+  const appRow = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { programId: true } })
+  const knowledge = appRow ? await (await import('./references')).getProgramKnowledge(appRow.programId, 10_000) : ''
   const catLines = bp.categories.map(c => `- ${c.name}${c.mandatory ? ' (ΥΠΟΧΡΕΩΤΙΚΗ)' : ''}: σχέδιο ${c.spent}€ / όριο ${eur(c.maxEuro)} [${c.status}]`).join('\n')
   const ineligible = bp.expenses.filter(e => e.eligibilityVerdict === 'INELIGIBLE').map(e => e.description)
   const facts = [
@@ -324,14 +326,15 @@ export async function budgetSanityCheck(applicationId: string): Promise<{ ok: tr
     `Δαπάνες χωρίς ενυπόγραφη προσφορά: ${bp.missingQuotes}`,
     ineligible.length ? `Δαπάνες που το AI έκρινε ΜΗ επιλέξιμες: ${ineligible.join(', ')}` : 'Καμία δαπάνη δεν έχει σημανθεί ΜΗ επιλέξιμη.',
     `Κατηγορίες (status OK/OVER/UNDER):\n${catLines}`,
-  ].join('\n')
+    knowledge ? `\n${knowledge}\nΈλεγξε το σχέδιο ΚΑΙ έναντι αυτών των διευκρινίσεων (π.χ. αλλαγμένα όρια, μη επιλέξιμα είδη).` : '',
+  ].filter(Boolean).join('\n')
 
   const messages = [
     { role: 'system' as const, content: 'Είσαι έμπειρος σύμβουλος ΕΣΠΑ. Έλεγξε ένα σχέδιο δαπανών για κινδύνους πριν την υποβολή. Εντόπισε: υπερβάσεις ορίων (OVER), υποχρεωτικές κατηγορίες χωρίς δαπάνη, δαπάνες χωρίς προσφορά, μη-επιλέξιμες δαπάνες, κατηγορίες κάτω από ελάχιστο (UNDER). Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"status":"READY"|"RISKS","findings":["σύντομες προτάσεις στα ελληνικά, μία ανά εύρημα, με το τι πρέπει να διορθωθεί"]}. status=READY μόνο αν δεν υπάρχει κανένας ουσιαστικός κίνδυνος· αλλιώς RISKS με τα ευρήματα ταξινομημένα κατά σοβαρότητα.' },
     { role: 'user' as const, content: facts },
   ]
   try {
-    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 600, scope: 'OTHER', refType: 'budget-sanity', refId: applicationId })
+    const text = await deepseekChat(messages, { model: 'deepseek-chat', maxTokens: 900, scope: 'OTHER', refType: 'budget-sanity', refId: applicationId })
     const p = parseJsonLoose(text) as { status?: unknown; findings?: unknown } | null
     const status = typeof p?.status === 'string' && p.status.toUpperCase() === 'READY' ? 'READY' : 'RISKS'
     const findings = Array.isArray(p?.findings) ? p.findings.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map(x => x.trim()) : []
@@ -387,9 +390,10 @@ export async function scanQuoteForApplication(
   const session = await requirePermission('programs.manage')
   const app = await prisma.programApplication.findUnique({
     where: { id: applicationId },
-    select: { program: { select: { title: true, expenseCats: { orderBy: { order: 'asc' }, select: { id: true, name: true, notes: true } } } } },
+    select: { programId: true, program: { select: { title: true, expenseCats: { orderBy: { order: 'asc' }, select: { id: true, name: true, notes: true } } } } },
   })
   if (!app) return { ok: false, message: 'Το έργο δεν βρέθηκε.' }
+  const knowledge = await (await import('./references')).getProgramKnowledge(app.programId, 8_000)
   const cats = app.program.expenseCats
   const catList = cats.map(c => `- id=${c.id}: ${c.name}${c.notes ? ` — ${c.notes.slice(0, 160)}` : ''}`).join('\n') || '(το πρόγραμμα δεν έχει κατηγορίες)'
   const { geminiGenerate } = await import('@/lib/gemini')
@@ -402,6 +406,7 @@ export async function scanQuoteForApplication(
     'Ποσά με τελεία δεκαδικών. ΑΥΣΤΗΡΑ JSON: {"supplierAfm":"...","supplierName":"...","docNumber":"...","date":"YYYY-MM-DD",',
     '"lines":[{"product":"...","description":"..."|null,"quantity":n,"unit":"τεμ."|null,"unitPrice":n,"vatPct":n,"total":n,"categoryId":"..."|null,"categoryReason":"σύντομα"}],',
     '"totals":{"net":n,"vat":n,"gross":n}}',
+    knowledge ? `\n\nΓια την επιλογή κατηγορίας λάβε υπόψη και:\n${knowledge}` : '',
   ].join(' ')
   try {
     const res = await geminiGenerate({

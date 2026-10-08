@@ -46,6 +46,8 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
 
   const data: ProgramData = {
     id: program.id,
+    hasGuide: !!program.storageKey,
+    guideFileName: program.sourceFileName,
     title: program.title,
     summary: program.summary,
     imageUrl: program.imageUrl,

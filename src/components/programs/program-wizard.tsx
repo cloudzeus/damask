@@ -19,7 +19,8 @@ import {
   type ProgramBasics, type FormProposal,
 } from '@/lib/programs/actions'
 import { createDocumentType } from '@/lib/documents/actions'
-import { extractPdfText } from '@/lib/programs/pdf-text'
+import { extractPdfText, extractPdfLinks } from '@/lib/programs/pdf-text'
+import { importGuideLinks } from '@/lib/programs/reference-actions'
 
 /**
  * «Οδηγός Αρχικοποίησης Προγράμματος» — καθοδηγούμενη ροή για μη-τεχνικό χρήστη.
@@ -133,6 +134,8 @@ function StepUpload({ onDone }: { onDone: (programId: string) => void }) {
       setLabel('Αποθηκεύω το αρχείο…'); setProgress(18)
       const pdfBase64 = arrayBufferToBase64(await file.arrayBuffer())
       const { id } = await createProgram({ title: title.trim(), sourceFileName: file.name, pdfBase64, mimeType: file.type || 'application/pdf' })
+      // Εξωτερικοί σύνδεσμοι του οδηγού → γνωσιακή μνήμη (στο παρασκήνιο· δεν καθυστερεί τον οδηγό).
+      void file.arrayBuffer().then(extractPdfLinks).then(links => (links.length ? importGuideLinks(id, links) : null)).catch(() => {})
       setLabel('Το AI διαβάζει το πρόγραμμα και βρίσκει τα δικαιολογητικά… (ίσως πάρει λίγο)'); setProgress(30)
       const r = await extractProgram(id, text)
       if (!r.ok) { setError(r.error ?? 'Η ανάγνωση απέτυχε — δοκίμασε ξανά.'); setBusy(false); return }

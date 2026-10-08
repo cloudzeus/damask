@@ -809,3 +809,17 @@ export async function setExpenseLines(expenseId: string, input: ExpenseLineInput
   revalidatePath('/programs')
   return { ok: true, amount }
 }
+
+
+/** Αποθήκευση/αντικατάσταση του PDF της προκήρυξης (π.χ. στην επαναποδελτίωση) — μένει πάντα διαθέσιμο. */
+export async function setProgramPdf(programId: string, input: { pdfBase64: string; fileName: string; mimeType?: string }): Promise<void> {
+  await requirePermission('programs.manage')
+  const body = Buffer.from(input.pdfBase64, 'base64')
+  const storageKey = `programs/${programId}/source.pdf`
+  await bunnyUploadPrivate({ key: storageKey, body, contentType: input.mimeType || 'application/pdf' })
+  await prisma.program.update({
+    where: { id: programId },
+    data: { storageKey, sourceFileName: input.fileName, mimeType: input.mimeType || 'application/pdf', size: body.length },
+  })
+  revalidatePath(`/programs/${programId}`)
+}

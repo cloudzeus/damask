@@ -1305,6 +1305,7 @@ model Program {
   leads                ProgramLead[]
   dossierDocs          TrdrDossierDocument[]
   eligibilityAssessments EligibilityAssessment[]
+  references           ProgramReference[]
 
   @@index([status])
   @@index([extractStatus])
@@ -2874,5 +2875,33 @@ model EligibilityAssessment {
   finishedAt    DateTime?
 
   @@index([trdrId, createdAt])
+  @@index([programId])
+}
+
+/// Συμπληρωματικές πηγές προγράμματος (αρχεία/URL/σημειώσεις: FAQ, τροποποιήσεις, διευκρινίσεις) με
+/// επεξήγηση του χρήστη. Η AI κρατά σύνοψη κανόνων (digest) και τη λαμβάνει υπόψη σε αξιολόγηση ένταξης,
+/// επιλεξιμότητα δαπανών, έλεγχο σχεδίου, σάρωση προσφοράς — υπερισχύει του αρχικού οδηγού όπου διαφωνεί.
+model ProgramReference {
+  id          String    @id @default(cuid())
+  programId   String
+  program     Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  kind        String // FILE | URL | NOTE
+  title       String
+  url         String?
+  storageKey  String?
+  fileName    String?
+  mimeType    String?
+  /// Τι να προσέξει η AI — γραμμένο από τον χρήστη.
+  note        String?   @db.Text
+  /// Σύνοψη κανόνων από την AI (αυτό μπαίνει στα prompts).
+  digest      String?   @db.Text
+  status      String    @default("PROCESSING") // PROCESSING | READY | ERROR
+  error       String?
+  /// Ενεργό στα prompts της AI (μπορεί να απενεργοποιηθεί χωρίς διαγραφή).
+  active      Boolean   @default(true)
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   @@index([programId])
 }

@@ -4,6 +4,7 @@ import { bunnyDownload } from '@/lib/bunny-storage'
 import { parseJsonLoose } from '@/lib/ocr/extract'
 import { computeSinglePair, type SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { buildCompanyProfile, type CompanyProfile } from './company-profile'
+import { getProgramKnowledge } from '@/lib/programs/references'
 
 /**
  * (Plain module.) Agent αξιολόγησης ένταξης επιχείρησης σε ευρωπαϊκό πρόγραμμα.
@@ -70,7 +71,7 @@ function documentCoverage(program: ProgramCtx, profile: CompanyProfile): Assessm
 
 const RULE_LABEL: Record<string, string> = { kad: 'ΚΑΔ', region: 'Περιφέρεια', legalForm: 'Νομική μορφή', size: 'Ελάχιστες ΕΜΕ', age: 'Έτη λειτουργίας' }
 
-function buildPrompt(program: ProgramCtx, profile: CompanyProfile, rules: SinglePairEligibility, docs: AssessmentResult['documents'], hasGuide: boolean, today: string) {
+function buildPrompt(program: ProgramCtx, profile: CompanyProfile, rules: SinglePairEligibility, docs: AssessmentResult['documents'], hasGuide: boolean, today: string, knowledge: string) {
   const extracted = (program.extractedData ?? {}) as Record<string, unknown>
   const programData = {
     title: program.title, referenceCode: program.referenceCode, summary: program.summary,
@@ -112,7 +113,8 @@ function buildPrompt(program: ProgramCtx, profile: CompanyProfile, rules: Single
     `ΕΠΙΧΕΙΡΗΣΗ (προφίλ):\n${JSON.stringify(profile)}`,
     `ΚΑΝΟΝΕΣ (ντετερμινιστικός έλεγχος): πληροί=${rules.matched.map(k => RULE_LABEL[k] ?? k).join(', ') || '—'} · δεν πληροί=${rules.failed.map(k => RULE_LABEL[k] ?? k).join(', ') || '—'} · άγνωστα=${rules.unknown.map(k => RULE_LABEL[k] ?? k).join(', ') || '—'} · ΚΑΔ που ταιριάζουν=${rules.matchedKads.join(', ') || '—'}`,
     `ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ ΠΡΟΓΡΑΜΜΑΤΟΣ ↔ ΑΠΟΘΗΚΗ ΠΕΛΑΤΗ:\n${JSON.stringify(docs)}`,
-  ].join('\n\n')
+    knowledge || null,
+  ].filter(Boolean).join('\n\n')
   return { system, user }
 }
 
@@ -203,10 +205,11 @@ export async function runEligibilityAssessment(assessmentId: string): Promise<vo
   const a = await prisma.eligibilityAssessment.findUniqueOrThrow({ where: { id: assessmentId }, select: { trdrId: true, programId: true, createdById: true } })
   try {
     const now = new Date()
-    const [program, profile, rules] = await Promise.all([
+    const [program, profile, rules, knowledge] = await Promise.all([
       loadProgram(a.programId),
       buildCompanyProfile(a.trdrId, now),
       computeSinglePair(a.trdrId, a.programId),
+      getProgramKnowledge(a.programId),
     ])
     const docs = documentCoverage(program, profile)
 
@@ -215,7 +218,7 @@ export async function runEligibilityAssessment(assessmentId: string): Promise<vo
       guide = await bunnyDownload(program.storageKey).catch(() => null)
       if (guide && guide.length > GUIDE_MAX_BYTES) guide = null
     }
-    const { system, user } = buildPrompt(program, profile, rules, docs, !!guide, now.toISOString().slice(0, 10))
+    const { system, user } = buildPrompt(program, profile, rules, docs, !!guide, now.toISOString().slice(0, 10), knowledge)
     // Τα «thinking» tokens του Gemini μετρούν στο όριο εξόδου — μεγάλο περιθώριο, και μία
     // επανάληψη αν το JSON έρθει κομμένο/άκυρο (μεγάλοι οδηγοί → πολλά κριτήρια/δικαιολογητικά).
     const ask = (attempt: number) => geminiGenerate({

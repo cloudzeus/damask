@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { geminiGenerate } from '@/lib/gemini'
 import { bunnyDownload } from '@/lib/bunny-storage'
 import { parseJsonLoose } from '@/lib/ocr/extract'
+import { getProgramKnowledge } from './references'
 
 /**
  * (Plain module.) Αναλυτικός έλεγχος επιλεξιμότητας ΜΙΑΣ δαπάνης έναντι του οδηγού του προγράμματος.
@@ -53,7 +54,7 @@ export async function assessExpenseEligibility(expenseId: string, opts: { userId
       purchase: { select: { invoiceKey: true, invoiceNumber: true, invoiceDate: true, paidAmount: true, ocrAmount: true, ocrSupplier: true, ocrDate: true, ocrNumber: true } },
       application: {
         select: {
-          id: true, opskeSubmittedAt: true, createdAt: true,
+          id: true, opskeSubmittedAt: true, createdAt: true, programId: true,
           trdr: { select: { NAME: true, AFM: true, appLegalForm: true, kads: { select: { code: true, description: true, kind: true }, take: 12 } } },
           program: {
             select: {
@@ -101,7 +102,7 @@ export async function assessExpenseEligibility(expenseId: string, opts: { userId
     },
   }
 
-  const guide = await loadGuide(prog.storageKey, prog.size)
+  const [guide, knowledge] = await Promise.all([loadGuide(prog.storageKey, prog.size), getProgramKnowledge(exp.application.programId)])
   const system = [
     'Είσαι έμπειρος ελεγκτής δαπανών ΕΣΠΑ. Ελέγχεις αν ΜΙΑ δαπάνη είναι επιλέξιμη για χρηματοδότηση και ΤΕΚΜΗΡΙΩΝΕΙΣ αναλυτικά.',
     guide ? 'Ο ΟΔΗΓΟΣ του προγράμματος (PDF) είναι συνημμένος — βρες τους κανόνες για τις επιλέξιμες/μη επιλέξιμες δαπάνες, τα όρια ανά κατηγορία, την έναρξη επιλεξιμότητας, ΦΠΑ, μεταχειρισμένα, συνδεδεμένα μέρη, απαιτούμενες προσφορές/παραστατικά. Δώσε παραπομπή (ενότητα/σελίδα) σε guideRef.' : 'Ο οδηγός δεν είναι διαθέσιμος — βασίσου στα δομημένα στοιχεία και σημείωσέ το.',
@@ -121,7 +122,7 @@ export async function assessExpenseEligibility(expenseId: string, opts: { userId
   const res = await geminiGenerate({
     parts: [
       ...(guide ? [{ inlineData: { data: guide.toString('base64'), mimeType: 'application/pdf' } }] : []),
-      { text: `ΣΤΟΙΧΕΙΑ ΔΑΠΑΝΗΣ & ΠΡΟΓΡΑΜΜΑΤΟΣ:\n${JSON.stringify(context)}` },
+      { text: `ΣΤΟΙΧΕΙΑ ΔΑΠΑΝΗΣ & ΠΡΟΓΡΑΜΜΑΤΟΣ:\n${JSON.stringify(context)}${knowledge ? `\n\n${knowledge}` : ''}` },
     ],
     systemInstruction: system,
     json: true,

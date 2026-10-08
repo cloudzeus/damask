@@ -61,3 +61,50 @@ export async function extractPdfText(file: File): Promise<string> {
   const joined = textChunks.join('\n').replace(/[ \t]+/g, ' ').trim()
   return capText(joined)
 }
+
+export type PdfLink = { url: string; text: string | null; page: number }
+
+/**
+ * Εξωτερικοί σύνδεσμοι ενός PDF (CLIENT-SIDE): ενεργοί σύνδεσμοι (link annotations) + URL γραμμένα στο κείμενο.
+ * Μοναδικοί ανά URL, με το κείμενο γύρω τους ως τίτλο όπου υπάρχει.
+ */
+export async function extractPdfLinks(data: ArrayBuffer): Promise<PdfLink[]> {
+  const pdfjs = await loadPdfjs()
+  const doc = await pdfjs.getDocument({ data }).promise
+  const found = new Map<string, PdfLink>()
+  const clean = (u: string) => unwrapSafeLink(u.trim().replace(/[).,;:»"'\]]+$/, ''))
+  const norm = (u: string) => u.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const annotated: string[] = []
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p)
+    const [annots, content] = await Promise.all([page.getAnnotations(), page.getTextContent()])
+    const text = content.items.map(textItemString).join(' ')
+    for (const a of annots as { subtype?: string; url?: string; unsafeUrl?: string }[]) {
+      const u = a.subtype === 'Link' ? (a.url ?? a.unsafeUrl) : undefined
+      if (u && /^https?:\/\//i.test(u) && !found.has(clean(u))) { found.set(clean(u), { url: clean(u), text: null, page: p }); annotated.push(norm(clean(u))) }
+    }
+    for (const m of text.matchAll(/\bhttps?:\/\/[^\s<>"«»]+/gi)) {
+      const u = clean(m[0])
+      // URL που αλλάζει γραμμή στο κείμενο χάνει χαρακτήρες — αν μοιάζει με ενεργό σύνδεσμο, κράτα εκείνον.
+      const nu = norm(u).slice(0, 28)
+      if (annotated.some(a => a.startsWith(nu) || nu.startsWith(a.slice(0, 28)))) continue
+      if (!found.has(u)) {
+        const i = m.index ?? 0
+        found.set(u, { url: u, text: text.slice(Math.max(0, i - 90), i).replace(/\s+/g, ' ').trim().slice(-90) || null, page: p })
+      }
+    }
+  }
+  return [...found.values()]
+}
+
+/** Outlook «Safe Links» / Google redirect → ο πραγματικός σύνδεσμος. */
+export function unwrapSafeLink(u: string): string {
+  try {
+    const url = new URL(u)
+    if (/safelinks\.protection\.outlook\.com$/i.test(url.hostname) || (/google\./i.test(url.hostname) && url.pathname === '/url')) {
+      const inner = url.searchParams.get('url') ?? url.searchParams.get('q')
+      if (inner && /^https?:\/\//i.test(inner)) return inner
+    }
+  } catch { /* μη έγκυρο → ως έχει */ }
+  return u
+}

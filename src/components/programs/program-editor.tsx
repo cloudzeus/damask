@@ -6,21 +6,23 @@ import { toast } from 'sonner'
 import {
   LuTag, LuEuro, LuPercent, LuCalendar, LuHash, LuUsers, LuClock, LuBuilding2,
   LuUpload, LuRefreshCw, LuClipboardList, LuGift, LuTarget, LuFlag, LuMapPin, LuScale,
-  LuInfo, LuCircleCheck, LuCircleX, LuClock3, LuLoaderCircle,
+  LuInfo, LuCircleCheck, LuCircleX, LuClock3, LuLoaderCircle, LuFileText, LuDownload,
 } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
-import { updateProgramMeta, extractProgram, setProgramImage } from '@/lib/programs/actions'
-import { extractPdfText } from '@/lib/programs/pdf-text'
+import { updateProgramMeta, extractProgram, setProgramImage, setProgramPdf } from '@/lib/programs/actions'
+import { extractPdfText, extractPdfLinks } from '@/lib/programs/pdf-text'
+import { importGuideLinks } from '@/lib/programs/reference-actions'
 import { MassUploader } from '@/components/media/mass-uploader'
 import { RequiredFormsTab } from './required-forms-tab'
 import { TaskTemplatesTab } from './task-templates-tab'
 import { DeliverableTemplatesTab } from './deliverable-templates-tab'
 import { PhaseFilesTab } from './phase-files-tab'
 import { ProspectsTab } from './prospects-tab'
+import { ProgramReferencesTab } from './program-references-tab'
 import { CmsTab } from './cms-tab'
 
 /**
@@ -57,6 +59,9 @@ export type ProgramDeliverableData = {
 
 export type ProgramData = {
   id: string
+  /** Υπάρχει αποθηκευμένο PDF προκήρυξης (οδηγός) — διαθέσιμο για προβολή/λήψη. */
+  hasGuide: boolean
+  guideFileName: string | null
   title: string
   summary: string | null
   imageUrl: string | null
@@ -87,6 +92,13 @@ export type ProgramData = {
 }
 
 const STATUS_LABELS: Record<ProgramData['status'], string> = { DRAFT: 'Πρόχειρο', ACTIVE: 'Ενεργό', CLOSED: 'Κλειστό' }
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let bin = ''
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return btoa(bin)
+}
 
 const EXTRACT_META: Record<string, { label: string; badgeClass: string; style?: React.CSSProperties; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING: { label: 'Εκκρεμεί αποδελτίωση', badgeClass: 'badge-pill warn', icon: LuClock3 },
@@ -167,7 +179,7 @@ function validateNonNegativeInteger(v: string, label: string): string | null {
 /* ── Tab bar — lightweight, χωρίς Tabs primitive (δεν υπάρχει στο
  * src/components/ui) — pill row, navy active state (Steel & Frost §4β). */
 
-type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'phaseFiles' | 'prospects' | 'cms'
+type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'phaseFiles' | 'prospects' | 'cms' | 'knowledge'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'desc', label: 'Περιγραφή & Ημερομηνίες' },
@@ -181,6 +193,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'deliverableTemplates', label: 'Παραδοτέα ανά Φάση' },
   { key: 'phaseFiles', label: 'Αρχεία πελάτη' },
   { key: 'prospects', label: 'Δυνητικοί πελάτες' },
+  { key: 'knowledge', label: 'Γνώση & διευκρινίσεις' },
 ]
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
@@ -337,6 +350,11 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
         toast.error('Το PDF δεν περιέχει επιλέξιμο κείμενο (π.χ. είναι σαρωμένη εικόνα).')
         return
       }
+      // Το νέο PDF γίνεται ο διαθέσιμος οδηγός του προγράμματος + νέοι σύνδεσμοί του στη γνωσιακή μνήμη.
+      setReExtractLabel('Αποθήκευση του PDF…')
+      setReExtractProgress(15)
+      await setProgramPdf(program.id, { pdfBase64: arrayBufferToBase64(await reExtractFile.arrayBuffer()), fileName: reExtractFile.name, mimeType: reExtractFile.type || 'application/pdf' })
+      void reExtractFile.arrayBuffer().then(extractPdfLinks).then(links => (links.length ? importGuideLinks(program.id, links) : null)).catch(() => {})
       setReExtractLabel('Αποδελτίωση με DeepSeek… (μπορεί να πάρει λεπτά)')
       setReExtractProgress(30)
       const r = await extractProgram(program.id, text)
@@ -378,6 +396,16 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
             <span className="text-[length:var(--fs-12)] text-muted-foreground">{program.errorMessage}</span>
           )}
           <div className="flex-1" />
+          {program.hasGuide && (
+            <>
+              <Button type="button" variant="outline" nativeButton={false} render={<a href={`/api/programs/${program.id}/guide`} target="_blank" rel="noopener" />} title={program.guideFileName ?? 'Οδηγός προγράμματος'}>
+                <LuFileText className="size-3.5" aria-hidden /> Οδηγός (PDF)
+              </Button>
+              <Button type="button" variant="ghost" nativeButton={false} render={<a href={`/api/programs/${program.id}/guide?download=1`} />} aria-label="Λήψη οδηγού">
+                <LuDownload className="size-3.5" aria-hidden />
+              </Button>
+            </>
+          )}
           <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleReextractFileChange} />
           <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={reExtracting}>
             <LuUpload className="size-3.5" aria-hidden /> {reExtractFile ? reExtractFile.name : 'Επιλογή PDF'}
@@ -631,6 +659,7 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
       {activeTab === 'phaseFiles' && <PhaseFilesTab programId={program.id} />}
 
       {activeTab === 'prospects' && <ProspectsTab programId={program.id} />}
+      {activeTab === 'knowledge' && <ProgramReferencesTab programId={program.id} />}
 
       {activeTab === 'cms' && <CmsTab programId={program.id} />}
     </div>
