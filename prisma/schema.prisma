@@ -2785,7 +2785,7 @@ model FileIndexEntry {
 model NasBackupRun {
   id            String    @id @default(cuid())
   trigger       String // cron | manual
-  status        String    @default("RUNNING") // RUNNING | OK | PARTIAL | ERROR
+  status        String    @default("RUNNING") // RUNNING | OK | PARTIAL | ERROR | SKIPPED
   startedAt     DateTime  @default(now())
   finishedAt    DateTime?
   scanned       Int       @default(0)

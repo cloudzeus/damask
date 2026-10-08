@@ -240,8 +240,15 @@ export async function backupPending(opts: { budgetMs?: number } = {}): Promise<{
 
 export async function runNasBackup(opts: { trigger: 'cron' | 'manual'; userId?: string | null; budgetMs?: number; skipScan?: boolean }): Promise<{ runId: string | null; skipped?: string }> {
   const cfg = await getSynologyConfig()
-  if (!cfg) return { runId: null, skipped: 'Δεν έχει ρυθμιστεί το Synology NAS.' }
-  if (opts.trigger === 'cron' && !cfg.enabled) return { runId: null, skipped: 'Το νυχτερινό backup είναι απενεργοποιημένο.' }
+  // Παράλειψη του νυχτερινού → γράφεται στο ιστορικό, ώστε να φαίνεται ότι ΔΕΝ έγινε backup και γιατί.
+  const skip = async (reason: string) => {
+    if (opts.trigger === 'cron') {
+      await prisma.nasBackupRun.create({ data: { trigger: 'cron', status: 'SKIPPED', finishedAt: new Date(), message: reason } })
+    }
+    return { runId: null, skipped: reason }
+  }
+  if (!cfg) return skip('Δεν έγινε backup: δεν έχουν αποθηκευτεί στοιχεία σύνδεσης Synology (Ρυθμίσεις → Διασυνδέσεις → Synology NAS).')
+  if (opts.trigger === 'cron' && !cfg.enabled) return skip('Δεν έγινε backup: το νυχτερινό backup είναι απενεργοποιημένο.')
   const running = await prisma.nasBackupRun.findFirst({ where: { status: 'RUNNING', startedAt: { gt: new Date(Date.now() - 3 * 3600_000) } }, select: { id: true } })
   if (running) return { runId: running.id, skipped: 'Τρέχει ήδη backup.' }
 

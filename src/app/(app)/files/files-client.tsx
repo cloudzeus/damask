@@ -282,7 +282,7 @@ export function FilesClient({
                   <tr key={r.id} className="border-t border-border">
                     <td className="px-3 py-1.5" title={new Date(r.startedAt).toLocaleString('el-GR')}>{relativeTime(r.startedAt)}</td>
                     <td className="px-3 py-1.5">{r.trigger === 'cron' ? 'Νυχτερινό' : 'Χειροκίνητο'}</td>
-                    <td className="px-3 py-1.5"><span className={cn('badge-pill', r.status === 'OK' ? 'ok' : r.status === 'RUNNING' ? 'info' : r.status === 'PARTIAL' ? 'warn' : 'danger')}>{r.status === 'OK' ? 'Επιτυχία' : r.status === 'RUNNING' ? 'Σε εξέλιξη' : r.status === 'PARTIAL' ? 'Μερικό' : 'Σφάλμα'}</span></td>
+                    <td className="px-3 py-1.5"><span className={cn('badge-pill', r.status === 'OK' ? 'ok' : r.status === 'RUNNING' ? 'info' : r.status === 'PARTIAL' || r.status === 'SKIPPED' ? 'warn' : 'danger')}>{r.status === 'OK' ? 'Επιτυχία' : r.status === 'RUNNING' ? 'Σε εξέλιξη' : r.status === 'PARTIAL' ? 'Μερικό' : r.status === 'SKIPPED' ? 'Δεν έγινε' : 'Σφάλμα'}</span></td>
                     <td className="px-3 py-1.5 text-right tabular-nums">{r.scanned.toLocaleString('el-GR')}</td>
                     <td className="px-3 py-1.5 text-right tabular-nums">{r.uploaded.toLocaleString('el-GR')}</td>
                     <td className="px-3 py-1.5 text-right tabular-nums">{formatBytes(r.uploadedBytes)}</td>
