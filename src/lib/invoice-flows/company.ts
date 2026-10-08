@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { ensureTrdrCdnFolder } from '@/lib/trdr/cdn-folder'
 import { requirePermission } from '@/lib/rbac-server'
 import { s1 } from '@/lib/softone'
+import { FEATURES } from '@/lib/features'
 import { getIntegration, isIntegrationConfigured } from '@/lib/settings'
 import { aadeLookup } from '@/lib/trdr/aade'
 import type { ExtractedDocument } from '@/lib/ocr/schema'
@@ -92,6 +93,8 @@ async function pushItemToS1(code: string, name: string): Promise<number | null> 
 }
 
 async function isS1Active(): Promise<boolean> {
+  // Η δομή μένει κατά SoftOne (μελλοντική διασύνδεση)· η σύνδεση/push είναι κλειστή (FEATURES.softone).
+  if (!FEATURES.softone) return false
   const softone = await getIntegration('softone')
   return isIntegrationConfigured('softone', softone)
 }

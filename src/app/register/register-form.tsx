@@ -134,7 +134,7 @@ export function RegisterForm() {
             <path d="M12 16v-4" />
             <path d="M12 8h.01" />
           </svg>
-          <span>Το αίτημα εγκρίνεται από την ομάδα μας εντός 1 εργάσιμης. Οι τιμές σου ενεργοποιούνται αυτόματα από το SoftOne.</span>
+          <span>Το αίτημα εγκρίνεται από την ομάδα μας εντός 1 εργάσιμης. Θα λάβεις email μόλις ενεργοποιηθεί ο λογαριασμός σου.</span>
         </div>
 
         {state.error && <p className="form-error" role="alert">{state.error}</p>}

@@ -79,7 +79,11 @@ export async function startQueue(): Promise<void> {
   // αυτόματα θερινή/χειμερινή ώρα). Χωρίς `data` payload — το runBackup(cron) δεν χρειάζεται.
   await boss.schedule(QUEUE_BACKUP, '30 3 * * *', null, { tz: 'Europe/Athens' })
 
+  // SoftOne εκτός προδιαγραφών (FEATURES.softone): χωρίς dispatcher — και αφαίρεση παλιού schedule.
+  const { FEATURES } = await import('@/lib/features')
   await boss.createQueue(QUEUE_S1_REF_SYNC)
+  if (!FEATURES.softone) await boss.unschedule(QUEUE_S1_REF_SYNC).catch(() => {})
+  else {
   // Dispatcher tick: κάθε 5′ διαβάζει το objects.sync, βρίσκει ποια targets είναι due
   // (enabled + non-manual + πέρασε το interval) και τρέχει το engine τους. Μόνο το
   // 's1-references' έχει engine· products/partners επιστρέφουν "pending" (no-op).
@@ -101,6 +105,7 @@ export async function startQueue(): Promise<void> {
     }
   })
   await boss.schedule(QUEUE_S1_REF_SYNC, '*/5 * * * *', null, { tz: 'Europe/Athens' })
+  }
 
   await boss.createQueue(QUEUE_PM_REMINDERS)
   await boss.work(QUEUE_PM_REMINDERS, async () => {

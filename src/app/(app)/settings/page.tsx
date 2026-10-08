@@ -8,13 +8,15 @@ import { SeoTab } from './seo-tab'
 import { BackupsTab } from './backups-tab'
 import { ObjectsTab } from './objects-tab'
 import { SyncTab } from './sync-tab'
+import { FEATURES } from '@/lib/features'
 import { PageHeader } from '@/components/ui/page-header'
 
 export default async function SettingsPage() {
   const session = await requirePermission('settings.manage')
   const isSuperAdmin = session.user.role === 'SUPER_ADMIN'
   const enabledObjects = isSuperAdmin ? ((await getSetting<string[]>('objects.enabled')) ?? []) : []
-  const connected = isSuperAdmin ? await isSoftOneConnected() : false
+  // SoftOne εκτός προδιαγραφών (FEATURES.softone) → καμία καρτέλα «Συγχρονισμός».
+  const connected = isSuperAdmin && FEATURES.softone ? await isSoftOneConnected() : false
   const syncConfigs = connected ? await getSyncConfigs() : null
 
   return (

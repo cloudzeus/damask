@@ -1,5 +1,8 @@
 # SoftOne Sync Configuration Implementation Plan (Plan 2)
 
+> **Κατάσταση (2026-10-08):** Η WWA δεν έχει (ακόμη) SoftOne. Η **σύνδεση και ο συγχρονισμός** με SoftOne είναι **εκτός προδιαγραφών προς το παρόν** — κρυμμένα πίσω από τον διακόπτη `FEATURE_SOFTONE` (`src/lib/features.ts`). Η **δομή** tables/objects (TRDR, SODTYPE, πεδία κατά SoftOne) **παραμένει** για μελλοντική διασύνδεση.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let SUPER_ADMIN configure, per SoftOne sync target, the direction (pull/push/bidirectional + master side) and frequency (presets), gated on an active SoftOne connection; run due targets on a pg-boss schedule, wiring the one real engine (reference-table pull) and marking targets without an engine as "pending".

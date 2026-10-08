@@ -1,5 +1,6 @@
 'use client'
 
+import { FEATURES } from '@/lib/features'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -70,7 +71,7 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
         <div className="min-w-0">
           <h2 className="text-[length:var(--fs-15)] font-bold">Καταχώριση Εταιρίας (ΕΛΠ)</h2>
           <p className="text-[length:var(--fs-12)] text-muted-foreground">
-            Συναλλασσόμενος (Trdr) + γραμμές είδη — προαιρετικό push στο SoftOne αν υπάρχει ενεργή σύνδεση.
+            Συναλλασσόμενος (Trdr) + γραμμές είδη{FEATURES.softone ? ' — προαιρετικό push στο SoftOne αν υπάρχει ενεργή σύνδεση' : ''}.
           </p>
         </div>
       </div>
@@ -159,7 +160,7 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
             <span className="mb-2.5 flex items-center gap-1.5 text-[length:var(--fs-12-5)] font-bold" style={{ color: 'var(--success)' }}>
               <LuCheck className="size-3.5" aria-hidden /> Ολοκληρώθηκε
             </span>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            <div className={`grid grid-cols-1 gap-2.5 ${FEATURES.softone ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
               <div className="rounded-xl bg-card/70 p-2.5">
                 <div className="flex items-center gap-1.5 text-[length:var(--fs-11)] font-semibold text-muted-foreground uppercase">
                   <LuBuilding2 className="size-3" aria-hidden /> Συναλλασσόμενος
@@ -176,7 +177,7 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
                   {report.lines.matched} υπάρχοντα · {report.lines.created} νέα
                 </div>
               </div>
-              <div className="rounded-xl bg-card/70 p-2.5">
+              {FEATURES.softone && <div className="rounded-xl bg-card/70 p-2.5">
                 <div className="flex items-center gap-1.5 text-[length:var(--fs-11)] font-semibold text-muted-foreground uppercase">
                   <LuCloudUpload className="size-3" aria-hidden /> SoftOne
                 </div>
@@ -194,7 +195,7 @@ export function CompanyInvoicePanel({ extracted }: CompanyInvoicePanelProps) {
                     </>
                   )}
                 </div>
-              </div>
+              </div>}
             </div>
             <p className="mt-2.5 flex items-center gap-1.5 text-[length:var(--fs-11-5)] text-muted-foreground">
               <LuFileCheck2 className="size-3.5 shrink-0" aria-hidden />

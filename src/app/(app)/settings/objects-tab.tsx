@@ -1,5 +1,6 @@
 'use client'
 
+import { FEATURES } from '@/lib/features'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Lock } from 'lucide-react'
@@ -57,7 +58,7 @@ export function ObjectsTab({ enabled }: { enabled: string[] }) {
                   />
                   <item.icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
                   <span className="font-semibold">{item.label}</span>
-                  {item.softone && (
+                  {FEATURES.softone && item.softone && (
                     <span className="rounded-full bg-[var(--glass-strong)] px-2 py-0.5 text-[length:var(--fs-10)] text-muted-foreground">
                       SoftOne {item.softone.object}
                     </span>

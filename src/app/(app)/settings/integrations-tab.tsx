@@ -1,6 +1,7 @@
 import { getIntegration, isIntegrationConfigured, maskSecret, type CheckResult } from '@/lib/settings'
 import { getVivaSettings, isVivaEnvConfigured, type VivaEnvConfig } from '@/lib/viva'
 import { SoftoneCard } from './cards/softone-card'
+import { FEATURES } from '@/lib/features'
 import { MailgunCard } from './cards/mailgun-card'
 import { BunnyCard } from './cards/bunny-card'
 import { DeepseekCard } from './cards/deepseek-card'
@@ -56,7 +57,7 @@ export async function IntegrationsTab() {
 
   return (
     <div className="stagger grid grid-cols-1 gap-3 xl:grid-cols-2">
-      <SoftoneCard
+      {FEATURES.softone && <SoftoneCard
         initial={{
           serial: str(softone.serial), username: str(softone.username), appId: str(softone.appId),
           company: str(softone.company), branch: str(softone.branch), module: str(softone.module), refid: str(softone.refid),
@@ -64,7 +65,7 @@ export async function IntegrationsTab() {
         maskedPassword={maskSecret(softone.password)}
         configured={isIntegrationConfigured('softone', softone)}
         lastCheck={checkOf(softone)}
-      />
+      />}
       <MailgunCard
         initial={{
           domain: str(mailgun.domain), region: str(mailgun.region, 'US') || 'US',
