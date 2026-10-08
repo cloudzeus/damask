@@ -23,10 +23,11 @@ export function ProgramIdeasTab({ programId }: { programId: string }) {
   const [draft, setDraft] = React.useState('')
   const [loading, setLoading] = React.useState(true)
   const [starting, setStarting] = React.useState(false)
+  const [loadError, setLoadError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     let alive = true
-    getLatestIdeas(programId).then(r => { if (!alive) return; setLatest(r.latest); setCaps(r.capabilities) }).catch(() => {}).finally(() => { if (alive) setLoading(false) })
+    getLatestIdeas(programId).then(r => { if (!alive) return; setLatest(r.latest); setCaps(r.capabilities) }).catch(() => { if (alive) setLoadError('Η καρτέλα δεν φόρτωσε — ανανέωσε τη σελίδα. Αν συνεχίζει, ενημέρωσε τον διαχειριστή.') }).finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [programId])
 
@@ -49,7 +50,7 @@ export function ProgramIdeasTab({ programId }: { programId: string }) {
     try {
       const { id } = await startProgramIdeas(programId)
       setLatest(await getIdeaSet(id))
-    } catch { toast.error('Δεν ξεκίνησε.') } finally { setStarting(false) }
+    } catch { toast.error('Η παραγωγή ιδεών δεν ξεκίνησε — ανανέωσε τη σελίδα και δοκίμασε ξανά.') } finally { setStarting(false) }
   }
 
   async function saveCaps() {
@@ -94,6 +95,7 @@ export function ProgramIdeasTab({ programId }: { programId: string }) {
         </div>
       </section>
 
+      {loadError && <p className="rounded-xl border border-(--danger) px-3 py-2 text-[length:var(--fs-12-5)] text-(--danger)">{loadError}</p>}
       {loading && <div className="flex items-center justify-center gap-2 py-6 text-[length:var(--fs-12-5)] text-muted-foreground"><LuLoaderCircle className="size-4 animate-spin" aria-hidden /> Φόρτωση…</div>}
       {runningId && <div className="glass flex items-center gap-2 rounded-[22px] p-4 text-[length:var(--fs-12-5)]"><LuLoaderCircle className="size-4 animate-spin text-primary" aria-hidden /> Η AI διαβάζει τον οδηγό και ετοιμάζει προτάσεις — περίπου ένα λεπτό…</div>}
       {latest?.status === 'ERROR' && <p className="rounded-xl border border-(--danger) px-3 py-2 text-[length:var(--fs-12-5)] text-(--danger)">{latest.error}</p>}
