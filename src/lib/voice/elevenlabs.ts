@@ -18,7 +18,15 @@ function voiceBody(model: string) {
       : { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 1 },
   }
 }
-export type ElevenLabsConfig = { apiKey?: string; voiceId?: string; model?: string }
+export type ElevenLabsConfig = { apiKey?: string; voiceId?: string; model?: string; speed?: string }
+
+/** Ταχύτητα αναπαραγωγής στον browser (με διατήρηση τόνου) — το v3 δεν σέβεται σταθερά το speed του API. */
+export const DEFAULT_VOICE_SPEED = 1.15
+export async function getVoiceSpeed(): Promise<number> {
+  const c = await getIntegration<ElevenLabsConfig>('elevenlabs')
+  const v = Number(c.speed)
+  return Number.isFinite(v) && v >= 0.8 && v <= 1.5 ? v : DEFAULT_VOICE_SPEED
+}
 
 export async function isTtsConfigured(): Promise<boolean> {
   const c = await getIntegration<ElevenLabsConfig>('elevenlabs')

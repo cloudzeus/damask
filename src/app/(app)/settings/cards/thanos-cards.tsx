@@ -69,7 +69,11 @@ export function ElevenLabsCard(p: CardProps<ElevenLabsValues>) {
         <SelectField id="el-model" label="Μοντέλο φωνής" value={c.values.model || 'eleven_v3'} onChange={v => c.set('model', v)}
           options={MODELS} help="Το v3 ακούγεται πιο φυσικό· το Flash είναι γρηγορότερο." />
       </div>
-      <VoicePicker selected={c.values.voiceId} model={c.values.model || 'eleven_v3'} onSelect={id => c.set('voiceId', id)} />
+      <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
+        <SelectField id="el-speed" label="Ταχύτητα ομιλίας" value={c.values.speed || '1.15'} onChange={v => c.set('speed', v)}
+          options={SPEEDS} help="Πόσο γρήγορα μιλά ο Thanos (ο τόνος της φωνής δεν αλλάζει)." />
+      </div>
+      <VoicePicker selected={c.values.voiceId} model={c.values.model || 'eleven_v3'} speed={Number(c.values.speed || '1.15')} onSelect={id => c.set('voiceId', id)} />
       <div className="flex items-center gap-2">
         <Button type="button" onClick={c.onSave} disabled={c.saving}>{c.saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Button>
         <Button type="button" variant="outline" onClick={c.onTest} disabled={c.testing}>{c.testing ? 'Έλεγχος…' : 'Δοκιμή σύνδεσης'}</Button>
@@ -78,15 +82,25 @@ export function ElevenLabsCard(p: CardProps<ElevenLabsValues>) {
   )
 }
 
+const SPEEDS = [
+  { value: '1', label: 'Κανονική (1×)' },
+  { value: '1.1', label: 'Λίγο πιο γρήγορη (1,1×)' },
+  { value: '1.15', label: 'Πιο γρήγορη (1,15×) — προεπιλογή' },
+  { value: '1.25', label: 'Γρήγορη (1,25×)' },
+  { value: '1.35', label: 'Πολύ γρήγορη (1,35×)' },
+]
+
 const MODELS = [
   { value: 'eleven_v3', label: 'Eleven v3 — πιο φυσική & εκφραστική (προτείνεται)' },
   { value: 'eleven_multilingual_v2', label: 'Multilingual v2 — σταθερή' },
   { value: 'eleven_flash_v2_5', label: 'Flash v2.5 — η πιο γρήγορη' },
 ]
 
-async function playSrc(a: HTMLAudioElement, src: string, onEnd: () => void): Promise<boolean> {
+async function playSrc(a: HTMLAudioElement, src: string, onEnd: () => void, rate = 1): Promise<boolean> {
   a.pause()
   a.src = src
+  a.preservesPitch = true
+  a.playbackRate = rate
   a.onended = onEnd
   try { await a.play(); return true } catch { return false }
 }
@@ -95,7 +109,7 @@ const label = (v: GreekVoice) => [v.gender === 'female' ? 'γυναικεία' :
   v.age === 'young' ? 'νεανική' : v.age === 'old' ? 'ώριμη' : v.age ? 'μέση ηλικία' : null, v.accent && v.accent !== 'standard' ? v.accent : null].filter(Boolean).join(' · ')
 
 /** Επιλογέας ελληνικής φωνής: λίστα από ElevenLabs + ακρόαση δείγματος (ίδιο κείμενο για όλες) + «Επιλογή». */
-function VoicePicker({ selected, model, onSelect }: { selected: string; model: string; onSelect: (id: string) => void }) {
+function VoicePicker({ selected, model, speed, onSelect }: { selected: string; model: string; speed: number; onSelect: (id: string) => void }) {
   const [voices, setVoices] = useState<GreekVoice[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | 'female' | 'male'>('all')
@@ -118,7 +132,7 @@ function VoicePicker({ selected, model, onSelect }: { selected: string; model: s
     if (!r.ok) { toast.error(r.message); return }
     if (!audioRef.current) audioRef.current = new Audio()
     setPlaying(id)
-    if (!(await playSrc(audioRef.current, `data:audio/mpeg;base64,${r.audio}`, () => setPlaying(null)))) setPlaying(null)
+    if (!(await playSrc(audioRef.current, `data:audio/mpeg;base64,${r.audio}`, () => setPlaying(null), speed))) setPlaying(null)
   }
 
   if (!voices) {

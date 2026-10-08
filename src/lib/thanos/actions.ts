@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { deliverCustomerEmail } from '@/lib/email/deliver'
 import { openrouterTranscribe } from '@/lib/openrouter'
-import { isTtsConfigured } from '@/lib/voice/elevenlabs'
+import { isTtsConfigured, getVoiceSpeed } from '@/lib/voice/elevenlabs'
 import { getIntegration } from '@/lib/settings'
 import { resolveThanosContext, can, type PageContext } from './context'
 import { runThanos, type ChatTurn, type ThanosReply } from './agent'
@@ -20,12 +20,12 @@ const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 
-export async function thanosStatus(): Promise<{ chat: boolean; tts: boolean; mode: 'STAFF' | 'CUSTOMER' | null; welcome?: string }> {
+export async function thanosStatus(): Promise<{ chat: boolean; tts: boolean; mode: 'STAFF' | 'CUSTOMER' | null; welcome?: string; speed?: number }> {
   const ctx = await resolveThanosContext()
   if (!ctx) return { chat: false, tts: false, mode: null }
   const or = await getIntegration<{ apiKey?: string }>('openrouter')
   return {
-    chat: !!or.apiKey?.trim(), tts: await isTtsConfigured(), mode: ctx.mode,
+    chat: !!or.apiKey?.trim(), tts: await isTtsConfigured(), mode: ctx.mode, speed: await getVoiceSpeed(),
     ...(ctx.mode === 'CUSTOMER' ? { welcome: await customerWelcome(ctx.name, ctx.companyName, ctx.applicationIds) } : {}),
   }
 }

@@ -1,6 +1,6 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { elevenlabsTtsCached } from '@/lib/voice/elevenlabs'
+import { elevenlabsTtsCached, getVoiceSpeed } from '@/lib/voice/elevenlabs'
 import { speakable } from '@/lib/voice/speakable'
 
 /** Πελάτες (portal): έως 2 λεπτά φωνής την ημέρα — μετά οι απαντήσεις συνεχίζουν μόνο σε κείμενο. */
@@ -25,7 +25,8 @@ export async function POST(request: Request) {
   }
   try {
     const audio = await elevenlabsTtsCached(text)
-    const secs = mp3Seconds(audio.length)
+    // Χρόνος ακρόασης = διάρκεια mp3 / ταχύτητα αναπαραγωγής στον browser.
+    const secs = mp3Seconds(audio.length) / (await getVoiceSpeed())
     await prisma.thanosVoiceUsage.upsert({ where: { userId_day: key }, create: { ...key, seconds: secs }, update: { seconds: { increment: secs } } }).catch(() => {})
     return new Response(new Uint8Array(audio), { headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' } })
   } catch (err) {

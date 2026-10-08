@@ -88,9 +88,11 @@ function RichText({ text }: { text: string }) {
 }
 
 /** Παίζει url στο (μόνιμο) audio στοιχείο· false αν ο browser το μπλόκαρε. */
-async function playUrl(a: HTMLAudioElement, url: string, onEnd?: () => void): Promise<boolean> {
+async function playUrl(a: HTMLAudioElement, url: string, onEnd?: () => void, rate = 1): Promise<boolean> {
   a.pause()
   a.src = url
+  a.preservesPitch = true
+  a.playbackRate = rate
   a.onended = () => { if (url.startsWith('blob:')) URL.revokeObjectURL(url); onEnd?.() }
   try { await a.play(); return true } catch { return false }
 }
@@ -165,12 +167,12 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
       if (!res.ok || id !== speakSeq.current) { if (id === speakSeq.current) setSpeaking(null); return }
       const url = URL.createObjectURL(await res.blob())
       if (!audioRef.current) audioRef.current = new Audio()
-      const played = await playUrl(audioRef.current, url, () => setSpeaking(s => (s === text ? null : s)))
+      const played = await playUrl(audioRef.current, url, () => setSpeaking(s => (s === text ? null : s)), status?.speed ?? 1.15)
       if (!played) { setSpeaking(null); setAudioBlocked(true) }
     } catch {
       setSpeaking(null)
     }
-  }, [voice, status?.tts])
+  }, [voice, status?.tts, status?.speed])
 
   /** Πελάτες: καλωσόρισμα μία φορά ανά συνεδρία (κείμενο + φωνή, αν είναι διαθέσιμη). */
   function onStatus(s: Status) {

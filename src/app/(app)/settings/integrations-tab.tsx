@@ -148,7 +148,7 @@ export async function IntegrationsTab() {
         lastCheck={checkOf(openrouter)}
       />
       <ElevenLabsCard
-        initial={{ voiceId: str(elevenlabs.voiceId), model: str(elevenlabs.model) }}
+        initial={{ voiceId: str(elevenlabs.voiceId), model: str(elevenlabs.model), speed: str(elevenlabs.speed) }}
         maskedApiKey={maskSecret(elevenlabs.apiKey)}
         configured={isIntegrationConfigured('elevenlabs', elevenlabs)}
         lastCheck={checkOf(elevenlabs)}

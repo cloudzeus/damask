@@ -628,8 +628,8 @@ export async function testOpenRouterSettings(values: OpenRouterValues): Promise<
   return check
 }
 
-export type ElevenLabsValues = { apiKey: string; voiceId: string; model: string }
-const elevenlabsSchema = z.object({ apiKey: z.string().max(300), voiceId: z.string().trim().max(80), model: z.string().trim().max(80) })
+export type ElevenLabsValues = { apiKey: string; voiceId: string; model: string; speed: string }
+const elevenlabsSchema = z.object({ apiKey: z.string().max(300), voiceId: z.string().trim().max(80), model: z.string().trim().max(80), speed: z.string().trim().max(6) })
 
 export async function saveElevenLabsSettings(values: ElevenLabsValues): Promise<ActionResult> {
   await requirePermission('settings.manage')
