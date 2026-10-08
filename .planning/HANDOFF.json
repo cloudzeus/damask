@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-08T14:18:01.191Z",
+  "timestamp": "2026-10-08T14:54:18.106Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nf61efa2 chore: ενημέρωση HANDOFF\n7eec5e1 fix(programs): ορατό σφάλμα φόρτωσης/εκκίνησης στις «Ιδέες εφαρμογών»\n25451f1 feat(programs): «Ιδέες εφαρμογών» — τι μπορούμε να αναπτύξουμε ώστε να είναι επιλέξιμη δαπάνη ανά πρόγραμμα\n46e5b66 feat(programs): γνωσιακή μνήμη ανά πρόγραμμα — συμπληρωματικά αρχεία/URL/σημειώσεις + σύνδεσμοι του οδηγού\n4ee2b37 docs(manual): εγχειρίδιο — αξιολόγηση ένταξης, έξυπνη αναζήτηση, ανέβασμα με AI, επιλεξιμότητα δαπανών, φάκελος ΔΑ, Αρχεία & Backup"
+  "context_notes": "Recent commits:\n89ea76e feat(thanos): AI βοηθός Thanos για χρήστες & πελάτες (portal)\n94705ec chore: ενημέρωση HANDOFF\nf61efa2 chore: ενημέρωση HANDOFF\n7eec5e1 fix(programs): ορατό σφάλμα φόρτωσης/εκκίνησης στις «Ιδέες εφαρμογών»\n25451f1 feat(programs): «Ιδέες εφαρμογών» — τι μπορούμε να αναπτύξουμε ώστε να είναι επιλέξιμη δαπάνη ανά πρόγραμμα"
 }
