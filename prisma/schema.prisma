@@ -1306,6 +1306,7 @@ model Program {
   dossierDocs          TrdrDossierDocument[]
   eligibilityAssessments EligibilityAssessment[]
   references           ProgramReference[]
+  ideaSets             ProgramIdeaSet[]
 
   @@index([status])
   @@index([extractStatus])
@@ -2904,4 +2905,22 @@ model ProgramReference {
   updatedAt   DateTime  @updatedAt
 
   @@index([programId])
+}
+
+/// Προτάσεις εφαρμογών που μπορούμε να αναπτύξουμε (βάσει του αντικειμένου μας) και εντάσσονται στο πρόγραμμα —
+/// κάθε ιδέα με κατηγορία δαπάνης, παραπομπή στον οδηγό, δικαιούχους, προϋπολογισμό, βεβαιότητα.
+model ProgramIdeaSet {
+  id           String   @id @default(cuid())
+  programId    String
+  program      Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status       String   @default("RUNNING") // RUNNING | DONE | ERROR
+  capabilities String?  @db.Text
+  result       Json?
+  model        String?
+  error        String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+  finishedAt   DateTime?
+
+  @@index([programId, createdAt])
 }

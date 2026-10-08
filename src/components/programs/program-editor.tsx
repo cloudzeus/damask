@@ -23,6 +23,7 @@ import { DeliverableTemplatesTab } from './deliverable-templates-tab'
 import { PhaseFilesTab } from './phase-files-tab'
 import { ProspectsTab } from './prospects-tab'
 import { ProgramReferencesTab } from './program-references-tab'
+import { ProgramIdeasTab } from './program-ideas-tab'
 import { CmsTab } from './cms-tab'
 
 /**
@@ -179,7 +180,7 @@ function validateNonNegativeInteger(v: string, label: string): string | null {
 /* ── Tab bar — lightweight, χωρίς Tabs primitive (δεν υπάρχει στο
  * src/components/ui) — pill row, navy active state (Steel & Frost §4β). */
 
-type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'phaseFiles' | 'prospects' | 'cms' | 'knowledge'
+type TabKey = 'desc' | 'kad' | 'terms' | 'deliverables' | 'expenses' | 'forms' | 'tasks' | 'deliverableTemplates' | 'phaseFiles' | 'prospects' | 'cms' | 'knowledge' | 'ideas'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'desc', label: 'Περιγραφή & Ημερομηνίες' },
@@ -194,6 +195,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'phaseFiles', label: 'Αρχεία πελάτη' },
   { key: 'prospects', label: 'Δυνητικοί πελάτες' },
   { key: 'knowledge', label: 'Γνώση & διευκρινίσεις' },
+  { key: 'ideas', label: 'Ιδέες εφαρμογών' },
 ]
 
 function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
@@ -660,6 +662,7 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
 
       {activeTab === 'prospects' && <ProspectsTab programId={program.id} />}
       {activeTab === 'knowledge' && <ProgramReferencesTab programId={program.id} />}
+      {activeTab === 'ideas' && <ProgramIdeasTab programId={program.id} />}
 
       {activeTab === 'cms' && <CmsTab programId={program.id} />}
     </div>
