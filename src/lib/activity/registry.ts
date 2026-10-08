@@ -34,6 +34,7 @@ export const ACTIONS = {
   // Προγράμματα
   'program.create': { category: 'PROGRAM', label: 'Δημιουργία προγράμματος', weight: 3 },
   'program.extract': { category: 'PROGRAM', label: 'Αποδελτίωση προγράμματος', weight: 5 },
+  'program.assess': { category: 'PROGRAM', label: 'AI αξιολόγηση ένταξης', weight: 5 },
   'program.delete': { category: 'PROGRAM', label: 'Διαγραφή προγράμματος', weight: 2 },
   // Δυνητικοί / Επικοινωνία
   'prospect.save': { category: 'PROSPECT', label: 'Αποθήκευση λίστας δυνητικών', weight: 2 },

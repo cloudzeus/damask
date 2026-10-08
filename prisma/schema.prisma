@@ -397,6 +397,7 @@ model Trdr {
   publicLeadRequests   PublicLeadRequest[] // αιτήματα από τη δημόσια φόρμα επιλεξιμότητας
   newsletterSubs       NewsletterSubscription[]
   leads                Lead[]                   @relation("TrdrLeads")
+  eligibilityAssessments EligibilityAssessment[]
 
   @@index([SODTYPE, ISPROSP])
   @@index([SODTYPE, ISACTIVE])
@@ -1303,6 +1304,7 @@ model Program {
   deliverableTemplates ProgramDeliverableTemplate[]
   leads                ProgramLead[]
   dossierDocs          TrdrDossierDocument[]
+  eligibilityAssessments EligibilityAssessment[]
 
   @@index([status])
   @@index([extractStatus])
@@ -2841,4 +2843,34 @@ model DocumentSearch {
 
   @@index([trdrId])
   @@index([category])
+}
+
+/// AI αξιολόγηση πιθανότητας ένταξης μιας επιχείρησης σε πρόγραμμα: κανόνες (ΚΑΔ/περιφέρεια/μορφή/
+/// ΕΜΕ/έτη/δικαιολογητικά) + agent που διαβάζει τον οδηγό του προγράμματος. Κρατά το στιγμιότυπο
+/// του προφίλ (inputSnapshot) ώστε η αναφορά να τεκμηριώνεται και αργότερα.
+model EligibilityAssessment {
+  id            String    @id @default(cuid())
+  trdrId        String
+  trdr          Trdr      @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  programId     String
+  program       Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status        String    @default("RUNNING") // RUNNING | DONE | ERROR
+  /// Πιθανότητα ένταξης 0-100 (μετά τα όρια των κριτηρίων αποκλεισμού).
+  probability   Int?
+  /// ELIGIBLE | CONDITIONAL | NOT_ELIGIBLE
+  verdict       String?
+  /// Εκτιμώμενη βαθμολογία αξιολόγησης 0-100 (αν το πρόγραμμα έχει βαθμολογούμενα κριτήρια).
+  score         Decimal?  @db.Decimal(5, 1)
+  summary       String?   @db.Text
+  result        Json?
+  inputSnapshot Json?
+  usedGuidePdf  Boolean   @default(false)
+  model         String?
+  error         String?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+  finishedAt    DateTime?
+
+  @@index([trdrId, createdAt])
+  @@index([programId])
 }

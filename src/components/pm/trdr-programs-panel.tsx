@@ -22,6 +22,7 @@ import type { SinglePairEligibility } from '@/lib/prospects/evaluate-pair'
 import { NewDocumentRequestDialog } from '@/components/pm/new-document-request-dialog'
 import { ObligationsTab } from '@/components/pm/obligations-tab'
 import { EmailHistory } from '@/components/email/email-history'
+import { AssessmentDialog } from '@/components/assessment/assessment-dialog'
 import { getApplicationValueChecks, saveApplicationValueCheck, assessClientEligibility, type ValueCheck } from '@/lib/pm/value-checks'
 import { listApplicationContactOptions, setApplicationContacts, setContactPortalScope, type AppContactOption } from '@/lib/pm/application-contacts'
 import {
@@ -42,6 +43,8 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
   const [addOpen, setAddOpen] = React.useState(false)
   const [selected, setSelected] = React.useState<TrdrProgramCard | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
+  // AI αξιολόγηση ένταξης: null = κλειστό· '' = χωρίς προεπιλογή· id = προεπιλεγμένο πρόγραμμα.
+  const [assessFor, setAssessFor] = React.useState<string | null>(null)
 
   async function evaluateCard(card: TrdrProgramCard) {
     setBusyId(card.id)
@@ -95,11 +98,16 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
         <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Ευρωπαϊκά Προγράμματα ({cards.length})
         </div>
-        {canManage && (
-          <Button type="button" variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="size-3.5" aria-hidden /> Σύνδεση με πρόγραμμα
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" onClick={() => setAssessFor('')}>
+            <Sparkles className="size-3.5" aria-hidden /> Αξιολόγηση ένταξης
           </Button>
-        )}
+          {canManage && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="size-3.5" aria-hidden /> Σύνδεση με πρόγραμμα
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -145,6 +153,9 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
                       )}
                       <DropdownMenuItem onClick={() => setSelected(card)}>
                         <Search className="size-3.5" aria-hidden /> Λεπτομέρειες αξιολόγησης
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setAssessFor(card.programId)}>
+                        <Sparkles className="size-3.5" aria-hidden /> AI πιθανότητα ένταξης & δικαιολογητικά
                       </DropdownMenuItem>
                       <DropdownMenuItem render={<Link href={`/programs/${card.programId}/applications/${card.id}`} />}>
                         <ExternalLink className="size-3.5" aria-hidden /> Άνοιγμα έργου
@@ -207,6 +218,14 @@ export function TrdrProgramsPanel({ trdrId, canManage }: { trdrId: string; canMa
           open={!!selected}
           onOpenChange={o => { if (!o) setSelected(null) }}
           onChanged={() => { setSelected(null); load(); router.refresh() }}
+        />
+      )}
+      {assessFor !== null && (
+        <AssessmentDialog
+          trdrId={trdrId}
+          open
+          onOpenChange={o => { if (!o) setAssessFor(null) }}
+          initialProgramId={assessFor || null}
         />
       )}
     </div>
