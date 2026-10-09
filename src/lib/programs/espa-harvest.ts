@@ -29,7 +29,7 @@ async function fetchText(url: string): Promise<string> {
   if (!res.ok) throw new Error(`${res.status} ${url}`)
   return res.text()
 }
-const decode = (s: string) => s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&euro;/g, '€')
+const decode = (s: string) => s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&euro;/g, '€').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
 /** HTML → «|»-χωρισμένο κείμενο (εύκολο parsing ετικετών). */
 const flat = (html: string) => decode(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, '|')).replace(/\s*\|[\s|]*/g, '|')
 const greekDate = (s: string) => { const m = s.match(/(\d{1,2})\/(\d{1,2})\/(20\d{2})/); return m ? new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1]))) : null }
@@ -98,11 +98,12 @@ export type HarvestCall = {
 const fromEspa = (c: EspaCall): HarvestCall => ({ ...c, key: `espa:${c.item}`, source: 'espa.gr' })
 
 /** espa.gr: τα ids από το νεότερο προς τα πίσω (μόνο όσα δεν έχουν ελεγχθεί). */
-async function* espaSource(seen: Set<string>, scanBack: number): AsyncGenerator<HarvestCall | { skipKey: string }> {
-  const ids = await latestIds().catch(() => [] as number[])
+async function* espaSource(seen: Set<string>, scanBack: number, only?: number[]): AsyncGenerator<HarvestCall | { skipKey: string }> {
+  const ids = only ?? await latestIds().catch(() => [] as number[])
   if (!ids.length) return
   const today = new Date(new Date().toISOString().slice(0, 10))
-  for (let i = ids[0]; i > ids[0] - scanBack && i > 0; i--) {
+  const list = only ?? Array.from({ length: scanBack }, (_, k) => ids[0] - k).filter(i => i > 0)
+  for (const i of list) {
     if (seen.has(`espa:${i}`)) continue
     const c = await fetchEspaCall(i).catch(() => null)
     // Ανύπαρκτο/κλειστό/ληγμένο → ελεγμένο (δεν ξαναεξετάζεται).
@@ -195,7 +196,11 @@ export async function isForBusinesses(c: HarvestCall | EspaCall, text?: string):
 export type HarvestResult = { checked: number; business: number; created: { id: string; title: string; source: string }[]; skipped: number }
 
 /** Όλες οι πηγές. Το espa.gr τελευταίο (το πιο «φορτωμένο»), ώστε LEADER/Αναπτυξιακός να μη χάνονται λόγω ορίου. */
-export async function harvestEspaCalls(opts: { scanBack?: number; maxNew?: number; dryRun?: (c: HarvestCall, verdict: string) => void } = {}): Promise<HarvestResult> {
+export async function harvestEspaCalls(opts: { scanBack?: number; maxNew?: number; dryRun?: (c: HarvestCall, verdict: string) => void
+  /** Μόνο συγκεκριμένα espa.gr items (χωρίς σάρωση). */
+  espaIds?: number[]
+  /** Μόνο προσκλήσεις που περνούν το φίλτρο (π.χ. συγκεκριμένοι τίτλοι). */
+  filter?: (c: HarvestCall) => boolean } = {}): Promise<HarvestResult> {
   const stored = (await getSetting<string[]>(SEEN_KEY)) ?? []
   const legacy = stored.length ? [] : ((await getSetting<number[]>(LEGACY_SEEN_KEY)) ?? []).map(n => `espa:${n}`)
   const seen = new Set([...stored, ...legacy])
@@ -206,16 +211,19 @@ export async function harvestEspaCalls(opts: { scanBack?: number; maxNew?: numbe
   const { persistExtractedProgram } = await import('./persist')
   const { generateProgramCms } = await import('./cms')
 
-  const sources = [anaptyxiakosSource(seen), kapSource(seen), espaSource(seen, opts.scanBack ?? SCAN_BACK)]
+  const sources = [anaptyxiakosSource(seen), kapSource(seen), espaSource(seen, opts.scanBack ?? SCAN_BACK, opts.espaIds)]
   try {
     for (const source of sources) {
       for await (const next of source) {
         if (result.created.length >= maxNew) break
         if ('skipKey' in next) { seen.add(next.skipKey); result.skipped++; continue }
         const c = next
+        if (opts.filter && !c.key.startsWith('espa:') && !opts.filter(c)) continue
         result.checked++
         // Ήδη στο σύστημα (ίδια πηγή);
         if (await prisma.programReference.findFirst({ where: { url: { in: [c.url, ...(c.pdfUrl ? [c.pdfUrl] : [])] } }, select: { id: true } })) { seen.add(c.key); continue }
+        // Ήδη καταχωρισμένο χειροκίνητα με τον ίδιο τίτλο;
+        if (await prisma.program.findFirst({ where: { title: { contains: c.title.slice(0, 40), mode: 'insensitive' } }, select: { id: true } })) { seen.add(c.key); result.skipped++; continue }
         // Χωρίς επίσημη περίοδο → διαβάζουμε την αρχή του PDF για να κρίνει το AI και το «ανοιχτή;».
         const fullText = c.needsOpenCheck && c.pdfUrl ? await pdfText(c.pdfUrl).catch(() => '') : ''
         const cls = await isForBusinesses(c, fullText ? fullText.slice(0, 9000) : undefined).catch(() => null)
