@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { SITE_INDEXABLE, absoluteUrl } from '@/lib/site-url'
 import type { ProgramCms } from '@/lib/programs/cms'
 import { GLOSSARY } from '@/lib/seo-content/glossary'
+import { FAQ_HUB } from '@/lib/seo-content/faq-hub'
 
 export const revalidate = 3600
 
@@ -48,6 +49,8 @@ export async function GET() {
     if (cms?.eligibleExpenses?.length) out.push('', 'Επιλέξιμες δαπάνες:', ...cms.eligibleExpenses.map(a => `- ${a}`))
     if (cms?.faq?.length) out.push('', 'Συχνές ερωτήσεις:', ...cms.faq.flatMap(f => [`Ε: ${f.q}`, `Α: ${f.a}`]))
   }
+  out.push('', '## Συχνές ερωτήσεις', `Πηγή: ${absoluteUrl('/syxnes-erotiseis')}`)
+  for (const g of FAQ_HUB) { out.push('', `### ${g.title}`); for (const it of g.items) out.push(`Ε: ${it.q}`, `Α: ${it.a}`) }
   out.push('', '## Γλωσσάριο ΕΣΠΑ', `Πηγή: ${absoluteUrl('/glossari')}`)
   for (const t of GLOSSARY) out.push('', `### ${t.term}`, t.def)
   out.push('', '## Οδηγοί')

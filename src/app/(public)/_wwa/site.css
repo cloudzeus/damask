@@ -714,3 +714,28 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .cards3.cards-n2 { grid-template-columns: repeat(2, 1fr); }
 .cards3.cards-n1 { grid-template-columns: 1fr; }
 @media (max-width: 640px) { .cards3.cards-n2 { grid-template-columns: 1fr; } }
+
+/* ── Συχνές ερωτήσεις (κόμβος) ── */
+.faqhub { max-width: 860px; }
+.faqhub-search { position: relative; display: flex; align-items: center; margin: 0 auto 8px; }
+.faqhub-search > svg { position: absolute; left: 20px; width: 20px; height: 20px; color: var(--fg-3); pointer-events: none; }
+.faqhub-search input { width: 100%; height: 56px; padding: 0 52px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: #fff; font: 400 16px var(--font-body); color: var(--fg-1); box-shadow: var(--elev-1); }
+.faqhub-search input:focus { outline: 2px solid var(--accent-3); outline-offset: 2px; border-color: transparent; }
+.faqhub-search input::-webkit-search-cancel-button { display: none; }
+.faqhub-search button { position: absolute; right: 8px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: var(--fg-3); border-radius: 50%; cursor: pointer; }
+.faqhub-search button:hover { background: var(--bg-muted); color: var(--fg-1); }
+.faqhub-count { min-height: 22px; margin: 0 0 8px; text-align: center; font-size: 14px; color: var(--fg-3); }
+.faqhub-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 auto 16px; }
+.faqhub-chips .pill { background: var(--navy-50); color: var(--brand); text-decoration: none; font-weight: 500; }
+.faqhub-chips .pill:hover { background: var(--navy-200); }
+.faqhub-group { padding-top: 40px; scroll-margin-top: 110px; }
+.faqhub-group h2 { text-align: left; font-size: 1.5rem; margin: 0; }
+.faqhub-intro { margin: 6px 0 12px; color: var(--fg-3); }
+.faqhub-link { color: var(--brand); font-weight: 500; white-space: nowrap; }
+.faqhub-cta { margin-top: 56px; padding: 40px 32px; border-radius: var(--radius-xl); background: var(--navy-950); color: #fff; text-align: center; }
+.faqhub-cta h2 { color: #fff; margin: 0 0 10px; }
+.faqhub-cta p { color: rgba(255,255,255,.82); max-width: 60ch; margin: 0 auto; }
+.faqhub-cta-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 24px 0 18px; }
+.faqhub-cta .faqhub-more { font-size: 14px; }
+.faqhub-cta .faqhub-more a { color: var(--wwa-cyan-400); }
+@media (max-width: 640px) { .faqhub-cta { padding: 32px 20px; } .faqhub-group h2 { font-size: 1.25rem; } }
