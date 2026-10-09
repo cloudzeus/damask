@@ -110,18 +110,21 @@ export default async function HomePage() {
       <section lang="el" className="programs alt" id="programs">
         <div className="wrap">
           <div className="sec-head r"><span className="eyebrow"><span className="idx">01</span>Προγράμματα ΕΣΠΑ 2021–2027</span><h2>Ενεργές προκηρύξεις αυτή τη στιγμή</h2><p>Επιλέξτε το πρόγραμμα που σας αφορά και δείτε σε λίγα λεπτά αν η επιχείρησή σας είναι επιλέξιμη.</p></div>
-          <div className="toolbar r">
-            <button className="chip" aria-pressed="true">Όλα</button>
-            <button className="chip">Νέες επιχειρήσεις</button>
-            <button className="chip">Μικρομεσαίες</button>
-            <button className="chip">Τουρισμός</button>
-            <button className="chip">Ψηφιακός μετασχηματισμός</button>
-            <button className="chip">Πράσινη μετάβαση</button>
-          </div>
+          {/* Γρήγορη πλοήγηση: πραγματικοί σύνδεσμοι σε κόμβους κλάδου/περιοχής (όχι «ψεύτικα» φίλτρα). */}
+          <nav className="toolbar r" aria-label="Προγράμματα ανά κλάδο">
+            <Link className="chip chip-primary" href="/programmata">Όλα τα ενεργά</Link>
+            <Link className="chip" href="/programmata/nea-2026">Νέα 2026</Link>
+            <Link className="chip" href="/espa/klados/tourismos">Τουρισμός</Link>
+            <Link className="chip" href="/espa/klados/metapoiisi">Μεταποίηση</Link>
+            <Link className="chip" href="/espa/klados/pliroforiki">Πληροφορική</Link>
+            <Link className="chip" href="/espa/klados/emporio">Εμπόριο</Link>
+            <Link className="chip" href="/espa">Ανά περιφέρεια</Link>
+            <Link className="chip" href="/prothesmies-espa">Προθεσμίες</Link>
+          </nav>
           <div className="cards3">
             {programCards.map(p => <ProgramCard key={p.href ?? p.title} {...p} />)}
           </div>
-          <div className="sec-foot r"><Button href="/programmata" variant="outline">Όλα τα προγράμματα — ενεργά, σε υλοποίηση, ολοκληρωμένα</Button></div>
+          <div className="sec-foot r"><Button href="/programmata" variant="outline">Όλα τα ενεργά προγράμματα</Button></div>
         </div>
       </section>
 
@@ -130,9 +133,9 @@ export default async function HomePage() {
         <div className="wrap">
           <div className="sec-head r"><span className="eyebrow"><span className="idx">02</span>Υπηρεσίες</span><h2>Ολοκληρωμένη υποστήριξη σε τρία στάδια</h2><p>Μία ομάδα αναλαμβάνει το έργο σας από την ιδέα μέχρι την εκταμίευση. Δεν χρειάζεται να συντονίσετε λογιστή, μηχανικό και σύμβουλο — το κάνουμε εμείς.</p></div>
           <div className="cards3">
-            <article className="service r"><div className="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg></div><h3>Σχεδιασμός επενδυτικού σχεδίου</h3><p>Αναλύουμε τις ανάγκες της επιχείρησής σας και σχεδιάζουμε επενδυτική πρόταση που ταιριάζει στις απαιτήσεις του κατάλληλου προγράμματος.</p><Button href="/#services" variant="link">Πώς αξιολογούμε</Button></article>
-            <article className="service r"><div className="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" /></svg></div><h3>Σύνταξη και υποβολή φακέλου</h3><p>Πλήρης προετοιμασία της αίτησης σύμφωνα με τις προδιαγραφές της προκήρυξης, ηλεκτρονική υποβολή και παρακολούθηση της αξιολόγησης.</p><Button href="/#services" variant="link">Τι περιλαμβάνει ο φάκελος</Button></article>
-            <article className="service r"><div className="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg></div><h3>Διαχείριση και παρακολούθηση</h3><p>Υποστήριξη στην υλοποίηση, αιτήματα τροποποίησης, πιστοποιήσεις δαπανών, μέχρι την ολοκλήρωση και την εκταμίευση της επιδότησης.</p><Button href="/#services" variant="link">Η διαδικασία εκταμίευσης</Button></article>
+            <article className="service r"><div className="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg></div><h3>Σχεδιασμός επενδυτικού σχεδίου</h3><p>Αναλύουμε τις ανάγκες της επιχείρησής σας και σχεδιάζουμε επενδυτική πρόταση που ταιριάζει στις απαιτήσεις του κατάλληλου προγράμματος.</p><Button href="/ypiresies" variant="link">Πώς αξιολογούμε</Button></article>
+            <article className="service r"><div className="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" /></svg></div><h3>Σύνταξη και υποβολή φακέλου</h3><p>Πλήρης προετοιμασία της αίτησης σύμφωνα με τις προδιαγραφές της προκήρυξης, ηλεκτρονική υποβολή και παρακολούθηση της αξιολόγησης.</p><Button href="/nea/dikaiologitika-espa-o-pliris-katalogos-gia-na-mi-chasete-tin-prothesmia" variant="link">Τι περιλαμβάνει ο φάκελος</Button></article>
+            <article className="service r"><div className="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg></div><h3>Διαχείριση και παρακολούθηση</h3><p>Υποστήριξη στην υλοποίηση, αιτήματα τροποποίησης, πιστοποιήσεις δαπανών, μέχρι την ολοκλήρωση και την εκταμίευση της επιδότησης.</p><Button href="/nea/ektamiefsi-espa-pote-plironetai-i-epidotisi-kai-ti-tin-kathysterei" variant="link">Η διαδικασία εκταμίευσης</Button></article>
           </div>
         </div>
       </section>
@@ -161,7 +164,7 @@ export default async function HomePage() {
                 <li>{check}Ο ίδιος σύμβουλος σας συνοδεύει από την αξιολόγηση μέχρι την εκταμίευση.</li>
                 <li>{check}Σύμβουλοι του ΣΕΔΕ και μέλη σε ΣΥ.Σ.ΕΠ., GR.EC.A, ΠΣΒΑΚ και BNI Greece.</li>
               </ul>
-              <div className="actions"><Button href="/#company" variant="inverse">Η εταιρεία</Button><Button href="/#company" variant="inverse-outline">Πελάτες</Button></div>
+              <div className="actions"><Button href="/etaireia" variant="inverse">Η εταιρεία</Button><Button href="/pelates" variant="inverse-outline">Πελάτες</Button></div>
             </div>
           </div>
         </div>
@@ -184,7 +187,7 @@ export default async function HomePage() {
       {news.length > 0 && (
         <section lang="el" className="news alt" id="news">
           <div className="wrap">
-            <div className="sec-head r"><span className="eyebrow"><span className="idx">05</span>Νέα &amp; προκηρύξεις</span><h2>Τι αλλάζει αυτόν τον μήνα</h2></div>
+            <div className="sec-head r"><span className="eyebrow"><span className="idx">05</span>Οδηγοί &amp; νέα</span><h2>Τι αλλάζει αυτόν τον μήνα</h2></div>
             <div className="cards3">
               {news.map((post, i) => (
                 <article key={post.slug} className="card card-hover ncard r">
@@ -197,7 +200,7 @@ export default async function HomePage() {
                 </article>
               ))}
             </div>
-            <div className="sec-foot r"><Button href="/nea" variant="outline">Όλα τα νέα</Button></div>
+            <div className="sec-foot r"><Button href="/nea" variant="outline">Όλοι οι οδηγοί</Button></div>
           </div>
         </section>
       )}

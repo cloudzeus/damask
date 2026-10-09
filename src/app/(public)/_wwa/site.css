@@ -624,3 +624,26 @@ a.btn, a.btn:hover, a.btn:focus, a.btn:visited, a.btn:active { color: var(--_fg)
 .dl-table td a { color: var(--brand); font-weight: 500; }
 .dl-table .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dl-soon { color: var(--warning, #8F4B00); font-weight: 700; }
+
+/* ── Αρχική: βελτιώσεις UX (ui-ux-pro-max) ───────────────────────────── */
+a.chip { text-decoration: none; }
+a.chip.chip-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.hero .hero-title { text-wrap: balance; }
+@media (max-width: 767px) {
+  /* Hero: ο τίτλος δεν «τρώει» την οθόνη — το κουμπί δράσης φαίνεται χωρίς scroll */
+  .hero .content { padding: 40px 0 56px; }
+  .hero h1.hero-kicker { font-size: .8125rem; margin-bottom: 10px; }
+  .hero .tag { font-size: 12px; margin-bottom: 14px; }
+  .hero .hero-title { font-size: clamp(1.5rem, 6.4vw, 2rem); line-height: 1.1; }
+  .hero p { font-size: 15px; margin-top: 12px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .hero p.hero-title { display: block; -webkit-line-clamp: unset; overflow: visible; }
+  .hero .actions { margin-top: 20px; }
+  .hero .actions .btn { width: 100%; }
+  /* Περιοχές αφής ≥ 44px */
+  .chip { min-height: 44px; }
+  .toolbar { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: 4px; scrollbar-width: none; margin-inline: calc(var(--gutter, 16px) * -1); padding-inline: var(--gutter, 16px); }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .toolbar .chip { flex: none; }
+  .footer .cols a { display: inline-flex; align-items: center; min-height: 40px; }
+  .btn-link { min-height: 44px; }
+}
