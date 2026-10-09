@@ -382,3 +382,27 @@ export async function envatoImportAction(input: { itemId: number; kind: 'photo' 
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Μαζική εισαγωγή δωρεάν stock φωτογραφιών (Pexels / Pixabay)
+// ══════════════════════════════════════════════════════════════════════════
+
+export async function stockImportStatusAction(): Promise<{ status: import('@/lib/stock/bulk-import').StockImportStatus; providers: ('pexels' | 'pixabay')[] }> {
+  await requirePermission('media.manage')
+  const { getStockImportStatus } = await import('@/lib/stock/bulk-import')
+  const { stockProvidersConfigured } = await import('@/lib/stock/providers')
+  return { status: await getStockImportStatus(), providers: await stockProvidersConfigured() }
+}
+
+/** Ξεκινά την εισαγωγή στο παρασκήνιο (pg-boss) — ασφαλές να ξανατρέξει: συνεχίζει χωρίς διπλότυπα. */
+export async function startStockImportAction(target: number): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requirePermission('media.manage')
+  const { getStockImportStatus } = await import('@/lib/stock/bulk-import')
+  const { stockProvidersConfigured } = await import('@/lib/stock/providers')
+  if (!(await stockProvidersConfigured()).length) return { ok: false, error: 'Πρόσθεσε πρώτα κλειδί Pexels ή Pixabay στις Ρυθμίσεις → Διασυνδέσεις.' }
+  const s = await getStockImportStatus()
+  if (s.state === 'running' && s.startedAt && Date.now() - new Date(s.startedAt).getTime() < 3 * 3600_000) return { ok: false, error: 'Η εισαγωγή τρέχει ήδη.' }
+  const { getBoss } = await import('@/lib/queue')
+  await getBoss().send('stock-import' /* QUEUE_STOCK_IMPORT */, { target: Math.max(10, Math.min(1000, Math.round(target))) }, { singletonKey: 'stock-import' })
+  return { ok: true }
+}

@@ -15,6 +15,7 @@ import { GemiCard } from './cards/gemi-card'
 import { SynologyCard } from './cards/synology-card'
 import { OpenRouterCard, ElevenLabsCard } from './cards/thanos-cards'
 import { EnvatoCard } from './cards/envato-card'
+import { PexelsCard, PixabayCard } from './cards/stock-cards'
 
 function str(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
@@ -42,7 +43,7 @@ function vivaEnvCardData(config: VivaEnvConfig): VivaEnvCardData {
 }
 
 export async function IntegrationsTab() {
-  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi, synology, openrouter, elevenlabs, envato] = await Promise.all([
+  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi, synology, openrouter, elevenlabs, envato, pexels, pixabay] = await Promise.all([
     getIntegration('softone'),
     getIntegration('mailgun'),
     getIntegration('bunny'),
@@ -58,6 +59,8 @@ export async function IntegrationsTab() {
     getIntegration('openrouter'),
     getIntegration('elevenlabs'),
     getIntegration('envato'),
+    getIntegration('pexels'),
+    getIntegration('pixabay'),
   ])
 
   return (
@@ -161,6 +164,8 @@ export async function IntegrationsTab() {
         configured={isIntegrationConfigured('envato', envato)}
         lastCheck={checkOf(envato)}
       />
+      <PexelsCard initial={{}} maskedApiKey={maskSecret(pexels.apiKey)} configured={isIntegrationConfigured('pexels', pexels)} lastCheck={checkOf(pexels)} />
+      <PixabayCard initial={{}} maskedApiKey={maskSecret(pixabay.apiKey)} configured={isIntegrationConfigured('pixabay', pixabay)} lastCheck={checkOf(pixabay)} />
       <SynologyCard
         initial={{
           baseUrl: str(synology.baseUrl) || 'http://100.127.38.86:5000',

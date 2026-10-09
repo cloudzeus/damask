@@ -30,6 +30,8 @@ export const QUEUE_PM_REMINDERS = 'pm-reminders'
 export const QUEUE_NAS_BACKUP = 'nas-backup'
 /** Νυχτερινή «απόσταξη» συζητήσεων του Thanos σε μαθήματα (src/lib/thanos/learning.ts distillTurns). */
 export const QUEUE_THANOS_DISTILL = 'thanos-distill'
+/** Μαζική εισαγωγή δωρεάν stock φωτογραφιών (Pexels/Pixabay) στο Media Gallery (src/lib/stock/bulk-import.ts). */
+export const QUEUE_STOCK_IMPORT = 'stock-import'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
 
@@ -170,6 +172,17 @@ export async function startQueue(): Promise<void> {
     }
   })
   await boss.schedule(QUEUE_THANOS_DISTILL, '30 4 * * *', null, { tz: 'Europe/Athens' })
+
+  await boss.createQueue(QUEUE_STOCK_IMPORT)
+  await boss.work<{ target?: number }>(QUEUE_STOCK_IMPORT, async ([job]) => {
+    try {
+      const { runStockImport } = await import('@/lib/stock/bulk-import')
+      const r = await runStockImport(job?.data?.target ?? 500)
+      console.log(`[pg-boss] stock-import: ${r.imported} εικόνες (${r.skipped} υπήρχαν, ${r.failed} αποτυχίες)`)
+    } catch (err) {
+      console.error('[pg-boss] stock-import απέτυχε', err) // never rethrow — η πρόοδος/σφάλμα γράφεται στο status
+    }
+  })
 
   console.log('[pg-boss] started')
 }

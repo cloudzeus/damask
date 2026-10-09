@@ -700,3 +700,32 @@ export async function testEnvatoSettings(values: EnvatoValues): Promise<CheckRes
   revalidateSettings()
   return check
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Stock φωτογραφίες (Pexels / Pixabay) — μαζική εισαγωγή στο Media Gallery
+// ══════════════════════════════════════════════════════════════════════════
+
+export type StockKeyValues = { apiKey: string }
+const stockKeySchema = z.object({ apiKey: z.string().max(300) })
+
+async function saveStockKey(provider: 'pexels' | 'pixabay', values: StockKeyValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = stockKeySchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
+  await saveIntegration(provider, parsed.data, ['apiKey'])
+  revalidateSettings()
+  return { ok: true, message: `Το κλειδί ${provider === 'pexels' ? 'Pexels' : 'Pixabay'} αποθηκεύτηκε.` }
+}
+async function testStockKey(provider: 'pexels' | 'pixabay', values: StockKeyValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const { testStockProvider } = await import('@/lib/stock/providers')
+  const stored = await getIntegration<Record<string, string>>(provider)
+  const result = await testStockProvider(provider, mergeNonEmpty(stored, { apiKey: values.apiKey }).apiKey ?? '')
+  const check = await saveLastCheck(provider, result)
+  revalidateSettings()
+  return check
+}
+export async function savePexelsSettings(v: StockKeyValues) { return saveStockKey('pexels', v) }
+export async function testPexelsSettings(v: StockKeyValues) { return testStockKey('pexels', v) }
+export async function savePixabaySettings(v: StockKeyValues) { return saveStockKey('pixabay', v) }
+export async function testPixabaySettings(v: StockKeyValues) { return testStockKey('pixabay', v) }

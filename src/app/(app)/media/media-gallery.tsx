@@ -14,6 +14,7 @@ import { BulkActionBar } from './bulk-action-bar'
 import { MediaLightbox } from './media-lightbox'
 import { MediaPicker } from '@/components/media/media-picker'
 import { EnvatoBrowser } from '@/components/media/envato-browser'
+import { StockImportPanel } from '@/components/media/stock-import-panel'
 import { ProductImageCollection, type CollectionImage } from '@/components/media/product-image-collection'
 import {
   THUMB_SIZE_MAX, THUMB_SIZE_MIN,
@@ -36,7 +37,7 @@ export function MediaGallery({
   const [loading, setLoading] = useState(false)
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
-  const [view, setView] = useState<'files' | 'envato'>('files')
+  const [view, setView] = useState<'files' | 'envato' | 'stock'>('files')
   const [typeFilter, setTypeFilter] = useState<MediaKind | null>(null)
   const [queryInput, setQueryInput] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -206,6 +207,7 @@ export function MediaGallery({
         <div className="flex gap-1.5" role="tablist" aria-label="Πηγή">
           <button type="button" role="tab" aria-selected={view === 'files'} className={cn('pill', view === 'files' && 'on')} onClick={() => setView('files')}>Αρχεία</button>
           <button type="button" role="tab" aria-selected={view === 'envato'} className={cn('pill', view === 'envato' && 'on')} onClick={() => setView('envato')}>Envato</button>
+          <button type="button" role="tab" aria-selected={view === 'stock'} className={cn('pill', view === 'stock' && 'on')} onClick={() => setView('stock')}>Δωρεάν stock</button>
         </div>
         <div className="flex-1" />
         <button type="button" className="btn-pill btn-glass" onClick={() => setPickerOpen(true)}>
@@ -221,7 +223,11 @@ export function MediaGallery({
           onChanged={refresh}
         />
 
-        {view === 'envato' ? (
+        {view === 'stock' ? (
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <StockImportPanel onProgress={refresh} />
+          </div>
+        ) : view === 'envato' ? (
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <EnvatoBrowser
               folderId={selectedFolderId}

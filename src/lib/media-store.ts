@@ -50,6 +50,7 @@ export async function storeMediaBuffer(input: {
   folderId: string | null
   userId?: string | null
   name?: string
+  alt?: string | null
   meta?: Prisma.InputJsonValue
 }): Promise<{ id: string; url: string; path: string; size: number; name: string; type: MediaType }> {
   const storageApi = process.env.BUNNY_STORAGE_API
@@ -80,7 +81,7 @@ export async function storeMediaBuffer(input: {
 
   const type = detectMediaType(input.mimeType, input.filename)
   const asset = await prisma.mediaAsset.create({
-    data: { folderId: input.folderId, productId: null, name: baseName, type, cdnUrl, size, mimeType: input.mimeType || null, ...(input.meta ? { meta: input.meta } : {}) },
+    data: { folderId: input.folderId, productId: null, name: baseName, alt: input.alt ?? null, type, cdnUrl, size, mimeType: input.mimeType || null, ...(input.meta ? { meta: input.meta } : {}) },
   })
   void logApiUsage({ service: 'bunnycdn', operation: 'upload', units: size / 1e9, userId: input.userId ?? null, refType: 'mediaAsset', refId: asset.id })
   return { id: asset.id, url: cdnUrl, path: fullPath, size, name: baseName, type }
