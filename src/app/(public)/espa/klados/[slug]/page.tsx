@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { clampMeta } from '@/lib/site-url'
 import { NotifyBanner } from '../../../_components/notify-banner'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -21,8 +22,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!s) return {}
   const n = (await programsForSector(s)).length
   return {
-    title: `ΕΣΠΑ για ${s.short} 2026: επιδοτήσεις & ενεργά προγράμματα`,
-    description: `Επιδοτήσεις ΕΣΠΑ για ${s.about}: ${n ? `${n} ενεργ${n === 1 ? 'ό πρόγραμμα' : 'ά προγράμματα'}, ` : ''}επιλέξιμες δαπάνες, προϋποθέσεις και δωρεάν έλεγχος επιλεξιμότητας.`,
+    title: [`ΕΣΠΑ για ${s.short} 2026: επιδοτήσεις & ενεργά προγράμματα`, `ΕΣΠΑ για ${s.short} 2026: ενεργά προγράμματα`, `ΕΣΠΑ για ${s.short} 2026`].find(t => t.length <= 60) ?? `ΕΣΠΑ για ${s.short}`,
+    description: clampMeta(`${n ? `${n} ενεργ${n === 1 ? 'ό πρόγραμμα' : 'ά προγράμματα'} ` : 'Προγράμματα '}ΕΣΠΑ για ${s.name.toLowerCase()}: επιλέξιμες δαπάνες, προϋποθέσεις, προθεσμίες και δωρεάν έλεγχος επιλεξιμότητας.`, 160),
     alternates: { canonical: `/espa/klados/${s.slug}` },
     ...(n ? {} : { robots: { index: false, follow: true } }),
   }
