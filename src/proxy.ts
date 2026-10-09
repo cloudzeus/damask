@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from 'next/server'
  * και ΟΛΑ παίρνουν noindex (το robots.txt απαγορεύει τα πάντα).
  */
 const SITE_PUBLIC = process.env.SITE_PUBLIC === '1'
-const SITE_PATHS = ['/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/espa', '/prothesmies-espa', '/prothesmies-espa.ics', '/glossari', '/typos', '/sitemap.xml', '/llms.txt', '/llms-full.txt', '/rss.xml']
+const SITE_PATHS = ['/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/espa', '/prothesmies-espa', '/prothesmies-espa.ics', '/glossari', '/typos', '/sitemap.xml', '/llms.txt', '/llms-full.txt', '/rss.xml', '/manifest.webmanifest']
 const PUBLIC_PATHS = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password', '/api/consent', '/eligibility', '/robots.txt',
   ...(SITE_PUBLIC ? SITE_PATHS : []),
@@ -48,6 +48,13 @@ export function proxy(req: NextRequest) {
 
   const hasSession = req.cookies.has('authjs.session-token') || req.cookies.has('__Secure-authjs.session-token')
   if (!hasSession) {
+    // Δημόσιο site: οι σελίδες της εφαρμογής κάνουν μόνες τους redirect στο /login ((app)/layout), οπότε
+    // ό,τι δεν υπάρχει παίρνει σωστό 404 (όχι 307 → /login που το Google βλέπει ως «soft 404»). Τα API μένουν κλειστά.
+    if (SITE_PUBLIC && !pathname.startsWith('/api/')) {
+      const res = NextResponse.next()
+      res.headers.set('X-Robots-Tag', 'noindex, nofollow')
+      return res
+    }
     return NextResponse.redirect(new URL('/login', req.url))
   }
   const res = NextResponse.next()

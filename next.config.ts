@@ -17,6 +17,19 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 2_592_000,
   },
   // 301 από τα URL του παλιού WordPress (wwa-espa.com) — κρατά τις θέσεις στο Google μετά την αντικατάσταση.
+  // Headers ασφαλείας (Best Practices / εμπιστοσύνη): HSTS, MIME sniffing, referrer, iframe, δικαιώματα browser.
+  async headers() {
+    return [{
+      source: '/:path*',
+      headers: [
+        { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), interest-cohort=(), microphone=(self)' },
+      ],
+    }]
+  },
   async redirects() {
     return legacyRedirects()
   },
