@@ -388,6 +388,15 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
       for (const b of quality.banned) body = body.replace(new RegExp(b, 'gi'), '')
       quality = qualityCheck(body)
     }
+    // Εσωτερικοί σύνδεσμοι: κανένα «μαντεμένο» slug — λάθος → πραγματικό ή η λίστα (ποτέ 404).
+    {
+      const { fixInternalLinks } = await import('./link-fix')
+      const [progs, posts] = await Promise.all([
+        prisma.program.findMany({ where: { publicSlug: { not: null } }, select: { publicSlug: true } }),
+        prisma.post.findMany({ where: { status: 'PUBLISHED' }, select: { slug: true } }),
+      ])
+      body = fixInternalLinks(body, { programs: progs.map(p => p.publicSlug!), posts: posts.map(p => p.slug) }).body
+    }
     const publish = opts.publish && quality.ok
 
     const { authorId, categoryId } = await ensureAuthorAndCategory()

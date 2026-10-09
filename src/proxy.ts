@@ -25,7 +25,7 @@ const STATIC_FILE = /\.(?:png|jpe?g|webp|avif|gif|svg|ico|css|js|mjs|map|txt|xml
 // /portal & /go (portal/lead), /unsubscribe (newsletter), /r (αίτημα δικαιολογητικών),
 // /api/file-requests (public upload endpoint με token).
 const PUBLIC_PREFIXES = [
-  '/legal/', '/api/webhooks/', ...(SITE_PUBLIC ? ['/programmata/', '/nea/'] : []),
+  '/legal/', '/api/webhooks/', ...(SITE_PUBLIC ? ['/programmata/', '/nea/', '/espa/'] : []),
   '/portal/', '/go/', '/unsubscribe/', '/r/', '/api/file-requests/',
 ]
 

@@ -13,7 +13,7 @@ import { wwaPhotoFor } from '../../_wwa/assets'
 import { getPublishedPostBySlug, listPublishedPosts } from '@/lib/cms/public-posts'
 import { JsonLd, breadcrumbJsonLd, organizationRef } from '../../_components/json-ld'
 import { KeyFacts, splitGlance } from '../../_components/key-facts'
-import { absoluteUrl } from '@/lib/site-url'
+import { absoluteUrl, clampMeta } from '@/lib/site-url'
 import { listPublicPrograms } from '@/lib/programs/public'
 import { linkGlossaryTerms } from '@/lib/seo-content/glossary'
 import { Pic } from '../../_components/pic'
@@ -26,9 +26,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const p = await getPublishedPostBySlug(slug)
   if (!p) return { title: 'Νέα — World Wide Associates' }
-  const description = p.seoDescription || p.excerpt || undefined
+  const rawDesc = p.seoDescription || p.excerpt || ''
+  const description = rawDesc ? clampMeta(rawDesc, 158) : undefined
+  // Τίτλος ≤ ~60: το «— World Wide Associates» μόνο όταν χωράει.
+  const base = p.seoTitle || p.title
   return {
-    title: p.seoTitle || `${p.title} — World Wide Associates`,
+    title: base.length <= 36 ? `${base} — World Wide Associates` : clampMeta(base, 62),
     description,
     alternates: { canonical: `/nea/${p.slug}` },
     openGraph: {

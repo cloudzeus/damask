@@ -8,8 +8,8 @@ import { absoluteUrl } from '@/lib/site-url'
 import { GLOSSARY as TERMS } from '@/lib/seo-content/glossary'
 
 export const metadata: Metadata = {
-  title: 'Γλωσσάριο ΕΣΠΑ: de minimis, ΕΜΕ, ΚΑΔ, ίδια συμμετοχή και άλλοι όροι',
-  description: 'Τι σημαίνουν οι βασικοί όροι των επιδοτήσεων: ΕΣΠΑ, de minimis, Ενιαίο Μέτρο Επιχείρησης, ΚΑΔ, ίδια συμμετοχή, επιλέξιμη δαπάνη, ενημερότητες, εκταμίευση — με απλά λόγια.',
+  title: 'Γλωσσάριο ΕΣΠΑ: de minimis, ΕΜΕ, ΚΑΔ & άλλοι όροι',
+  description: 'Οι όροι των επιδοτήσεων με απλά λόγια: de minimis, ΕΜΕ, ΚΑΔ, ίδια συμμετοχή, επιλέξιμη δαπάνη, ενημερότητες, εκταμίευση και άλλοι.',
   alternates: { canonical: '/glossari' },
 }
 
