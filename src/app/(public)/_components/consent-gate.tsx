@@ -31,19 +31,25 @@ export function ConsentGate({ config, tracking }: { config: ConsentModalConfig; 
   const marketing = current?.marketing === true
   const locale: 'el' | 'en' = typeof document !== 'undefined' && /(?:^|;\s*)locale=en/.test(document.cookie) ? 'en' : 'el'
   const { gtagId, gtmId, facebookPixelId } = tracking
+  // Google Consent Mode v2 (basic): οι ετικέτες φορτώνουν ΜΟΝΟ μετά τη συγκατάθεση και δηλώνουν ρητά
+  // τι επιτράπηκε — default «denied» για όλα, μετά update με τις επιλογές του επισκέπτη (απαίτηση Google για ΕΟΧ).
+  const g = (v: boolean) => (v ? 'granted' : 'denied')
+  const consentJs = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}`
+    + `gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',functionality_storage:'granted',security_storage:'granted',wait_for_update:500});`
+    + `gtag('consent','update',{analytics_storage:'${g(analytics)}',ad_storage:'${g(marketing)}',ad_user_data:'${g(marketing)}',ad_personalization:'${g(marketing)}'});`
 
   return (
     <>
       {gtmId && analytics && (
         <Script id="gtm-init" strategy="afterInteractive">
-          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`}
+          {`${consentJs}(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`}
         </Script>
       )}
       {gtagId && analytics && (
         <>
           <Script src={`https://www.googletagmanager.com/gtag/js?id=${gtagId}`} strategy="afterInteractive" />
           <Script id="gtag-init" strategy="afterInteractive">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${gtagId}');`}
+            {`${consentJs}gtag('js', new Date());gtag('config', '${gtagId}');`}
           </Script>
         </>
       )}
