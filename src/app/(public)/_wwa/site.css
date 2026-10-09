@@ -710,3 +710,7 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .partners-strip a:hover img, .partners-strip a:focus-visible img { filter: none; opacity: 1; }
 @media (max-width: 640px) { .partners-strip ul { gap: 14px 28px; } .partners-strip img { max-width: 120px; } }
 .sub-banner .meta:has(.btn) { gap: 12px; margin-top: 28px; }
+/* Λιγότερες από 3 κάρτες: γεμίζουν όλο το πλάτος (2 → 2 στήλες, 1 → 1). */
+.cards3.cards-n2 { grid-template-columns: repeat(2, 1fr); }
+.cards3.cards-n1 { grid-template-columns: 1fr; }
+@media (max-width: 640px) { .cards3.cards-n2 { grid-template-columns: 1fr; } }

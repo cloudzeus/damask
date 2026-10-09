@@ -124,7 +124,7 @@ export default async function HomePage() {
             <Link className="chip" href="/espa">Ανά περιφέρεια</Link>
             <Link className="chip" href="/prothesmies-espa">Προθεσμίες</Link>
           </nav>
-          <div className="cards3">
+          <div className={`cards3${programCards.length < 3 ? ` cards-n${programCards.length}` : ''}`}>
             {programCards.map(p => <ProgramCard key={p.href ?? p.title} {...p} />)}
           </div>
           <div className="sec-foot r"><Button href="/programmata" variant="outline">Όλα τα ενεργά προγράμματα</Button></div>
