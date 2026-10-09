@@ -20,6 +20,7 @@ export function WwaFooter() {
             <ul>
               <li><Link href="/etaireia">Η εταιρεία</Link></li>
               <li><Link href="/ypiresies">Υπηρεσίες</Link></li>
+              <li><Link href="/pyli-pelaton">Πύλη πελατών</Link></li>
               <li><Link href="/pelates">Πελάτες</Link></li>
               <li><Link href="/nea">Οδηγοί & νέα</Link></li>
               <li><Link href="/typos">Η WWA στον Τύπο</Link></li>

@@ -10,6 +10,7 @@ import { listPublicPrograms } from '@/lib/programs/public'
 import { PostMeta } from './_components/post-meta'
 import { listPublishedPosts } from '@/lib/cms/public-posts'
 import { Pic } from './_components/pic'
+import { ShowJourney } from './_components/portal-showcase'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -168,6 +169,29 @@ export default async function HomePage() {
               <div className="actions"><Button href="/etaireia" variant="inverse">Η εταιρεία</Button><Button href="/pelates" variant="inverse-outline">Πελάτες</Button></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ΠΥΛΗ ΠΕΛΑΤΩΝ */}
+      <section lang="el" className="pv-home">
+        <div className="wrap">
+          <article className="pv-row r">
+            <div className="pv-copy">
+              <span className="eyebrow"><span className="idx">03β</span>Πύλη πελατών</span>
+              <h2>Το έργο σας στην οθόνη σας — 24 ώρες το 24ωρο</h2>
+              <p>Κάθε πελάτης της WWA αποκτά τη δική του ψηφιακή πύλη: βλέπει πού βρίσκεται κάθε έργο, ανεβάζει δικαιολογητικά με έξυπνο έλεγχο και ρωτά τον ψηφιακό βοηθό οποιαδήποτε ώρα — χωρίς τηλέφωνα και αναμονή.</p>
+              <ul>
+                <li>Πορεία έργου βήμα-βήμα, ποσά και πληρωμές σε πραγματικό χρόνο</li>
+                <li>Έξυπνος έλεγχος: το σωστό έγγραφο, με την πρώτη</li>
+                <li>Ψηφιακός βοηθός και οδηγοί καθοδήγησης, 24/7</li>
+              </ul>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
+                <Button href="/pyli-pelaton">Δείτε πώς λειτουργεί</Button>
+                <Button href="/portal/syndesi" variant="outline">Σύνδεση πελατών</Button>
+              </div>
+            </div>
+            <div className="pv-shot"><ShowJourney /></div>
+          </article>
         </div>
       </section>
 
