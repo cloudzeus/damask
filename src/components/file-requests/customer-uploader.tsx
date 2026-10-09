@@ -7,7 +7,7 @@ import {
 import { xhrUpload } from '@/components/ui/file-dropzone'
 import type { PublicFileRequest } from '@/lib/file-requests/public'
 import { recognizeFileForRequest } from '@/lib/file-requests/classify'
-import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType } from '@/lib/ocr/rasterize'
+import { readForRecognition } from '@/lib/ocr/read-for-recognition'
 
 /**
  * Δημόσιος uploader δικαιολογητικών (token-gated, ΧΩΡΙΣ session). Ο πελάτης
@@ -45,22 +45,6 @@ type QueuedFile = {
   recognized: { typeName: string | null; confidence: number } | null
   /** Το έγγραφο φαίνεται να αφορά άλλη επιχείρηση — δεν ανεβαίνει χωρίς ρητή επιβεβαίωση. */
   foreign?: string | null
-}
-
-/** Κείμενο/εικόνες για την αναγνώριση — όλα client-side, τα bytes δεν φεύγουν δύο φορές. */
-async function readForRecognition(file: File): Promise<{ text?: string; images?: { base64: string; mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }[] }> {
-  try {
-    if (isPdfFile(file)) {
-      const { pages, text } = await rasterizePdf(file, { maxPages: 2 })
-      if ((text ?? '').trim().length >= 80) return { text: text!.slice(0, 15_000) }
-      return { text: text || undefined, images: pages.slice(0, 2).map(p => ({ base64: p.base64, mimeType: p.mimeType })) }
-    }
-    if (normalizeImageMimeType(file)) {
-      const page = await imageFileToPage(file)
-      return { images: [{ base64: page.base64, mimeType: page.mimeType }] }
-    }
-  } catch { /* αναγνώριση μόνο από όνομα αρχείου */ }
-  return {}
 }
 
 type UploadResult = { ok?: true; url: string; name: string; size: number }
