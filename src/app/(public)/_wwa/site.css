@@ -739,3 +739,31 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .faqhub-cta .faqhub-more { font-size: 14px; }
 .faqhub-cta .faqhub-more a { color: var(--wwa-cyan-400); }
 @media (max-width: 640px) { .faqhub-cta { padding: 32px 20px; } .faqhub-group h2 { font-size: 1.25rem; } }
+
+/* ── «Βρείτε τι σας αφορά» (πλοήγηση ανά περιφέρεια/κλάδο με πλήθος) ── */
+.hubx-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-6); }
+.hubx-panel { background: #fff; border-radius: var(--radius-lg); box-shadow: var(--elev-1); padding: 28px; }
+.hubx-panel h3 { display: flex; align-items: center; gap: 10px; font-size: 1.125rem; margin: 0; }
+.hubx-panel h3 svg { width: 22px; height: 22px; color: var(--brand); flex: none; }
+.hubx-note { margin: 8px 0 18px; font-size: 14px; color: var(--fg-3); line-height: 1.5; }
+.hubx-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.hubx-chip { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px 0 16px; border-radius: var(--radius-pill); border: 1px solid var(--rule); background: #fff; color: var(--fg-1); font-size: 14px; font-weight: 500; text-decoration: none; transition: border-color .2s, background-color .2s, color .2s; }
+.hubx-chip .n { display: inline-grid; place-items: center; min-width: 28px; height: 28px; padding: 0 8px; border-radius: var(--radius-pill); background: var(--navy-50); color: var(--brand); font: 700 13px var(--font-display); font-variant-numeric: tabular-nums; }
+.hubx-chip:hover { border-color: var(--brand); color: var(--brand); }
+.hubx-chip:focus-visible { outline: 2px solid var(--accent-3); outline-offset: 2px; }
+.hubx-chip.is-local { border-color: var(--brand); color: var(--brand); font-weight: 700; }
+.hubx-chip.is-local .n { background: var(--brand); color: #fff; }
+.hubx-quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4, 16px); margin-top: var(--sp-6); }
+.hubx-quick a { display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 14px 18px; border-radius: var(--radius-lg); background: var(--bg-canvas); color: var(--fg-1); text-decoration: none; transition: background-color .2s, box-shadow .2s; }
+.hubx-quick a > svg:first-child { width: 26px; height: 26px; color: var(--brand); flex: none; }
+.hubx-quick a span { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.hubx-quick b { font-size: 15px; }
+.hubx-quick small { font-size: 13px; color: var(--fg-3); }
+.hubx-quick .go { width: 18px; height: 18px; color: var(--brand); flex: none; transition: transform .2s; }
+.hubx-quick a:hover { background: #fff; box-shadow: var(--elev-1); }
+.hubx-quick a:hover .go { transform: translateX(3px); }
+.hubx-quick a:focus-visible { outline: 2px solid var(--accent-3); outline-offset: 2px; }
+@media (max-width: 1024px) { .hubx-quick { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .hubx-grid, .hubx-quick { grid-template-columns: 1fr; } .hubx-panel { padding: 22px; } }
+@media (prefers-reduced-motion: reduce) { .hubx-quick a:hover .go { transform: none; } }
+.hub-links .hub-n { color: var(--fg-3); font-size: 13px; font-variant-numeric: tabular-nums; }

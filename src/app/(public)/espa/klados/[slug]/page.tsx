@@ -7,7 +7,7 @@ import { Faq } from '../../../_components/faq'
 import { ProgramGrid, AnswerBox } from '../../../_components/program-grid'
 import { JsonLd, breadcrumbJsonLd, itemListJsonLd } from '../../../_components/json-ld'
 import { wwaPhotoFor } from '../../../_wwa/assets'
-import { SECTORS, REGIONS, programsForSector, guidesMatching, nProgramms } from '@/lib/seo-content/hubs'
+import { SECTORS, programsForSector, guidesMatching, nProgramms, hubCounts } from '@/lib/seo-content/hubs'
 
 export const revalidate = 3600
 export function generateStaticParams() { return SECTORS.map(s => ({ slug: s.slug })) }
@@ -31,7 +31,9 @@ export default async function SectorPage({ params }: { params: Promise<{ slug: s
   const { slug } = await params
   const s = SECTORS.find(x => x.slug === slug)
   if (!s) notFound()
-  const [programs, guides] = await Promise.all([programsForSector(s), guidesMatching([s.short.split(' ')[0], s.name.split(' ')[0]])])
+  const [programs, guides, counts] = await Promise.all([programsForSector(s), guidesMatching([s.short.split(' ')[0], s.name.split(' ')[0]]), hubCounts()])
+  // Πρώτα οι περιφέρειες με δικό τους (περιφερειακό) πρόγραμμα.
+  const regionLinks = counts.regions.filter(x => x.total > 0).sort((a, b) => b.local - a.local).slice(0, 4)
   const n = programs.length
   const faq = [
     { q: `Υπάρχει ΕΣΠΑ για ${s.short} το 2026;`, a: n ? `Ναι — αυτή τη στιγμή ${n === 1 ? 'ένα ενεργό πρόγραμμα δέχεται' : `${n} ενεργά προγράμματα δέχονται`} επιχειρήσεις του κλάδου (${s.about}): ${programs.map(p => p.title).join('· ')}.` : `Αυτή τη στιγμή δεν υπάρχει ανοιχτή πρόσκληση με επιλέξιμους ΚΑΔ του κλάδου. Νέες δράσεις ανοίγουν τακτικά — κάντε τον δωρεάν έλεγχο και θα σας ενημερώσουμε.` },
@@ -60,7 +62,7 @@ export default async function SectorPage({ params }: { params: Promise<{ slug: s
             <ul>
               <li><Link href="/prothesmies-espa">Προθεσμίες προγραμμάτων ΕΣΠΑ</Link></li>
               <li><Link href="/glossari">Γλωσσάριο ΕΣΠΑ: de minimis, ΕΜΕ, ΚΑΔ κ.ά.</Link></li>
-              {REGIONS.slice(0, 4).map(r => <li key={r.slug}><Link href={`/espa/${r.slug}`}>ΕΣΠΑ {r.short}</Link></li>)}
+              {regionLinks.map(({ hub: r, total }) => <li key={r.slug}><Link href={`/espa/${r.slug}`}>ΕΣΠΑ {r.short}</Link> <span className="hub-n">({total})</span></li>)}
               {guides.map(g => <li key={g.slug}><Link href={`/nea/${g.slug}`}>{g.title}</Link></li>)}
             </ul>
           </div>

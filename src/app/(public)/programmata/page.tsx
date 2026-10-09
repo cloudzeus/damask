@@ -7,7 +7,8 @@ import { Faq, type FaqItem } from '../_components/faq'
 import { wwaPhoto } from '../_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
 import { AnswerBox } from '../_components/program-grid'
-import { REGIONS, SECTORS, listDeadlines, nProgramms } from '@/lib/seo-content/hubs'
+import { listDeadlines, nProgramms } from '@/lib/seo-content/hubs'
+import { HubExplorer } from '../_components/hub-explorer'
 import { JsonLd, itemListJsonLd } from '../_components/json-ld'
 
 export const revalidate = 3600
@@ -39,7 +40,7 @@ export default async function ProgrammataPage() {
           <p style={{ marginTop: 14, fontSize: 17, color: 'rgba(255,255,255,.85)', maxWidth: '52ch' }}>
             Επιλέξτε το πρόγραμμα που σας αφορά ή ελέγξτε δωρεάν την επιλεξιμότητά σας σε όλα τα ενεργά.
           </p>
-          <div className="meta"><EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta></div>
+          <div className="meta"><EligibilityCta variant="inverse">Δείτε αν δικαιούστε</EligibilityCta></div>
         </div></div>
       </section>
 
@@ -64,7 +65,7 @@ export default async function ProgrammataPage() {
           {programs.length === 0 ? (
             <p className="r" style={{ textAlign: 'center', color: 'var(--fg-3)' }}>Δεν υπάρχουν ενεργά προγράμματα αυτή τη στιγμή. Κάντε τον δωρεάν έλεγχο και θα σας ενημερώσουμε μόλις ανοίξει σχετική δράση.</p>
           ) : (
-            <div className="cards3">
+            <div className={`cards3${programs.length < 3 ? ` cards-n${programs.length}` : ''}`}>
               {programs.map((p, i) => (
                 <ProgramCard
                   key={p.slug}
@@ -86,21 +87,9 @@ export default async function ProgrammataPage() {
         </div>
       </section>
 
-      <section lang="el">
-        <div className="wrap">
-          <div className="hub-links r" style={{ marginTop: 0 }}>
-            <h3>Βρείτε προγράμματα για την περιοχή και τον κλάδο σας</h3>
-            <ul>
-              <li><Link href="/programmata/nea-2026">Νέα & αναμενόμενα προγράμματα 2026</Link></li>
-              <li><Link href="/prothesmies-espa">Προθεσμίες ΕΣΠΑ</Link></li>
-              {REGIONS.map(r => <li key={r.slug}><Link href={`/espa/${r.slug}`}>ΕΣΠΑ {r.short}</Link></li>)}
-              {SECTORS.map(s => <li key={s.slug}><Link href={`/espa/klados/${s.slug}`}>ΕΣΠΑ για {s.short}</Link></li>)}
-            </ul>
-          </div>
-        </div>
-      </section>
+      <HubExplorer idx="02" />
 
-      <Faq items={FAQS} idx="02" subtitle="Τα πιο συχνά ερωτήματα για τα ενεργά προγράμματα." />
+      <Faq items={FAQS} idx="03" subtitle="Τα πιο συχνά ερωτήματα για τα ενεργά προγράμματα." />
     </>
   )
 }

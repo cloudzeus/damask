@@ -128,3 +128,31 @@ export async function officialSourceFor(programId: string): Promise<string | nul
 
 /** «1 πρόγραμμα» / «3 προγράμματα» · ενεργό/ενεργά κ.λπ. */
 export const nProgramms = (n: number) => `${n} πρόγραμμα${n === 1 ? '' : 'τα'}`.replace('πρόγραμματα', 'προγράμματα')
+
+export type HubCounts = {
+  total: number
+  /** Προγράμματα χωρίς περιφερειακό περιορισμό (μετρούν σε κάθε περιφέρεια). */
+  nationwide: number
+  regions: { hub: Hub; total: number; local: number }[]
+  sectors: { sector: Sector; total: number }[]
+}
+
+/** Πλήθος ενεργών προγραμμάτων ανά περιφέρεια/κλάδο (ένα query) — για πλοήγηση που δεν οδηγεί σε άδειες σελίδες. */
+export async function hubCounts(): Promise<HubCounts> {
+  const [all, f] = await Promise.all([listPublicPrograms(), facets()])
+  const live = new Set(all.map(p => p.slug))
+  const ps = f.filter(p => live.has(p.slug))
+  const inRegion = (p: ProgramFacets, h: Hub) => p.regions.some(r => h.match.map(norm).some(k => k.split(' ').every(w => r.includes(w))))
+  // Πανελλαδικό = χωρίς περιφέρειες, «όλη η Ελλάδα/επικράτεια», ή καταχωρισμένο με όλες τις περιφέρειες μία-μία.
+  const isNationwide = (p: ProgramFacets) => !p.regions.length || p.regions.some(r => /ολη η ελλαδα|επικρατεια|πανελλαδικ/.test(r)) || REGIONS.every(h => inRegion(p, h))
+  const nationwide = ps.filter(isNationwide).length
+  return {
+    total: ps.length,
+    nationwide,
+    regions: REGIONS.map(hub => {
+      const local = ps.filter(p => !isNationwide(p) && inRegion(p, hub)).length
+      return { hub, local, total: local + nationwide }
+    }),
+    sectors: SECTORS.map(sector => ({ sector, total: ps.filter(p => !p.kads.length || p.kads.some(k => sector.kad.some(pre => k.startsWith(pre)))).length })),
+  }
+}
