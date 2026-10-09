@@ -15,6 +15,7 @@ import { JsonLd, breadcrumbJsonLd, organizationRef } from '../../_components/jso
 import { KeyFacts, splitGlance } from '../../_components/key-facts'
 import { absoluteUrl } from '@/lib/site-url'
 import { listPublicPrograms } from '@/lib/programs/public'
+import { linkGlossaryTerms } from '@/lib/seo-content/glossary'
 
 // ISR: η σελίδα φτιάχνεται στην πρώτη επίσκεψη και σερβίρεται από cache (ανανέωση ανά ώρα ή αμέσως από το CMS).
 export const revalidate = 3600
@@ -65,7 +66,9 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
   const mins = readingTime(p.body)
   const url = absoluteUrl(`/nea/${p.slug}`)
   const faq = faqFromMarkdown(p.body)
-  const glance = splitGlance(p.body)
+  // Εσωτερικοί σύνδεσμοι: πρώτη αναφορά όρων (de minimis, ΕΜΕ, ΚΑΔ…) → ορισμός στο γλωσσάριο (AEO + internal linking).
+  const body = linkGlossaryTerms(p.body)
+  const glance = splitGlance(body)
   const ld: Record<string, unknown>[] = [
     {
       '@context': 'https://schema.org', '@type': 'NewsArticle', mainEntityOfPage: url, headline: p.title.slice(0, 110),
@@ -110,7 +113,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
               </>
             ) : (
               <div className="post-body dropcap r">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.body}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
               </div>
             )}
 
