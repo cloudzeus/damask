@@ -207,3 +207,47 @@ export async function removeTrdrProgram(applicationId: string): Promise<void> {
   await logActivity('application.remove', { entityType: 'application', entityId: applicationId })
   revalidatePath(`/partners/${app.trdrId}`)
 }
+
+export type ApplicationDeletionImpact = {
+  trdrName: string; programTitle: string
+  counts: { label: string; n: number }[]
+}
+
+/** Τι θα διαγραφεί μαζί με το έργο (για την οθόνη επιβεβαίωσης). */
+export async function getApplicationDeletionImpact(applicationId: string): Promise<ApplicationDeletionImpact | null> {
+  await requirePermission('programs.manage')
+  const a = await prisma.programApplication.findUnique({
+    where: { id: applicationId },
+    select: {
+      trdr: { select: { NAME: true } }, program: { select: { title: true } },
+      _count: { select: { expenses: true, expenseDeliverables: true, obligations: true, documents: true, paymentRequests: true, proposalSubmissions: true, documentRequests: true, criterionScores: true, valueChecks: true, contactLinks: true } },
+    },
+  })
+  if (!a) return null
+  const c = a._count
+  const counts = [
+    { label: 'δαπάνες', n: c.expenses }, { label: 'παραδοτέα δαπανών', n: c.expenseDeliverables }, { label: 'υποχρεώσεις/εργασίες', n: c.obligations },
+    { label: 'έγγραφα έργου', n: c.documents }, { label: 'αιτήματα πληρωμής', n: c.paymentRequests }, { label: 'υποβολές πρότασης', n: c.proposalSubmissions },
+    { label: 'αιτήματα εγγράφων', n: c.documentRequests }, { label: 'βαθμολογίες αξιολόγησης', n: c.criterionScores }, { label: 'έλεγχοι τιμών', n: c.valueChecks },
+    { label: 'συνδέσεις επαφών', n: c.contactLinks },
+  ].filter(x => x.n > 0)
+  return { trdrName: a.trdr.NAME, programTitle: a.program.title, counts }
+}
+
+/**
+ * Οριστική διαγραφή έργου από το /pm. Απαιτεί programs.manage ΚΑΙ ρητή επιβεβαίωση «ΔΙΑΓΡΑΦΗ».
+ * Σβήνει το έργο με όλα τα εξαρτώμενα (δαπάνες, παραδοτέα, υποχρεώσεις, πληρωμές…). Email, νήματα επικοινωνίας
+ * και αιτήματα δικαιολογητικών μένουν ως ιστορικό· τα αρχεία του φακέλου στο CDN δεν αγγίζονται.
+ */
+export async function deleteApplication(applicationId: string, confirmText: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await requirePermission('programs.manage')
+  if (confirmText.trim().toUpperCase() !== 'ΔΙΑΓΡΑΦΗ') return { ok: false, error: 'Πληκτρολογήστε «ΔΙΑΓΡΑΦΗ» για επιβεβαίωση.' }
+  const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { trdrId: true, programId: true, trdr: { select: { NAME: true } }, program: { select: { title: true } } } })
+  if (!app) return { ok: false, error: 'Το έργο δεν βρέθηκε.' }
+  await prisma.programApplication.delete({ where: { id: applicationId } })
+  await logActivity('application.remove', { entityType: 'application', entityId: applicationId, userId: session.user.id, summary: `Διαγραφή έργου — ${app.trdr.NAME} · ${app.program.title}`, meta: { trdrId: app.trdrId, programId: app.programId } })
+  revalidatePath('/pm')
+  revalidatePath(`/partners/${app.trdrId}`)
+  revalidatePath(`/programs/${app.programId}`)
+  return { ok: true }
+}

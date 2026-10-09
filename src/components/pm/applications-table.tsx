@@ -4,7 +4,8 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { MoreVertical, ClipboardCheck, ExternalLink, Users, UserCog, LoaderCircle, CircleCheck, CircleX } from 'lucide-react'
+import { MoreVertical, ClipboardCheck, ExternalLink, Users, UserCog, LoaderCircle, CircleCheck, CircleX, Trash2 } from 'lucide-react'
+import { DeleteApplicationDialog } from './delete-application-dialog'
 import { stageLabel, type StageStr } from '@/lib/pm/types'
 import type { VisibleApplicationItem } from '@/lib/pm/actions'
 import { reevaluateApplication } from '@/lib/pm/program-link'
@@ -47,6 +48,7 @@ function EligibilityBadge({ eligible }: { eligible: boolean | null }) {
 export function ApplicationsTable({ rows, fillHeight = false, canManage = false }: { rows: VisibleApplicationItem[]; fillHeight?: boolean; canManage?: boolean }) {
   const router = useRouter()
   const [busyId, setBusyId] = React.useState<string | null>(null)
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
 
   function evaluate(row: VisibleApplicationItem) {
     setBusyId(row.id)
@@ -127,6 +129,10 @@ export function ApplicationsTable({ rows, fillHeight = false, canManage = false 
                   <DropdownMenuItem render={<Link href="/assignments" />}>
                     <UserCog className="size-3.5" aria-hidden /> Ανάθεση
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setDeletingId(r.id)} style={{ color: 'var(--destructive)' }}>
+                    <Trash2 className="size-3.5" aria-hidden /> Διαγραφή έργου
+                  </DropdownMenuItem>
                 </>
               )}
             </DropdownMenuContent>
@@ -137,6 +143,11 @@ export function ApplicationsTable({ rows, fillHeight = false, canManage = false 
   ]
 
   return (
+    <>
+    {deletingId && (
+      <DeleteApplicationDialog key={deletingId} applicationId={deletingId} open onOpenChange={o => { if (!o) setDeletingId(null) }}
+        onDeleted={() => { setDeletingId(null); router.refresh() }} />
+    )}
     <DataTable
       tableId="pm-applications"
       columns={columns}
@@ -145,5 +156,6 @@ export function ApplicationsTable({ rows, fillHeight = false, canManage = false 
       emptyMessage="Δεν υπάρχουν έργα."
       fillHeight={fillHeight}
     />
+    </>
   )
 }
