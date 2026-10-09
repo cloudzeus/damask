@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T09:33:13.168Z",
+  "timestamp": "2026-10-09T10:08:21.547Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,52 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(public)/_components/wwa-footer.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(public)/_wwa/site.css"
+    },
+    {
+      "status": "M",
+      "path": "src/app/llms-full.txt/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/app/llms.txt/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/app/sitemap.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/programs/espa-harvest.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/proxy.ts"
+    },
+    {
+      "status": "??",
+      "path": "scripts/_q.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/app/(public)/_components/faq-hub-list.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/app/(public)/syxnes-erotiseis/"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/seo-content/faq-hub.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n8fd5f79 feat(seo): σωστό 404 αντί για 307→/login στο δημόσιο site (+ σελίδα 404 με ύφος site), apple-touch-icon/icon/manifest από το σήμα WWA, headers ασφαλείας (HSTS, nosniff, referrer, frame, permissions)\nf96608c feat(seo-local): αιτήματα κριτικής Google — ευχαριστήριο email (μέσω deliverCustomerEmail) σε έγκριση έργου/πληρωμή δόσης, μία φορά ανά έργο, μόνο από 09/10 και μετά, καταγραφή στο καμπανάκι· κάρτα στο portal· πεδίο «Σύνδεσμος κριτικής Google» στις Ρυθμίσεις\nc2b20e5 feat(seo): Organization με γεωγραφικές συντεταγμένες, ΑΦΜ/VAT, ΓΕΜΗ και ημερομηνία ίδρυσης (από την καρτέλα της WWA)\nd9c9787 feat(seo): καρτέλα Google της επιχείρησης (kgmid) στο sameAs + hasMap της Organization, σύνδεσμος από τη διεύθυνση στο footer\nd067717 chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\nb62d1d9 fix(site): κάρτες προγραμμάτων αρχικής γεμίζουν το πλάτος όταν είναι λιγότερες από 3 (2 → 2 στήλες, 1 → 1)\nb17d497 feat(programs): αυτόματη συλλογή ενεργών προσκλήσεων από espa.gr — φίλτρο «μόνο για επιχειρήσεις» με AI, πρόχειρο πρόγραμμα με αποδελτίωση PDF + CMS + πηγές, ειδοποίηση γραφείου· ημερήσια στις 09:30 + κουμπί στα Προγράμματα\n6dd49eb fix(site): favicon με το σήμα WWA (αντί του προεπιλεγμένου), σφιχτό icon· κουμπιά hero σε σκούρα banners: λευκό κύριο + διάφανο δευτερεύον ίδιου ύψους\n6768aa5 feat(site): λογότυπα φορέων/συνεργατών (ΣΕΔΕ, ΣΥΣΕΠ, GR.EC.A, ΠΣΒΑΚ, BNI Greece, Entersoftone) από τα επίσημα sites, στο CDN μας, με συνδέσμους — αρχική & Εταιρεία· memberOf με URL στο schema\n6159dd5 docs(seo): ανάλυση ανταγωνισμού (espa.io κ.ά.) + πλάνο «πρώτοι στο Google» σε 3 φάσεις με KPI"
 }
