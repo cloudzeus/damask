@@ -33,7 +33,18 @@ export function organizationJsonLd(): Record<string, unknown>[] {
       foundingDate: '2022-10-25',
       areaServed: { '@type': 'Country', name: 'Ελλάδα' },
       openingHoursSpecification: [{ '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], opens: '09:00', closes: '18:00' }],
-      knowsAbout: ['ΕΣΠΑ 2021-2027', 'Ευρωπαϊκά προγράμματα', 'Επιδοτήσεις επιχειρήσεων', 'Αναπτυξιακός Νόμος', 'Ταμείο Ανάκαμψης', 'de minimis', 'Επιλέξιμες δαπάνες'],
+      knowsAbout: ['ΕΣΠΑ 2021-2027', 'Περιφερειακά Προγράμματα ΕΣΠΑ', 'Ευρωπαϊκά προγράμματα', 'Επιδοτήσεις επιχειρήσεων', 'Αναπτυξιακός Νόμος 4887/2022', 'LEADER / ΣΣ ΚΑΠ 2023-2027', 'Ταμείο Ανάκαμψης', 'de minimis', 'Επιλέξιμες δαπάνες', 'ΚΑΔ και επιλεξιμότητα', 'Υπεύθυνη Δήλωση Μεγέθους (ΕΜΕ)', 'Πιστοποίηση δαπανών και εκταμίευση'],
+      // Υπηρεσίες (για AI απαντήσεις «τι κάνει η WWA») — ίδια διατύπωση με τις σελίδες του site.
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog', name: 'Υπηρεσίες συμβούλων επιδοτήσεων',
+        itemListElement: [
+          { name: 'Δωρεάν έλεγχος επιλεξιμότητας με ΑΦΜ', url: absoluteUrl('/eligibility'), price: '0' },
+          { name: 'Σχεδιασμός επενδυτικού σχεδίου και προϋπολογισμού', url: absoluteUrl('/ypiresies') },
+          { name: 'Σύνταξη και ηλεκτρονική υποβολή φακέλου', url: absoluteUrl('/ypiresies') },
+          { name: 'Διαχείριση έργου, τροποποιήσεις, πιστοποίηση δαπανών και εκταμίευση', url: absoluteUrl('/ypiresies') },
+          { name: 'Πύλη πελατών με παρακολούθηση έργου και ψηφιακό βοηθό 24/7', url: absoluteUrl('/pyli-pelaton') },
+        ].map(({ price, ...svc }) => ({ '@type': 'Offer', ...(price ? { price, priceCurrency: 'EUR' } : {}), itemOffered: { '@type': 'Service', name: svc.name, url: svc.url, provider: { '@id': ORG_ID }, areaServed: { '@type': 'Country', name: 'Ελλάδα' } } })),
+      },
       priceRange: '€€',
       // Φορείς όπως αναγράφονται στη σελίδα «Εταιρεία» (επίσημοι σύμβουλοι ΣΕΔΕ, μέλη κλαδικών φορέων).
       // Επίσημα προφίλ της εταιρείας (οντότητα για Google/AI). Πρόσθεσε εδώ LinkedIn/Instagram/Google Business όταν υπάρξουν.
