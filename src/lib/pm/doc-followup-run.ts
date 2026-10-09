@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications/service'
 import { isMailerConfigured, sendMail, escapeHtml } from '@/lib/mailer'
+import { emailFacts, emailNote, appUrl } from '@/lib/email/blocks'
 
 /**
  * Υπενθύμιση επανεπικοινωνίας για εκκρεμή δικαιολογητικά. Ανά αίτηση (πρόγραμμα ×
@@ -56,8 +57,14 @@ export async function runDocFollowupReminders(nowMs: number): Promise<{ alerts: 
         const recipients = [...new Set([a.manager?.email, a.processor?.email].filter((e): e is string => !!e))]
         for (const to of recipients) {
           const subject = `Εκκρεμή δικαιολογητικά — ${trdrName}`
-          const html = `<p>Υπάρχουν <b>${n}</b> εκκρεμή (μη εγκεκριμένα) δικαιολογητικά για τον πελάτη <b>${escapeHtml(trdrName)}</b> στο πρόγραμμα <b>${escapeHtml(programTitle)}</b>.</p><p>Παρακαλώ επικοινωνήστε με τον πελάτη για τη συλλογή/συμπλήρωσή τους.</p>`
-          const res = await sendMail({ to, subject, html, text: `${n} εκκρεμή δικαιολογητικά για ${trdrName} — ${programTitle}. Επικοινωνήστε με τον πελάτη.`, refType: 'doc-followup' })
+          const html = `<p>Ο φάκελος του πελάτη περιμένει ακόμα δικαιολογητικά. Ώρα για μια υπενθύμιση, ώστε να μην καθυστερήσει το έργο.</p>`
+            + emailFacts([['Πελάτης', escapeHtml(trdrName)], ['Πρόγραμμα', escapeHtml(programTitle)], ['Εκκρεμή δικαιολογητικά', String(n)], ['Υπεύθυνοι', escapeHtml(owners)]])
+            + emailNote('Συμβουλή: από την καρτέλα του πελάτη στείλτε <b>«Αίτημα δικαιολογητικών»</b> — ο πελάτης λαμβάνει σύνδεσμο και τα ανεβάζει χωρίς κωδικό.')
+          const res = await sendMail({
+            to, subject, html, heading: 'Εκκρεμή δικαιολογητικά', preheader: `${n} δικαιολογητικά λείπουν — ${trdrName}`,
+            ctaLabel: 'Άνοιγμα καρτέλας πελάτη', ctaUrl: appUrl(`/partners/${a.trdrId}`),
+            text: `${n} εκκρεμή δικαιολογητικά για ${trdrName} — ${programTitle}. Επικοινωνήστε με τον πελάτη.`, refType: 'doc-followup',
+          })
           if (res.ok) emailed++
         }
       }

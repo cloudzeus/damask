@@ -19,6 +19,14 @@ export type MailAttachment = {
 
 export type SendMailInput = {
   to: string
+  /**
+   * Αν το `html` ΔΕΝ είναι ήδη πλήρες έγγραφο, «ντύνεται» αυτόματα με το επίσημο πρότυπο WWA (renderEmailShell).
+   * heading (default: το θέμα πριν το « — »), κουμπί δράσης και preheader για το πρότυπο.
+   */
+  heading?: string
+  ctaLabel?: string
+  ctaUrl?: string
+  preheader?: string
   cc?: string
   bcc?: string
   subject: string
@@ -93,11 +101,15 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   const from = cfg.fromName?.trim() ? `${cfg.fromName} <${cfg.fromEmail}>` : cfg.fromEmail
 
   // Κοινά πεδία (κλειδί→τιμή) — μπαίνουν είτε σε urlencoded είτε σε multipart body.
+  // Κάθε email βγαίνει με το επίσημο πρότυπο: ό,τι δεν είναι ήδη πλήρες HTML έγγραφο τυλίγεται αυτόματα.
+  const html = /<html[\s>]/i.test(input.html)
+    ? input.html
+    : renderEmailShell({ heading: input.heading ?? input.subject.split(' — ')[0], bodyHtml: input.html, ctaLabel: input.ctaLabel, ctaUrl: input.ctaUrl, preheader: input.preheader })
   const fields: [string, string][] = [
     ['from', from],
     ['to', input.to],
     ['subject', input.subject],
-    ['html', input.html],
+    ['html', html],
     ['text', input.text ?? stripHtml(input.html)],
   ]
   if (input.cc?.trim()) fields.push(['cc', input.cc])
@@ -189,6 +201,8 @@ export function renderEmailShell(opts: {
   ctaUrl?: string
   /** Branded «διαγραφή από λίστα» link στο footer (newsletter). Αντικαθιστά το άσχημο auto-footer. */
   unsubscribeUrl?: string
+  /** Μηνύματα σε νήμα επικοινωνίας: ο παραλήπτης ΜΠΟΡΕΙ να απαντήσει (αλλάζει το κείμενο του footer). */
+  replyable?: boolean
 }): string {
   // WWA design system (email-safe: tables + inline styles· condensed look μέσω
   // 'Arial Narrow'/bold/uppercase γιατί τα email clients δεν φορτώνουν Roboto Condensed).
@@ -236,7 +250,7 @@ export function renderEmailShell(opts: {
           </tr>
           <tr>
             <td style="padding:8px 30px 0;text-align:center;font-size:11px;color:#8B93A6;">
-              Αυτοματοποιημένο μήνυμα από το World Wide Associates — μην απαντήσετε σε αυτό το email.<br/>© ${year} World Wide Associates Ε.Ε.
+              ${opts.replyable ? 'Μπορείτε να απαντήσετε απευθείας σε αυτό το email — η απάντησή σας φτάνει στον σύμβουλό σας.' : 'Αυτόματη ενημέρωση από τη World Wide Associates — για απορίες επικοινωνήστε στο 210 721 8758.'}<br/>© ${year} World Wide Associates Ε.Ε.
               ${opts.unsubscribeUrl ? `<br/><a href="${opts.unsubscribeUrl}" style="color:#8B93A6;text-decoration:underline;">Διαγραφή από τη λίστα ενημερώσεων</a>` : ''}
             </td>
           </tr>
@@ -246,3 +260,4 @@ export function renderEmailShell(opts: {
   </body>
 </html>`
 }
+

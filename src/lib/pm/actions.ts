@@ -1,6 +1,7 @@
 'use server'
 
 import type { Session } from 'next-auth'
+import { emailNote } from '@/lib/email/blocks'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { logActivity } from '@/lib/activity/log'
@@ -1280,8 +1281,10 @@ export async function listTrdrContactEmails(applicationId: string): Promise<{ la
 
 async function emailRequestLink(to: string, title: string, url: string, customerName: string): Promise<void> {
   if (!(await isMailerConfigured())) return
-  const html = `<p>Καλησπέρα,</p><p>Το γραφείο σας ζητά το εξής έγγραφο για το έργο σας:</p><p><b>${escapeHtml(title)}</b></p><p>Ανεβάστε το εδώ (χωρίς σύνδεση): <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p><p>— ${escapeHtml(customerName)}</p>`
-  await sendMail({ to, subject: `Αίτημα εγγράφου: ${title}`, html, refType: 'pm-doc-request' }).catch(() => {})
+  const html = `<p>Καλησπέρα σας,</p><p>Για να προχωρήσει το έργο της επιχείρησης <b>${escapeHtml(customerName)}</b> χρειαζόμαστε το παρακάτω έγγραφο:</p>`
+    + emailNote(`<b>${escapeHtml(title)}</b>`)
+    + `<p>Πατήστε το κουμπί για να το ανεβάσετε. Ανοίγει μια ασφαλής σελίδα — δεν χρειάζεται κωδικός και γίνεται και από το κινητό.</p><p>Ευχαριστούμε,<br/>Η ομάδα της World Wide Associates</p>`
+  await sendMail({ to, subject: `Χρειαζόμαστε ένα έγγραφο: ${title}`, html, heading: 'Χρειαζόμαστε ένα έγγραφο', preheader: title, ctaLabel: 'Ανεβάστε το έγγραφο', ctaUrl: url, refType: 'pm-doc-request' }).catch(() => {})
 }
 
 export async function createDocumentRequest(applicationId: string, input: { obligationId?: string | null; deliverableTaskId?: string | null; title: string; description?: string | null; email: string; expiresInDays?: number }): Promise<{ id: string; url: string }> {
@@ -1341,7 +1344,12 @@ export async function createPortalAccess(applicationId: string, input: { email: 
   await prisma.portalToken.create({ data: { tokenHash: hash, trdrId: app.trdrId, email, expiresAt, createdById: session.user.id } })
   const trdr = await prisma.trdr.findUniqueOrThrow({ where: { id: app.trdrId }, select: { NAME: true } })
   const url = `${APP_URL}/portal/access/${raw}`
-  if (await isMailerConfigured()) { const html = `<p>Καλησπέρα,</p><p>Μπορείτε να δείτε την πρόοδο των έργων σας εδώ (χωρίς σύνδεση): <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p><p>— ${escapeHtml(trdr.NAME)}</p>`; await sendMail({ to: email, subject: 'Πρόσβαση στο Portal έργων σας', html, refType: 'pm-portal-access' }).catch(() => {}) }
+  if (await isMailerConfigured()) {
+    const html = `<p>Καλησπέρα σας,</p><p>Ετοιμάσαμε για την επιχείρηση <b>${escapeHtml(trdr.NAME)}</b> μια σελίδα όπου βλέπετε ανά πάσα στιγμή <b>σε ποιο στάδιο βρίσκεται κάθε έργο</b> και ποια έγγραφα εκκρεμούν.</p>`
+      + emailNote(`Ο σύνδεσμος είναι προσωπικός και ισχύει έως <b>${expiresAt.toLocaleDateString('el-GR')}</b>. Δεν χρειάζεται κωδικός.`)
+      + `<p>Ευχαριστούμε,<br/>Η ομάδα της World Wide Associates</p>`
+    await sendMail({ to: email, subject: 'Η πρόοδος των έργων σας — World Wide Associates', html, heading: 'Η πρόοδος των έργων σας', ctaLabel: 'Δείτε την πρόοδο', ctaUrl: url, refType: 'pm-portal-access' }).catch(() => {})
+  }
   return { url }
 }
 

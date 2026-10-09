@@ -133,7 +133,7 @@ export async function deliverCustomerEmail(
     fileRequestUrl = `${APP_URL}/r/${raw}`
     fileRequestCtaHtml = `<div style="margin-top:20px;padding:14px 16px;background:#EEF1FA;border:1px solid #DFE2EA;border-radius:10px;">
       <div style="font-weight:700;color:#001B72;margin-bottom:6px;">Ζητούμενα δικαιολογητικά</div>
-      <div style="font-size:13px;color:#3E5563;">Ανεβάστε τα αρχεία μέσω του ασφαλούς συνδέσμου: <a href="${fileRequestUrl}" style="color:#001B72;">${fileRequestUrl}</a></div>
+      <div style="font-size:14px;color:#0B0F2A;">Πατήστε το κουμπί «Ανεβάστε τα έγγραφα» παρακάτω — ανοίγει ασφαλής σελίδα όπου ανεβάζετε τα αρχεία από υπολογιστή ή κινητό, χωρίς κωδικό.</div>
     </div>`
     await logActivity('file_request.create', { entityType: 'FileRequest', entityId: fr.id, summary: fr.title, meta: { items: input.fileRequest.items.length } })
   }
@@ -142,6 +142,8 @@ export async function deliverCustomerEmail(
   const html = renderEmailShell({
     heading: input.subject,
     bodyHtml: `${input.bodyHtml}${fileRequestCtaHtml}`,
+    replyable: true,
+    ...(fileRequestUrl ? { ctaLabel: 'Ανεβάστε τα έγγραφα', ctaUrl: fileRequestUrl } : {}),
   })
 
   // 4) Αποστολή (με tags).

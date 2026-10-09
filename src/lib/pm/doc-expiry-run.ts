@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { createNotification } from '@/lib/notifications/service'
 import { isMailerConfigured, sendMail, escapeHtml } from '@/lib/mailer'
+import { emailFacts, emailNote, appUrl } from '@/lib/email/blocks'
 
 /**
  * Λήξη-reopen: FORM δικαιολογητικά που είχαν καλυφθεί (SUBMITTED/APPROVED) αλλά
@@ -64,8 +65,14 @@ export async function runDocExpiryReopen(nowMs: number): Promise<{ reopened: num
       if (mailerOk) {
         const recipients = [...new Set([o.application?.manager?.email, o.application?.processor?.email].filter((e): e is string => !!e))]
         for (const to of recipients) {
-          const html = `<p>Το δικαιολογητικό <b>${escapeHtml(o.name)}</b> του πελάτη <b>${escapeHtml(trdrName)}</b> (πρόγραμμα <b>${escapeHtml(programTitle)}</b>) <b>έληξε</b>.</p><p>Η εκκρεμότητα άνοιξε ξανά — παρακαλώ φροντίστε για την ανανέωσή του.</p>`
-          const res = await sendMail({ to, subject: `Έληξε δικαιολογητικό — ${trdrName}`, html, text: `Το δικαιολογητικό «${o.name}» (${trdrName} — ${programTitle}) έληξε. Απαιτείται ανανέωση.`, refType: 'doc-expiry' })
+          const html = `<p>Ένα δικαιολογητικό του φακέλου <b>έληξε</b> και η εκκρεμότητα άνοιξε ξανά. Χρειάζεται νέο, σε ισχύ, έγγραφο από τον πελάτη.</p>`
+            + emailFacts([['Δικαιολογητικό', escapeHtml(o.name)], ['Πελάτης', escapeHtml(trdrName)], ['Πρόγραμμα', escapeHtml(programTitle)], ['Υπεύθυνοι', escapeHtml(owners)]])
+            + emailNote('Ζητήστε το ανανεωμένο έγγραφο με <b>«Αίτημα δικαιολογητικών»</b> από την καρτέλα του πελάτη.')
+          const res = await sendMail({
+            to, subject: `Έληξε δικαιολογητικό — ${trdrName}`, html, heading: 'Έληξε δικαιολογητικό', preheader: `«${o.name}» — ${trdrName}`,
+            ...(o.application?.trdrId ? { ctaLabel: 'Άνοιγμα καρτέλας πελάτη', ctaUrl: appUrl(`/partners/${o.application.trdrId}`) } : {}),
+            text: `Το δικαιολογητικό «${o.name}» (${trdrName} — ${programTitle}) έληξε. Απαιτείται ανανέωση.`, refType: 'doc-expiry',
+          })
           if (res.ok) emailed++
         }
       }

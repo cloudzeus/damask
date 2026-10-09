@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { isMailerConfigured, sendMail } from '@/lib/mailer'
+import { appUrl } from '@/lib/email/blocks'
 import { selectReminderObligations, groupRemindersByAssignee, buildReminderEmail, type ReminderObligation } from '@/lib/pm/reminders'
 import type { ObligationStatusStr } from '@/lib/pm/types'
 
@@ -37,7 +38,7 @@ export async function runPmReminders(nowMs: number): Promise<{ sent: number; ski
       const already = await prisma.reminderLog.findFirst({ where: { userId: d.assigneeId, status: 'SENT', sentAt: { gte: new Date(todayMs) } } })
       if (already) { skipped++; continue }
       const mail = buildReminderEmail(who.name, d, todayLabel)
-      const res = await sendMail({ to: who.email, subject: mail.subject, html: mail.html, text: mail.text, userId: d.assigneeId, refType: 'pm-reminder' })
+      const res = await sendMail({ to: who.email, subject: mail.subject, html: mail.html, text: mail.text, heading: 'Οι εκκρεμότητες της ημέρας', ctaLabel: 'Άνοιγμα εργασιών', ctaUrl: appUrl('/pm'), userId: d.assigneeId, refType: 'pm-reminder' })
       if (res.ok) { sent++; await logReminder({ userId: d.assigneeId, email: who.email, dueSoonCount: d.dueSoon.length, overdueCount: d.overdue.length, status: 'SENT' }) }
       else { failed++; await logReminder({ userId: d.assigneeId, email: who.email, dueSoonCount: d.dueSoon.length, overdueCount: d.overdue.length, status: 'FAILED', error: res.error }) }
     } catch (err) {

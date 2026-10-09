@@ -57,7 +57,10 @@ describe('sendMail', () => {
     expect(body.get('from')).toBe('DAMASK <noreply@example.com>')
     expect(body.get('to')).toBe('user@example.com')
     expect(body.get('subject')).toBe('Subj')
-    expect(body.get('html')).toBe('<p>Hello <b>World</b></p>')
+    // Το σκέτο html «ντύνεται» με το πρότυπο WWA (heading = θέμα) και περιέχει αυτούσιο το περιεχόμενο.
+    expect(body.get('html')).toContain('<!doctype html>')
+    expect(body.get('html')).toContain('<p>Hello <b>World</b></p>')
+    expect(body.get('html')).toContain('>Subj</h1>')
     expect(body.get('text')).toBe('Hello World') // auto-stripped plain-text fallback
     expect(logApiUsageMock).toHaveBeenCalledWith({
       service: 'mailgun', operation: 'send', units: 1,
@@ -144,6 +147,7 @@ describe('renderEmailShell', () => {
 
   it('omits the CTA block entirely when no ctaUrl is given', () => {
     const html = renderEmailShell({ heading: 'Τίτλος', bodyHtml: '<p>Σώμα</p>' })
-    expect(html).not.toContain('<a href')
+    // Το footer έχει πάντα tel:/mailto: — ελέγχουμε ότι λείπει το κουμπί δράσης.
+    expect(html).not.toContain('border-radius:999px;background:#001B72')
   })
 })

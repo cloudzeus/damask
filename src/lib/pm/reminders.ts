@@ -29,14 +29,17 @@ export function groupRemindersByAssignee(selected: ReminderObligation[], todayMs
 }
 
 function esc(s: string): string { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') }
-function row(o: ReminderObligation): string { return `<li>${esc(o.name)} — ${esc(o.customerName)} · ${esc(o.programTitle)} — προθεσμία ${esc(o.dueDate ?? '')}</li>` }
+function row(o: ReminderObligation, color: string): string {
+  return `<tr><td style="padding:10px 12px;border-top:1px solid #DFE2EA;font-size:14px;color:#0B0F2A;"><b>${esc(o.name)}</b><br/><span style="font-size:12.5px;color:#666C80;">${esc(o.customerName)} · ${esc(o.programTitle)}</span></td><td style="padding:10px 12px;border-top:1px solid #DFE2EA;font-size:13px;font-weight:700;color:${color};white-space:nowrap;text-align:right;">${esc(o.dueDate ?? '')}</td></tr>`
+}
 
 export function buildReminderEmail(name: string, d: AssigneeDigest, todayLabel: string): { subject: string; html: string; text: string } {
   const subject = `Εκκρεμότητες έργων — ${d.overdue.length} εκπρόθεσμες, ${d.dueSoon.length} λήγουν σύντομα`
-  const sec = (title: string, list: ReminderObligation[]) => list.length ? `<h3>${esc(title)}</h3><ul>${list.map(row).join('')}</ul>` : ''
-  const html = `<p>Καλημέρα ${esc(name)},</p><p>Οι εκκρεμότητες των έργων σου (${esc(todayLabel)}):</p>` +
-    sec('Εκπρόθεσμες', d.overdue) + sec('Λήγουν σε ≤3 ημέρες', d.dueSoon) +
-    `<p>— Σύστημα Διαχείρισης Προγραμμάτων</p>`
+  const sec = (title: string, list: ReminderObligation[], color: string) => list.length
+    ? `<div style="margin:18px 0 6px;font-size:13px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.04em;">${esc(title)} (${list.length})</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #DFE2EA;border-radius:12px;border-collapse:separate;border-top:0;">${list.map(o => row(o, color)).join('')}</table>`
+    : ''
+  const html = `<p>Καλημέρα ${esc(name)},</p><p>Αυτές είναι οι εκκρεμότητες των έργων σου για σήμερα, ${esc(todayLabel)}. Ξεκίνα από τις εκπρόθεσμες.</p>` +
+    sec('Εκπρόθεσμες', d.overdue, '#B3261E') + sec('Λήγουν μέσα σε 3 ημέρες', d.dueSoon, '#8F4B00')
   const text = [`Καλημέρα ${name},`, ...d.overdue.map(o => `[ΕΚΠΡΟΘΕΣΜΟ] ${o.name} — ${o.customerName} · ${o.programTitle} — ${o.dueDate}`), ...d.dueSoon.map(o => `[ΛΗΓΕΙ] ${o.name} — ${o.customerName} · ${o.programTitle} — ${o.dueDate}`)].join('\n')
   return { subject, html, text }
 }
