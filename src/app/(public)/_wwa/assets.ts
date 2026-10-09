@@ -19,3 +19,11 @@ export type WwaPageImage =
   | 'co-banner' | 'co-ceo' | 'co-team-submit' | 'co-team-implement'
   | 'cl-banner' | 'cl-hotel' | 'contact-banner' | 'promo-team'
 export const wwaPageImage = (name: WwaPageImage): string => `${CDN}/pages/${name}.webp`
+
+/** Εναλλασσόμενη φωτογραφία ανά άρθρο/σελίδα (σταθερή για το ίδιο slug) — όχι η ίδια εικόνα παντού. */
+const PHOTO_POOL: WwaPhoto[] = ['consulting', 'manufacturing', 'startup', 'hotel', 'team', 'ecommerce', 'cosmetics']
+export const wwaPhotoFor = (key: string): string => {
+  let h = 0
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0
+  return wwaPhoto(PHOTO_POOL[h % PHOTO_POOL.length])
+}

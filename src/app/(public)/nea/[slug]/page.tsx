@@ -9,7 +9,7 @@ import { EligibilityCta } from '../../_components/eligibility-cta'
 import { Button } from '../../_components/button'
 import { IconLinkedin, IconMail, IconLink, IconCalendar, IconClock, IconUser, IconTag } from '../../_components/icons'
 import { PostMeta } from '../../_components/post-meta'
-import { wwaPhoto } from '../../_wwa/assets'
+import { wwaPhotoFor } from '../../_wwa/assets'
 import { getPublishedPostBySlug, listPublishedPosts } from '@/lib/cms/public-posts'
 import { JsonLd, breadcrumbJsonLd, organizationRef } from '../../_components/json-ld'
 import { KeyFacts, splitGlance } from '../../_components/key-facts'
@@ -74,7 +74,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
     <>
       <JsonLd data={ld} />
       <SubBanner
-        image={p.image || wwaPhoto('ecommerce')}
+        image={p.image || wwaPhotoFor(p.slug)}
         crumbs={[{ label: 'Νέα', href: '/nea' }, { label: p.title }]}
         title={p.title}
         typewrite
@@ -170,7 +170,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
             <div className="cards3">
               {related.map(r => (
                 <article key={r.slug} className="card card-hover ncard r">
-                  <div className="media"><img src={r.image || wwaPhoto('consulting')} alt="" loading="lazy" /></div>
+                  <div className="media"><img src={r.image || wwaPhotoFor(r.slug)} alt="" loading="lazy" /></div>
                   <div className="body"><PostMeta category={r.category} date={r.date} /><h3><Link href={`/nea/${r.slug}`}>{r.title}</Link></h3></div>
                 </article>
               ))}
