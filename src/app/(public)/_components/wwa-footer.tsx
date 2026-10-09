@@ -43,6 +43,7 @@ export function WwaFooter() {
               <li>Αλεξανδρουπόλεως 25, Αθήνα 115 27</li>
               <li><a href="tel:+302107218758">210 721 8758</a></li>
               <li><a href="mailto:info@wwa-espa.com">info@wwa-espa.com</a></li>
+              <li><a href="https://www.facebook.com/p/World-Wide-Associates-61568828876859/" target="_blank" rel="noopener me">Facebook</a></li>
             </ul>
           </div>
         </div>

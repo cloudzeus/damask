@@ -30,6 +30,8 @@ export function organizationJsonLd(): Record<string, unknown>[] {
       knowsAbout: ['ΕΣΠΑ 2021-2027', 'Ευρωπαϊκά προγράμματα', 'Επιδοτήσεις επιχειρήσεων', 'Αναπτυξιακός Νόμος', 'Ταμείο Ανάκαμψης', 'de minimis', 'Επιλέξιμες δαπάνες'],
       priceRange: '€€',
       // Φορείς όπως αναγράφονται στη σελίδα «Εταιρεία» (επίσημοι σύμβουλοι ΣΕΔΕ, μέλη κλαδικών φορέων).
+      // Επίσημα προφίλ της εταιρείας (οντότητα για Google/AI). Πρόσθεσε εδώ LinkedIn/Instagram/Google Business όταν υπάρξουν.
+      sameAs: ['https://www.facebook.com/p/World-Wide-Associates-61568828876859/'],
       memberOf: ['ΣΕΔΕ', 'ΣΥ.Σ.ΕΠ.', 'GR.EC.A', 'ΠΣΒΑΚ', 'BNI Greece'].map(name => ({ '@type': 'Organization', name })),
     },
     { '@context': 'https://schema.org', '@type': 'WebSite', '@id': `${SITE_URL}/#website`, url: SITE_URL, name: SITE_NAME, inLanguage: 'el-GR', publisher: { '@id': ORG_ID } },
