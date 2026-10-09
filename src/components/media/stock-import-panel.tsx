@@ -80,7 +80,7 @@ export function StockImportPanel({ onProgress }: { onProgress?: () => void }) {
               {starting || running ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
               {running ? 'Εισαγωγή σε εξέλιξη…' : 'Έναρξη εισαγωγής'}
             </Button>
-            <span className="text-[length:var(--fs-12)] text-muted-foreground">Πάροχοι: {providers.map(p => (p === 'pexels' ? 'Pexels' : 'Pixabay')).join(' + ')}</span>
+            <span className="text-[length:var(--fs-12)] text-muted-foreground">Πάροχοι: {providers.map(p => (p === 'pexels' ? 'Pexels' : p === 'pixabay' ? 'Pixabay' : 'Openverse (κοινό κτήμα)')).join(' + ')}</span>
           </div>
         )}
 

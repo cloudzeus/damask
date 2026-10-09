@@ -228,7 +228,45 @@ export async function pickImage(theme: string | undefined, query: string | undef
     if (hit) return { url: hit.cdnUrl, via: 'theme' }
   }
 
-  // 2) Ταίριασμα λέξεων της περιγραφής με όνομα/alt/θέμα των εικόνων του Gallery.
+  // 2) ΝΕΑ φωτογραφία από API (Pexels/Pixabay αν υπάρχει κλειδί, αλλιώς Openverse — κοινό κτήμα) → εισαγωγή στο Gallery.
+  if (query) {
+    try {
+      const { stockProvidersConfigured, searchStock } = await import('@/lib/stock/providers')
+      const providers = await stockProvidersConfigured()
+      for (const p of providers) {
+        const found = await searchStock(p, query, 15).catch(() => [])
+        const known = new Set((await prisma.$queryRaw<{ k: string }[]>`SELECT "meta"->>'stockKey' AS k FROM "MediaAsset" WHERE "meta"->>'stockKey' IS NOT NULL`).map(r => r.k))
+        // Πρώτη υποψήφια που κατεβαίνει σωστά (όχι ήδη εισηγμένη).
+        let c: (typeof found)[number] | undefined
+        let webp: Buffer | null = null
+        const sharp = (await import('sharp')).default
+        for (const f of found.filter(f => !known.has(`${f.provider}:${f.id}`)).slice(0, 5)) {
+          const res = await fetch(f.download, { headers: { 'User-Agent': 'WWA (wwa-espa.com)' }, signal: AbortSignal.timeout(60_000) }).catch(() => null)
+          if (!res?.ok || !(res.headers.get('content-type') ?? '').startsWith('image/')) continue
+          try {
+            webp = await sharp(Buffer.from(await res.arrayBuffer())).rotate().resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer()
+            c = f
+            break
+          } catch { /* επόμενη */ }
+        }
+        if (!c || !webp) continue
+        const root = await prisma.mediaFolder.findFirst({ where: { name: 'Επαγγέλματα & Επιχειρήσεις', parentId: null }, select: { id: true } })
+          ?? await prisma.mediaFolder.create({ data: { name: 'Επαγγέλματα & Επιχειρήσεις', parentId: null }, select: { id: true } })
+        const folder = await prisma.mediaFolder.findFirst({ where: { name: 'Άρθρα', parentId: root.id }, select: { id: true } })
+          ?? await prisma.mediaFolder.create({ data: { name: 'Άρθρα', parentId: root.id }, select: { id: true } })
+        const { storeMediaBuffer } = await import('@/lib/media-store')
+        const stored = await storeMediaBuffer({
+          body: webp, filename: `article-${c.provider}-${c.id}.webp`, mimeType: 'image/webp', path: `media-gallery/${folder.id}`, folderId: folder.id,
+          name: `${query} — ${c.author || c.provider}`.slice(0, 200), alt: c.alt || query,
+          meta: { source: c.provider, stockKey: `${c.provider}:${c.id}`, stockUrl: c.url, author: c.author, theme: query, license: c.provider === 'pexels' ? 'Pexels License' : c.provider === 'pixabay' ? 'Pixabay Content License' : 'CC0 / Public Domain (Openverse)' },
+        })
+        return { url: stored.url, via: 'stock' }
+      }
+    } catch (err) {
+      console.error('[seo] αναζήτηση εικόνας απέτυχε', err)
+    }
+  }
+  // 3) Έσχατη λύση: ταίριασμα λέξεων της περιγραφής με όνομα/alt/θέμα των εικόνων του Gallery.
   const words = (query ?? '').toLowerCase().split(/[^a-z0-9α-ωάέήίόύώϊϋΐΰ]+/i).filter(w => w.length > 2 && !['the', 'and', 'with', 'for', 'photo', 'image', 'people'].includes(w))
   if (words.length) {
     const assets = await prisma.mediaAsset.findMany({ where: { type: 'IMAGE' }, select: { cdnUrl: true, name: true, alt: true, meta: true }, take: 3000, orderBy: { createdAt: 'desc' } })
@@ -242,36 +280,6 @@ export async function pickImage(theme: string | undefined, query: string | undef
     if (best) return { url: best.url, via: 'gallery' }
   }
 
-  // 3) Ζωντανή αναζήτηση στο Pexels/Pixabay (αν υπάρχει κλειδί) → εισαγωγή στο Gallery.
-  if (query) {
-    try {
-      const { stockProvidersConfigured, searchPexels, searchPixabay } = await import('@/lib/stock/providers')
-      const providers = await stockProvidersConfigured()
-      for (const p of providers) {
-        const found = p === 'pexels' ? await searchPexels(query, 10) : await searchPixabay(query, 10)
-        const known = new Set((await prisma.$queryRaw<{ k: string }[]>`SELECT "meta"->>'stockKey' AS k FROM "MediaAsset" WHERE "meta"->>'stockKey' IS NOT NULL`).map(r => r.k))
-        const c = found.find(f => !known.has(`${f.provider}:${f.id}`))
-        if (!c) continue
-        const res = await fetch(c.download, { signal: AbortSignal.timeout(60_000) })
-        if (!res.ok) continue
-        const sharp = (await import('sharp')).default
-        const webp = await sharp(Buffer.from(await res.arrayBuffer())).rotate().resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer()
-        const root = await prisma.mediaFolder.findFirst({ where: { name: 'Επαγγέλματα & Επιχειρήσεις', parentId: null }, select: { id: true } })
-          ?? await prisma.mediaFolder.create({ data: { name: 'Επαγγέλματα & Επιχειρήσεις', parentId: null }, select: { id: true } })
-        const folder = await prisma.mediaFolder.findFirst({ where: { name: 'Άρθρα', parentId: root.id }, select: { id: true } })
-          ?? await prisma.mediaFolder.create({ data: { name: 'Άρθρα', parentId: root.id }, select: { id: true } })
-        const { storeMediaBuffer } = await import('@/lib/media-store')
-        const stored = await storeMediaBuffer({
-          body: webp, filename: `article-${c.provider}-${c.id}.webp`, mimeType: 'image/webp', path: `media-gallery/${folder.id}`, folderId: folder.id,
-          name: `${query} — ${c.author || c.provider}`.slice(0, 200), alt: c.alt || query,
-          meta: { source: c.provider, stockKey: `${c.provider}:${c.id}`, stockUrl: c.url, author: c.author, theme: query, license: c.provider === 'pexels' ? 'Pexels License' : 'Pixabay Content License' },
-        })
-        return { url: stored.url, via: 'stock' }
-      }
-    } catch (err) {
-      console.error('[seo] αναζήτηση εικόνας απέτυχε', err)
-    }
-  }
   return null
 }
 

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSetting, setSetting } from '@/lib/settings'
 import { storeMediaBuffer } from '@/lib/media-store'
-import { searchPexels, searchPixabay, stockProvidersConfigured, type StockPhoto } from './providers'
+import { searchStock, stockProvidersConfigured, type StockPhoto } from './providers'
 
 /**
  * (Plain module.) Μαζική εισαγωγή δωρεάν stock φωτογραφιών στο Media Gallery για τα ευρωπαϊκά προγράμματα:
@@ -146,9 +146,7 @@ export async function runStockImport(target = 500): Promise<StockImportStatus> {
 
       // Υποψήφιες από τους διαθέσιμους παρόχους (περισσότερες από όσες χρειαζόμαστε, για τα διπλότυπα).
       const want = perTheme * 3
-      const lists: StockPhoto[][] = await Promise.all(providers.map(p =>
-        (p === 'pexels' ? searchPexels(t.query, Math.ceil(want * (providers.length > 1 ? 0.7 : 1))) : searchPixabay(t.query, Math.ceil(want * (providers.length > 1 ? 0.5 : 1))))
-          .catch(() => [] as StockPhoto[])))
+      const lists: StockPhoto[][] = await Promise.all(providers.map(p => searchStock(p, t.query, Math.ceil(want * (providers.length > 1 ? 0.6 : 1))).catch(() => [] as StockPhoto[])))
       // Εναλλάξ από τους παρόχους, για ποικιλία.
       const candidates: StockPhoto[] = []
       for (let i = 0; candidates.length < want && lists.some(l => l[i]); i++) lists.forEach(l => { if (l[i]) candidates.push(l[i]) })
@@ -159,7 +157,7 @@ export async function runStockImport(target = 500): Promise<StockImportStatus> {
         const stockKey = `${c.provider}:${c.id}`
         if (seen.has(stockKey)) { status.skipped++; continue }
         try {
-          const res = await fetch(c.download, { signal: AbortSignal.timeout(60_000) })
+          const res = await fetch(c.download, { headers: { 'User-Agent': 'WWA (wwa-espa.com)' }, signal: AbortSignal.timeout(60_000) })
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const webp = await toWebp(Buffer.from(await res.arrayBuffer()))
           await storeMediaBuffer({
@@ -167,7 +165,7 @@ export async function runStockImport(target = 500): Promise<StockImportStatus> {
             path: `media-gallery/${folderId}`, folderId,
             name: `${t.label} — ${c.author || c.provider}`.slice(0, 200),
             alt: c.alt ? c.alt.slice(0, 300) : t.label,
-            meta: { source: c.provider, stockKey, stockUrl: c.url, author: c.author, theme: t.label, license: c.provider === 'pexels' ? 'Pexels License' : 'Pixabay Content License' },
+            meta: { source: c.provider, stockKey, stockUrl: c.url, author: c.author, theme: t.label, license: c.provider === 'pexels' ? 'Pexels License' : c.provider === 'pixabay' ? 'Pixabay Content License' : 'CC0 / Public Domain (Openverse)' },
           })
           seen.add(stockKey)
           got++

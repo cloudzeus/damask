@@ -4,10 +4,11 @@ import { getIntegration } from '@/lib/settings'
  * (Plain module.) Δωρεάν stock φωτογραφίες με ΕΠΙΣΗΜΑ API και άδεια εμπορικής χρήσης χωρίς υποχρεωτική αναφορά:
  *  • Pexels  (https://www.pexels.com/license/)  — έως ~1880px (large2x)
  *  • Pixabay (https://pixabay.com/service/license-summary/) — έως 1280px (largeImageURL)
+ *  • Openverse (https://openverse.org) — ΧΩΡΙΣ κλειδί· μόνο κοινό κτήμα (CC0 / Public Domain Mark), ελεύθερο για εμπορική χρήση
  * Κλειδιά: Ρυθμίσεις → Διασυνδέσεις (δωρεάν εγγραφή).
  */
 
-export type StockProvider = 'pexels' | 'pixabay'
+export type StockProvider = 'pexels' | 'pixabay' | 'openverse'
 export type StockPhoto = {
   provider: StockProvider
   id: string
@@ -21,15 +22,50 @@ export type StockPhoto = {
 }
 
 async function key(p: StockProvider): Promise<string | null> {
+  if (p === 'openverse') return null
   const c = await getIntegration<{ apiKey?: string }>(p)
   return c.apiKey?.trim() || null
 }
 
+/** Διαθέσιμοι πάροχοι: όσοι έχουν κλειδί + Openverse (πάντα, χωρίς κλειδί). */
 export async function stockProvidersConfigured(): Promise<StockProvider[]> {
   const out: StockProvider[] = []
   if (await key('pexels')) out.push('pexels')
   if (await key('pixabay')) out.push('pixabay')
+  out.push('openverse')
   return out
+}
+
+/** Αναζήτηση σε οποιονδήποτε πάροχο. */
+export function searchStock(p: StockProvider, query: string, perPage = 30): Promise<StockPhoto[]> {
+  return p === 'pexels' ? searchPexels(query, perPage) : p === 'pixabay' ? searchPixabay(query, perPage) : searchOpenverse(query, perPage)
+}
+
+/**
+ * Openverse: μόνο CC0/PDM (κοινό κτήμα), μεγάλες οριζόντιες φωτογραφίες, χωρίς κλειδί. Η συλλογή κοινού κτήματος
+ * είναι μικρότερη — αν το πολύλεξο ερώτημα δεν φέρει τίποτα, ξαναψάχνει με λιγότερες λέξεις (π.χ. «accountant»).
+ */
+export async function searchOpenverse(query: string, perPage = 20, page = 1): Promise<StockPhoto[]> {
+  const words = query.trim().split(/\s+/).filter(Boolean)
+  const tries = [...new Set([words.join(' '), words.slice(0, 2).join(' '), words.slice(-2).join(' '), ...[...words].sort((a, b) => b.length - a.length).slice(0, 2)])].filter(Boolean)
+  for (const t of tries) {
+    const found = await openverseOnce(t, perPage, page)
+    if (found.length) return found
+  }
+  return []
+}
+
+async function openverseOnce(query: string, perPage: number, page: number): Promise<StockPhoto[]> {
+  // Μόνο πηγές stock φωτογραφίας (όχι έργα τέχνης/χάρτες/διαγράμματα του Wikimedia, που επιπλέον μπλοκάρουν τη λήψη).
+  const q = new URLSearchParams({ q: query, license: 'cc0,pdm', source: 'stocksnap,rawpixel', category: 'photograph', aspect_ratio: 'wide', mature: 'false', page_size: String(Math.min(50, perPage)), page: String(page) })
+  const res = await fetch(`https://api.openverse.org/v1/images/?${q}`, { headers: { 'User-Agent': 'WWA (wwa-espa.com)' }, signal: AbortSignal.timeout(20_000) })
+  if (res.status === 429) throw new Error('Openverse: όριο αιτημάτων — δοκίμασε σε λίγο.')
+  if (!res.ok) throw new Error(`Openverse HTTP ${res.status}`)
+  const j = await res.json() as { results?: { id: string; title?: string; creator?: string; url: string; thumbnail?: string; foreign_landing_url?: string; width?: number; height?: number }[] }
+  return (j.results ?? []).filter(r => (r.width ?? 0) >= 900).map(r => ({
+    provider: 'openverse', id: r.id, url: r.foreign_landing_url ?? r.url, download: r.url, thumb: r.thumbnail ?? r.url,
+    width: r.width ?? 0, height: r.height ?? 0, alt: r.title ?? '', author: r.creator ?? '',
+  }))
 }
 
 export async function searchPexels(query: string, perPage = 30, page = 1, apiKey?: string): Promise<StockPhoto[]> {

@@ -387,7 +387,7 @@ export async function envatoImportAction(input: { itemId: number; kind: 'photo' 
 // Μαζική εισαγωγή δωρεάν stock φωτογραφιών (Pexels / Pixabay)
 // ══════════════════════════════════════════════════════════════════════════
 
-export async function stockImportStatusAction(): Promise<{ status: import('@/lib/stock/bulk-import').StockImportStatus; providers: ('pexels' | 'pixabay')[] }> {
+export async function stockImportStatusAction(): Promise<{ status: import('@/lib/stock/bulk-import').StockImportStatus; providers: import('@/lib/stock/providers').StockProvider[] }> {
   await requirePermission('media.manage')
   const { getStockImportStatus } = await import('@/lib/stock/bulk-import')
   const { stockProvidersConfigured } = await import('@/lib/stock/providers')
@@ -398,8 +398,7 @@ export async function stockImportStatusAction(): Promise<{ status: import('@/lib
 export async function startStockImportAction(target: number): Promise<{ ok: true } | { ok: false; error: string }> {
   await requirePermission('media.manage')
   const { getStockImportStatus } = await import('@/lib/stock/bulk-import')
-  const { stockProvidersConfigured } = await import('@/lib/stock/providers')
-  if (!(await stockProvidersConfigured()).length) return { ok: false, error: 'Πρόσθεσε πρώτα κλειδί Pexels ή Pixabay στις Ρυθμίσεις → Διασυνδέσεις.' }
+  
   const s = await getStockImportStatus()
   if (s.state === 'running' && s.startedAt && Date.now() - new Date(s.startedAt).getTime() < 3 * 3600_000) return { ok: false, error: 'Η εισαγωγή τρέχει ήδη.' }
   const { getBoss } = await import('@/lib/queue')
