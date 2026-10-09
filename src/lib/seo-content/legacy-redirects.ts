@@ -17,9 +17,10 @@ const MAP: Record<string, string> = {
   '/our-company': '/etaireia', '/εταιρεία': '/etaireia', '/ευκαιριες-καριερας': '/etaireia',
   // ενεργό πρόγραμμα
   '/step-defence': STEP,
-  // νέα/PR → Νέα
-  '/με-λένε-λυσιστράτη': '/nea', '/webinar-hacihub-για-δράση-παράγουμε-στην-ελλάδα': '/nea', '/παράγουμε-στην-ελλάδα-bni-poseidon': '/nea',
-  '/wwa-espa-alpha-radio-98-9': '/nea', '/ομιλία-στον-πσβακ': '/nea', '/η-wwa-συμμετείχε-σε-εκδήλωση-του-σεδε': '/nea',
+  // δελτία Τύπου → το ίδιο άρθρο (1:1, κρατά τις θέσεις)
+  '/με-λένε-λυσιστράτη': '/nea/wwa-xorigos-me-lene-lysistrati', '/webinar-hacihub-για-δράση-παράγουμε-στην-ελλάδα': '/nea/webinar-hacihub-paragoume-stin-ellada',
+  '/παράγουμε-στην-ελλάδα-bni-poseidon': '/nea/paragoume-stin-ellada-bni-poseidon', '/wwa-espa-alpha-radio-98-9': '/nea/wwa-alpha-radio-paragoume-stin-ellada',
+  '/ομιλία-στον-πσβακ': '/nea/omilia-ston-psvak', '/η-wwa-συμμετείχε-σε-εκδήλωση-του-σεδε': '/nea/wwa-ekdilosi-sede',
 }
 /** Παλιές σελίδες προγραμμάτων (κλειστές προσκλήσεις) → λίστα ενεργών προγραμμάτων. */
 const OLD_PROGRAMS = [
