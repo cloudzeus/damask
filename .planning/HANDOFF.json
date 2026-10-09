@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T06:49:24.210Z",
+  "timestamp": "2026-10-09T07:11:55.415Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -18,21 +18,9 @@
   "uncommitted_files": [
     {
       "status": "M",
-      "path": "src/app/portal/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/portal/portal.css"
-    },
-    {
-      "status": "M",
-      "path": "src/components/thanos/thanos-widget.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/app/portal/_components/ask-thanos.tsx"
+      "path": ".planning/HANDOFF.json"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n4aa0046 chore: ενημέρωση HANDOFF\n71eaca9 fix(seo): 301 των παλιών δελτίων Τύπου στο αντίστοιχο άρθρο (1:1)\n875eadd style(portal): ίδια αισθητική με το δημόσιο site (λευκό topbar με λογότυπο, banner με φωτογραφία, κάρτες/pill κουμπιά/Condensed τίτλοι, navy panel βοηθού) — CSS απομονωμένο σε .wwa-portal\n5df8919 feat(emails): όλα τα emails με το επίσημο πρότυπο WWA (αυτόματο τύλιγμα στο sendMail), ξαναγραμμένες ενημερώσεις με πίνακα στοιχείων + κουμπί δράσης, διόρθωση υπογραφής (έγραφε το όνομα του πελάτη), footer «απαντήστε» στα νήματα πελατών\n2319701 style(site): sub-banner v2 — διαβαθμισμένο overlay (η φωτογραφία φαίνεται), υπότιτλος σε κανονική γραφή, συμπαγές ύψος, κουμπί αντί υπογραμμισμένου link, γραμμή χρωμάτων λογότυπου"
+  "context_notes": "Recent commits:\n4bb8bd4 feat(portal): Οδηγοί βήμα-βήμα (wizards) — οδηγός ανά έργο (από την πορεία + επιλέξιμες δαπάνες, ξεκινά από το τρέχον στάδιο) και 6 διαδικασίες (αγορά/δικαιολογητικά/πληρωμή/επιτόπιος/τροποποίηση/μετά την ολοκλήρωση)· σελίδα Ερωτήσεων· μενού\na6fcd11 feat(portal): ευκαιρίες ένταξης στην επισκόπηση (ενεργά προγράμματα που ταιριάζουν σε ΚΑΔ/περιοχή/μέγεθος) με «Ενδιαφέρομαι» → δυνητικό έργο + ειδοποίηση γραφείου\na64f1ce feat(portal): customer dashboard (επισκόπηση με «χρειάζεται η προσοχή σας», KPIs, έργα) + σελίδες Έργα/Δικαιολογητικά/Η ομάδα σας· έλεγχος AI σε κάθε ανέβασμα (σωστό έγγραφο/επιχείρηση/λήξη) με αντίγραφο στην αποθήκη· λογιστής/υπεύθυνος έργου → επαφές + ειδοποιήσεις\nb78faea feat(seo): ISR στα άρθρα/προγράμματα (ήταν no-store, TTFB 2s) + άμεση ανανέωση από CMS, www→apex 301, RSS /rss.xml, εικόνες στο sitemap, alt στην κύρια φωτογραφία άρθρων/προγραμμάτων\nbb6ac15 chore: ενημέρωση HANDOFF"
 }
