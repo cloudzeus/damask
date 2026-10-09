@@ -936,3 +936,6 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .cmpx tr.live td b { color: var(--brand); }
 .cmpx tr.live td a { display: block; margin-top: 4px; color: var(--brand); font-weight: 500; }
 .cmpx-note { margin: 12px 0 0; font-size: 13px; color: var(--fg-3); text-align: center; }
+.ptag-urgent { background: var(--warning-100, #FBEEDC); color: var(--warning, #8F4B00); }
+.ptag-urgent::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: wwaPulseDot 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .ptag-urgent::before { animation: none; } }

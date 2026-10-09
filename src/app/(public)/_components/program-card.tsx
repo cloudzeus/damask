@@ -32,10 +32,21 @@ export type ProgramCardData = {
   href?: string
 }
 
+/** Ημέρες μέχρι τη λήξη από «ΗΗ/ΜΜ/ΕΕΕΕ» (null αν δεν διαβάζεται). Στη σελίδα ανανεώνεται ωριαία (ISR). */
+function daysUntil(deadline?: string): number | null {
+  const m = deadline?.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/)
+  if (!m) return null
+  const end = Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1]))
+  const now = new Date()
+  return Math.round((end - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 86_400_000)
+}
+
 export function ProgramCard({
   image, imageAlt = '', title, description, budget, rate, deadline, deadlineOpen = false, region,
   status = 'active', isNew = false, href = '#',
 }: ProgramCardData) {
+  const left = daysUntil(deadline)
+  const urgent = left != null && left >= 0 && left <= 21
   return (
     <article className="card card-hover pcard r">
       <div className="media">
@@ -54,7 +65,9 @@ export function ProgramCard({
         </div>
         <div className="meta">
           {deadline
-            ? <span className="ptag ptag-date">Έως {deadline}</span>
+            ? urgent
+              ? <span className="ptag ptag-urgent">{left === 0 ? 'Λήγει σήμερα' : left === 1 ? 'Λήγει αύριο' : `Λήγει σε ${left} ημέρες`} · {deadline}</span>
+              : <span className="ptag ptag-date">Έως {deadline}</span>
             : deadlineOpen ? <span className="ptag ptag-open">Ανοιχτή πρόσκληση</span> : null}
           {region && <span className="ptag ptag-region">{region}</span>}
         </div>
