@@ -223,11 +223,13 @@ export async function loadPublicTrackingSettings(): Promise<PublicTrackingSettin
     getIntegration<{ gtagId?: string; gtmId?: string; siteVerification?: string }>('gtags'),
     getIntegration<{ pixelId?: string; appId?: string }>('facebook'),
   ])
+  // Analytics/Pixel μόνο στην παραγωγή (SITE_PUBLIC=1 — wwa-espa.com): το staging και οι δοκιμές δεν μετρούν στα στατιστικά.
+  const live = process.env.SITE_PUBLIC === '1'
   return {
-    gtagId: gtags.gtagId?.trim() ?? '',
-    gtmId: gtags.gtmId?.trim() ?? '',
+    gtagId: live ? gtags.gtagId?.trim() ?? '' : '',
+    gtmId: live ? gtags.gtmId?.trim() ?? '' : '',
     siteVerification: gtags.siteVerification?.trim() ?? '',
-    facebookPixelId: facebook.pixelId?.trim() ?? '',
+    facebookPixelId: live ? facebook.pixelId?.trim() ?? '' : '',
     facebookAppId: facebook.appId?.trim() ?? '',
   }
 }
