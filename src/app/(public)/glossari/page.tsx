@@ -22,7 +22,7 @@ export default function GlossaryPage() {
     <>
       <JsonLd data={[ld, breadcrumbJsonLd([{ label: 'Γλωσσάριο ΕΣΠΑ' }])]} />
       <SubBanner image={wwaPhoto('consulting')} crumbs={[{ label: 'Γλωσσάριο ΕΣΠΑ' }]} title="Γλωσσάριο ΕΣΠΑ"
-        lead="Οι όροι των επιδοτήσεων με απλά λόγια — από το de minimis μέχρι την εκταμίευση." meta={<EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>} />
+        lead="Οι όροι των επιδοτήσεων με απλά λόγια — από το de minimis μέχρι την εκταμίευση." meta={<EligibilityCta variant="inverse">Δείτε αν δικαιούστε</EligibilityCta>} />
       <section lang="el">
         <div className="wrap">
           <nav className="r" aria-label="Όροι" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 900, margin: '0 auto 32px' }}>

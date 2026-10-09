@@ -40,7 +40,7 @@ export default async function DeadlinesPage() {
       <JsonLd data={breadcrumbJsonLd([{ label: 'Προθεσμίες ΕΣΠΑ' }])} />
       {events.map((e, i) => <JsonLd key={i} data={e} />)}
       <SubBanner image={wwaPhoto('consulting')} crumbs={[{ label: 'Προθεσμίες ΕΣΠΑ' }]} title="Προθεσμίες προγραμμάτων ΕΣΠΑ 2026"
-        lead="Πότε λήγει η υποβολή σε κάθε ενεργό πρόγραμμα για επιχειρήσεις." meta={<EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>} />
+        lead="Πότε λήγει η υποβολή σε κάθε ενεργό πρόγραμμα για επιχειρήσεις." meta={<EligibilityCta variant="inverse">Δείτε αν δικαιούστε</EligibilityCta>} />
       <section lang="el">
         <div className="wrap">
           <AnswerBox updated={fmt(new Date())}>

@@ -46,7 +46,7 @@ export default async function RegionPage({ params }: { params: Promise<{ perifer
       {programs.length > 0 && <JsonLd data={itemListJsonLd(`Προγράμματα ΕΣΠΑ ${r.short}`, programs.map(p => ({ name: p.title, href: `/programmata/${p.slug}` })))} />}
       <SubBanner image={wwaPhotoFor(r.slug)} crumbs={[{ label: 'ΕΣΠΑ ανά περιοχή', href: '/espa' }, { label: r.short }]}
         title={<>ΕΣΠΑ {r.short} 2026</>} lead={`Ενεργά προγράμματα και επιδοτήσεις για επιχειρήσεις ${r.of}.`}
-        meta={<EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>} />
+        meta={<EligibilityCta variant="inverse">Δείτε αν δικαιούστε</EligibilityCta>} />
       <section lang="el">
         <div className="wrap">
           <AnswerBox updated={today()}>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LuRoute, LuShieldCheck, LuSparkles, LuBellRing, LuUsers, LuFolderLock, LuCompass, LuMoonStar } from 'react-icons/lu'
+import { LuRoute, LuShieldCheck, LuSparkles, LuBellRing, LuUsers, LuFolderLock, LuCompass, LuMoonStar, LuArrowRight } from 'react-icons/lu'
 import { SubBanner } from '../_components/sub-banner'
 import { EligibilityCta } from '../_components/eligibility-cta'
 import { Faq } from '../_components/faq'
@@ -55,7 +55,7 @@ export default function CustomerPortalPage() {
       <SubBanner image={wwaPhoto('team')} crumbs={[{ label: 'Πύλη πελατών' }]} title="Η Πύλη Πελατών της WWA"
         sub={<>Το έργο σας ΕΣΠΑ, <span style={{ color: 'var(--wwa-cyan-400)' }}>24 ώρες το 24ωρο</span></>}
         lead="Δείτε πού βρίσκεται κάθε έργο, ανεβάστε δικαιολογητικά με έξυπνο έλεγχο και ρωτήστε τον ψηφιακό σας βοηθό — οποιαδήποτε ώρα, από υπολογιστή ή κινητό."
-        meta={<><EligibilityCta size="lg">Γίνετε πελάτης</EligibilityCta><Link className="pill" href="/portal/syndesi">Σύνδεση πελατών →</Link></>} />
+        meta={<><EligibilityCta variant="inverse">Γίνετε πελάτης</EligibilityCta><Link className="btn btn-inverse-outline" href="/portal/syndesi">Σύνδεση πελατών <LuArrowRight aria-hidden /></Link></>} />
 
       <section lang="el">
         <div className="wrap">

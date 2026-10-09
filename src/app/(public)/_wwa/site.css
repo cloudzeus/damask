@@ -709,3 +709,4 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .partners-strip img { width: auto; max-width: 170px; object-fit: contain; filter: grayscale(1); opacity: .7; transition: filter .25s, opacity .25s; }
 .partners-strip a:hover img, .partners-strip a:focus-visible img { filter: none; opacity: 1; }
 @media (max-width: 640px) { .partners-strip ul { gap: 14px 28px; } .partners-strip img { max-width: 120px; } }
+.sub-banner .meta:has(.btn) { gap: 12px; margin-top: 28px; }

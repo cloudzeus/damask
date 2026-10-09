@@ -45,7 +45,7 @@ export default async function SectorPage({ params }: { params: Promise<{ slug: s
       {programs.length > 0 && <JsonLd data={itemListJsonLd(`Προγράμματα ΕΣΠΑ για ${s.short}`, programs.map(p => ({ name: p.title, href: `/programmata/${p.slug}` })))} />}
       <SubBanner image={wwaPhotoFor(s.slug)} crumbs={[{ label: 'ΕΣΠΑ ανά κλάδο', href: '/espa' }, { label: s.name }]}
         title={<>ΕΣΠΑ για {s.short} 2026</>} lead={`Επιδοτήσεις και ενεργά προγράμματα για ${s.about}.`}
-        meta={<EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>} />
+        meta={<EligibilityCta variant="inverse">Δείτε αν δικαιούστε</EligibilityCta>} />
       <section lang="el">
         <div className="wrap">
           <AnswerBox updated={today()}>
