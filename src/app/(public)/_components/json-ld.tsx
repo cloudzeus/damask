@@ -31,7 +31,11 @@ export function organizationJsonLd(): Record<string, unknown>[] {
       priceRange: '€€',
       // Φορείς όπως αναγράφονται στη σελίδα «Εταιρεία» (επίσημοι σύμβουλοι ΣΕΔΕ, μέλη κλαδικών φορέων).
       // Επίσημα προφίλ της εταιρείας (οντότητα για Google/AI). Πρόσθεσε εδώ LinkedIn/Instagram/Google Business όταν υπάρξουν.
-      sameAs: ['https://www.facebook.com/p/World-Wide-Associates-61568828876859/'],
+      sameAs: [
+        'https://www.facebook.com/p/World-Wide-Associates-61568828876859/',
+        'https://www.google.com/search?kgmid=/g/11zzcqxtkl', // καρτέλα επιχείρησης Google (Knowledge Graph)
+      ],
+      hasMap: 'https://www.google.com/maps/search/?api=1&query=World+Wide+Associates+%CE%91%CE%BB%CE%B5%CE%BE%CE%B1%CE%BD%CE%B4%CF%81%CE%BF%CF%85%CF%80%CF%8C%CE%BB%CE%B5%CF%89%CF%82+25+%CE%91%CE%B8%CE%AE%CE%BD%CE%B1',
       memberOf: ['ΣΕΔΕ', 'ΣΥ.Σ.ΕΠ.', 'GR.EC.A', 'ΠΣΒΑΚ', 'BNI Greece'].map(name => ({ '@type': 'Organization', name })),
     },
     { '@context': 'https://schema.org', '@type': 'WebSite', '@id': `${SITE_URL}/#website`, url: SITE_URL, name: SITE_NAME, inLanguage: 'el-GR', publisher: { '@id': ORG_ID } },
