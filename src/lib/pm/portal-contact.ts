@@ -39,6 +39,9 @@ export type PortalApp = {
   payments: PortalPayment[]
   dates: { deadline: string | null; submittedAt: string | null; nextDue: string | null; durationMonths: number | null }
   manager: { name: string; email: string | null } | null
+  /** Επιλέξιμες δαπάνες από το περιεχόμενο του προγράμματος (για τον οδηγό του έργου). */
+  eligibleExpenses: string[]
+  programSlug: string | null
 }
 export type ContactPortalDashboard =
   | { ok: true; contactName: string; companyName: string; central: boolean; preview: boolean; applications: PortalApp[] }
@@ -58,7 +61,7 @@ export async function getContactPortalDashboard(previewContactId?: string): Prom
     orderBy: { createdAt: 'desc' },
     select: {
       id: true, stage: true, lifecycle: true, opskeSubmittedAt: true,
-      program: { select: { id: true, title: true, fundingRate: true, submissionEnd: true, durationMonths: true } },
+      program: { select: { id: true, title: true, fundingRate: true, submissionEnd: true, durationMonths: true, cmsContent: true, publicSlug: true } },
       manager: { select: { name: true, email: true } },
       proposalSubmissions: { where: { status: 'APPROVED' }, orderBy: { version: 'desc' }, take: 1, select: { totalAmount: true, submittedAt: true } },
       expenses: { where: { status: 'ACTIVE' }, select: { amount: true, certification: { select: { verified: true } } } },
@@ -115,6 +118,8 @@ export async function getContactPortalDashboard(previewContactId?: string): Prom
         durationMonths: a.program?.durationMonths ?? null,
       },
       manager: a.manager?.name ? { name: a.manager.name, email: a.manager.email } : null,
+      eligibleExpenses: ((a.program?.cmsContent as { eligibleExpenses?: unknown } | null)?.eligibleExpenses as unknown[] | undefined ?? []).filter((x): x is string => typeof x === 'string').slice(0, 12),
+      programSlug: a.program?.publicSlug ?? null,
     }
   })
 

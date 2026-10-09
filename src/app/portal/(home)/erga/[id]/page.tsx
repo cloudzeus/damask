@@ -15,7 +15,10 @@ export default async function PortalProject({ params, searchParams }: { params: 
   return (
     <>
       <PortalBanner eyebrow={dash.companyName} title={app.programTitle} lead={app.journey.steps[app.journey.currentIndex].desc} photo="manufacturing">
-        <p style={{ marginTop: 12 }}><Link href={withPreview('/portal/erga', preview)} style={{ color: '#fff', textDecoration: 'underline' }}>← Όλα τα έργα</Link></p>
+        <div className="p-banner-actions">
+          <Link className="p-btn p-btn-cyan" href={withPreview(`/portal/odigoi/erga/${app.applicationId}`, preview)}>Οδηγός βήμα-βήμα</Link>
+          <Link href={withPreview('/portal/erga', preview)} style={{ color: '#fff', textDecoration: 'underline' }}>← Όλα τα έργα</Link>
+        </div>
       </PortalBanner>
       <main>
         <div className="p-wrap p-stack">

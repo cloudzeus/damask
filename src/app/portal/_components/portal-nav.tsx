@@ -2,13 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { LuLayoutDashboard, LuFolderKanban, LuFileText, LuUsers } from 'react-icons/lu'
+import { LuLayoutDashboard, LuFolderKanban, LuFileText, LuUsers, LuRoute, LuCircleHelp } from 'react-icons/lu'
 
 const ITEMS = [
   { href: '/portal', label: 'Επισκόπηση', icon: LuLayoutDashboard },
   { href: '/portal/erga', label: 'Έργα', icon: LuFolderKanban },
   { href: '/portal/dikaiologitika', label: 'Δικαιολογητικά', icon: LuFileText },
   { href: '/portal/omada', label: 'Η ομάδα σας', icon: LuUsers },
+  { href: '/portal/odigoi', label: 'Οδηγοί', icon: LuRoute },
+  { href: '/portal/erotiseis', label: 'Ερωτήσεις', icon: LuCircleHelp },
 ]
 
 /** Μενού του portal (κρατά το ?preview= της προεπισκόπησης προσωπικού). */
