@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T09:11:59.108Z",
+  "timestamp": "2026-10-09T09:33:13.168Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n48587fc perf(images): μόνο WebP από τον optimizer — μία μορφή ανά URL, ασφαλές cache στο Cloudflare\n87099e0 fix(seo): οι 21 σελίδες περιφερειών/κλάδων ήταν πίσω από login στο live (proxy prefix /espa/)· έλεγχος εσωτερικών συνδέσμων στην αρθρογραφία (λάθος slug AI → πραγματικό) + διόρθωση άρθρου· τίτλοι/descriptions στα όρια του Google (clampMeta)\n2e775d7 feat(geo): /llms-full.txt (πλήρες περιεχόμενο προγραμμάτων/γλωσσαρίου/οδηγών για AI) + ItemList schema σε προγράμματα/περιφέρειες/κλάδους/νέα· οδηγία Cloudflare cache για τις εικόνες\n097c323 chore: ενημέρωση HANDOFF\n4fb049c chore: αφαίρεση περιττών eslint-disable μετά το <Pic>"
+  "context_notes": "Recent commits:\n8fd5f79 feat(seo): σωστό 404 αντί για 307→/login στο δημόσιο site (+ σελίδα 404 με ύφος site), apple-touch-icon/icon/manifest από το σήμα WWA, headers ασφαλείας (HSTS, nosniff, referrer, frame, permissions)\nf96608c feat(seo-local): αιτήματα κριτικής Google — ευχαριστήριο email (μέσω deliverCustomerEmail) σε έγκριση έργου/πληρωμή δόσης, μία φορά ανά έργο, μόνο από 09/10 και μετά, καταγραφή στο καμπανάκι· κάρτα στο portal· πεδίο «Σύνδεσμος κριτικής Google» στις Ρυθμίσεις\nc2b20e5 feat(seo): Organization με γεωγραφικές συντεταγμένες, ΑΦΜ/VAT, ΓΕΜΗ και ημερομηνία ίδρυσης (από την καρτέλα της WWA)\nd9c9787 feat(seo): καρτέλα Google της επιχείρησης (kgmid) στο sameAs + hasMap της Organization, σύνδεσμος από τη διεύθυνση στο footer\nd067717 chore: ενημέρωση HANDOFF"
 }
