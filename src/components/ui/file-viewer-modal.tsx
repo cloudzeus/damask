@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { Download, ExternalLink, LoaderCircle, FileQuestion } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { sniffFile } from '@/lib/files/sniff'
 
 /**
  * Reusable προβολή αρχείου σε modal (χωρίς λήψη). Δουλεύει με ΙΔΙΩΤΙΚΑ αρχεία μέσω
  * του gated route (same-origin, cookies): image=<img>, pdf=<iframe>, docx=mammoth,
- * xlsx/xls/csv=SheetJS, txt=κείμενο. Άλλα (π.χ. παλιό .doc) → fallback λήψη.
+ * xlsx/xls/csv=SheetJS, txt=κείμενο. Χωρίς αναγνωρίσιμη κατάληξη στο όνομα (π.χ. τίτλος εγγράφου «Πιστοποιητικό ΓΕΜΗ»)
+ * → ο τύπος βρίσκεται από το περιεχόμενο (magic bytes). Άλλα (π.χ. παλιό .doc) → fallback λήψη.
  * `url` = ο gated inline σύνδεσμος (χρησιμοποίησε ?disp=inline).
  */
 
@@ -28,7 +30,11 @@ function kindOf(name: string): Kind {
 }
 
 export function FileViewerModal({ open, onOpenChange, file }: { open: boolean; onOpenChange: (o: boolean) => void; file: ViewerFile | null }) {
-  const kind = file ? kindOf(file.name) : 'other'
+  const named = file ? kindOf(file.name) : 'other'
+  // Τύπος από το περιεχόμενο όταν το όνομα δεν λέει τίποτα· blobUrl για pdf/εικόνα με σωστό mime.
+  const [sniffed, setSniffed] = useState<{ kind: Kind; blobUrl: string | null } | null>(null)
+  const kind: Kind = named === 'other' ? sniffed?.kind ?? 'other' : named
+  const src = sniffed?.blobUrl ?? file?.url ?? ''
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [html, setHtml] = useState<string | null>(null) // docx/sheet rendered html
@@ -44,27 +50,36 @@ export function FileViewerModal({ open, onOpenChange, file }: { open: boolean; o
 
     const load = async () => {
       // reset (μέσα σε nested fn — όχι synchronous setState στο effect body)
-      setHtml(null); setText(null); setSheets([]); setActiveSheet(0); setWb(null); setError(null)
-      if (kind === 'image' || kind === 'pdf' || kind === 'other') { setLoading(false); return }
+      setHtml(null); setText(null); setSheets([]); setActiveSheet(0); setWb(null); setError(null); setSniffed(null)
+      if (named === 'image' || named === 'pdf') { setLoading(false); return }
       setLoading(true)
       try {
         const res = await fetch(file.url, { credentials: 'include' })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        if (kind === 'text') {
-          const t = await res.text()
+        const raw = await res.arrayBuffer()
+        let k: Kind = named
+        if (named === 'other') {
+          const found = sniffFile(raw)
+          k = found.kind
+          const blobUrl = k === 'pdf' || k === 'image' ? URL.createObjectURL(new Blob([raw], { type: found.mime })) : null
+          if (cancelled) { if (blobUrl) URL.revokeObjectURL(blobUrl); return }
+          setSniffed({ kind: k, blobUrl })
+        }
+        if (k === 'text') {
+          const t = new TextDecoder('utf-8').decode(raw)
           if (!cancelled) setText(t)
-        } else if (kind === 'docx') {
-          const buf = await res.arrayBuffer()
+        } else if (k === 'docx') {
+          const buf = raw
           // @ts-expect-error — browser build χωρίς types
           const mammothMod = await import('mammoth/mammoth.browser')
           const mammoth = (mammothMod.default ?? mammothMod) as { convertToHtml: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }> }
           const out = await mammoth.convertToHtml({ arrayBuffer: buf })
           if (!cancelled) setHtml(out.value)
-        } else if (kind === 'sheet') {
+        } else if (k === 'sheet') {
           const ext = /\.([a-z0-9]+)$/i.exec(file.name)?.[1]?.toLowerCase()
           const book = ext === 'csv'
-            ? XLSX.read(await res.text(), { type: 'string' })
-            : XLSX.read(await res.arrayBuffer(), { type: 'array' })
+            ? XLSX.read(new TextDecoder('utf-8').decode(raw), { type: 'string' })
+            : XLSX.read(raw, { type: 'array' })
           if (!cancelled) { setWb(book); setSheets(book.SheetNames); setActiveSheet(0) }
         }
       } catch {
@@ -75,7 +90,10 @@ export function FileViewerModal({ open, onOpenChange, file }: { open: boolean; o
     }
     void load()
     return () => { cancelled = true }
-  }, [open, file, kind])
+  }, [open, file, named])
+
+  // Καθάρισμα του προσωρινού blob URL όταν αλλάζει/κλείνει το αρχείο.
+  useEffect(() => () => { if (sniffed?.blobUrl) URL.revokeObjectURL(sniffed.blobUrl) }, [sniffed])
 
   const sheetHtml = wb && sheets[activeSheet] ? XLSX.utils.sheet_to_html(wb.Sheets[sheets[activeSheet]]) : null
 
@@ -105,9 +123,9 @@ export function FileViewerModal({ open, onOpenChange, file }: { open: boolean; o
             <Fallback file={file} message={error} />
           ) : kind === 'image' ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <div className="flex h-full items-center justify-center p-3"><img src={file.url} alt={file.name} className="max-h-full max-w-full object-contain" /></div>
+            <div className="flex h-full items-center justify-center p-3"><img src={src} alt={file.name} className="max-h-full max-w-full object-contain" /></div>
           ) : kind === 'pdf' ? (
-            <iframe src={file.url} title={file.name} className="h-full w-full" />
+            <iframe src={src} title={file.name} className="h-full w-full" />
           ) : kind === 'text' ? (
             <pre className="h-full w-full overflow-auto p-4 text-[length:var(--fs-13)] whitespace-pre-wrap">{text}</pre>
           ) : kind === 'docx' && html !== null ? (
