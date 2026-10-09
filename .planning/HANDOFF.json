@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T06:26:56.484Z",
+  "timestamp": "2026-10-09T06:47:30.645Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,20 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/_wwa/site.css"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/glossari/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/page.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n55229ee feat(seo): IndexNow (Bing/ChatGPT search) σε κάθε δημοσίευση + καθημερινό ping αλλαγών· χωρίς ονόματα προσώπων (ομάδα/Person schema αφαιρέθηκαν, συγγραφέας = εταιρεία)\nbb958b3 chore: ενημέρωση HANDOFF\n7a7814c docs(seo): οδηγός μετάβασης wwa-espa.com στο Cloudflare\nf9e022e chore: ενημέρωση HANDOFF\n87e6325 feat(seo): σελίδες-κόμβοι ΕΣΠΑ ανά περιφέρεια/κλάδο, προθεσμίες + .ics, νέα 2026, γλωσσάριο, Τύπος· AEO απαντήσεις, εσωτερικοί σύνδεσμοι, επίσημη πηγή, H1 αρχικής, ομάδα/memberOf, sitemap/llms/proxy/footer"
+  "context_notes": "Recent commits:\n875eadd style(portal): ίδια αισθητική με το δημόσιο site (λευκό topbar με λογότυπο, banner με φωτογραφία, κάρτες/pill κουμπιά/Condensed τίτλοι, navy panel βοηθού) — CSS απομονωμένο σε .wwa-portal\n5df8919 feat(emails): όλα τα emails με το επίσημο πρότυπο WWA (αυτόματο τύλιγμα στο sendMail), ξαναγραμμένες ενημερώσεις με πίνακα στοιχείων + κουμπί δράσης, διόρθωση υπογραφής (έγραφε το όνομα του πελάτη), footer «απαντήστε» στα νήματα πελατών\n2319701 style(site): sub-banner v2 — διαβαθμισμένο overlay (η φωτογραφία φαίνεται), υπότιτλος σε κανονική γραφή, συμπαγές ύψος, κουμπί αντί υπογραμμισμένου link, γραμμή χρωμάτων λογότυπου\n1026e0b feat(portal): «οδηγός έργου» για πελάτες — πορεία 6 βημάτων με «πού βρισκόμαστε/τι ακολουθεί», τι χρειαζόμαστε (ανέβασμα), ποσά/δόσεις/ημερομηνίες, γρήγορες ερωτήσεις στον Thanos, σύμβουλος· προεπισκόπηση portal ως επαφή για το προσωπικό\n4c0491d feat(analytics): Google Consent Mode v2 (basic) για GA4/GTM — default denied + update με τις επιλογές του επισκέπτη"
 }
