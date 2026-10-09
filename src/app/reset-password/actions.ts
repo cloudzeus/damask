@@ -24,9 +24,10 @@ export async function resetPassword(
   if (!result.ok) return { error: 'Ο σύνδεσμος έχει λήξει ή έχει ήδη χρησιμοποιηθεί. Ζήτησε νέο.' }
 
   const passwordHash = await bcrypt.hash(password, 12)
-  await prisma.user.update({ where: { id: result.userId }, data: { passwordHash } })
+  const user = await prisma.user.update({ where: { id: result.userId }, data: { passwordHash }, select: { role: { select: { b2b: true } } } })
   await consumeResetToken(result.tokenId)
 
   // Το redirect() πετάει NEXT_REDIRECT — ζει έξω από οποιοδήποτε try/catch.
-  redirect('/login?reset=1')
+  // Πελάτης (portal) → σύνδεση με το ύφος του portal· προσωπικό → /login.
+  redirect(user.role?.b2b ? '/portal/syndesi?reset=1' : '/login?reset=1')
 }

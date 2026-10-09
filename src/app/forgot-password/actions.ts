@@ -19,13 +19,23 @@ export async function requestPasswordReset(
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
 
   if (email) {
-    const user = await prisma.user.findUnique({ where: { email } })
+    const user = await prisma.user.findUnique({ where: { email }, include: { role: { select: { b2b: true } } } })
     if (user && user.active) {
       const token = await createResetToken(user.id)
-      const resetUrl = `${process.env.AUTH_URL ?? 'http://localhost:3000'}/reset-password?token=${token}`
+      const customer = !!user.role?.b2b
+      const resetUrl = `${process.env.AUTH_URL ?? 'http://localhost:3000'}${customer ? '/portal/neos-kodikos' : '/reset-password'}?token=${token}`
 
       if (await isMailerConfigured()) {
-        const html = renderEmailShell({
+        const html = customer ? renderEmailShell({
+          heading: 'Νέος κωδικός για το portal',
+          preheader: 'Ορίστε νέο κωδικό — ο σύνδεσμος ισχύει 30 λεπτά',
+          bodyHtml:
+            '<p>Καλησπέρα σας,</p><p>Λάβαμε αίτημα για νέο κωδικό στο portal της World Wide Associates. Πατήστε το κουμπί για να ορίσετε ' +
+            'νέο κωδικό — ο σύνδεσμος ισχύει για <b>30 λεπτά</b>.</p>' +
+            '<p>Αν δεν το ζητήσατε εσείς, αγνοήστε αυτό το email — ο κωδικός σας δεν αλλάζει.</p>',
+          ctaLabel: 'Ορισμός νέου κωδικού',
+          ctaUrl: resetUrl,
+        }) : renderEmailShell({
           heading: 'Επαναφορά κωδικού πρόσβασης',
           bodyHtml:
             '<p>Ζήτησες επαναφορά του κωδικού πρόσβασής σου στο World Wide Associates. Πάτησε το παρακάτω κουμπί για να ' +

@@ -27,7 +27,9 @@ export function Opportunities({ items, preview }: { items: Opportunity[]; previe
       {items.map(o => (
         <article key={o.programId} className="p-project" style={{ cursor: 'default' }}>
           <div className="meta">
-            {o.fit === 'eligible' ? <span className="p-badge ok"><LuCircleCheck aria-hidden /> Ταιριάζει στην επιχείρησή σας</span> : <span className="p-badge">Πιθανή ευκαιρία — θέλει έλεγχο</span>}
+            {o.fit === 'eligible' ? <span className="p-badge ok"><LuCircleCheck aria-hidden /> Ταιριάζει στην επιχείρησή σας</span>
+              : o.fit === 'check' ? <span className="p-badge">Πιθανή ευκαιρία — θέλει έλεγχο{o.reasons.length ? ` (${o.reasons.join(', ')})` : ''}</span>
+              : <span className="p-badge warn">Δεν ταιριάζει: {o.reasons.join(', ')}</span>}
             {o.rate && <span className="p-badge">Επιδότηση {o.rate}</span>}
           </div>
           <h3>{o.title}</h3>

@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { LuUserPlus, LuLoaderCircle, LuMail, LuPhone, LuX } from 'react-icons/lu'
 import { addTeamMember, removeTeamMember, type TeamMember } from '@/lib/pm/portal-documents'
 import { TEAM_ROLES, type TeamRole } from '@/lib/pm/portal-roles'
+import { PModal } from './p-modal'
 
 const ROLE_HINT: Record<TeamRole, string> = {
   'Λογιστής': 'Λαμβάνει τα αιτήματα για φορολογικά/λογιστικά έγγραφα (ισολογισμοί, Ε3, ενημερότητες, τιμολόγια).',
@@ -17,23 +18,6 @@ const ROLE_HINT: Record<TeamRole, string> = {
 /** «Η ομάδα σας»: άτομα της επιχείρησης (λογιστής, υπεύθυνος έργου…) — γίνονται επαφές και λαμβάνουν ειδοποιήσεις. */
 export function MyTeam({ members, applications, preview }: { members: TeamMember[]; applications: { applicationId: string; title: string }[]; preview: boolean }) {
   const router = useRouter()
-  const [busy, setBusy] = React.useState(false)
-  const [role, setRole] = React.useState<TeamRole>('Λογιστής')
-  const [apps, setApps] = React.useState<string[]>(applications.map(a => a.applicationId))
-
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (preview) return
-    const fd = new FormData(e.currentTarget)
-    setBusy(true)
-    const res = await addTeamMember({
-      name: String(fd.get('name') ?? ''), email: String(fd.get('email') ?? ''), phone: String(fd.get('phone') ?? '') || undefined,
-      role, applicationIds: apps, portalAccess: fd.get('portal') === 'on',
-    }).catch(() => null)
-    setBusy(false)
-    if (res?.ok) { toast.success(res.message); (e.target as HTMLFormElement).reset(); router.refresh() }
-    else toast.error(res?.message ?? 'Η προσθήκη απέτυχε.')
-  }
 
   async function remove(m: TeamMember) {
     if (!window.confirm(`Να σταματήσει ο/η ${m.name} να λαμβάνει ειδοποιήσεις για τα έργα σας;`)) return
@@ -64,33 +48,60 @@ export function MyTeam({ members, applications, preview }: { members: TeamMember
         ))}
       </div>
 
-      <form className="p-form" onSubmit={e => void submit(e)}>
-        <h3 className="p-h3" style={{ margin: 0 }}>Προσθέστε άτομο της επιχείρησης</h3>
-        <p className="p-muted" style={{ margin: 0, fontSize: 14 }}>Π.χ. τον λογιστή σας, ώστε τα αιτήματα για λογιστικά έγγραφα να πηγαίνουν απευθείας σε εκείνον. Θα το δει αμέσως και ο σύμβουλός σας.</p>
-        <div className="row2">
-          <label className="p-field"><span>Ονοματεπώνυμο *</span><input name="name" required minLength={2} autoComplete="name" disabled={preview} /></label>
-          <label className="p-field"><span>Ρόλος *</span>
-            <select value={role} onChange={e => setRole(e.target.value as TeamRole)} disabled={preview}>{TEAM_ROLES.map(r => <option key={r}>{r}</option>)}</select>
-          </label>
-          <label className="p-field"><span>Email *</span><input name="email" type="email" required autoComplete="email" disabled={preview} /></label>
-          <label className="p-field"><span>Κινητό</span><input name="phone" type="tel" autoComplete="tel" disabled={preview} /></label>
-        </div>
-        <p className="p-muted" style={{ margin: 0, fontSize: 13 }}>{ROLE_HINT[role]}</p>
-        {applications.length > 0 && (
-          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-            <legend className="p-field" style={{ marginBottom: 6 }}><span>Για ποια έργα θα λαμβάνει ειδοποιήσεις;</span></legend>
-            {applications.map(a => (
-              <label key={a.applicationId} className="p-check">
-                <input type="checkbox" checked={apps.includes(a.applicationId)} disabled={preview}
-                  onChange={e => setApps(prev => e.target.checked ? [...prev, a.applicationId] : prev.filter(x => x !== a.applicationId))} />
-                {a.title}
-              </label>
-            ))}
-          </fieldset>
-        )}
-        <label className="p-check"><input type="checkbox" name="portal" disabled={preview} /> Να έχει και πρόσβαση στο portal (θα λάβει email για να ορίσει κωδικό)</label>
-        <div><button type="submit" className="p-btn" disabled={busy || preview}>{busy ? <LuLoaderCircle className="spin" aria-hidden /> : <LuUserPlus aria-hidden />} Προσθήκη</button></div>
-      </form>
+      <div>
+        <PModal title="Προσθήκη ατόμου" description="Π.χ. τον λογιστή σας, ώστε τα αιτήματα για λογιστικά έγγραφα να πηγαίνουν απευθείας σε εκείνον." disabled={preview}
+          trigger={<><LuUserPlus aria-hidden /> Προσθήκη ατόμου</>}>
+          {close => <TeamForm applications={applications} onDone={() => { close(); router.refresh() }} />}
+        </PModal>
+      </div>
     </>
+  )
+}
+
+/** Φόρμα νέου ατόμου (μέσα σε modal). */
+function TeamForm({ applications, onDone }: { applications: { applicationId: string; title: string }[]; onDone: () => void }) {
+  const [busy, setBusy] = React.useState(false)
+  const [role, setRole] = React.useState<TeamRole>('Λογιστής')
+  const [apps, setApps] = React.useState<string[]>(applications.map(a => a.applicationId))
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    setBusy(true)
+    const res = await addTeamMember({
+      name: String(fd.get('name') ?? ''), email: String(fd.get('email') ?? ''), phone: String(fd.get('phone') ?? '') || undefined,
+      role, applicationIds: apps, portalAccess: fd.get('portal') === 'on',
+    }).catch(() => null)
+    setBusy(false)
+    if (res?.ok) { toast.success(res.message); onDone() }
+    else toast.error(res?.message ?? 'Η προσθήκη απέτυχε.')
+  }
+
+  return (
+        <form className="p-form" onSubmit={e => void submit(e)}>
+          <div className="row2">
+            <label className="p-field"><span>Ονοματεπώνυμο *</span><input name="name" required minLength={2} autoComplete="name" /></label>
+            <label className="p-field"><span>Ρόλος *</span>
+              <select value={role} onChange={e => setRole(e.target.value as TeamRole)}>{TEAM_ROLES.map(r => <option key={r}>{r}</option>)}</select>
+            </label>
+            <label className="p-field"><span>Email *</span><input name="email" type="email" required autoComplete="email" /></label>
+            <label className="p-field"><span>Κινητό</span><input name="phone" type="tel" autoComplete="tel" /></label>
+          </div>
+          <p className="p-muted" style={{ margin: 0, fontSize: 13 }}>{ROLE_HINT[role]}</p>
+          {applications.length > 0 && (
+            <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+              <legend className="p-field" style={{ marginBottom: 6 }}><span>Για ποια έργα θα λαμβάνει ειδοποιήσεις;</span></legend>
+              {applications.map(a => (
+                <label key={a.applicationId} className="p-check">
+                  <input type="checkbox" checked={apps.includes(a.applicationId)}
+                    onChange={e => setApps(prev => e.target.checked ? [...prev, a.applicationId] : prev.filter(x => x !== a.applicationId))} />
+                  {a.title}
+                </label>
+              ))}
+            </fieldset>
+          )}
+          <label className="p-check"><input type="checkbox" name="portal" /> Να έχει και πρόσβαση στο portal (θα λάβει email για να ορίσει κωδικό)</label>
+          <div><button type="submit" className="p-btn" disabled={busy}>{busy ? <LuLoaderCircle className="spin" aria-hidden /> : <LuUserPlus aria-hidden />} Προσθήκη</button></div>
+        </form>
   )
 }

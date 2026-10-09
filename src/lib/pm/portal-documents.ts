@@ -244,11 +244,13 @@ export async function removeTeamMember(contactId: string): Promise<{ ok: boolean
 
 // ── 4. Ευκαιρίες ένταξης ───────────────────────────────────────────────────
 
-export type Opportunity = { programId: string; title: string; summary: string | null; rate: string | null; deadline: string | null; slug: string | null; fit: 'eligible' | 'check' }
+export type Opportunity = { programId: string; title: string; summary: string | null; rate: string | null; deadline: string | null; slug: string | null; fit: 'eligible' | 'check' | 'no'; reasons: string[] }
+
+const CRITERION_LABEL: Record<string, string> = { kad: 'ΚΑΔ', region: 'περιοχή', legalForm: 'νομική μορφή', size: 'μέγεθος (ΕΜΕ)', age: 'έτη λειτουργίας' }
 export type OpportunitiesView = { ok: true; items: Opportunity[]; preview: boolean } | { ok: false }
 
 /** Ενεργά προγράμματα που ταιριάζουν στην επιχείρηση (ΚΑΔ/περιφέρεια/μορφή/ΕΜΕ/έτη) και δεν τα έχει ήδη. */
-export async function listOpportunities(previewContactId?: string): Promise<OpportunitiesView> {
+export async function listOpportunities(previewContactId?: string, opts: { includeNonMatching?: boolean } = {}): Promise<OpportunitiesView> {
   const contact = await resolvePortalContact(previewContactId)
   if (!contact) return { ok: false }
   const { computeSinglePair } = await import('@/lib/prospects/evaluate-pair')
@@ -265,14 +267,18 @@ export async function listOpportunities(previewContactId?: string): Promise<Oppo
   const items: Opportunity[] = []
   for (const p of programs.filter(p => !have.has(p.id))) {
     const fit = await computeSinglePair(contact.trdrId, p.id).catch(() => null)
-    if (!fit || fit.failed.length) continue // δεν πληροί βασικό κριτήριο → δεν το προτείνουμε
+    const failed = fit?.failed ?? []
+    // Στην επισκόπηση μόνο όσα ταιριάζουν· στη σελίδα «Ευκαιρίες» όλα, με εξήγηση.
+    if (failed.length && !opts.includeNonMatching) continue
     items.push({
+      reasons: failed.length ? failed.map(k => CRITERION_LABEL[k] ?? k) : (fit?.unknown ?? []).map(k => CRITERION_LABEL[k] ?? k),
       programId: p.id, title: p.title, summary: p.summary?.slice(0, 220) ?? null, slug: p.publicSlug,
       rate: p.fundingRate != null ? `έως ${Number(p.fundingRate)}%` : null, deadline: p.submissionEnd?.toISOString() ?? null,
-      fit: fit.eligible && !fit.unknown.length ? 'eligible' : 'check',
+      fit: failed.length ? 'no' : fit?.eligible && !fit.unknown.length ? 'eligible' : 'check',
     })
   }
-  items.sort((a, b) => (a.fit === b.fit ? 0 : a.fit === 'eligible' ? -1 : 1))
+  const rank = { eligible: 0, check: 1, no: 2 } as const
+  items.sort((a, b) => rank[a.fit] - rank[b.fit])
   return { ok: true, items, preview: contact.preview }
 }
 
@@ -298,4 +304,67 @@ export async function expressInterest(programId: string): Promise<{ ok: boolean;
     entityType: 'Trdr', entityId: contact.trdrId, meta: { kind: 'portal-interest', applicationId: app.id, programId },
   })
   return { ok: true, message: `Ευχαριστούμε! Καταγράψαμε το ενδιαφέρον σας για «${program.title}» — ο σύμβουλός σας θα επικοινωνήσει μαζί σας για την αξιολόγηση.` }
+}
+
+// ── 5. Επιλογή επιχείρησης & προεπισκόπηση προσωπικού ─────────────────────
+
+/** Ο χρήστης είναι επαφή σε πολλές επιχειρήσεις → διαλέγει ποια βλέπει (cookie). */
+export async function selectPortalCompany(contactId: string): Promise<{ ok: boolean }> {
+  const { portalCompanies, PORTAL_COMPANY_COOKIE } = await import('@/lib/pm/portal-session')
+  const mine = await portalCompanies()
+  if (!mine.some(c => c.contactId === contactId)) return { ok: false }
+  const { cookies } = await import('next/headers')
+  ;(await cookies()).set(PORTAL_COMPANY_COOKIE, contactId, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/portal', maxAge: 60 * 60 * 24 * 365 })
+  return { ok: true }
+}
+
+export type PreviewableContact = { contactId: string; name: string; company: string; apps: number; hasPortal: boolean }
+
+/** Για χρήστες του γραφείου που ανοίγουν το /portal: επαφές πελατών με έργα, για «προβολή ως επαφή». */
+export async function listPreviewableContacts(query?: string): Promise<PreviewableContact[] | null> {
+  const { auth } = await import('@/auth')
+  const { can } = await import('@/lib/rbac')
+  const session = await auth()
+  if (!session?.user || session.user.portalHome || !can(session, 'customer.view')) return null
+  const q = query?.trim()
+  const rows = await prisma.contact.findMany({
+    where: {
+      trdr: { programApplications: { some: {} } },
+      ...(q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }, { trdr: { NAME: { contains: q, mode: 'insensitive' } } }] } : {}),
+    },
+    orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }], take: 40,
+    select: { id: true, name: true, userId: true, trdr: { select: { NAME: true, _count: { select: { programApplications: true } } } } },
+  })
+  return rows.map(r => ({ contactId: r.id, name: r.name, company: r.trdr.NAME, apps: r.trdr._count.programApplications, hasPortal: !!r.userId }))
+}
+
+// ── 6. Η επιχείρηση ───────────────────────────────────────────────────────
+
+export type MyCompany = {
+  name: string; afm: string | null; doy: string | null; address: string | null; legalForm: string | null; gemi: string | null
+  founded: string | null; employees: number | null; eme: number | null; email: string | null; phone: string | null
+  mainKad: { code: string; description: string } | null; otherKads: number; contactRole: string | null
+}
+
+/** Τα στοιχεία της επιχείρησης όπως τα έχουμε (για έλεγχο από τον πελάτη — αλλαγές μέσω του συμβούλου). */
+export async function getMyCompany(previewContactId?: string): Promise<MyCompany | null> {
+  const contact = await resolvePortalContact(previewContactId)
+  if (!contact) return null
+  const [t, me] = await Promise.all([
+    prisma.trdr.findUnique({
+      where: { id: contact.trdrId },
+      select: { NAME: true, AFM: true, IRSDATA: true, ADDRESS: true, ZIP: true, CITY: true, appLegalForm: true, aadeFirmKind: true, arGemi: true, foundingDate: true, appEmployees: true, appEme: true, EMAIL: true, PHONE01: true, kads: { orderBy: [{ kind: 'asc' }, { order: 'asc' }], select: { code: true, description: true, kind: true } } },
+    }),
+    prisma.contact.findUnique({ where: { id: contact.id }, select: { position: true } }),
+  ])
+  if (!t) return null
+  const doy = t.IRSDATA ? (await prisma.irsdata.findFirst({ where: { CODE: t.IRSDATA }, select: { NAME: true } }).catch(() => null))?.NAME ?? t.IRSDATA : null
+  const main = t.kads.find(k => k.kind === 'PRIMARY') ?? t.kads[0] ?? null
+  return {
+    name: t.NAME, afm: t.AFM, doy, address: [t.ADDRESS, t.ZIP, t.CITY].filter(Boolean).join(', ') || null,
+    legalForm: t.appLegalForm || t.aadeFirmKind, gemi: t.arGemi, founded: t.foundingDate?.toISOString() ?? null,
+    employees: t.appEmployees, eme: t.appEme != null ? Number(t.appEme) : null, email: t.EMAIL, phone: t.PHONE01,
+    mainKad: main ? { code: main.code, description: main.description } : null, otherKads: Math.max(0, t.kads.length - (main ? 1 : 0)),
+    contactRole: me?.position ?? null,
+  }
 }

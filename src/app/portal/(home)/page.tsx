@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { LuFileText, LuTriangleAlert, LuClock, LuChevronRight, LuCircleCheck, LuUsers, LuBanknote } from 'react-icons/lu'
 import { getContactPortalDashboard, type PortalApp } from '@/lib/pm/portal-contact'
-import { listMyDocuments, listOpportunities, type MyDocument } from '@/lib/pm/portal-documents'
+import { listMyDocuments, listOpportunities, listPreviewableContacts, getMyCompany, type MyDocument } from '@/lib/pm/portal-documents'
 import { Opportunities } from '../_components/opportunities'
 import { PortalBanner, PreviewNote, withPreview } from '../_components/portal-banner'
 
@@ -14,16 +14,43 @@ const isDone = (s: string) => s === 'APPROVED' || s === 'SUBMITTED' || s === 'WA
 type Attention = { key: string; href: string; tone: 'warn' | 'bad' | 'ok'; title: string; sub: string; sort: number }
 
 /** Customer dashboard: τι χρειάζεται την προσοχή του πελάτη σε ΟΛΑ τα έργα + σύνοψη έργων/δικαιολογητικών. */
-export default async function PortalHome({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
-  const { preview } = await searchParams
-  const [dash, docs, opps] = await Promise.all([getContactPortalDashboard(preview || undefined), listMyDocuments(preview || undefined), listOpportunities(preview || undefined)])
+export default async function PortalHome({ searchParams }: { searchParams: Promise<{ preview?: string; q?: string }> }) {
+  const { preview, q } = await searchParams
+  const [dash, docs, opps, company] = await Promise.all([getContactPortalDashboard(preview || undefined), listMyDocuments(preview || undefined), listOpportunities(preview || undefined), getMyCompany(preview || undefined)])
   const pv = (h: string) => withPreview(h, preview)
 
   if (!dash.ok) {
+    // Χρήστης του γραφείου χωρίς επαφή → λίστα πελατών για «προβολή ως επαφή».
+    const staff = preview ? null : await listPreviewableContacts(q)
+    if (staff) {
+      return (
+        <>
+          <PortalBanner eyebrow="Χρήστης γραφείου" title="Portal πελατών" lead="Είστε συνδεδεμένοι ως χρήστης της εφαρμογής. Διαλέξτε επαφή πελάτη για να δείτε το portal ακριβώς όπως το βλέπει." />
+          <main><div className="p-wrap p-stack">
+            <form className="p-form" method="get" style={{ gridTemplateColumns: '1fr auto', alignItems: 'end' }}>
+              <label className="p-field"><span>Αναζήτηση πελάτη ή επαφής</span><input name="q" defaultValue={q ?? ''} placeholder="Επωνυμία, όνομα ή email" /></label>
+              <button type="submit" className="p-btn">Αναζήτηση</button>
+            </form>
+            <ul className="p-todo">
+              {staff.length === 0 && <li><div className="row"><span className="tx"><b>Δεν βρέθηκαν επαφές</b><span>Δοκιμάστε άλλη αναζήτηση.</span></span></div></li>}
+              {staff.map(c => (
+                <li key={c.contactId}>
+                  <Link href={`/portal?preview=${c.contactId}`}>
+                    <span className="ic ok"><LuUsers aria-hidden /></span>
+                    <span className="tx"><b>{c.company}</b><span>{c.name} · {c.apps} έργ{c.apps === 1 ? 'ο' : 'α'}{c.hasPortal ? ' · έχει πρόσβαση στο portal' : ''}</span></span>
+                    <LuChevronRight className="go" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div></main>
+        </>
+      )
+    }
     return (
       <>
         <PortalBanner title="Καλώς ήρθατε" lead="Το portal των έργων σας στη World Wide Associates." />
-        <main><div className="p-wrap p-stack"><div className="p-empty"><p>{preview ? 'Η επαφή δεν βρέθηκε ή δεν έχετε δικαίωμα προβολής.' : 'Δεν υπάρχουν διαθέσιμα έργα για τον λογαριασμό σας αυτή τη στιγμή. Επικοινωνήστε με τον σύμβουλό σας στο 210 721 8758.'}</p></div></div></main>
+        <main><div className="p-wrap p-stack"><div className="p-empty"><p>{preview ? 'Η επαφή δεν βρέθηκε ή δεν έχετε δικαίωμα προβολής.' : 'Ο λογαριασμός σας δεν έχει συνδεθεί ακόμα με επιχείρηση. Επικοινωνήστε με τον σύμβουλό σας στο 210 721 8758 και θα το ενεργοποιήσουμε αμέσως.'}</p></div></div></main>
       </>
     )
   }
@@ -49,6 +76,23 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
             <Link className={`p-kpi ${expiringDocs ? 'bad' : ''}`} href={pv('/portal/dikaiologitika')}><div className="v">{docList.length}</div><div className="k">δικαιολογητικά{expiringDocs ? ` · ${expiringDocs} λήγουν/έληξαν` : ' σε αρχείο'}</div></Link>
             <div className="p-kpi"><div className="v">{eur(paid)}</div><div className="k">έχετε εισπράξει</div></div>
           </div>
+
+          {company && (
+            <div className="p-form p-company">
+              <div className="p-section-title" style={{ margin: 0 }}><h2>Η επιχείρηση</h2>{company.contactRole && <span className="p-badge">Ο ρόλος σας: {company.contactRole}</span>}</div>
+              <dl>
+                <div><dt>Επωνυμία</dt><dd>{company.name}</dd></div>
+                {company.afm && <div><dt>ΑΦΜ</dt><dd>{company.afm}{company.doy ? ` · ${company.doy}` : ''}</dd></div>}
+                {company.legalForm && <div><dt>Νομική μορφή</dt><dd>{company.legalForm}</dd></div>}
+                {company.gemi && <div><dt>ΓΕΜΗ</dt><dd>{company.gemi}</dd></div>}
+                {company.address && <div><dt>Έδρα</dt><dd>{company.address}</dd></div>}
+                {company.founded && <div><dt>Ίδρυση</dt><dd>{day(company.founded)}</dd></div>}
+                {company.mainKad && <div><dt>Κύριος ΚΑΔ</dt><dd>{company.mainKad.code} — {company.mainKad.description}{company.otherKads ? ` (+${company.otherKads} ακόμα)` : ''}</dd></div>}
+                {(company.employees != null || company.eme != null) && <div><dt>Απασχόληση</dt><dd>{company.employees != null ? `${company.employees} εργαζόμενοι` : ''}{company.eme != null ? `${company.employees != null ? ' · ' : ''}${company.eme} ΕΜΕ` : ''}</dd></div>}
+              </dl>
+              <p className="p-muted" style={{ margin: 0, fontSize: 13 }}>Βλέπετε κάτι λάθος; Πείτε το στον σύμβουλό σας — τα στοιχεία αυτά καθορίζουν σε ποια προγράμματα είστε επιλέξιμοι.</p>
+            </div>
+          )}
 
           <div className="p-section-title"><h2>Χρειάζεται η προσοχή σας</h2></div>
           {attention.length === 0 ? (
@@ -86,11 +130,11 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
             })}
           </div>
 
-          {opps.ok && opps.items.length > 0 && (
+          {opps.ok && (
             <>
-              <div className="p-section-title"><h2>Ευκαιρίες ένταξης για εσάς</h2></div>
+              <div className="p-section-title"><h2>Ευκαιρίες ένταξης για εσάς</h2><Link href={pv('/portal/eukairies')}>Όλα τα ενεργά προγράμματα →</Link></div>
               <p className="p-muted" style={{ margin: '-8px 0 0', fontSize: 14 }}>Ενεργά προγράμματα που ταιριάζουν στα στοιχεία της επιχείρησής σας (ΚΑΔ, περιοχή, μέγεθος). Πατήστε «Ενδιαφέρομαι» και ο σύμβουλός σας θα κάνει την πλήρη αξιολόγηση.</p>
-              <Opportunities items={opps.items} preview={opps.preview} />
+              {opps.items.length ? <Opportunities items={opps.items} preview={opps.preview} /> : <div className="p-empty" style={{ padding: 24 }}><p className="p-muted" style={{ margin: 0 }}>Αυτή τη στιγμή δεν υπάρχει νέο ενεργό πρόγραμμα που να ταιριάζει πλήρως. Δείτε <Link href={pv('/portal/eukairies')} style={{ color: 'var(--p-brand)' }}>όλα τα ενεργά προγράμματα</Link> — μπορείτε να δηλώσετε ενδιαφέρον σε όποιο θέλετε.</p></div>}
             </>
           )}
 

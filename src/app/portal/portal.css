@@ -273,3 +273,44 @@
 .wwa-portal .p-faq details[open] summary svg { transform: rotate(180deg); }
 .wwa-portal .p-faq details p { margin: 0; padding: 0 18px 16px; color: var(--p-fg-2); line-height: 1.65; }
 .wwa-portal .p-faq h2 { margin: 18px 0 10px; font: 900 15px/1.2 var(--p-display); text-transform: uppercase; letter-spacing: .04em; color: var(--p-violet); }
+.wwa-portal .p-top a.p-user { align-items: center; gap: 6px; min-height: 44px; color: var(--p-fg-2); text-decoration: none; }
+@media (min-width: 640px) { .wwa-portal .p-top a.p-user { display: inline-flex; } }
+.wwa-portal .p-top a.p-user:hover { color: var(--p-brand); }
+.wwa-portal .p-top a.p-user svg { width: 16px; height: 16px; }
+
+/* Modal */
+.wwa-portal .p-modal, .p-modal { margin: auto; inset: 0; width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 0; border-radius: 20px; background: #fff; color: #0B0F2A; box-shadow: 0 24px 64px rgba(0,0,34,.28); overflow: auto; }
+.p-modal::backdrop { background: rgba(0,0,34,.55); backdrop-filter: blur(2px); }
+.p-modal[open] { animation: p-pop .18s ease-out; }
+@keyframes p-pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .p-modal[open] { animation: none; } }
+.p-modal .p-modal-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start; gap: 12px; padding: 20px 22px 14px; background: #fff; border-bottom: 1px solid #DFE2EA; }
+.p-modal .p-modal-head > div { flex: 1; min-width: 0; }
+.p-modal h2 { margin: 0; font: 900 clamp(1.125rem, 2.2vw, 1.375rem)/1.15 var(--font-display), 'Roboto Condensed', sans-serif; text-transform: uppercase; color: #001B72; }
+.p-modal .p-modal-head p { margin: 6px 0 0; font-size: 14px; color: #666C80; }
+.p-modal .p-modal-x { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -8px -8px 0 0; border: 0; border-radius: 50%; background: transparent; color: #474C60; cursor: pointer; }
+.p-modal .p-modal-x:hover { background: #EEF1FA; color: #001B72; }
+.p-modal .p-modal-x svg { width: 20px; height: 20px; }
+/* Μέσα στο modal οι φόρμες χωρίς δική τους κάρτα */
+.p-modal .p-form { box-shadow: none; border-radius: 0; padding: 18px 22px 22px; }
+
+/* Σύνδεση / ανάκτηση κωδικού */
+.wwa-portal.p-auth { display: flex; flex-direction: column; }
+.wwa-portal .p-auth-main { position: relative; flex: 1; display: grid; place-items: center; padding: 40px 16px; background: var(--p-navy-950); overflow: hidden; }
+.wwa-portal .p-auth-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .28; }
+.wwa-portal .p-auth-card { position: relative; width: min(440px, 100%); padding: 28px; background: #fff; border-radius: 20px; box-shadow: 0 24px 64px rgba(0,0,34,.35); }
+.wwa-portal .p-auth-form { display: flex; flex-direction: column; gap: 14px; }
+.wwa-portal .p-auth-form h1 { margin: 0; font: 900 clamp(1.375rem, 3vw, 1.75rem)/1.1 var(--p-display); text-transform: uppercase; color: var(--p-brand); }
+.wwa-portal .p-auth-form > p.p-muted { margin: 0; font-size: 14.5px; }
+.wwa-portal .p-auth-form .p-btn { width: 100%; }
+.wwa-portal .p-auth-links { margin: 0; text-align: center; font-size: 14px; }
+.wwa-portal .p-auth-links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--p-brand); font-weight: 500; text-decoration: none; }
+.wwa-portal .p-auth-links a:hover { text-decoration: underline; }
+.wwa-portal .p-switch { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; padding: 0 10px; min-height: 40px; border: 1px solid var(--p-rule); border-radius: 999px; color: var(--p-brand); }
+.wwa-portal .p-switch svg { width: 16px; height: 16px; flex: none; }
+.wwa-portal .p-switch select { max-width: 220px; border: 0; background: transparent; font: 600 14px/1 var(--p-body); color: var(--p-ink); cursor: pointer; }
+.wwa-portal .p-company dl { display: grid; grid-template-columns: 1fr; gap: 8px 24px; margin: 0; font-size: 14px; }
+@media (min-width: 640px) { .wwa-portal .p-company dl { grid-template-columns: 1fr 1fr; } }
+.wwa-portal .p-company dl div { display: flex; gap: 8px; }
+.wwa-portal .p-company dt { flex: none; color: var(--p-fg-3); min-width: 110px; }
+.wwa-portal .p-company dd { margin: 0; font-weight: 600; }

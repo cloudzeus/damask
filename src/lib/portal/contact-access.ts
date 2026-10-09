@@ -48,7 +48,7 @@ export async function grantContactPortalAccess(contactId: string): Promise<{ ok:
 
   // 2) Σύνδεσμος ορισμού κωδικού (ο χρήστης ορίζει τον δικό του κωδικό).
   const token = await createResetToken(userId)
-  const url = `${APP_URL}/reset-password?token=${token}`
+  const url = `${APP_URL}/portal/neos-kodikos?token=${token}`
 
   if (await isMailerConfigured()) {
     const html = renderEmailShell({
