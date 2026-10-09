@@ -9,6 +9,7 @@ import { trdrUploadFolder } from '@/lib/trdr/cdn-folder'
 import { ensureEmeTemplate, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/eme'
 import { isE3TypeName, extractE3WithAi, applyE3ToTrdr } from '@/lib/tax/e3'
 import { isMmeTypeName, extractMmeWithAi, applyMmeToTrdr } from '@/lib/tax/mme'
+import { verifyRequestedUpload } from '@/lib/file-requests/verify-upload'
 
 /**
  * Public upload endpoint (token-gated, ΧΩΡΙΣ session — βλ. proxy.ts /api/file-requests/).
@@ -75,6 +76,18 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
     return NextResponse.json({ error: 'Αδυναμία ανάγνωσης αρχείου.' }, { status: 400 })
   }
 
+  // ΥΠΟΧΡΕΩΤΙΚΟΣ έλεγχος AI πριν την αποθήκευση: ό,τι δεν είναι το ζητούμενο έγγραφο (ή αφορά άλλη επιχείρηση) δεν ανεβαίνει.
+  const [item, trdr] = await Promise.all([
+    prisma.fileRequestItem.findFirst({ where: { id: itemId, fileRequestId: fr.id }, select: { label: true, description: true } }),
+    prisma.trdr.findUnique({ where: { id: fr.trdrId }, select: { NAME: true, AFM: true } }),
+  ])
+  if (!item) return NextResponse.json({ error: 'Το ζητούμενο έγγραφο δεν βρέθηκε.' }, { status: 400 })
+  const verdict = await verifyRequestedUpload({
+    bytes: Buffer.from(arrayBuffer), mimeType: file.type || '', fileName: file.name,
+    expected: { label: item.label, description: item.description }, company: { name: trdr?.NAME ?? '', afm: trdr?.AFM },
+  })
+  if (!verdict.ok) return NextResponse.json({ error: verdict.reason, rejected: true }, { status: 422 })
+
   try {
     await bunnyUploadPrivate({ key: storageKey, body: Buffer.from(arrayBuffer), contentType: file.type || 'application/octet-stream' })
   } catch (err) {
@@ -90,6 +103,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
     sizeBytes: file.size,
   })
   if (!res.ok) return NextResponse.json({ error: res.error ?? 'Αποτυχία συσχέτισης.' }, { status: 400 })
+  await prisma.fileRequestItem.update({ where: { id: itemId }, data: { note: verdict.note.slice(0, 500) } }).catch(() => null)
 
   void logApiUsage({ service: 'bunnycdn', operation: 'upload', units: file.size / 1e9, refType: 'fileRequest', refId: fr.id })
 

@@ -234,12 +234,13 @@ export function CustomerUploader({ token, request }: { token: string; request: O
         <UploadCloud size={24} strokeWidth={1.6} aria-hidden style={{ color: 'var(--muted-foreground, #64748b)' }} />
         <p style={{ margin: '0.4rem 0 0', fontSize: 'var(--fs-13)', fontWeight: 700 }}>Σύρε αρχεία εδώ ή πάτησε για επιλογή</p>
         <p style={{ margin: '0.15rem 0 0', fontSize: 'var(--fs-12)', color: 'var(--muted-foreground, #94a3b8)' }}>
-          Αναγνωρίζουμε αυτόματα κάθε αρχείο και το αντιστοιχίζουμε στο σωστό δικαιολογητικό — απλώς έλεγξε.
+          PDF ή φωτογραφία. Κάθε αρχείο ελέγχεται αυτόματα: γίνεται δεκτό μόνο αν είναι ένα από τα ζητούμενα έγγραφα της επιχείρησης.
         </p>
         <input
           ref={inputRef}
           type="file"
           multiple
+          accept=".pdf,image/jpeg,image/png,image/webp,image/heic"
           onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }}
           style={{ display: 'none' }}
         />
@@ -344,11 +345,11 @@ export function CustomerUploader({ token, request }: { token: string; request: O
 function QueueBadge({ status }: { status: QueueStatus }) {
   switch (status) {
     case 'uploading':
-      return <span className="badge-pill info" lang="el"><Loader2 size={11} className="animate-spin" aria-hidden /> Μεταφόρτωση</span>
+      return <span className="badge-pill info" lang="el"><Loader2 size={11} className="animate-spin" aria-hidden /> Έλεγχος &amp; μεταφόρτωση</span>
     case 'done':
       return <span className="badge-pill ok" lang="el"><CheckCircle2 size={11} aria-hidden /> Ολοκληρώθηκε</span>
     case 'error':
-      return <span className="badge-pill danger" lang="el"><AlertTriangle size={11} aria-hidden /> Σφάλμα</span>
+      return <span className="badge-pill danger" lang="el"><AlertTriangle size={11} aria-hidden /> Δεν έγινε δεκτό</span>
     default:
       return <span className="badge-pill muted" lang="el">Σε αναμονή</span>
   }

@@ -155,6 +155,11 @@ export async function submitObligationUpload(
   const body = Buffer.from(file.base64, 'base64')
   if (body.length === 0) return { ok: false, reason: 'empty' }
   if (body.length > MAX_UPLOAD_BYTES) return { ok: false, reason: 'too_large' }
+  // ΥΠΟΧΡΕΩΤΙΚΟΣ έλεγχος AI (server-side): μόνο το ζητούμενο έγγραφο της επιχείρησης γίνεται δεκτό.
+  const { verifyRequestedUpload } = await import('@/lib/file-requests/verify-upload')
+  const trdrRow = await prisma.trdr.findUnique({ where: { id: app.trdrId }, select: { NAME: true, AFM: true } })
+  const verdict = await verifyRequestedUpload({ bytes: body, mimeType: file.mimeType, fileName: file.filename, expected: { label: obl.name }, company: { name: trdrRow?.NAME ?? '', afm: trdrRow?.AFM } })
+  if (!verdict.ok) return { ok: false, reason: verdict.reason }
   const ext = (file.filename.split('.').pop() ?? 'bin').replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'bin'
   const key = `portal/${app.id}/obl-${obl.id}.${ext}`
   await bunnyUploadPrivate({ key, body, contentType: file.mimeType })
@@ -165,18 +170,18 @@ export async function submitObligationUpload(
     ? await prisma.applicationDocument.update({ where: { id: existingDocId }, data: { name, storageKey: key, mimeType: file.mimeType, size: body.length } })
     : await prisma.applicationDocument.create({ data: { applicationId: app.id, obligationId: obl.id, name, storageKey: key, mimeType: file.mimeType, size: body.length } })
 
-  const aiLine = ai ? `[Έλεγχος AI ${new Date().toLocaleDateString('el-GR')}] ${ai.verdict === 'match' ? '✓' : '⚠'} ${ai.message}` : null
+  const aiLine = `[${new Date().toLocaleDateString('el-GR')}] ${verdict.note}`
   await prisma.applicationObligation.update({
     where: { id: obl.id },
-    data: { status: 'SUBMITTED', ...(aiLine ? { notes: [aiLine, obl.notes].filter(Boolean).join('\n').slice(0, 2000) } : {}) },
+    data: { status: 'SUBMITTED', notes: [aiLine, obl.notes].filter(Boolean).join('\n').slice(0, 2000) },
   })
   // Σωστό έγγραφο με γνωστό τύπο → και στην αποθήκη της επιχείρησης (δεν θα ξαναζητηθεί σε άλλο πρόγραμμα).
-  if (ai?.verdict === 'match') {
-    const typeId = (obl.sourceId ? (await prisma.programRequiredForm.findUnique({ where: { id: obl.sourceId }, select: { documentTypeId: true } }))?.documentTypeId : null) ?? ai.detectedTypeId ?? null
+  {
+    const typeId = (obl.sourceId ? (await prisma.programRequiredForm.findUnique({ where: { id: obl.sourceId }, select: { documentTypeId: true } }))?.documentTypeId : null) ?? ai?.detectedTypeId ?? null
     if (typeId && (await prisma.documentType.findUnique({ where: { id: typeId }, select: { id: true } }))) {
       const d = (s?: string | null) => (s && !Number.isNaN(Date.parse(s)) ? new Date(s) : null)
       await prisma.trdrDossierDocument.create({
-        data: { trdrId: app.trdrId, documentTypeId: typeId, name, storageKey: key, mimeType: file.mimeType, sizeBytes: body.length, issuedAt: d(ai.issuedAt), expiresAt: d(ai.expiresAt), programId: app.programId },
+        data: { trdrId: app.trdrId, documentTypeId: typeId, name, storageKey: key, mimeType: file.mimeType, sizeBytes: body.length, issuedAt: d(ai?.issuedAt), expiresAt: d(ai?.expiresAt), programId: app.programId },
       }).catch(() => null)
     }
   }

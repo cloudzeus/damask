@@ -8,8 +8,7 @@ import {
   LuCalendarDays, LuMessageCircle, LuMail, LuSparkles, LuChevronDown, LuTriangleAlert,
 } from 'react-icons/lu'
 import { submitObligationUpload, type PortalApp } from '@/lib/pm/portal-contact'
-import { checkPortalDocument, type PortalDocCheck } from '@/lib/pm/portal-documents'
-import { readForRecognition } from '@/lib/ocr/read-for-recognition'
+import type { PortalDocCheck } from '@/lib/pm/portal-documents'
 
 /** Ανέβασμα σε δύο βήματα: η AI διαβάζει το αρχείο → αν δεν είναι σίγουρα το σωστό, ο πελάτης αποφασίζει. */
 export type UploadReview = { file: File; phase: 'checking' | 'review'; check: PortalDocCheck | null }
@@ -38,31 +37,24 @@ export function PortalPrograms({ applications, preview = false }: { applications
   const [reviews, setReviews] = React.useState<Record<string, UploadReview>>({})
   const setReview = (id: string, r: UploadReview | null) => setReviews(prev => { const n = { ...prev }; if (r) n[id] = r; else delete n[id]; return n })
 
-  async function upload(obligationId: string, file: File, check: PortalDocCheck | null) {
-    setBusyId(obligationId)
-    try {
-      const base64 = await fileToBase64(file)
-      const res = await submitObligationUpload(obligationId, { filename: file.name, base64, mimeType: file.type || 'application/octet-stream' },
-        check ? { verdict: check.verdict, message: check.message, detectedTypeId: check.detectedTypeId, issuedAt: check.issuedAt, expiresAt: check.expiresAt } : undefined)
-      if (res.ok) { setReview(obligationId, null); toast.success(check?.verdict === 'match' ? `${check.message} Ανέβηκε — ευχαριστούμε!` : 'Το έγγραφο ανέβηκε — θα το ελέγξει ο σύμβουλός σας.'); router.refresh() }
-      else toast.error('Το ανέβασμα απέτυχε. Δοκιμάστε ξανά ή στείλτε το στον σύμβουλό σας.')
-    } catch {
-      toast.error('Το ανέβασμα απέτυχε. Δοκιμάστε ξανά ή στείλτε το στον σύμβουλό σας.')
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  /** Βήμα 1: η AI «διαβάζει» το αρχείο. Σωστό → ανεβαίνει αμέσως· αλλιώς ζητάμε επιβεβαίωση. */
+  /** Ανέβασμα: ο server διαβάζει το αρχείο με AI και το δέχεται ΜΟΝΟ αν είναι το ζητούμενο έγγραφο της επιχείρησης. */
   async function handlePick(obligationId: string, file: File) {
     if (preview) { toast.info('Προεπισκόπηση — το ανέβασμα γίνεται μόνο από τον πελάτη.'); return }
     if (file.size > 8 * 1024 * 1024) { toast.error('Το αρχείο ξεπερνά τα 8MB.'); return }
     setReview(obligationId, { file, phase: 'checking', check: null })
-    const payload = await readForRecognition(file)
-    const res = await checkPortalDocument({ obligationId, fileName: file.name, ...payload }).catch(() => null)
-    const check = res?.ok ? res.check : null
-    if (check?.verdict === 'match') { await upload(obligationId, file, check); return }
-    setReview(obligationId, { file, phase: 'review', check: check ?? { verdict: 'unknown', message: 'Ο αυτόματος έλεγχος δεν ήταν διαθέσιμος. Μπορείτε να το ανεβάσετε — θα το ελέγξει ο σύμβουλός σας.', expectedName: null, detectedTypeId: null, detectedName: null, expiresAt: null, issuedAt: null } })
+    setBusyId(obligationId)
+    try {
+      const base64 = await fileToBase64(file)
+      const res = await submitObligationUpload(obligationId, { filename: file.name, base64, mimeType: file.type || 'application/octet-stream' })
+      if (res.ok) { setReview(obligationId, null); toast.success('Ελέγχθηκε και ανέβηκε — ευχαριστούμε!'); router.refresh(); return }
+      const reason = res.reason && res.reason.includes(' ') ? res.reason : 'Το ανέβασμα απέτυχε. Δοκιμάστε ξανά ή στείλτε το στον σύμβουλό σας.'
+      setReview(obligationId, { file, phase: 'review', check: { verdict: 'mismatch', message: reason, expectedName: null, detectedTypeId: null, detectedName: null, expiresAt: null, issuedAt: null } })
+    } catch {
+      setReview(obligationId, null)
+      toast.error('Το ανέβασμα απέτυχε. Δοκιμάστε ξανά ή στείλτε το στον σύμβουλό σας.')
+    } finally {
+      setBusyId(null)
+    }
   }
 
   if (applications.length === 0) {
@@ -80,7 +72,7 @@ export function PortalPrograms({ applications, preview = false }: { applications
         </div>
       )}
       {applications.map(app => (
-        <ProgramGuide key={app.applicationId} app={app} busyId={busyId} reviews={reviews} onPick={handlePick} onConfirm={(id, r) => void upload(id, r.file, r.check)} onCancel={id => setReview(id, null)} preview={preview} />
+        <ProgramGuide key={app.applicationId} app={app} busyId={busyId} reviews={reviews} onPick={handlePick} onCancel={id => setReview(id, null)} preview={preview} />
       ))}
     </>
   )
@@ -88,9 +80,9 @@ export function PortalPrograms({ applications, preview = false }: { applications
 
 const isDone = (s: string) => s === 'APPROVED' || s === 'SUBMITTED' || s === 'WAIVED'
 
-function ProgramGuide({ app, busyId, reviews, onPick, onConfirm, onCancel, preview }: {
+function ProgramGuide({ app, busyId, reviews, onPick, onCancel, preview }: {
   app: PortalApp; busyId: string | null; reviews: Record<string, UploadReview>; preview: boolean
-  onPick: (id: string, f: File) => void; onConfirm: (id: string, r: UploadReview) => void; onCancel: (id: string) => void
+  onPick: (id: string, f: File) => void; onCancel: (id: string) => void
 }) {
   const { journey, money } = app
   const todo = app.obligations.filter(o => !isDone(o.status))
@@ -150,7 +142,7 @@ function ProgramGuide({ app, busyId, reviews, onPick, onConfirm, onCancel, previ
                       <input type="file" className="sr-only" disabled={busy || preview} aria-label={`Ανέβασμα: ${o.name}`}
                         onChange={e => { const f = e.target.files?.[0]; if (f) onPick(o.id, f); e.target.value = '' }} />
                     </label>
-                    {rv && <ReviewBox review={rv} busy={busyId === o.id} onConfirm={() => onConfirm(o.id, rv)} onCancel={() => onCancel(o.id)} />}
+                    {rv && <ReviewBox review={rv} onCancel={() => onCancel(o.id)} />}
                   </li>
                 )
               })}
@@ -247,19 +239,14 @@ function DateRow({ label, value }: { label: string; value: string | null }) {
 }
 
 /** Αποτέλεσμα του ελέγχου AI κάτω από το έντυπο: «διαβάζει…» ή προειδοποίηση + επιλογές. */
-export function ReviewBox({ review, busy, onConfirm, onCancel }: { review: UploadReview; busy: boolean; onConfirm: () => void; onCancel: () => void }) {
+export function ReviewBox({ review, onCancel }: { review: UploadReview; onCancel: () => void }) {
   if (review.phase === 'checking') {
     return <div className="p-review checking" role="status"><LuLoaderCircle className="spin" aria-hidden /> Ο έλεγχος AI διαβάζει το «{review.file.name}»…</div>
   }
-  const c = review.check!
-  const severe = c.verdict === 'foreign' || c.verdict === 'expired'
   return (
-    <div className={`p-review ${severe ? 'bad' : 'warn'}`} role="alert">
-      <div className="msg"><LuTriangleAlert aria-hidden /><span>{c.message}</span></div>
-      <div className="acts">
-        <button type="button" className="p-btn p-btn-outline" onClick={onCancel} disabled={busy}>Επιλέξτε άλλο αρχείο</button>
-        <button type="button" className="p-btn" onClick={onConfirm} disabled={busy}>{busy ? <LuLoaderCircle className="spin" aria-hidden /> : null} Ανέβασμα ούτως ή άλλως</button>
-      </div>
+    <div className="p-review bad" role="alert">
+      <div className="msg"><LuTriangleAlert aria-hidden /><span><b>Δεν ανέβηκε.</b> {review.check?.message}</span></div>
+      <div className="acts"><button type="button" className="p-btn p-btn-outline" onClick={onCancel}>Εντάξει — θα επιλέξω άλλο αρχείο</button></div>
     </div>
   )
 }
