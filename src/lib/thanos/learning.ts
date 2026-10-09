@@ -159,7 +159,7 @@ export async function distillTurns(limit = 150, minAgeMs = 10 * 60_000): Promise
           ].join('\n'),
         },
         { role: 'user', content: JSON.stringify(payload) },
-      ], { model: 'deepseek-v4-pro', maxTokens: 12000, temperature: 0.2, timeoutMs: 180_000, refType: 'thanos-distill' })
+      ], { model: 'deepseek-v4-pro', reasoningEffort: 'low', maxTokens: 12000, temperature: 0.2, timeoutMs: 180_000, refType: 'thanos-distill' })
       const parsed = parseJsonLoose(raw) as { lessons?: Distilled[] } | null
       for (const l of parsed?.lessons ?? []) {
         const src = typeof l.turnIndex === 'number' ? batch[l.turnIndex] : undefined

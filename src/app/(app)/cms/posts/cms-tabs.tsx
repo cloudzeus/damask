@@ -1,24 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { Newspaper, FolderTree, Users } from 'lucide-react'
+import { Newspaper, FolderTree, Users, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const TABS = [
   { key: 'posts', label: 'Άρθρα', icon: Newspaper },
   { key: 'categories', label: 'Κατηγορίες', icon: FolderTree },
   { key: 'authors', label: 'Συγγραφείς', icon: Users },
+  { key: 'autopilot', label: 'Αυτόματη αρθρογραφία', icon: Sparkles },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
 
 /** Pill tabs (ίδιο idiom με SettingsTabs) — τα 3 panels είναι server-rendered μία φορά και περνάνε ως children. */
 export function CmsPostsTabs({
-  posts, categories, authors,
+  posts, categories, authors, autopilot,
 }: {
   posts: React.ReactNode
   categories: React.ReactNode
   authors: React.ReactNode
+  autopilot: React.ReactNode
 }) {
   const [active, setActive] = useState<TabKey>('posts')
 
@@ -50,6 +52,9 @@ export function CmsPostsTabs({
       </div>
       <div id="cms-panel-authors" role="tabpanel" aria-labelledby="cms-tab-authors" hidden={active !== 'authors'}>
         {authors}
+      </div>
+      <div id="cms-panel-autopilot" role="tabpanel" aria-labelledby="cms-tab-autopilot" hidden={active !== 'autopilot'}>
+        {active === 'autopilot' && autopilot}
       </div>
     </div>
   )

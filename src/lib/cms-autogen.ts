@@ -40,8 +40,8 @@ export type ArticleBrief = {
   companyContext?: string | null
 }
 
-export const BRAND_NAME = 'Damask'
-const BRAND_DEFAULT_CONTEXT = 'Damask — εταιρεία υφασμάτων και επίπλωσης (fabrics & furniture) για τον χώρο του σπιτιού και της επιχείρησης.'
+export const BRAND_NAME = 'World Wide Associates (WWA)'
+const BRAND_DEFAULT_CONTEXT = 'World Wide Associates — σύμβουλοι ΕΣΠΑ και ευρωπαϊκών προγραμμάτων στην Αθήνα (2.500+ επενδυτικά σχέδια): έλεγχος επιλεξιμότητας, υποβολή, υλοποίηση και αποπληρωμή επιδοτήσεων για επιχειρήσεις.'
 
 /**
  * Χτίζει τα μηνύματα (system + user) για το DeepSeek chat-completions API —

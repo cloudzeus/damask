@@ -3016,3 +3016,23 @@ model ThanosLesson {
   @@index([status])
   @@index([programId])
 }
+
+/// Ιδέες άρθρων για την αυτόματη αρθρογραφία (SEO/GEO/AEO): από νέα του espa.gr, ενεργά προγράμματα, λέξεις-κλειδιά.
+model ContentIdea {
+  id            String    @id @default(cuid())
+  source        String // ESPA_NEWS | PROGRAM | KEYWORD | MANUAL
+  sourceUrl     String?   @unique
+  programId     String?
+  title         String
+  summary       String?   @db.Text
+  targetKeyword String?
+  score         Int       @default(50) // 0-100: σχέση με ΜμΕ/επιχειρήσεις & αναζητήσεις
+  status        String    @default("NEW") // NEW | WRITING | USED | SKIPPED | ERROR
+  error         String?
+  postId        String?
+  publishedAt   DateTime? // ημερομηνία της πηγής (π.χ. ανακοίνωση)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, score])
+}

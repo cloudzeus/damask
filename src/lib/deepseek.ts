@@ -21,6 +21,8 @@ export type DeepSeekOptions = {
   model?: string
   maxTokens?: number
   temperature?: number
+  /** Για μοντέλα με «σκέψη» (π.χ. deepseek-v4-pro): low = γρήγορο & δεν τρώει το όριο tokens σε reasoning. */
+  reasoningEffort?: 'low' | 'high' | 'max'
   /** Timeout για το fetch (ms) — default 60_000. Αυξάνεται π.χ. για program extraction σε μεγάλα PDF. */
   timeoutMs?: number
   /** Scope για το AiUsage log (/costs) — προεπιλογή ανά function παρακάτω. */
@@ -56,6 +58,7 @@ export async function deepseekChat(messages: ChatMessage[], opts: DeepSeekOption
       messages,
       max_tokens: opts.maxTokens ?? 1024,
       temperature: opts.temperature ?? 0.3,
+      ...(opts.reasoningEffort ? { reasoning_effort: opts.reasoningEffort } : {}),
     }),
     signal: AbortSignal.timeout(opts.timeoutMs ?? 60_000),
   })

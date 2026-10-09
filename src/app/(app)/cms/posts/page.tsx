@@ -8,6 +8,7 @@ import { CategoriesTab, type CategoryRow } from './categories-tab'
 import { AuthorsTab, type AuthorRow } from './authors-tab'
 import { NewPostButton } from './new-post-button'
 import { AiGenerateButton } from './ai-generate-dialog'
+import { AutopilotTab } from './autopilot-tab'
 import { PageHeader } from '@/components/ui/page-header'
 
 export default async function CmsPostsPage() {
@@ -90,6 +91,7 @@ export default async function CmsPostsPage() {
         posts={<PostsTable posts={postRows} canEdit={canEdit} />}
         categories={<CategoriesTab categories={categoryRows} canEdit={canEdit} />}
         authors={<AuthorsTab authors={authorRows} users={userOptions} canEdit={canEdit} />}
+        autopilot={<AutopilotTab canEdit={canEdit} />}
       />
     </div>
   )

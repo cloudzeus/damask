@@ -43,14 +43,14 @@ describe('buildArticleGenerationMessages', () => {
     expect(messages[0].content).toContain('Ταπετσαρίες')
   })
 
-  it('χρησιμοποιεί το companyContext όταν δίνεται, αλλιώς το προεπιλεγμένο πλαίσιο Damask', () => {
+  it('χρησιμοποιεί το companyContext όταν δίνεται, αλλιώς το προεπιλεγμένο πλαίσιο WWA (σύμβουλοι ΕΣΠΑ)', () => {
     const withContext = buildArticleGenerationMessages({
       topic: 'x', tone: 'informative', length: 'short', companyContext: 'Damask Α.Ε. — υφάσματα ξενοδοχείων',
     })
     expect(withContext[0].content).toContain('Damask Α.Ε. — υφάσματα ξενοδοχείων')
 
     const withoutContext = buildArticleGenerationMessages({ topic: 'x', tone: 'informative', length: 'short' })
-    expect(withoutContext[0].content).toMatch(/υφασμάτων/)
+    expect(withoutContext[0].content).toMatch(/σύμβουλοι ΕΣΠΑ/)
   })
 
   it('ζητά JSON απάντηση με τα αναμενόμενα keys', () => {

@@ -32,6 +32,10 @@ export const QUEUE_NAS_BACKUP = 'nas-backup'
 export const QUEUE_THANOS_DISTILL = 'thanos-distill'
 /** Μαζική εισαγωγή δωρεάν stock φωτογραφιών (Pexels/Pixabay) στο Media Gallery (src/lib/stock/bulk-import.ts). */
 export const QUEUE_STOCK_IMPORT = 'stock-import'
+/** Αυτόματη αρθρογραφία SEO: ημερήσιο tick (ιδέες από espa.gr + άρθρο με τον εβδομαδιαίο ρυθμό) — src/lib/seo-content/engine.ts. */
+export const QUEUE_SEO_AUTOPILOT = 'seo-autopilot'
+/** Συγγραφή ενός άρθρου από ιδέα (χειροκίνητο «Γράψε τώρα»). */
+export const QUEUE_SEO_WRITE = 'seo-write'
 
 export type ImportJobPayload = { jobId: string; rows: RawImportRow[] }
 
@@ -181,6 +185,29 @@ export async function startQueue(): Promise<void> {
       console.log(`[pg-boss] stock-import: ${r.imported} εικόνες (${r.skipped} υπήρχαν, ${r.failed} αποτυχίες)`)
     } catch (err) {
       console.error('[pg-boss] stock-import απέτυχε', err) // never rethrow — η πρόοδος/σφάλμα γράφεται στο status
+    }
+  })
+
+  await boss.createQueue(QUEUE_SEO_AUTOPILOT)
+  await boss.work(QUEUE_SEO_AUTOPILOT, async () => {
+    try {
+      const { runAutopilot } = await import('@/lib/seo-content/engine')
+      const r = await runAutopilot()
+      console.log('[pg-boss] seo-autopilot:', JSON.stringify(r))
+    } catch (err) {
+      console.error('[pg-boss] seo-autopilot απέτυχε', err) // never rethrow — scheduled tick
+    }
+  })
+  await boss.schedule(QUEUE_SEO_AUTOPILOT, '30 9 * * *', null, { tz: 'Europe/Athens' })
+
+  await boss.createQueue(QUEUE_SEO_WRITE)
+  await boss.work<{ ideaId: string; publish: boolean }>(QUEUE_SEO_WRITE, async ([job]) => {
+    if (!job?.data?.ideaId) return
+    try {
+      const { writeArticle } = await import('@/lib/seo-content/engine')
+      await writeArticle(job.data.ideaId, { publish: !!job.data.publish })
+    } catch (err) {
+      console.error('[pg-boss] seo-write απέτυχε', err) // το σφάλμα γράφεται στην ιδέα (status ERROR)
     }
   })
 

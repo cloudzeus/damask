@@ -1,10 +1,15 @@
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import { legacyRedirects } from './src/lib/seo-content/legacy-redirects'
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // 301 από τα URL του παλιού WordPress (wwa-espa.com) — κρατά τις θέσεις στο Google μετά την αντικατάσταση.
+  async redirects() {
+    return legacyRedirects()
+  },
   experimental: {
     serverActions: {
       // Import Engine (spec §11α): το Βήμα 5 στέλνει ΟΛΕΣ τις mapped γραμμές σε ένα
