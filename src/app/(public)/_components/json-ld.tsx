@@ -42,7 +42,13 @@ export function organizationJsonLd(): Record<string, unknown>[] {
         'https://www.google.com/search?kgmid=/g/11zzcqxtkl', // καρτέλα επιχείρησης Google (Knowledge Graph)
       ],
       hasMap: 'https://www.google.com/maps/search/?api=1&query=World+Wide+Associates+%CE%91%CE%BB%CE%B5%CE%BE%CE%B1%CE%BD%CE%B4%CF%81%CE%BF%CF%85%CF%80%CF%8C%CE%BB%CE%B5%CF%89%CF%82+25+%CE%91%CE%B8%CE%AE%CE%BD%CE%B1',
-      memberOf: ['ΣΕΔΕ', 'ΣΥ.Σ.ΕΠ.', 'GR.EC.A', 'ΠΣΒΑΚ', 'BNI Greece'].map(name => ({ '@type': 'Organization', name })),
+      memberOf: [
+        { name: 'ΣΕΔΕ — Σύνδεσμος Εταιριών Διαδικτύου Ελλάδας', url: 'https://sede.org.gr' },
+        { name: 'ΣΥΣΕΠ — Σύνδεσμος Συμβούλων Επιχειρήσεων', url: 'https://www.sysep.org' },
+        { name: 'GR.EC.A — Ελληνικός Σύνδεσμος Ηλεκτρονικού Εμπορίου', url: 'https://www.greekecommerce.gr' },
+        { name: 'ΠΣΒΑΚ — Πανελλήνιος Σύνδεσμος Βιομηχάνων & Αντιπροσώπων Καλλυντικών και Αρωμάτων', url: 'https://psvak.gr' },
+        { name: 'BNI Greece', url: 'https://bni-greece.com' },
+      ].map(o => ({ '@type': 'Organization', ...o })),
     },
     { '@context': 'https://schema.org', '@type': 'WebSite', '@id': `${SITE_URL}/#website`, url: SITE_URL, name: SITE_NAME, inLanguage: 'el-GR', publisher: { '@id': ORG_ID } },
   ]

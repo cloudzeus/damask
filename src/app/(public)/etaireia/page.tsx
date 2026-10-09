@@ -7,6 +7,7 @@ import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck, IconShield, IconChart, IconInfo } from '../_components/icons'
 import { wwaPhoto, wwaPageImage } from '../_wwa/assets'
 import { Pic } from '../_components/pic'
+import { PartnersStrip } from '../_components/partners'
 
 export const revalidate = 3600
 
@@ -106,7 +107,7 @@ export default function CompanyPage() {
       <section lang="el">
         <div className="wrap">
           <div className="sec-head r"><span className="eyebrow"><span className="idx">04</span>Φορείς &amp; συνεργασίες</span><h2>Δεν δουλεύουμε μόνοι μας</h2><p>Επίσημοι σύμβουλοι του ΣΕΔΕ και μέλη σε κορυφαίους κλαδικούς φορείς — γιατί οι σωστές συνεργασίες φέρνουν καλύτερα αποτελέσματα.</p></div>
-          <div className="aff" style={{ marginTop: 8 }}><div className="wrap" style={{ padding: 0 }}><div className="logo-strip"><span>ΣΕΔΕ</span><span>ΣΥ.Σ.ΕΠ.</span><span>GR.EC.A</span><span>ΠΣΒΑΚ</span><span>BNI Greece</span><span>Entersoftone</span></div></div></div>
+          <div className="r" style={{ marginTop: 8 }}><PartnersStrip label="Φορείς όπου συμμετέχουμε & συνεργάτες" /></div>
         </div>
       </section>
 

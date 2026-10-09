@@ -700,3 +700,12 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .pv-input svg { width: 16px; height: 16px; color: var(--brand); }
 .pv-note { text-align: center; font-size: 13px; color: var(--fg-3); margin: 0; }
 @media (max-width: 900px) { .pv-row { grid-template-columns: 1fr; } .pv-row.flip .pv-copy { order: 0; } }
+
+/* Λωρίδα φορέων/συνεργατών με λογότυπα (γκρι → χρώμα στο hover) */
+.partners-strip { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 8px 0; }
+.partners-strip .lab { font-size: 13px; font-weight: 500; letter-spacing: .04em; color: var(--fg-3); text-transform: uppercase; }
+.partners-strip ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px 44px; }
+.partners-strip a { display: inline-flex; align-items: center; min-height: 64px; padding: 6px 4px; }
+.partners-strip img { width: auto; max-width: 170px; object-fit: contain; filter: grayscale(1); opacity: .7; transition: filter .25s, opacity .25s; }
+.partners-strip a:hover img, .partners-strip a:focus-visible img { filter: none; opacity: 1; }
+@media (max-width: 640px) { .partners-strip ul { gap: 14px 28px; } .partners-strip img { max-width: 120px; } }

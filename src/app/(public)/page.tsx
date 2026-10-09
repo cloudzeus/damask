@@ -11,6 +11,7 @@ import { PostMeta } from './_components/post-meta'
 import { listPublishedPosts } from '@/lib/cms/public-posts'
 import { Pic } from './_components/pic'
 import { ShowJourney } from './_components/portal-showcase'
+import { PartnersStrip } from './_components/partners'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -232,7 +233,7 @@ export default async function HomePage() {
 
       {/* AFFILIATIONS */}
       <div className="aff" lang="el">
-        <div className="wrap"><span className="lab">Σύμβουλοι και μέλη</span><div className="logo-strip"><span>ΣΕΔΕ</span><span>ΣΥ.Σ.ΕΠ.</span><span>GR.EC.A</span><span>ΠΣΒΑΚ</span><span>BNI Greece</span><span>Entersoftone</span></div></div>
+        <div className="wrap"><PartnersStrip /></div>
       </div>
 
       {/* FAQ */}
