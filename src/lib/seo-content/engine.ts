@@ -118,23 +118,47 @@ export async function harvestIdeas(): Promise<{ added: number; checked: number }
   } catch (err) {
     console.error('[seo] espa.gr harvest απέτυχε', err)
   }
-  // (β) ενεργά προγράμματα χωρίς ιδέα/οδηγό
-  const today = new Date(new Date().toISOString().slice(0, 10))
-  const programs = await prisma.program.findMany({
-    where: { status: 'ACTIVE', publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
-    select: { id: true, title: true, fundingRate: true, cmsContent: true },
-  })
-  const withIdea = new Set((await prisma.contentIdea.findMany({ where: { source: 'PROGRAM' }, select: { programId: true } })).map(x => x.programId))
-  for (const p of programs.filter(p => !withIdea.has(p.id))) {
-    // Λέξη-κλειδί: από τη σελίδα του προγράμματος (CMS) — αλλιώς το σύντομο όνομα (κωδικός σε παρένθεση, π.χ. STEP) + έτος.
-    const cms = (p.cmsContent ?? {}) as { keywords?: string[]; heroTitle?: string }
-    const code = p.title.match(/\(([A-Za-zΑ-Ωα-ω0-9 .&-]{2,15})\)/)?.[1]
-    const keyword = cms.keywords?.[0] || (code ? `ΕΣΠΑ ${code} 2026` : `${p.title.toLocaleLowerCase('el').split(/\s+/).slice(0, 4).join(' ')} 2026`)
-    await prisma.contentIdea.create({
-      data: { source: 'PROGRAM', programId: p.id, title: `Οδηγός: ${cms.heroTitle || p.title}`, targetKeyword: keyword, score: 85, summary: 'Πρακτικός οδηγός για τον επιχειρηματία: ποιος δικαιούται, τι επιδοτείται, πόσα, έως πότε, τι να προσέξει.' },
-    }).then(() => { added++ }).catch(() => {})
-  }
+  // (β) ΟΧΙ άρθρο ανά πρόγραμμα: η σελίδα κάθε προγράμματος είναι ο μοναδικός πλήρης οδηγός του («ένα URL ανά θέμα»
+  //     — όχι διπλό/ανταγωνιστικό περιεχόμενο). Τα άρθρα καλύπτουν θέματα που δεν καλύπτει άλλη σελίδα.
   return { added, checked }
+}
+
+const STOP = new Set(['για', 'και', 'στο', 'στη', 'στην', 'των', 'της', 'του', 'τον', 'την', 'τις', 'τους', 'με', 'σε', 'από', 'ένα', 'μια', 'πώς', 'τι', 'ποιοι', 'ποια', 'οδηγός', '2026', '2027', 'εσπα', 'πρόγραμμα', 'προγράμματα', 'επιδότηση', 'επιχειρήσεις', 'επιχειρήσεων', 'νέο', 'νέα'])
+const words = (t: string) => new Set(t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-zα-ω0-9]+/i).filter(w => w.length > 2 && !STOP.has(w)))
+/** Επικάλυψη θέματος (Jaccard σημαντικών λέξεων) — για να μη γράφονται άρθρα που ήδη καλύπτονται. */
+function overlap(a: string, b: string): number {
+  const A = words(a), B = words(b)
+  if (!A.size || !B.size) return 0
+  let i = 0
+  for (const w of A) if (B.has(w)) i++
+  return i / (A.size + B.size - i)
+}
+
+/**
+ * Επόμενη ιδέα για άρθρο — ΟΧΙ λαβύρινθος περιεχομένου: παραλείπεται (SKIPPED) ό,τι καλύπτεται ήδη από
+ * δημοσιευμένο άρθρο ή από σελίδα προγράμματος (ένα URL ανά θέμα)· καμία ιδέα «οδηγός προγράμματος».
+ */
+export async function pickNextIdea() {
+  const [ideas, posts, programs] = await Promise.all([
+    prisma.contentIdea.findMany({ where: { status: 'NEW' }, orderBy: [{ score: 'desc' }, { createdAt: 'desc' }], take: 100, select: { id: true, source: true, title: true, targetKeyword: true } }),
+    prisma.postTranslation.findMany({ where: { locale: 'el', post: { status: 'PUBLISHED' } }, select: { title: true } }),
+    prisma.program.findMany({ where: { status: 'ACTIVE' }, select: { title: true, cmsContent: true } }),
+  ])
+  const covered = [...posts.map(p => p.title), ...programs.flatMap(p => [p.title, (p.cmsContent as { cardTitle?: string } | null)?.cardTitle ?? ''])].filter(Boolean)
+  for (const i of ideas) {
+    if (i.source === 'PROGRAM') {
+      await prisma.contentIdea.update({ where: { id: i.id }, data: { status: 'SKIPPED', error: 'Καλύπτεται από τη σελίδα του προγράμματος (ένα URL ανά θέμα).' } })
+      continue
+    }
+    const topic = `${i.title} ${i.targetKeyword ?? ''}`
+    const dup = covered.find(c => overlap(topic, c) >= 0.5)
+    if (dup) {
+      await prisma.contentIdea.update({ where: { id: i.id }, data: { status: 'SKIPPED', error: `Καλύπτεται ήδη: «${dup.slice(0, 120)}»` } })
+      continue
+    }
+    return prisma.contentIdea.findUnique({ where: { id: i.id } })
+  }
+  return null
 }
 
 /** Ιδέες από λέξεις-κλειδιά (π.χ. τις 30 της ανάλυσης ανταγωνισμού). */
@@ -167,7 +191,11 @@ const STYLE = [
   'ΑΚΡΙΒΕΙΑ: μόνο ό,τι στηρίζεται στην ΠΗΓΗ. Ποτέ επινοημένα ποσά, ποσοστά ή προθεσμίες. Αν κάτι δεν είναι γνωστό, γράψε ότι θα ανακοινωθεί/ελέγχεται κατά περίπτωση.',
   'ΔΟΜΗ (SEO/AEO/GEO): (1) εισαγωγική παράγραφος 40-60 λέξεων που ΑΠΑΝΤΑ ευθέως στο βασικό ερώτημα (ποιος, τι, πόσα, έως πότε)· (2) «## Με μια ματιά» με markdown πίνακα 2 στηλών (Στοιχείο | Λεπτομέρεια)· (3) 3-5 ενότητες «## …» με ερωτηματικούς/περιγραφικούς τίτλους που περιέχουν φυσικά τη λέξη-κλειδί ή συνώνυμα· (4) «## Τι να προσέξετε» με πρακτικές συμβουλές από εμπειρία· (5) «## Συχνές ερωτήσεις» με 4-6 «### Ερώτηση;» και απάντηση 2-3 προτάσεων· (6) τελική παράγραφος με φυσικό κάλεσμα σε δράση για δωρεάν έλεγχο επιλεξιμότητας ([δωρεάν έλεγχο επιλεξιμότητας](/eligibility)).',
   'ΣΥΝΔΕΣΜΟΙ: 2-4 εσωτερικοί σύνδεσμοι markdown με φυσικό anchor text προς τις σελίδες που δίνονται· 1 σύνδεσμος στην επίσημη πηγή (espa.gr) ως «επίσημη ανακοίνωση». Όχι γυμνά URLs.',
-  'Μήκος 900-1300 λέξεις. Ελληνικά, σωστός τονισμός, ακρωνύμια ολόκληρα την πρώτη φορά (π.χ. «Μικρομεσαίες Επιχειρήσεις (ΜμΕ)»).',
+  'ΧΡΗΣΙΜΟΤΗΤΑ: ο αναγνώστης πρέπει να φεύγει ξέροντας τι να κάνει — συγκεκριμένα βήματα με σειρά, ένα αριθμητικό παράδειγμα (π.χ. «επένδυση €40.000 με επιδότηση 60% → €24.000 επιδότηση, €16.000 ίδια συμμετοχή»), λίστα ελέγχου εγγράφων όπου ταιριάζει, και για ποιους ΔΕΝ είναι. Καμία πρόταση χωρίς πληροφορία.',
+  'ΟΧΙ ΕΠΑΝΑΛΗΨΗ: αν το θέμα αφορά πρόγραμμα που έχει ήδη σελίδα στο site (βλ. λίστα εσωτερικών σελίδων), ΜΗΝ αναπαράγεις όλους τους όρους του — γράψε τη ΝΕΑ πληροφορία/οπτική και παράπεμψε στη σελίδα του προγράμματος για τους πλήρεις όρους.',
+  'ΝΑ ΜΗΝ ΚΟΥΡΑΖΕΙ: η απάντηση πρώτα· παράγραφοι 2-3 προτάσεων· λίστες όπου γίνεται· έντονα (**) μόνο τα κρίσιμα νούμερα/ημερομηνίες· τίποτα που δεν βοηθά τον αναγνώστη να αποφασίσει ή να κινηθεί.',
+  'ΑΞΙΟΠΙΣΤΙΑ ΧΩΡΙΣ ΑΥΤΟΠΡΟΒΟΛΗ: ο αναγνώστης πρέπει να καταλαβαίνει ότι μιλά ο καλύτερος σύμβουλος μέσα από την ουσία — ένα συγκεκριμένο insight «από την εμπειρία μας» (π.χ. συχνό λάθος που κοστίζει την ένταξη και πώς αποφεύγεται), όχι υπερθετικά για τη WWA. Ένα μόνο κάλεσμα σε δράση, στο τέλος.',
+  'Μήκος 600-900 λέξεις — όσο χρειάζεται, όχι περισσότερο. Ελληνικά, σωστός τονισμός, ακρωνύμια ολόκληρα την πρώτη φορά (π.χ. «Μικρομεσαίες Επιχειρήσεις (ΜμΕ)»).',
 ].join('\n')
 
 type Draft = { title: string; slug?: string; excerpt: string; body: string; seoTitle: string; seoDescription: string; imageTheme?: string; imageQuery?: string }
@@ -316,7 +344,7 @@ export function qualityCheck(body: string): QualityReport {
   const internal = (body.match(/\]\(\/[a-z]/g) ?? []).length
   const lower = body.toLocaleLowerCase('el')
   const banned = BANNED.filter(b => lower.includes(b))
-  return { ok: words >= 600 && faq >= 3 && internal >= 2 && banned.length === 0, words, faq, internalLinks: internal, banned }
+  return { ok: words >= 500 && faq >= 3 && internal >= 2 && banned.length === 0, words, faq, internalLinks: internal, banned }
 }
 
 async function ensureAuthorAndCategory(): Promise<{ authorId: string; categoryId: string }> {
@@ -442,7 +470,7 @@ export async function runAutopilot(force = false): Promise<{ harvested: number; 
     const minGapMs = (7 / s.perWeek) * 86_400_000 * 0.8
     if (recent[0] && Date.now() - recent[0].createdAt.getTime() < minGapMs) return { harvested: added, wrote: null, reason: 'πολύ νωρίς από το προηγούμενο άρθρο' }
   }
-  const idea = await prisma.contentIdea.findFirst({ where: { status: 'NEW' }, orderBy: [{ score: 'desc' }, { createdAt: 'desc' }] })
+  const idea = await pickNextIdea()
   if (!idea) return { harvested: added, wrote: null, reason: 'δεν υπάρχουν ιδέες' }
   const r = await writeArticle(idea.id, { publish: s.autoPublish })
   return { harvested: added, wrote: r.postId }
