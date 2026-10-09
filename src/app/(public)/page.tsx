@@ -60,7 +60,7 @@ export default async function HomePage() {
   const soonest = [...active].sort((a, b) => toTime(a.deadline) - toTime(b.deadline))
   const topSectors = counts.sectors.filter(x => x.total > 0).sort((a, b) => b.total - a.total).slice(0, 3)
   const programCards: ProgramCardData[] = active.length
-    ? soonest.slice(0, 3).map((p, i) => ({
+    ? soonest.slice(0, 3).map(p => ({
         image: p.image, title: p.title, description: p.summary, budget: p.budget, rate: p.rate,
         deadline: p.deadline ?? undefined, deadlineOpen: p.deadlineOpen, region: p.region ?? undefined,
         status: 'active' as const, isNew: false, href: `/programmata/${p.slug}`,
