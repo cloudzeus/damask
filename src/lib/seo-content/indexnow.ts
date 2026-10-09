@@ -30,18 +30,28 @@ export async function pingIndexNow(paths: string[]): Promise<boolean> {
 const LAST = 'seo.indexnow.lastPing'
 
 /** Ό,τι άλλαξε από το προηγούμενο ping (άρθρα, προγράμματα) + οι κόμβοι που εξαρτώνται από αυτά. Καλείται καθημερινά. */
+/** Στατικές σελίδες του site — όποια δεν έχει σταλεί ποτέ στο IndexNow στέλνεται στο επόμενο tick (νέες σελίδες). */
+const STATIC_PATHS = ['/', '/programmata', '/programmata/nea-2026', '/prothesmies-espa', '/espa', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/glossari', '/syxnes-erotiseis', '/elegxos-kad', '/pyli-pelaton', '/eligibility']
+const STATIC_KEY = 'indexnow.static'
+
 export async function pingChangedSince(): Promise<number> {
   const last = new Date((await getSetting<string>(LAST)) ?? Date.now() - 7 * 86_400_000)
   const [posts, programs] = await Promise.all([
     prisma.post.findMany({ where: { status: 'PUBLISHED', updatedAt: { gt: last } }, select: { slug: true } }),
     prisma.program.findMany({ where: { status: 'ACTIVE', publicSlug: { not: null }, updatedAt: { gt: last } }, select: { publicSlug: true } }),
   ])
+  const sentStatic = new Set((await getSetting<string[]>(STATIC_KEY)) ?? [])
+  const newStatic = STATIC_PATHS.filter(p => !sentStatic.has(p))
   const paths = [
+    ...newStatic,
     ...posts.map(p => `/nea/${p.slug}`),
     ...programs.map(p => `/programmata/${p.publicSlug}`),
     ...(posts.length ? ['/nea'] : []),
     ...(programs.length ? ['/programmata', '/prothesmies-espa', '/espa', '/'] : []),
   ]
-  if (paths.length && (await pingIndexNow(paths))) await setSetting(LAST, new Date().toISOString())
+  if (paths.length && (await pingIndexNow(paths))) {
+    await setSetting(LAST, new Date().toISOString())
+    if (newStatic.length) await setSetting(STATIC_KEY, [...sentStatic, ...newStatic])
+  }
   return paths.length
 }
