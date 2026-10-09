@@ -146,6 +146,9 @@ async function* kapSource(seen: Set<string>): AsyncGenerator<HarvestCall | { ski
   }
 }
 
+/** «Καθεστώς Χ» του ν. 5246/2025, όπως τροποποιήθηκε… / «Χ – Ν. 4887/2022» → «Χ». */
+export const cleanSchemeTitle = (s: string) => s.replace(/[«»"“”]/g, '').replace(/\s*(?:[-–]\s*)?(?:του\s+)?[νΝ]\.\s*\d{4}\/\d{4}[\s\S]*$/, '').replace(/[\s,.;:–-]+$/, '').trim()
+
 /** Αναπτυξιακός Νόμος: κάθε καθεστώς (h4) → ο νεότερος κύκλος του → η κύρια προκήρυξη (κωδικοποίηση αν υπάρχει). */
 async function* anaptyxiakosSource(seen: Set<string>): AsyncGenerator<HarvestCall | { skipKey: string }> {
   const html = await fetchText(ANAPTYXIAKOS).catch(() => '')
@@ -164,7 +167,7 @@ async function* anaptyxiakosSource(seen: Set<string>): AsyncGenerator<HarvestCal
     const main = docs.find(d => /^ΚΩΔΙΚΟΠΟΙΗΣΗ/i.test(d.text)) ?? docs.find(d => /Προκήρυξη/i.test(d.text) && !/^(Τροποποίηση|\d+η Τροποποίηση|ΠΡΟΔΗΜΟΣΙΕΥΣΗ)/i.test(d.text)) ?? docs[0]
     yield {
       key, source: 'ependyseis.mindev.gov.gr (Αναπτυξιακός Νόμος)', url: `${ANAPTYXIAKOS}#${encodeURIComponent(`${scheme} ${cycle}`)}`,
-      title: `${scheme.replace(/\s*[-–]\s*Ν\.\s*4887\/2022\s*$/i, '')} — Αναπτυξιακός Νόμος (${cycle.toLowerCase()})`.slice(0, 300), status: null,
+      title: `${cleanSchemeTitle(scheme)} — Αναπτυξιακός Νόμος (${cycle.toLowerCase()})`.slice(0, 300), status: null,
       description: docs.map(d => d.text).join(' · ').slice(0, 3000),
       start: null, end: null, region: 'Όλη η Ελλάδα', budget: null, pdfUrl: main.href.endsWith('.pdf') ? main.href : null, needsOpenCheck: true,
     }

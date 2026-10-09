@@ -9,7 +9,7 @@ import { getPublicProgramBySlug, PROGRAM_PROCESS_STEPS } from '@/lib/programs/pu
 import { JsonLd, breadcrumbJsonLd } from '../../_components/json-ld'
 import { absoluteUrl } from '@/lib/site-url'
 import { AnswerBox } from '../../_components/program-grid'
-import { hubsForProgram, officialSourceFor, relatedPostsForProgram } from '@/lib/seo-content/hubs'
+import { hubsForProgram, officialSourceFor, relatedPostsForProgram, programFamily } from '@/lib/seo-content/hubs'
 import { Pic } from '../../_components/pic'
 
 export const revalidate = 3600
@@ -44,10 +44,11 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
   if (!p) notFound()
   const cms = p.cms
   const [hubs, official, guides] = await Promise.all([hubsForProgram(p.slug), officialSourceFor(p.id), relatedPostsForProgram(p.slug, p.id, 4)])
+  const family = programFamily(official, p.title)
   // AEO: 40-60 λέξεις που απαντούν «τι είναι, πόσο, ποιοι, μέχρι πότε» — από τα δεδομένα, όχι από AI.
   const who = cms?.audience?.[0]?.replace(/[.;]+$/, '')
   const lead = [
-    `Το «${p.title}» είναι πρόγραμμα ΕΣΠΑ για επιχειρήσεις${p.fundingRate != null ? ` με επιδότηση έως ${p.fundingRate}%` : ''}${p.amount && p.amount.includes('€') ? ` (${p.amount})` : ''}.`,
+    `Το «${p.title}» είναι ${family.label} για επιχειρήσεις${p.fundingRate != null ? ` με επιδότηση έως ${p.fundingRate}%` : ''}${p.amount && p.amount.includes('€') ? ` (${p.amount})` : ''}.`,
     who ? `Απευθύνεται σε: ${who.charAt(0).toLowerCase()}${who.slice(1)}.` : '',
     p.deadline ? `Οι αιτήσεις υποβάλλονται έως ${p.deadline}.` : 'Η πρόσκληση είναι ανοιχτή.',
     p.region ? `Περιοχή: ${p.region}.` : '',
@@ -59,7 +60,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       '@context': 'https://schema.org', '@type': 'MonetaryGrant', name: p.title, url: absoluteUrl(`/programmata/${p.slug}`),
       description: (cms?.overview || p.summary || '').replace(/\s+/g, ' ').slice(0, 500) || undefined,
       ...(p.totalBudget ? { amount: { '@type': 'MonetaryAmount', currency: 'EUR', value: p.totalBudget } } : {}),
-      funder: [{ '@type': 'GovernmentOrganization', name: 'ΕΣΠΑ 2021-2027', url: 'https://www.espa.gr' }, { '@type': 'GovernmentOrganization', name: 'Ευρωπαϊκή Ένωση' }],
+      funder: family.funder.map(f => ({ '@type': 'GovernmentOrganization', ...f })),
       ...(p.regions.length ? { areaServed: p.regions.map(r => ({ '@type': 'AdministrativeArea', name: r })) } : { areaServed: { '@type': 'Country', name: 'Ελλάδα' } }),
       ...(p.deadlineIso ? { validThrough: p.deadlineIso } : {}),
       dateModified: p.updatedIso, inLanguage: 'el-GR',

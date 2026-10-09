@@ -156,3 +156,13 @@ export async function hubCounts(): Promise<HubCounts> {
     sectors: SECTORS.map(sector => ({ sector, total: ps.filter(p => !p.kads.length || p.kads.some(k => sector.kad.some(pre => k.startsWith(pre)))).length })),
   }
 }
+
+export type ProgramFamily = { kind: 'espa' | 'anaptyxiakos' | 'kap'; label: string; funder: { name: string; url: string }[] }
+
+/** Σε ποιο «πλαίσιο» ανήκει ένα πρόγραμμα (από την επίσημη πηγή του) — για σωστή διατύπωση και schema. */
+export function programFamily(officialUrl: string | null, title = ''): ProgramFamily {
+  const s = `${officialUrl ?? ''} ${title}`
+  if (/ependyseis\.mindev|ependyseis\.gr|αναπτυξιακ/i.test(s)) return { kind: 'anaptyxiakos', label: 'πρόγραμμα του Αναπτυξιακού Νόμου', funder: [{ name: 'Υπουργείο Ανάπτυξης — Αναπτυξιακός Νόμος 4887/2022', url: 'https://ependyseis.mindev.gov.gr' }] }
+  if (/agrotikianaptixi|LEADER|ΣΣ ΚΑΠ|ΚΑΠ 2023/i.test(s)) return { kind: 'kap', label: 'πρόγραμμα του Στρατηγικού Σχεδίου ΚΑΠ (LEADER/αγροτική ανάπτυξη)', funder: [{ name: 'Στρατηγικό Σχέδιο ΚΑΠ 2023–2027', url: 'https://www.agrotikianaptixi.gr' }, { name: 'Ευρωπαϊκή Ένωση', url: 'https://european-union.europa.eu' }] }
+  return { kind: 'espa', label: 'πρόγραμμα ΕΣΠΑ', funder: [{ name: 'ΕΣΠΑ 2021-2027', url: 'https://www.espa.gr' }, { name: 'Ευρωπαϊκή Ένωση', url: 'https://european-union.europa.eu' }] }
+}
