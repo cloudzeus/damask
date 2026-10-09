@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Tags, BarChart3, ShieldCheck } from 'lucide-react'
+import { Tags, BarChart3, ShieldCheck, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CardHeader, TextField } from '../fields'
 import { saveGoogleTagsSettings, type GoogleTagsValues } from '../actions'
@@ -55,6 +55,7 @@ export function GoogleTagsCard({
         <TextField id="gtags-gtag" label="Google Analytics ID" icon={BarChart3} value={values.gtagId} onChange={v => set('gtagId', v)} error={fieldErrors.gtagId} placeholder="G-XXXXXXXXXX" />
         <TextField id="gtags-gtm" label="Google Tag Manager ID" icon={Tags} value={values.gtmId} onChange={v => set('gtmId', v)} error={fieldErrors.gtmId} placeholder="GTM-XXXXXXX" />
         <TextField id="gtags-verification" label="Site Verification" icon={ShieldCheck} value={values.siteVerification} onChange={v => set('siteVerification', v)} error={fieldErrors.siteVerification} placeholder="κωδικός επαλήθευσης Google Search Console" />
+        <TextField id="gtags-review" label="Σύνδεσμος κριτικής Google" icon={Star} value={values.reviewUrl} onChange={v => set('reviewUrl', v)} error={fieldErrors.reviewUrl} placeholder="https://g.page/r/…/review (Google Business → «Ζητήστε κριτικές»)" />
       </div>
       <div className="mt-1">
         <Button type="button" onClick={handleSave} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Button>

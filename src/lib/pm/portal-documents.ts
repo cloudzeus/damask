@@ -368,3 +368,11 @@ export async function getMyCompany(previewContactId?: string): Promise<MyCompany
     contactRole: me?.position ?? null,
   }
 }
+
+// ── 7. Κριτική Google ─────────────────────────────────────────────────────
+
+/** Σύνδεσμος κριτικής Google για την κάρτα του portal (όταν ο πελάτης έχει εγκεκριμένο έργο). */
+export async function portalReviewUrl(): Promise<string> {
+  const { googleReviewUrl } = await import('@/lib/reviews/review-requests')
+  return googleReviewUrl()
+}

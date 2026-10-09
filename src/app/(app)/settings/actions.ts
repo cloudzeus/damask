@@ -247,7 +247,7 @@ export async function testGeminiSettings(values: GeminiValues): Promise<CheckRes
 // 6. Google Tags — χωρίς test, μόνο format validation. Wire στο (public) layout.
 // ══════════════════════════════════════════════════════════════════════════
 
-export type GoogleTagsValues = { gtagId: string; gtmId: string; siteVerification: string }
+export type GoogleTagsValues = { gtagId: string; gtmId: string; siteVerification: string; reviewUrl: string }
 
 const GTAG_ID_RE = /^G-[A-Za-z0-9]+$/
 const GTM_ID_RE = /^GTM-[A-Za-z0-9]+$/
@@ -256,6 +256,7 @@ const googleTagsSchema = z.object({
   gtagId: z.union([z.literal(''), z.string().trim().regex(GTAG_ID_RE, 'Η μορφή πρέπει να είναι G-XXXXXXX.')]),
   gtmId: z.union([z.literal(''), z.string().trim().regex(GTM_ID_RE, 'Η μορφή πρέπει να είναι GTM-XXXXXXX.')]),
   siteVerification: z.string().trim().max(200),
+  reviewUrl: z.union([z.literal(''), z.string().trim().url('Βάλτε πλήρη σύνδεσμο (https://…).').max(500)]),
 })
 
 export async function saveGoogleTagsSettings(values: GoogleTagsValues): Promise<ActionResult> {

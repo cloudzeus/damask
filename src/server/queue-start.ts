@@ -197,6 +197,13 @@ export async function startQueue(): Promise<void> {
     } catch (err) {
       console.error('[pg-boss] seo-autopilot απέτυχε', err) // never rethrow — scheduled tick
     }
+    // Ίδιο ημερήσιο tick: αιτήματα κριτικής Google σε νέες εγκρίσεις/πληρωμές (τοπικό SEO).
+    try {
+      const { runReviewRequests } = await import('@/lib/reviews/review-requests')
+      console.log('[pg-boss] review-requests:', JSON.stringify(await runReviewRequests()))
+    } catch (err) {
+      console.error('[pg-boss] review-requests απέτυχε', err)
+    }
   })
   await boss.schedule(QUEUE_SEO_AUTOPILOT, '30 9 * * *', null, { tz: 'Europe/Athens' })
 

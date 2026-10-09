@@ -118,7 +118,7 @@ export async function IntegrationsTab() {
         lastCheck={checkOf(gemini)}
       />
       <GoogleTagsCard
-        initial={{ gtagId: str(gtags.gtagId), gtmId: str(gtags.gtmId), siteVerification: str(gtags.siteVerification) }}
+        initial={{ gtagId: str(gtags.gtagId), gtmId: str(gtags.gtmId), siteVerification: str(gtags.siteVerification), reviewUrl: str(gtags.reviewUrl) }}
         configured={isIntegrationConfigured('gtags', gtags)}
       />
       <FacebookCard

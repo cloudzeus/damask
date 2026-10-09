@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { LuFileText, LuTriangleAlert, LuClock, LuChevronRight, LuCircleCheck, LuUsers, LuBanknote } from 'react-icons/lu'
+import { LuFileText, LuTriangleAlert, LuClock, LuChevronRight, LuCircleCheck, LuUsers, LuBanknote, LuStar } from 'react-icons/lu'
 import { getContactPortalDashboard, type PortalApp } from '@/lib/pm/portal-contact'
-import { listMyDocuments, listOpportunities, listPreviewableContacts, getMyCompany, type MyDocument } from '@/lib/pm/portal-documents'
+import { listMyDocuments, listOpportunities, listPreviewableContacts, getMyCompany, portalReviewUrl, type MyDocument } from '@/lib/pm/portal-documents'
 import { Opportunities } from '../_components/opportunities'
 import { PortalBanner, PreviewNote, withPreview } from '../_components/portal-banner'
 
@@ -16,7 +16,7 @@ type Attention = { key: string; href: string; tone: 'warn' | 'bad' | 'ok'; title
 /** Customer dashboard: τι χρειάζεται την προσοχή του πελάτη σε ΟΛΑ τα έργα + σύνοψη έργων/δικαιολογητικών. */
 export default async function PortalHome({ searchParams }: { searchParams: Promise<{ preview?: string; q?: string }> }) {
   const { preview, q } = await searchParams
-  const [dash, docs, opps, company] = await Promise.all([getContactPortalDashboard(preview || undefined), listMyDocuments(preview || undefined), listOpportunities(preview || undefined), getMyCompany(preview || undefined)])
+  const [dash, docs, opps, company, reviewUrl] = await Promise.all([getContactPortalDashboard(preview || undefined), listMyDocuments(preview || undefined), listOpportunities(preview || undefined), getMyCompany(preview || undefined), portalReviewUrl()])
   const pv = (h: string) => withPreview(h, preview)
 
   if (!dash.ok) {
@@ -136,6 +136,16 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
               <p className="p-muted" style={{ margin: '-8px 0 0', fontSize: 14 }}>Ενεργά προγράμματα που ταιριάζουν στα στοιχεία της επιχείρησής σας (ΚΑΔ, περιοχή, μέγεθος). Πατήστε «Ενδιαφέρομαι» και ο σύμβουλός σας θα κάνει την πλήρη αξιολόγηση.</p>
               {opps.items.length ? <Opportunities items={opps.items} preview={opps.preview} /> : <div className="p-empty" style={{ padding: 24 }}><p className="p-muted" style={{ margin: 0 }}>Αυτή τη στιγμή δεν υπάρχει νέο ενεργό πρόγραμμα που να ταιριάζει πλήρως. Δείτε <Link href={pv('/portal/eukairies')} style={{ color: 'var(--p-brand)' }}>όλα τα ενεργά προγράμματα</Link> — μπορείτε να δηλώσετε ενδιαφέρον σε όποιο θέλετε.</p></div>}
             </>
+          )}
+
+          {apps.some(a => a.journey.currentIndex >= 3) && (
+            <div className="p-assist" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div className="t"><LuStar aria-hidden /> Είστε ικανοποιημένοι από τη συνεργασία;</div>
+                <p style={{ margin: '6px 0 0' }}>Μια σύντομη κριτική στο Google μάς βοηθά πολύ — και βοηθά κι άλλες επιχειρήσεις να μας βρουν.</p>
+              </div>
+              <a className="p-btn p-btn-cyan" href={reviewUrl} target="_blank" rel="noopener"><LuStar aria-hidden /> Γράψτε μια κριτική</a>
+            </div>
           )}
 
           <div className="p-kpis" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
