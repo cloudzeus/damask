@@ -257,6 +257,12 @@ export async function harvestEspaCalls(opts: { scanBack?: number; maxNew?: numbe
           // Η επίσημη περίοδος της πηγής υπερισχύει.
           if (c.start || c.end) await prisma.program.update({ where: { id: program.id }, data: { ...(c.start ? { submissionStart: c.start } : {}), ...(c.end ? { submissionEnd: c.end } : {}) } })
           await generateProgramCms(program.id).catch(err => console.error('[calls-harvest] cms', err))
+          // Αναπτυξιακός: επίσημος πίνακας επιλέξιμων ΚΑΔ του καθεστώτος (υπερισχύει της αποδελτίωσης όταν υπάρχει).
+          if (c.key.startsWith('an:')) {
+            const { applyKadTableToProgram } = await import('./anaptyxiakos-kad')
+            const k = await applyKadTableToProgram(program.id, c.title.split(' — ')[0]).catch(err => { console.error('[calls-harvest] ΚΑΔ πίνακας', err); return null })
+            if (k?.applied) console.log(`[calls-harvest] ${k.applied} επιλέξιμοι ΚΑΔ από ${k.source}`)
+          }
         } catch (err) {
           console.error('[calls-harvest] αποδελτίωση', c.key, err)
           await prisma.program.update({ where: { id: program.id }, data: { extractStatus: 'FAILED', errorMessage: 'Η αυτόματη αποδελτίωση απέτυχε — ανεβάστε το PDF χειροκίνητα.' } }).catch(() => null)
