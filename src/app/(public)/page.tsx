@@ -9,6 +9,7 @@ import { Faq, type FaqItem } from './_components/faq'
 import { EligibilityCta } from './_components/eligibility-cta'
 import { wwaPhoto, wwaPageImage } from './_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
+import { hubCounts, programsByFamily } from '@/lib/seo-content/hubs'
 import { PostMeta } from './_components/post-meta'
 import { listPublishedPosts } from '@/lib/cms/public-posts'
 import { Pic } from './_components/pic'
@@ -53,12 +54,16 @@ const check = (
 )
 
 export default async function HomePage() {
-  const active = await listPublicPrograms()
+  const [active, counts, fam] = await Promise.all([listPublicPrograms(), hubCounts(), programsByFamily()])
+  // Στην αρχική: τα 3 που λήγουν πιο σύντομα (πιο χρήσιμα για τον επισκέπτη) — όσα δεν έχουν ημερομηνία στο τέλος.
+  const toTime = (d: string | null) => { const m = d?.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? Date.UTC(+m[3], +m[2] - 1, +m[1]) : Infinity }
+  const soonest = [...active].sort((a, b) => toTime(a.deadline) - toTime(b.deadline))
+  const topSectors = counts.sectors.filter(x => x.total > 0).sort((a, b) => b.total - a.total).slice(0, 3)
   const programCards: ProgramCardData[] = active.length
-    ? active.slice(0, 3).map((p, i) => ({
+    ? soonest.slice(0, 3).map((p, i) => ({
         image: p.image, title: p.title, description: p.summary, budget: p.budget, rate: p.rate,
         deadline: p.deadline ?? undefined, deadlineOpen: p.deadlineOpen, region: p.region ?? undefined,
-        status: 'active' as const, isNew: i === 0, href: `/programmata/${p.slug}`,
+        status: 'active' as const, isNew: false, href: `/programmata/${p.slug}`,
       }))
     : FALLBACK_PROGRAMS
   const news = await listPublishedPosts(3, { press: false })
@@ -114,15 +119,14 @@ export default async function HomePage() {
       {/* PROGRAMS */}
       <section lang="el" className="programs alt" id="programs">
         <div className="wrap">
-          <div className="sec-head r"><span className="eyebrow"><span className="idx">01</span>Προγράμματα ΕΣΠΑ 2021–2027</span><h2>Ενεργές προκηρύξεις αυτή τη στιγμή</h2><p>Επιλέξτε το πρόγραμμα που σας αφορά και δείτε σε λίγα λεπτά αν η επιχείρησή σας είναι επιλέξιμη.</p></div>
+          <div className="sec-head r"><span className="eyebrow"><span className="idx">01</span>ΕΣΠΑ · Αναπτυξιακός · LEADER</span><h2>Λήγουν σύντομα</h2><p>Τα προγράμματα με την πιο κοντινή προθεσμία — από {active.length} ανοιχτά για επιχειρήσεις. Δείτε σε λίγα λεπτά αν η επιχείρησή σας είναι επιλέξιμη.</p></div>
           {/* Γρήγορη πλοήγηση: πραγματικοί σύνδεσμοι σε κόμβους κλάδου/περιοχής (όχι «ψεύτικα» φίλτρα). */}
           <nav className="toolbar r" aria-label="Προγράμματα ανά κλάδο">
-            <Link className="chip chip-primary" href="/programmata">Όλα τα ενεργά</Link>
-            <Link className="chip" href="/programmata/nea-2026">Νέα 2026</Link>
-            <Link className="chip" href="/espa/klados/tourismos">Τουρισμός</Link>
-            <Link className="chip" href="/espa/klados/metapoiisi">Μεταποίηση</Link>
-            <Link className="chip" href="/espa/klados/pliroforiki">Πληροφορική</Link>
-            <Link className="chip" href="/espa/klados/emporio">Εμπόριο</Link>
+            {/* Μόνο σελίδες με πραγματικά προγράμματα, με πλήθος — ποτέ σύνδεσμος σε άδειο κόμβο. */}
+            <Link className="chip chip-primary" href="/programmata">Όλα τα ενεργά ({active.length})</Link>
+            {fam.anaptyxiakos.length > 0 && <Link className="chip" href="/anaptyxiakos-nomos">Αναπτυξιακός ({fam.anaptyxiakos.length})</Link>}
+            {fam.kap.length > 0 && <Link className="chip" href="/leader">LEADER & ΚΑΠ ({fam.kap.length})</Link>}
+            {topSectors.map(x => <Link key={x.sector.slug} className="chip" href={`/espa/klados/${x.sector.slug}`}>{x.sector.name.split(' & ')[0]} ({x.total})</Link>)}
             <Link className="chip" href="/espa">Ανά περιφέρεια</Link>
             <Link className="chip" href="/prothesmies-espa">Προθεσμίες</Link>
           </nav>

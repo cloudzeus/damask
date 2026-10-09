@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { wwaLogoLight } from '../_wwa/assets'
 
 /**
- * WWA public footer — λευκό, 4 στήλες + legal bar. Δομή από ui_kits/wwa-web.
+ * WWA public footer — λευκό, στήλη εταιρείας + 4 θεματικές στήλες (ισομερώς) + legal bar. Δομή από ui_kits/wwa-web.
  * (Διαφορετικό από το admin site-footer.tsx — αυτό είναι μόνο για το public site.)
  */
 export function WwaFooter() {
@@ -22,25 +22,29 @@ export function WwaFooter() {
               <li><Link href="/ypiresies">Υπηρεσίες</Link></li>
               <li><Link href="/pyli-pelaton">Πύλη πελατών</Link></li>
               <li><Link href="/pelates">Πελάτες</Link></li>
-              <li><Link href="/nea">Οδηγοί & νέα</Link></li>
               <li><Link href="/typos">Η WWA στον Τύπο</Link></li>
-              <li><Link href="/anaptyxiakos-nomos">Αναπτυξιακός Νόμος</Link></li>
-              <li><Link href="/leader">LEADER & ΚΑΠ</Link></li>
-              <li><Link href="/espa-anaptyxiakos-leader">ΕΣΠΑ, Αναπτυξιακός ή LEADER;</Link></li>
-              <li><Link href="/elegxos-kad">Έλεγχος ΚΑΔ για ΕΣΠΑ</Link></li>
-              <li><Link href="/syxnes-erotiseis">Συχνές ερωτήσεις</Link></li>
-              <li><Link href="/glossari">Γλωσσάριο ΕΣΠΑ</Link></li>
             </ul>
           </div>
           <div>
             <h4>Προγράμματα</h4>
             <ul>
               <li><Link href="/programmata">Ενεργά προγράμματα</Link></li>
+              <li><Link href="/prothesmies-espa">Προθεσμίες</Link></li>
               <li><Link href="/programmata/nea-2026">Νέα προγράμματα 2026</Link></li>
-              <li><Link href="/prothesmies-espa">Προθεσμίες ΕΣΠΑ</Link></li>
-              <li><Link href="/espa">ΕΣΠΑ ανά περιοχή & κλάδο</Link></li>
-              <li><Link href="/ypiresies">Υπηρεσίες ΕΣΠΑ</Link></li>
-              <li><Link href="/epikoinonia">Δωρεάν αξιολόγηση</Link></li>
+              <li><Link href="/anaptyxiakos-nomos">Αναπτυξιακός Νόμος</Link></li>
+              <li><Link href="/leader">LEADER & ΚΑΠ</Link></li>
+              <li><Link href="/espa">Ανά περιοχή & κλάδο</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Οδηγοί & εργαλεία</h4>
+            <ul>
+              <li><Link href="/eligibility">Δωρεάν έλεγχος επιλεξιμότητας</Link></li>
+              <li><Link href="/elegxos-kad">Έλεγχος ΚΑΔ</Link></li>
+              <li><Link href="/espa-anaptyxiakos-leader">ΕΣΠΑ, Αναπτυξιακός ή LEADER;</Link></li>
+              <li><Link href="/syxnes-erotiseis">Συχνές ερωτήσεις</Link></li>
+              <li><Link href="/glossari">Γλωσσάριο</Link></li>
+              <li><Link href="/nea">Οδηγοί & νέα</Link></li>
             </ul>
           </div>
           <div>
