@@ -8,7 +8,7 @@ import { Faq } from '../../_components/faq'
 import { ProgramGrid, AnswerBox } from '../../_components/program-grid'
 import { JsonLd, breadcrumbJsonLd, itemListJsonLd } from '../../_components/json-ld'
 import { wwaPhotoFor } from '../../_wwa/assets'
-import { REGIONS, programsForRegion, guidesMatching, nProgramms, hubCounts, rateRangeText } from '@/lib/seo-content/hubs'
+import { REGIONS, programsForRegion, guidesMatching, nProgramms, hubCounts, rateRangeText, regionsWithOwnPrograms } from '@/lib/seo-content/hubs'
 
 export const revalidate = 3600
 export function generateStaticParams() { return REGIONS.map(r => ({ perifereia: r.slug })) }
@@ -19,14 +19,15 @@ export async function generateMetadata({ params }: { params: Promise<{ periferei
   const { perifereia } = await params
   const r = REGIONS.find(x => x.slug === perifereia)
   if (!r) return {}
-  const n = (await programsForRegion(r)).length
+  const [n, own] = await Promise.all([programsForRegion(r).then(x => x.length), regionsWithOwnPrograms()])
   return {
     // ≤ ~60 χαρακτήρες ώστε να μη «κόβεται» στο Google· οι μακριές περιφέρειες παίρνουν τη σύντομη μορφή.
     title: [`ΕΣΠΑ ${r.short} 2026: ενεργά προγράμματα για επιχειρήσεις`, `ΕΣΠΑ ${r.short} 2026: ενεργά προγράμματα`, `ΕΣΠΑ ${r.short} 2026`].find(t => t.length <= 60) ?? `ΕΣΠΑ ${r.short}`,
     description: `${n ? `${n} ενεργ${n === 1 ? 'ό πρόγραμμα' : 'ά προγράμματα'}` : 'Νέα προγράμματα'} ΕΣΠΑ για επιχειρήσεις ${r.in}: ποσοστά επιδότησης, προθεσμίες, προϋποθέσεις. Δωρεάν έλεγχος επιλεξιμότητας.`,
     alternates: { canonical: `/espa/${r.slug}` },
-    // Χωρίς ενεργό πρόγραμμα η σελίδα είναι «λεπτή» — δεν ευρετηριάζεται μέχρι να υπάρξει.
-    ...(n ? {} : { robots: { index: false, follow: true } }),
+    // Μόνο με ΔΙΚΟ της (περιφερειακό) πρόγραμμα ευρετηριάζεται· με μόνο τα πανελλαδικά θα ήταν σχεδόν ίδια με
+    // τις υπόλοιπες περιφέρειες («λαβύρινθος»). Ενεργοποιείται ξανά αυτόματα μόλις ανοίξει περιφερειακό πρόγραμμα.
+    ...(own.has(r.slug) ? {} : { robots: { index: false, follow: true } }),
   }
 }
 
@@ -38,6 +39,8 @@ export default async function RegionPage({ params }: { params: Promise<{ perifer
   // Μόνο κλάδοι με ενεργό πρόγραμμα (όχι σύνδεσμοι σε άδειες σελίδες).
   const sectorLinks = counts.sectors.filter(x => x.total > 0).sort((a, b) => b.total - a.total).slice(0, 5)
   const n = programs.length
+  const local = counts.regions.find(x => x.hub.slug === r.slug)?.local ?? 0
+  const ownRegions = counts.regions.filter(x => x.local > 0).map(x => x.hub)
   const faq = [
     { q: `Ποια προγράμματα ΕΣΠΑ είναι ανοιχτά ${r.in};`, a: n ? `Αυτή τη στιγμή είναι ανοιχτ${n === 1 ? 'ό ένα πρόγραμμα' : `ά ${n} προγράμματα`} για επιχειρήσεις ${r.of}: ${programs.map(p => p.title).join('· ')}. Η λίστα ενημερώνεται μόλις δημοσιευτεί νέα πρόσκληση.` : `Αυτή τη στιγμή δεν υπάρχει ανοιχτή πρόσκληση ειδικά για επιχειρήσεις ${r.of}. Νέες δράσεις των Περιφερειακών Προγραμμάτων ανακοινώνονται τακτικά — κάντε τον δωρεάν έλεγχο και θα σας ενημερώσουμε.` },
     { q: `Ποιες επιχειρήσεις ${r.of} μπορούν να πάρουν επιδότηση;`, a: 'Συνήθως μικρομεσαίες επιχειρήσεις (ΜμΕ) με επιλέξιμο Κωδικό Αριθμό Δραστηριότητας (ΚΑΔ), έδρα ή εγκατάσταση στην περιφέρεια και, ανάλογα με το πρόγραμμα, συγκεκριμένα έτη λειτουργίας. Οι ακριβείς όροι διαφέρουν ανά πρόσκληση.' },
@@ -54,8 +57,10 @@ export default async function RegionPage({ params }: { params: Promise<{ perifer
       <section lang="el">
         <div className="wrap">
           <AnswerBox updated={today()}>
-            {n
-              ? <>{r.in.charAt(0).toUpperCase() + r.in.slice(1)} είναι ανοιχτ{n === 1 ? 'ό' : 'ά'} σήμερα <b>{nProgramms(n)}</b> για επιχειρήσεις, με επιδότηση {rateRangeText(programs.map(p => p.rate)) ?? 'σε υψηλά ποσοστά'}. Δείτε προϋποθέσεις και προθεσμίες παρακάτω ή ελέγξτε δωρεάν, με τον ΑΦΜ σας, αν η επιχείρησή σας είναι επιλέξιμη.</>
+            {n && !local
+              ? <>Για επιχειρήσεις <b>{r.of}</b> δεν υπάρχει αυτή τη στιγμή δικό της περιφερειακό πρόγραμμα — ισχύουν τα <b>{nProgramms(n)}</b> που καλύπτουν όλη την Ελλάδα, με επιδότηση {rateRangeText(programs.map(p => p.rate)) ?? 'σε υψηλά ποσοστά'}. Μόλις ανοίξει πρόγραμμα ειδικά για την περιοχή σας, θα εμφανιστεί εδώ — ζητήστε ενημέρωση ή κάντε τον δωρεάν έλεγχο με τον ΑΦΜ σας.</>
+              : n
+              ? <>{r.in.charAt(0).toUpperCase() + r.in.slice(1)} είναι ανοιχτ{n === 1 ? 'ό' : 'ά'} σήμερα <b>{nProgramms(n)}</b> για επιχειρήσεις (<b>{local}</b> ειδικά για την περιοχή), με επιδότηση {rateRangeText(programs.map(p => p.rate)) ?? 'σε υψηλά ποσοστά'}. Δείτε προϋποθέσεις και προθεσμίες παρακάτω ή ελέγξτε δωρεάν, με τον ΑΦΜ σας, αν η επιχείρησή σας είναι επιλέξιμη.</>
               : <>Για επιχειρήσεις <b>{r.of}</b> δεν υπάρχει αυτή τη στιγμή ανοιχτή πρόσκληση ΕΣΠΑ για επιχειρήσεις. Νέες δράσεις ανακοινώνονται τακτικά — κάντε τον δωρεάν έλεγχο επιλεξιμότητας και θα σας ειδοποιήσουμε μόλις ανοίξει πρόγραμμα που σας αφορά.</>}
           </AnswerBox>
           <div className="sec-head r" style={{ marginTop: 40 }}><h2>Ενεργά προγράμματα {r.in}</h2></div>
@@ -64,6 +69,7 @@ export default async function RegionPage({ params }: { params: Promise<{ perifer
             <h3>Δείτε επίσης</h3>
             <ul>
               <li><Link href="/prothesmies-espa">Προθεσμίες προγραμμάτων ΕΣΠΑ</Link></li>
+              {ownRegions.filter(h => h.slug !== r.slug).slice(0, 4).map(h => <li key={h.slug}><Link href={`/espa/${h.slug}`}>ΕΣΠΑ {h.short}</Link> <span className="hub-n">(περιφερειακά)</span></li>)}
               {sectorLinks.map(({ sector: s, total }) => <li key={s.slug}><Link href={`/espa/klados/${s.slug}`}>ΕΣΠΑ για {s.short}</Link> <span className="hub-n">({total})</span></li>)}
               {guides.map(g => <li key={g.slug}><Link href={`/nea/${g.slug}`}>{g.title}</Link></li>)}
             </ul>

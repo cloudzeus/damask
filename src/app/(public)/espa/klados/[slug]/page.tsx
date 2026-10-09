@@ -35,7 +35,7 @@ export default async function SectorPage({ params }: { params: Promise<{ slug: s
   if (!s) notFound()
   const [programs, guides, counts] = await Promise.all([programsForSector(s), guidesMatching([s.short.split(' ')[0], s.name.split(' ')[0]]), hubCounts()])
   // Πρώτα οι περιφέρειες με δικό τους (περιφερειακό) πρόγραμμα.
-  const regionLinks = counts.regions.filter(x => x.total > 0).sort((a, b) => b.local - a.local).slice(0, 4)
+  const regionLinks = counts.regions.filter(x => x.local > 0).sort((a, b) => b.local - a.local).slice(0, 4)
   const n = programs.length
   const faq = [
     { q: `Υπάρχει ΕΣΠΑ για ${s.short} το 2026;`, a: n ? `Ναι — αυτή τη στιγμή ${n === 1 ? 'ένα ενεργό πρόγραμμα δέχεται' : `${n} ενεργά προγράμματα δέχονται`} επιχειρήσεις του κλάδου (${s.about}): ${programs.map(p => p.title).join('· ')}.` : `Αυτή τη στιγμή δεν υπάρχει ανοιχτή πρόσκληση με επιλέξιμους ΚΑΔ του κλάδου. Νέες δράσεις ανοίγουν τακτικά — κάντε τον δωρεάν έλεγχο και θα σας ενημερώσουμε.` },

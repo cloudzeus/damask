@@ -15,7 +15,8 @@ export async function HubExplorer({ idx = '02' }: { idx?: string }) {
     { href: '/leader', label: 'LEADER & ΚΑΠ', n: fam.kap.length },
   ].filter(f => f.n > 0)
   if (!c.total) return null
-  const regions = c.regions.filter(r => r.total > 0).sort((a, b) => b.local - a.local || a.hub.short.localeCompare(b.hub.short, 'el'))
+  const regions = c.regions.filter(r => r.local > 0).sort((a, b) => b.local - a.local || a.hub.short.localeCompare(b.hub.short, 'el'))
+  const rest = c.regions.filter(r => !r.local)
   const sectors = c.sectors.filter(s => s.total > 0).sort((a, b) => b.total - a.total)
   const hidden = c.sectors.length - sectors.length
   return (
@@ -35,7 +36,7 @@ export async function HubExplorer({ idx = '02' }: { idx?: string }) {
         <div className="hubx-grid r">
           <div className="hubx-panel">
             <h3><LuMapPin aria-hidden /> Ανά περιφέρεια</h3>
-            {c.nationwide > 0 && <p className="hubx-note">{c.nationwide === c.total ? `${c.total === 1 ? 'Το ενεργό πρόγραμμα καλύπτει' : 'Όλα τα ενεργά προγράμματα καλύπτουν'} όλη την Ελλάδα.` : `${nProgramms(c.nationwide)} ${c.nationwide === 1 ? 'καλύπτει' : 'καλύπτουν'} όλη την Ελλάδα· με έντονο οι περιφέρειες που έχουν και δικό τους πρόγραμμα.`}</p>}
+            {c.nationwide > 0 && <p className="hubx-note">{c.nationwide === c.total ? `${c.total === 1 ? 'Το ενεργό πρόγραμμα καλύπτει' : 'Όλα τα ενεργά προγράμματα καλύπτουν'} όλη την Ελλάδα.` : `${nProgramms(c.nationwide)} ${c.nationwide === 1 ? 'καλύπτει' : 'καλύπτουν'} όλη την Ελλάδα· εδώ οι περιφέρειες με επιπλέον δικά τους προγράμματα.`}</p>}
             <ul className="hubx-chips">
               {regions.map(r => (
                 <li key={r.hub.slug}>
@@ -44,6 +45,9 @@ export async function HubExplorer({ idx = '02' }: { idx?: string }) {
                   </Link>
                 </li>
               ))}
+              {rest.length > 0 && c.nationwide > 0 && (
+                <li><Link href="/programmata" className="hubx-chip" aria-label={`Υπόλοιπες ${rest.length} περιφέρειες: ${nProgramms(c.nationwide)} πανελλαδικά`}>Υπόλοιπες περιφέρειες<span className="n">{c.nationwide}</span></Link></li>
+              )}
             </ul>
           </div>
           <div className="hubx-panel">

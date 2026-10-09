@@ -113,7 +113,8 @@ export async function guidesMatching(words: string[], limit = 3): Promise<{ slug
 export async function hubsForProgram(slug: string): Promise<{ regions: Hub[]; sectors: Sector[] }> {
   const p = (await facets()).find(x => x.slug === slug)
   if (!p) return { regions: [], sectors: [] }
-  const regions = p.regions.length ? REGIONS.filter(h => h.match.map(norm).some(k => p.regions.some(r => k.split(' ').every(w => r.includes(w))))) : []
+  // Πανελλαδικό (όλες οι περιφέρειες) → καμία σελίδα περιφέρειας (θα ήταν σύνδεσμοι σε μη ευρετηριαζόμενες σελίδες).
+  const regions = p.regions.length && p.regions.length < REGIONS.length ? REGIONS.filter(h => h.match.map(norm).some(k => p.regions.some(r => k.split(' ').every(w => r.includes(w))))) : []
   const sectors = p.kads.length ? SECTORS.filter(s => p.kads.some(k => s.kad.some(pre => k.startsWith(pre)))) : []
   return { regions, sectors }
 }
@@ -191,4 +192,10 @@ export async function programsByFamily(): Promise<Record<ProgramFamily['kind'], 
   const out: Record<ProgramFamily['kind'], PublicProgramCard[]> = { espa: [], anaptyxiakos: [], kap: [] }
   for (const p of all) out[kindBySlug.get(p.slug) ?? 'espa'].push(p)
   return out
+}
+
+/** Περιφέρειες με ΔΙΚΟ ΤΟΥΣ (περιφερειακό) ενεργό πρόγραμμα — μόνο αυτές έχουν ευρετηριαζόμενη σελίδα. */
+export async function regionsWithOwnPrograms(): Promise<Set<string>> {
+  const c = await hubCounts()
+  return new Set(c.regions.filter(r => r.local > 0).map(r => r.hub.slug))
 }

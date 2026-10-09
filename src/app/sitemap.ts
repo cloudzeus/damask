@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { SITE_INDEXABLE, absoluteUrl } from '@/lib/site-url'
-import { REGIONS, SECTORS, programsForRegion, programsForSector } from '@/lib/seo-content/hubs'
+import { REGIONS, SECTORS, programsForSector, regionsWithOwnPrograms } from '@/lib/seo-content/hubs'
 
 export const revalidate = 3600
 
@@ -15,7 +15,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ])
   // Σελίδες περιφέρειας/κλάδου ΜΟΝΟ όταν έχουν ενεργό πρόγραμμα (οι άδειες είναι noindex).
   const [regions, sectors] = await Promise.all([
-    Promise.all(REGIONS.map(async r => ((await programsForRegion(r)).length ? `/espa/${r.slug}` : null))),
+    // Μόνο περιφέρειες με δικό τους πρόγραμμα (όσες έχουν μόνο τα πανελλαδικά είναι noindex — όχι «λαβύρινθος»).
+    regionsWithOwnPrograms().then(set => REGIONS.map(r => (set.has(r.slug) ? `/espa/${r.slug}` : null))),
     Promise.all(SECTORS.map(async s => ((await programsForSector(s)).length ? `/espa/klados/${s.slug}` : null))),
   ])
   const latestPost = posts.reduce<Date | null>((m, p) => (!m || p.updatedAt > m ? p.updatedAt : m), null)

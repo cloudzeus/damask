@@ -4,7 +4,7 @@ import { SubBanner } from '../_components/sub-banner'
 import { EligibilityCta } from '../_components/eligibility-cta'
 import { AnswerBox } from '../_components/program-grid'
 import { wwaPhoto } from '../_wwa/assets'
-import { REGIONS, SECTORS, programsForRegion, programsForSector } from '@/lib/seo-content/hubs'
+import { SECTORS, programsForSector, hubCounts } from '@/lib/seo-content/hubs'
 
 export const revalidate = 3600
 export const metadata: Metadata = {
@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 
 /** Κόμβος: όλες οι περιφέρειες & οι κλάδοι με το πλήθος ενεργών προγραμμάτων. */
 export default async function EspaHub() {
-  const [regions, sectors] = await Promise.all([
-    Promise.all(REGIONS.map(async r => ({ ...r, n: (await programsForRegion(r)).length }))),
+  const [counts, sectors] = await Promise.all([
+    hubCounts(),
     Promise.all(SECTORS.map(async s => ({ ...s, n: (await programsForSector(s)).length }))),
   ])
   return (
@@ -29,7 +29,11 @@ export default async function EspaHub() {
           <div className="hub-grid r">
             <div>
               <h2>Ανά περιφέρεια</h2>
-              <ul>{regions.map(r => <li key={r.slug}><Link href={`/espa/${r.slug}`}>{r.short}</Link><span>{r.n ? `${r.n} ενεργ${r.n === 1 ? 'ό' : 'ά'}` : '—'}</span></li>)}</ul>
+              {/* Σελίδα μόνο για περιφέρειες με δικό τους πρόγραμμα· οι υπόλοιπες έχουν μόνο τα πανελλαδικά. */}
+              <ul>{counts.regions.filter(x => x.local > 0).sort((a, b) => b.local - a.local).map(x => <li key={x.hub.slug}><Link href={`/espa/${x.hub.slug}`}>{x.hub.short}</Link><span>{x.local} περιφερειακ{x.local === 1 ? 'ό' : 'ά'} + {counts.nationwide} πανελλαδικ{counts.nationwide === 1 ? 'ό' : 'ά'}</span></li>)}</ul>
+              {counts.regions.some(x => !x.local) && (
+                <p className="hub-rest">Στις υπόλοιπες περιφέρειες ({counts.regions.filter(x => !x.local).map(x => x.hub.short).join(', ')}) ισχύουν αυτή τη στιγμή τα <Link href="/programmata">{counts.nationwide} πανελλαδικά προγράμματα</Link>.</p>
+              )}
             </div>
             <div>
               <h2>Ανά κλάδο</h2>

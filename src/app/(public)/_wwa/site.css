@@ -979,3 +979,5 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .svct-list b { color: var(--fg-1); }
 .svct-acts { margin-top: 24px; }
 @media (max-width: 900px) { .svct { grid-template-columns: 1fr; } }
+.hub-grid .hub-rest { margin: 10px 0 0; font-size: 13px; color: var(--fg-3); line-height: 1.5; }
+.hub-grid .hub-rest a { color: var(--brand); font-weight: 500; }
