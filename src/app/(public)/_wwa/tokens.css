@@ -5,7 +5,7 @@
    Link this file from every HTML artifact. Never inline the tokens.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;700;900&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap');
+/* Γραμματοσειρές: next/font (root layout) — self-hosted, χωρίς render-blocking @import. */
 
 :root {
   /* ---------- BRAND (από το λογότυπο, χωρίς μετατροπή) ---------- */
@@ -126,6 +126,7 @@
 }
 
 /* ---------- Base ---------- */
+body { --font-body: var(--font-sans), system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; }
 html { font-family: var(--font-body); color: var(--fg-1); background: var(--bg-surface); -webkit-font-smoothing: antialiased; }
 body { margin: 0; font-size: var(--text-sm); line-height: var(--leading-body); }
 h1, h2, h3, h4 { font-family: var(--font-display); margin: 0; text-wrap: balance; color: var(--fg-1); }

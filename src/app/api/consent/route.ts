@@ -8,7 +8,7 @@ import { getClientIp } from '@/lib/client-ip'
 import { parseUserAgent } from '@/lib/user-agent'
 import { loadConsentConfig } from '@/lib/settings'
 import {
-  CONSENT_COOKIE_NAME, VISITOR_COOKIE_NAME, CONSENT_COOKIE_MAX_AGE, parseAcceptLanguageLocale,
+  CONSENT_COOKIE_NAME, VISITOR_COOKIE_NAME, CONSENT_COOKIE_MAX_AGE, parseAcceptLanguageLocale, parseConsentCookie,
 } from '@/lib/consent'
 
 export const runtime = 'nodejs'
@@ -73,4 +73,12 @@ export async function POST(request: Request) {
   )
 
   return NextResponse.json({ ok: true, id: log.id })
+}
+
+/** Τρέχουσα συγκατάθεση του επισκέπτη (το cookie είναι httpOnly) — για το client-side gating των scripts,
+ *  ώστε οι δημόσιες σελίδες να μένουν στατικές/cached (χωρίς cookies() στο layout). */
+export async function GET() {
+  const store = await cookies()
+  const parsed = parseConsentCookie(store.get(CONSENT_COOKIE_NAME)?.value ?? null)
+  return NextResponse.json(parsed, { headers: { 'Cache-Control': 'private, no-store' } })
 }

@@ -23,12 +23,14 @@ type Category = {
  * τα κουμπιά δείχνουν toast αντί να καλούν το πραγματικό /api/consent).
  */
 export function ConsentBanner({
-  config, initialShow, locale, preview = false,
+  config, initialShow, locale, preview = false, onSaved,
 }: {
   config: ConsentModalConfig
   initialShow: boolean
   locale: 'el' | 'en'
   preview?: boolean
+  /** Αν δοθεί, καλείται μετά την αποθήκευση αντί για router.refresh() (client-side gating). */
+  onSaved?: (choices: { analytics: boolean; marketing: boolean }) => void
 }) {
   const router = useRouter()
   const [show, setShow] = useState(initialShow)
@@ -67,7 +69,7 @@ export function ConsentBanner({
       })
       if (res.ok) {
         setShow(false)
-        router.refresh()
+        if (onSaved) onSaved(choices); else router.refresh()
       } else {
         toast.error('Η καταγραφή της συγκατάθεσης απέτυχε — δοκίμασε ξανά.')
       }

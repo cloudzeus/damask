@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Roboto, Roboto_Condensed } from 'next/font/google'
-import { NextIntlClientProvider } from 'next-intl'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 import { SITE_URL, SITE_NAME, SITE_INDEXABLE } from '@/lib/site-url'
@@ -33,7 +32,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="el" suppressHydrationWarning>
       <body className={`${roboto.variable} ${robotoCondensed.variable} font-sans antialiased`}>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        {/* Χωρίς NextIntlClientProvider: δεν χρησιμοποιείται από κανένα component και διάβαζε cookies() σε κάθε σελίδα (όλο το site dynamic). */}
+        {children}
         <Toaster />
       </body>
     </html>
