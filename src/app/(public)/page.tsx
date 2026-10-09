@@ -56,7 +56,7 @@ export default async function HomePage() {
         status: 'active' as const, isNew: i === 0, href: `/programmata/${p.slug}`,
       }))
     : FALLBACK_PROGRAMS
-  const news = await listPublishedPosts(3)
+  const news = await listPublishedPosts(3, { press: false })
   const featured = active[0] ?? null
   const heroSlides = [...new Set([featured?.image, wwaPhoto('team'), wwaPhoto('manufacturing'), wwaPhoto('consulting'), wwaPhoto('hotel')].filter(Boolean) as string[])].slice(0, 4)
   const heroDeadline = featured
@@ -73,8 +73,9 @@ export default async function HomePage() {
           </div>
           {featured ? (
             <div className="wrap"><div className="content">
+              <h1 className="hero-kicker">Σύμβουλοι ΕΣΠΑ &amp; Επιδοτήσεων για επιχειρήσεις</h1>
               <span className="tag">Πιο πρόσφατο πρόγραμμα · {heroDeadline}</span>
-              <h1 data-typewrite>{featured.heroTitle} <span style={{ color: 'var(--wwa-cyan-400)' }}>{featured.heroAmount}</span></h1>
+              <p className="hero-title" data-typewrite>{featured.heroTitle} <span style={{ color: 'var(--wwa-cyan-400)' }}>{featured.heroAmount}</span></p>
               <p>{featured.heroSubtitle}</p>
               <div className="actions">
                 <EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>
@@ -83,8 +84,9 @@ export default async function HomePage() {
             </div></div>
           ) : (
             <div className="wrap"><div className="content">
+              <h1 className="hero-kicker">Σύμβουλοι ΕΣΠΑ &amp; Επιδοτήσεων για επιχειρήσεις</h1>
               <span className="tag">Ξεκινώ Επιχειρηματικά 2026 · υποβολές έως 31/10/2026</span>
-              <h1 data-typewrite>Επιδότηση έως <span style={{ color: 'var(--wwa-cyan-400)' }}>€36.000</span> για τη νέα σας επιχείρηση</h1>
+              <p className="hero-title" data-typewrite>Επιδότηση έως <span style={{ color: 'var(--wwa-cyan-400)' }}>€36.000</span> για τη νέα σας επιχείρηση</p>
               <p>100% ενίσχυση για πτυχιούχους που ιδρύουν επιχείρηση στο αντικείμενο των σπουδών τους. Ελέγχουμε δωρεάν αν δικαιούστε — απάντηση σε μία εργάσιμη.</p>
               <div className="actions">
                 <EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>

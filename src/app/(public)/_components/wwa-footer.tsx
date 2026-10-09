@@ -21,16 +21,20 @@ export function WwaFooter() {
               <li><Link href="/etaireia">Η εταιρεία</Link></li>
               <li><Link href="/ypiresies">Υπηρεσίες</Link></li>
               <li><Link href="/pelates">Πελάτες</Link></li>
-              <li><Link href="/nea">Νέα</Link></li>
+              <li><Link href="/nea">Οδηγοί & νέα</Link></li>
+              <li><Link href="/typos">Η WWA στον Τύπο</Link></li>
+              <li><Link href="/glossari">Γλωσσάριο ΕΣΠΑ</Link></li>
             </ul>
           </div>
           <div>
             <h4>Προγράμματα</h4>
             <ul>
               <li><Link href="/programmata">Ενεργά προγράμματα</Link></li>
+              <li><Link href="/programmata/nea-2026">Νέα προγράμματα 2026</Link></li>
+              <li><Link href="/prothesmies-espa">Προθεσμίες ΕΣΠΑ</Link></li>
+              <li><Link href="/espa">ΕΣΠΑ ανά περιοχή & κλάδο</Link></li>
               <li><Link href="/ypiresies">Υπηρεσίες ΕΣΠΑ</Link></li>
               <li><Link href="/epikoinonia">Δωρεάν αξιολόγηση</Link></li>
-              <li><Link href="/nea">Προκηρύξεις &amp; νέα</Link></li>
             </ul>
           </div>
           <div>

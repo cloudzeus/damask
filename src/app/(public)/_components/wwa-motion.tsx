@@ -93,7 +93,7 @@ export function WwaMotion() {
     const mm = gsap.matchMedia()
     mm.add('(prefers-reduced-motion: no-preference)', () => {
       // Hero περιεχόμενο: διαδοχική είσοδος
-      gsap.from('.hero .content > .tag, .hero .content > p, .hero .content > .actions', { y: 22, opacity: 0, duration: 0.9, ease: 'power2.out', stagger: 0.12, delay: 0.15 })
+      gsap.from('.hero .content > .tag, .hero .content > p:not(.hero-title), .hero .content > .actions', { y: 22, opacity: 0, duration: 0.9, ease: 'power2.out', stagger: 0.12, delay: 0.15 })
 
       // Parallax hero & sub-banner
       document.querySelectorAll<HTMLElement>('.hero-slides, .sub-banner > img').forEach(el => {

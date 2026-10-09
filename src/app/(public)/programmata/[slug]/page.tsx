@@ -8,6 +8,10 @@ import { richNumbers } from '../../_components/rich'
 import { getPublicProgramBySlug, PROGRAM_PROCESS_STEPS } from '@/lib/programs/public'
 import { JsonLd, breadcrumbJsonLd } from '../../_components/json-ld'
 import { absoluteUrl } from '@/lib/site-url'
+import { AnswerBox } from '../../_components/program-grid'
+import { hubsForProgram, officialSourceFor, relatedPostsForProgram } from '@/lib/seo-content/hubs'
+
+export const revalidate = 3600
 
 const tick = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
@@ -37,6 +41,15 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
   const p = await getPublicProgramBySlug(slug)
   if (!p) notFound()
   const cms = p.cms
+  const [hubs, official, guides] = await Promise.all([hubsForProgram(p.slug), officialSourceFor(p.id), relatedPostsForProgram(p.slug, p.id, 4)])
+  // AEO: 40-60 λέξεις που απαντούν «τι είναι, πόσο, ποιοι, μέχρι πότε» — από τα δεδομένα, όχι από AI.
+  const who = cms?.audience?.[0]?.replace(/[.;]+$/, '')
+  const lead = [
+    `Το «${p.title}» είναι πρόγραμμα ΕΣΠΑ για επιχειρήσεις${p.fundingRate != null ? ` με επιδότηση έως ${p.fundingRate}%` : ''}${p.amount && p.amount.includes('€') ? ` (${p.amount})` : ''}.`,
+    who ? `Απευθύνεται σε: ${who.charAt(0).toLowerCase()}${who.slice(1)}.` : '',
+    p.deadline ? `Οι αιτήσεις υποβάλλονται έως ${p.deadline}.` : 'Η πρόσκληση είναι ανοιχτή.',
+    p.region ? `Περιοχή: ${p.region}.` : '',
+  ].filter(Boolean).join(' ')
   const overviewParas = (cms?.overview || '').split(/\n{2,}/).map(s => s.trim()).filter(Boolean)
   // Structured data: η επιχορήγηση ως MonetaryGrant (ποσό/ποσοστό, λήξη, περιοχές) + breadcrumbs — για Google & AI απαντήσεις.
   const ld: Record<string, unknown>[] = [
@@ -48,6 +61,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       ...(p.regions.length ? { areaServed: p.regions.map(r => ({ '@type': 'AdministrativeArea', name: r })) } : { areaServed: { '@type': 'Country', name: 'Ελλάδα' } }),
       ...(p.deadlineIso ? { validThrough: p.deadlineIso } : {}),
       dateModified: p.updatedIso, inLanguage: 'el-GR',
+      ...(official ? { sameAs: official } : {}),
     },
     breadcrumbJsonLd([{ label: 'Προγράμματα', href: '/programmata' }, { label: p.title }]),
   ]
@@ -72,6 +86,10 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
         </div></div>
       </section>
 
+      <section lang="el" style={{ paddingBottom: 0 }}>
+        <div className="wrap"><AnswerBox updated={p.updated}>{lead}</AnswerBox></div>
+      </section>
+
       <section lang="el">
         <div className="wrap">
           <div className="prog-layout">
@@ -85,6 +103,11 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
               {cms?.audience?.length ? (<><h2>Σε ποιους απευθύνεται</h2><Ticks items={cms.audience} /></>) : null}
               {cms?.eligibleExpenses?.length ? (<><h2>Επιλέξιμες δαπάνες</h2><Ticks items={cms.eligibleExpenses} /></>) : null}
               {cms?.benefits?.length ? (<><h2>Οφέλη</h2><Ticks items={cms.benefits} /></>) : null}
+              <h2>Επίσημη πρόσκληση</h2>
+              <p>
+                Οι όροι του προγράμματος ορίζονται στην επίσημη πρόσκληση{official ? <> — <a href={official} target="_blank" rel="noopener">δείτε την επίσημη πηγή</a></> : <> που δημοσιεύεται στο <a href="https://www.espa.gr/el/Pages/ProclamationsFS.aspx" target="_blank" rel="noopener">espa.gr</a></>}.
+                {' '}Τα στοιχεία της σελίδας ενημερώθηκαν στις <time dateTime={p.updatedIso}>{p.updated}</time>.
+              </p>
             </div>
 
             <aside className="prog-summary r">
@@ -117,6 +140,22 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </section>
+
+      {(guides.length > 0 || hubs.regions.length > 0 || hubs.sectors.length > 0) && (
+        <section lang="el">
+          <div className="wrap">
+            <div className="hub-links r" style={{ marginTop: 0 }}>
+              <h3>Σχετικοί οδηγοί και σελίδες</h3>
+              <ul>
+                {guides.map(g => <li key={g.slug}><Link href={`/nea/${g.slug}`}>{g.title}</Link></li>)}
+                {hubs.regions.slice(0, 6).map(r => <li key={r.slug}><Link href={`/espa/${r.slug}`}>ΕΣΠΑ {r.short}</Link></li>)}
+                {hubs.sectors.slice(0, 6).map(s => <li key={s.slug}><Link href={`/espa/klados/${s.slug}`}>ΕΣΠΑ για {s.short}</Link></li>)}
+                <li><Link href="/prothesmies-espa">Προθεσμίες ΕΣΠΑ</Link></li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
 
       {cms?.faq?.length ? (
         <Faq items={cms.faq} idx="03" subtitle="Ό,τι ρωτούν συχνότερα οι επιχειρήσεις για αυτό το πρόγραμμα." />

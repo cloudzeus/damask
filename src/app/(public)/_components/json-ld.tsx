@@ -29,6 +29,8 @@ export function organizationJsonLd(): Record<string, unknown>[] {
       openingHoursSpecification: [{ '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], opens: '09:00', closes: '18:00' }],
       knowsAbout: ['ΕΣΠΑ 2021-2027', 'Ευρωπαϊκά προγράμματα', 'Επιδοτήσεις επιχειρήσεων', 'Αναπτυξιακός Νόμος', 'Ταμείο Ανάκαμψης', 'de minimis', 'Επιλέξιμες δαπάνες'],
       priceRange: '€€',
+      // Φορείς όπως αναγράφονται στη σελίδα «Εταιρεία» (επίσημοι σύμβουλοι ΣΕΔΕ, μέλη κλαδικών φορέων).
+      memberOf: ['ΣΕΔΕ', 'ΣΥ.Σ.ΕΠ.', 'GR.EC.A', 'ΠΣΒΑΚ', 'BNI Greece'].map(name => ({ '@type': 'Organization', name })),
     },
     { '@context': 'https://schema.org', '@type': 'WebSite', '@id': `${SITE_URL}/#website`, url: SITE_URL, name: SITE_NAME, inLanguage: 'el-GR', publisher: { '@id': ORG_ID } },
   ]

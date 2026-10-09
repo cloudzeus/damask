@@ -10,8 +10,8 @@ import { listPublishedPosts, type PublicPostCard } from '@/lib/cms/public-posts'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/nea' },
-  title: 'Νέα & προκηρύξεις ΕΣΠΑ — World Wide Associates',
-  description: 'Νέες προκηρύξεις, εκδηλώσεις και ενημερώσεις ΕΣΠΑ από τη World Wide Associates. Ένα email τον μήνα για όσους εγγραφούν.',
+  title: 'Οδηγοί & νέα ΕΣΠΑ 2026 — World Wide Associates',
+  description: 'Οδηγοί για προγράμματα ΕΣΠΑ, προϋποθέσεις, δικαιολογητικά, de minimis και νέες προκηρύξεις για επιχειρήσεις — από τους συμβούλους της World Wide Associates.',
 }
 
 const FAQS: FaqItem[] = [
@@ -37,7 +37,7 @@ function NCard({ post, i }: { post: PublicPostCard; i: number }) {
 }
 
 export default async function NewsPage() {
-  const posts = await listPublishedPosts(30)
+  const posts = await listPublishedPosts(30, { press: false })
   const [featured, ...rest] = posts
 
   return (
@@ -47,7 +47,8 @@ export default async function NewsPage() {
         crumbs={[{ label: 'Νέα' }]}
         title="ΝΕΑ & ΠΡΟΚΗΡΥΞΕΙΣ"
         sub={<>Ό,τι αλλάζει στο ΕΣΠΑ, <span style={{ color: 'var(--wwa-cyan-400)' }}>πριν</span> λήξει η προθεσμία</>}
-        lead="Νέες προκηρύξεις, εκδηλώσεις και ενημερώσεις. Ένα email τον μήνα για όσους εγγραφούν."
+        lead="Οδηγοί και νέες προκηρύξεις για επιχειρήσεις. Ένα email τον μήνα για όσους εγγραφούν."
+        meta={<Link href="/typos" className="pill" style={{ color: '#fff' }}>Η WWA στον Τύπο →</Link>}
       />
 
       <section lang="el" className="alt">

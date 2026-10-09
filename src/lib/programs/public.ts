@@ -134,6 +134,7 @@ export async function listPublicPrograms(): Promise<PublicProgramCard[]> {
 }
 
 export type PublicProgramDetail = {
+  id: string
   slug: string
   title: string
   image: string
@@ -168,6 +169,7 @@ export async function getPublicProgramBySlug(slug: string): Promise<PublicProgra
   const cms = cmsOf(p.cmsContent)
   const { amount, amountNote } = headlineAmount(p.fundingRate != null ? Number(p.fundingRate) : null, cms)
   return {
+    id: p.id,
     slug: p.publicSlug!,
     title: p.title,
     image: p.imageUrl || FALLBACK_IMAGES[0],

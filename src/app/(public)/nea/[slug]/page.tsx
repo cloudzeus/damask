@@ -14,6 +14,7 @@ import { getPublishedPostBySlug, listPublishedPosts } from '@/lib/cms/public-pos
 import { JsonLd, breadcrumbJsonLd, organizationRef } from '../../_components/json-ld'
 import { KeyFacts, splitGlance } from '../../_components/key-facts'
 import { absoluteUrl } from '@/lib/site-url'
+import { listPublicPrograms } from '@/lib/programs/public'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
@@ -53,7 +54,10 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
   const p = await getPublishedPostBySlug(slug)
   if (!p) notFound()
 
-  const related = (await listPublishedPosts(6)).filter(r => r.slug !== slug).slice(0, 3)
+  const [relatedAll, programsAll] = await Promise.all([listPublishedPosts(6, { press: false }), listPublicPrograms()])
+  const related = relatedAll.filter(r => r.slug !== slug).slice(0, 3)
+  // Σχετικά προγράμματα: πρώτα όσα αναφέρει το άρθρο, μετά τα υπόλοιπα ενεργά.
+  const programs = [...programsAll].sort((a, b) => Number(p.body.includes(`/programmata/${b.slug}`)) - Number(p.body.includes(`/programmata/${a.slug}`))).slice(0, 3)
   const mins = readingTime(p.body)
   const url = absoluteUrl(`/nea/${p.slug}`)
   const faq = faqFromMarkdown(p.body)
@@ -145,6 +149,19 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
               <p>Δείτε σε μία εργάσιμη σε ποια ενεργά προγράμματα είναι επιλέξιμη η επιχείρησή σας.</p>
               <EligibilityCta size="sm" variant="inverse" className="btn-block">Έλεγχος επιλεξιμότητας</EligibilityCta>
             </div>
+            {programs.length > 0 && (
+              <div className="aside-box aside-related r"><h4>Σχετικά προγράμματα</h4><ul>
+                {programs.map(r => (
+                  <li key={r.slug}>
+                    <Link href={`/programmata/${r.slug}`} className="thumb"><img src={r.image} alt="" loading="lazy" /></Link>
+                    <div className="rl-body">
+                      <Link href={`/programmata/${r.slug}`}>{r.title}</Link>
+                      <span className="pm" style={{ fontSize: 13, color: 'var(--fg-3)' }}>{[r.rate, r.deadline ? `έως ${r.deadline}` : 'ανοιχτή πρόσκληση'].filter(Boolean).join(' · ')}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul></div>
+            )}
             {related.length > 0 && (
               <div className="aside-box aside-related r"><h4>Σχετικά άρθρα</h4><ul>
                 {related.map(r => (

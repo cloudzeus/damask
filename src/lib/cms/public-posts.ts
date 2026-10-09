@@ -35,9 +35,15 @@ function el(translations: { locale: string; title: string; excerpt: string | nul
   return translations.find(t => t.locale === 'el') ?? translations[0] ?? null
 }
 
-export async function listPublishedPosts(limit = 30): Promise<PublicPostCard[]> {
+/** Κατηγορία δελτίων/εμφανίσεων Τύπου — εκτός «Νέα» (που κρατά μόνο οδηγούς), στη σελίδα /typos. */
+export const PRESS_CATEGORY_SLUG = 'typos'
+
+export async function listPublishedPosts(limit = 30, opts: { press?: boolean } = {}): Promise<PublicPostCard[]> {
   const rows = await prisma.post.findMany({
-    where: { status: 'PUBLISHED' },
+    where: {
+      status: 'PUBLISHED',
+      ...(opts.press === true ? { category: { slug: PRESS_CATEGORY_SLUG } } : opts.press === false ? { OR: [{ categoryId: null }, { category: { slug: { not: PRESS_CATEGORY_SLUG } } }] } : {}),
+    },
     orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
     take: limit,
     include: {

@@ -8,14 +8,14 @@ import { NextResponse, type NextRequest } from 'next/server'
  * και ΟΛΑ παίρνουν noindex (το robots.txt απαγορεύει τα πάντα).
  */
 const SITE_PUBLIC = process.env.SITE_PUBLIC === '1'
-const SITE_PATHS = ['/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/sitemap.xml', '/llms.txt']
+const SITE_PATHS = ['/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/espa', '/prothesmies-espa', '/prothesmies-espa.ics', '/glossari', '/typos', '/sitemap.xml', '/llms.txt']
 const PUBLIC_PATHS = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password', '/api/consent', '/eligibility', '/robots.txt',
   ...(SITE_PUBLIC ? SITE_PATHS : []),
 ])
 /** Σελίδες του website που ευρετηριάζονται — όλα τα άλλα παίρνουν X-Robots-Tag: noindex. */
-const INDEXABLE_PATHS = new Set(['/', '/eligibility', '/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia'])
-const INDEXABLE_PREFIXES = ['/programmata/', '/nea/', '/legal/']
+const INDEXABLE_PATHS = new Set(['/', '/eligibility', '/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/espa', '/prothesmies-espa', '/glossari', '/typos'])
+const INDEXABLE_PREFIXES = ['/programmata/', '/nea/', '/legal/', '/espa/']
 /** Στατικά αρχεία του /public (εικόνες, fonts κ.λπ.) — όχι .html (το εσωτερικό εγχειρίδιο μένει πίσω από login). */
 const STATIC_FILE = /\.(?:png|jpe?g|webp|avif|gif|svg|ico|css|js|mjs|map|txt|xml|woff2?|ttf|otf|mp4|webm|pdf|json)$/i
 // Δυναμικά δημόσια prefixes — /legal/[slug] (νομικές σελίδες, οποιοδήποτε slug)
