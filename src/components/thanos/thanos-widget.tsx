@@ -359,15 +359,14 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
   }, [busy, msgs, page, speak, voice, status?.tts, voiceLimited]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Άλλα σημεία της σελίδας (π.χ. κουμπιά του portal) ανοίγουν τον Thanos με έτοιμη ερώτηση:
-  // window.dispatchEvent(new CustomEvent('thanos:ask', { detail: { text } })).
+  // window.dispatchEvent(new CustomEvent('thanos:ask', { detail: { text } })) — χωρίς text απλώς ανοίγει.
   const sendRef = useRef(send)
   useEffect(() => { sendRef.current = send }, [send])
   useEffect(() => {
     const onAsk = (e: Event) => {
       const text = (e as CustomEvent<{ text?: string }>).detail?.text
-      if (!text) return
       openPanel()
-      window.setTimeout(() => void sendRef.current(text), 150)
+      if (text) window.setTimeout(() => void sendRef.current(text), 150)
     }
     window.addEventListener('thanos:ask', onAsk)
     return () => window.removeEventListener('thanos:ask', onAsk)

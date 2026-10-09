@@ -150,3 +150,12 @@
 @media (prefers-reduced-motion: reduce) { .wwa-portal * { transition: none !important; animation: none !important; } }
 .wwa-portal .p-top .p-signout { margin-left: auto; }
 .wwa-portal .p-top .p-user + .p-signout { margin-left: 4px; }
+
+/* Thanos — κουμπιά ανοίγματος */
+.wwa-portal .p-btn-cyan { background: var(--p-cyan); border-color: var(--p-cyan); color: var(--p-navy-950); }
+.wwa-portal .p-btn-cyan:hover { background: #fff; border-color: #fff; color: var(--p-brand); }
+.wwa-portal .p-banner-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 20px; }
+.wwa-portal .p-banner-actions span { font-size: 14px; color: rgba(255,255,255,.75); max-width: 44ch; }
+.wwa-portal .p-top .p-thanos-top { min-height: 40px; padding: 0 16px; margin-left: auto; }
+.wwa-portal .p-top .p-thanos-top + .p-signout { margin-left: 4px; }
+@media (min-width: 640px) { .wwa-portal .p-top .p-user + .p-thanos-top { margin-left: 4px; } }

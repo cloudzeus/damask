@@ -5,6 +5,7 @@ import { LuInfo, LuLogOut } from 'react-icons/lu'
 import { auth, signOut } from '@/auth'
 import { getContactPortalDashboard } from '@/lib/pm/portal-contact'
 import { PortalPrograms } from './_components/portal-programs'
+import { AskThanosButton } from './_components/ask-thanos'
 import { ThanosWidget } from '@/components/thanos/thanos-widget'
 import { wwaLogoDark, wwaPhoto } from '../(public)/_wwa/assets'
 import './portal.css'
@@ -27,6 +28,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
         <div className="p-wrap">
           <Link href="/" aria-label="World Wide Associates — αρχική"><img src={wwaLogoDark} alt="World Wide Associates" /></Link>
           <span className="p-user">{session.user.name}</span>
+          {dash.ok && <AskThanosButton className="p-btn p-thanos-top" label="Thanos" />}
           <form action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }} className="p-signout">
             <button type="submit" className="p-btn p-btn-outline"><LuLogOut aria-hidden /> Αποσύνδεση</button>
           </form>
@@ -39,6 +41,12 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
           <div className="p-eyebrow">{dash.ok ? dash.companyName : 'World Wide Associates'}</div>
           <h1>Καλώς ήρθατε{firstName ? `, ${firstName}` : ''}</h1>
           <p>Εδώ βλέπετε πού βρίσκεται κάθε έργο σας, τι χρειαζόμαστε από εσάς και τι ακολουθεί.</p>
+          {dash.ok && (
+            <div className="p-banner-actions">
+              <AskThanosButton className="p-btn p-btn-cyan" label="Ρωτήστε τον Thanos" />
+              <span>Ο ψηφιακός βοηθός σας — απαντά με κείμενο ή φωνή για τα έργα σας, τις δαπάνες και τα δικαιολογητικά.</span>
+            </div>
+          )}
         </div>
         <span className="p-rule" aria-hidden />
       </section>
@@ -46,7 +54,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
       <main>
         <div className="p-wrap p-stack">
           {dash.ok && dash.preview && (
-            <div className="p-alert info" role="status"><LuInfo aria-hidden /><span><b>Προεπισκόπηση:</b> έτσι βλέπει το portal η επαφή <b>{dash.contactName}</b>. Το ανέβασμα και ο βοηθός είναι απενεργοποιημένα εδώ.</span></div>
+            <div className="p-alert info" role="status"><LuInfo aria-hidden /><span><b>Προεπισκόπηση:</b> έτσι βλέπει το portal η επαφή <b>{dash.contactName}</b>. Το ανέβασμα είναι απενεργοποιημένο και ο Thanos απαντά εδώ με τα δικά σας δικαιώματα (όχι του πελάτη).</span></div>
           )}
           {!dash.ok ? (
             <div className="p-empty">
@@ -65,7 +73,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
         </div>
       </footer>
 
-      {dash.ok && !dash.preview && <ThanosWidget firstName={firstName} />}
+      {dash.ok && <ThanosWidget firstName={dash.preview ? session.user.name?.split(' ')[0] : firstName} />}
     </div>
   )
 }
