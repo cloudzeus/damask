@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T07:28:04.224Z",
+  "timestamp": "2026-10-09T08:07:50.312Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -18,9 +18,21 @@
   "uncommitted_files": [
     {
       "status": "M",
-      "path": "src/app/(public)/_components/json-ld.tsx"
+      "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "src/app/api/file-requests/[token]/upload/route.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/file-requests/doc-hints.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/file-requests/rejection.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n6e4bf66 chore: ενημέρωση HANDOFF\n602f640 feat(seo): αυτόματοι σύνδεσμοι γλωσσαρίου στα άρθρα (πρώτη αναφορά de minimis/ΕΜΕ/ΚΑΔ/ΟΠΣΚΕ… → /glossari#όρος) — internal linking + AEO· γλωσσάριο σε κοινό module\nffea0c6 feat(portal+auth): αυτόματη σύνδεση λογαριασμού↔επαφής (email/trdrId) + πολλές εταιρείες ανά άτομο (επιλογέας), λίστα πελατών για admin, «Η επιχείρηση», σελίδα Ευκαιρίες (όλα τα ενεργά με εξήγηση), «Ο λογαριασμός μου» + αλλαγή κωδικού, φόρμες σε modal· ενιαία σύνδεση/ανάκτηση κωδικού με ύφος δημόσιου site (redirect ανά ρόλο), emails επαναφοράς για πελάτες στο portal\nbabff5d chore: ενημέρωση HANDOFF\n4bb8bd4 feat(portal): Οδηγοί βήμα-βήμα (wizards) — οδηγός ανά έργο (από την πορεία + επιλέξιμες δαπάνες, ξεκινά από το τρέχον στάδιο) και 6 διαδικασίες (αγορά/δικαιολογητικά/πληρωμή/επιτόπιος/τροποποίηση/μετά την ολοκλήρωση)· σελίδα Ερωτήσεων· μενού"
+  "context_notes": "Recent commits:\n453c754 feat(uploads): υποχρεωτικός έλεγχος AI στον server πριν την αποθήκευση — σύνδεσμος αιτήματος (λογιστής/πελάτης) και έντυπα έργου στο portal δέχονται ΜΟΝΟ το ζητούμενο έγγραφο της επιχείρησης (Gemini διαβάζει PDF/εικόνα· άλλη επιχείρηση/άσχετο/μη αναγνώσιμο → απόρριψη με εξήγηση)· χωρίς «ούτως ή άλλως»· εξαίρεση το αρχείο δικαιολογητικών του πελάτη\n8861984 chore: ενημέρωση HANDOFF\n3ee4643 feat(seo): Facebook στο sameAs της Organization (οντότητα για Google/AI) + σύνδεσμος στο footer\n6e4bf66 chore: ενημέρωση HANDOFF\n602f640 feat(seo): αυτόματοι σύνδεσμοι γλωσσαρίου στα άρθρα (πρώτη αναφορά de minimis/ΕΜΕ/ΚΑΔ/ΟΠΣΚΕ… → /glossari#όρος) — internal linking + AEO· γλωσσάριο σε κοινό module"
 }
