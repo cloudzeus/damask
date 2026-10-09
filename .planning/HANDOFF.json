@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T04:23:20.143Z",
+  "timestamp": "2026-10-09T05:54:05.609Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\neb6c21a fix(preview): «Δεν υποστηρίζεται προεπισκόπηση» σε αρχεία χωρίς κατάληξη στο όνομα\n0d8e5e4 chore: ενημέρωση HANDOFF\ned4fec7 feat(thanos): η φωνή ξεκινά από την πρώτη πρόταση όσο γράφεται η απάντηση\ncbeea83 chore: ενημέρωση HANDOFF\n5c0dfbe feat(thanos): απαντήσεις σε ροή (streaming) με ένδειξη «τι κάνει τώρα»"
+  "context_notes": "Recent commits:\n2bb13b8 feat(images): Envato Elements πρώτα + έλεγχος AI για κάθε φωτογραφία API\n8addede feat(images): νέες φωτογραφίες από API χωρίς κλειδί (Openverse — κοινό κτήμα CC0) για άρθρα & μαζική εισαγωγή\ncb90bda feat(site): GSAP + ScrollTrigger κίνηση, parallax, εναλλαγή φωτογραφιών στο hero, πινελιές λογότυπου\n0f9f271 feat(nea): χρώματα λογότυπου στα γραφήματα «Με μια ματιά» + εναλλασσόμενες φωτογραφίες\nacf9c54 feat(nea): «Με μια ματιά» οπτικά (δακτύλιοι %, μπάρες ποσών, κάρτες με εικονίδια) + sticky δεξιά στήλη"
 }
