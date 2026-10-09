@@ -324,11 +324,15 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
     ].filter(Boolean).join('\n\n')
     const shape = 'ΑΥΣΤΗΡΑ JSON: {"title":"ελκυστικός τίτλος ≤ 70 χαρ. με τη λέξη-κλειδί (μοτίβο π.χ. «Πρόγραμμα 2026: έως X% επιδότηση — ποιοι δικαιούνται»)","excerpt":"1-2 προτάσεις","body":"markdown","seoTitle":"≤ 60 χαρ.","seoDescription":"140-160 χαρ., με όφελος + κάλεσμα","imageTheme":"ένα από τα θέματα εικόνας ή κενό","imageQuery":"3-6 αγγλικές λέξεις για την ιδανική φωτογραφία (επάγγελμα, άνθρωποι, χώρος — π.χ. bakery owner small business greece)"}'
 
-    const draftRaw = await deepseekChat([
-      { role: 'system', content: `${STYLE}\n\n${shape}` },
-      { role: 'user', content: brief },
-    ], { model: MODEL, reasoningEffort: 'low', maxTokens: 16000, temperature: 0.7, timeoutMs: 240_000, refType: 'seo-article-draft', refId: ideaId })
-    const draft = json<Draft>(draftRaw)
+    // Συγγραφή — με μία επανάληψη αν το JSON βγει κενό/κομμένο.
+    let draft: Draft | null = null
+    for (let attempt = 0; attempt < 2 && !(draft?.body && draft.title); attempt++) {
+      const draftRaw = await deepseekChat([
+        { role: 'system', content: `${STYLE}\n\n${shape}` },
+        { role: 'user', content: attempt ? `${brief}\n\nΣΗΜΑΝΤΙΚΟ: απάντησε ΜΟΝΟ με ένα πλήρες, έγκυρο JSON object.` : brief },
+      ], { model: MODEL, reasoningEffort: 'low', maxTokens: 16000, temperature: attempt ? 0.5 : 0.7, timeoutMs: 240_000, refType: 'seo-article-draft', refId: ideaId })
+      draft = json<Draft>(draftRaw)
+    }
     if (!draft?.body || !draft.title) throw new Error('Το μοντέλο δεν επέστρεψε άρθρο.')
 
     // Επιμελητής: έλεγχος στοιχείων απέναντι στην πηγή + «ανθρώπινο» ύφος + τήρηση δομής.

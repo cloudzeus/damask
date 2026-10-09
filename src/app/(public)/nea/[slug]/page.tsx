@@ -12,6 +12,7 @@ import { PostMeta } from '../../_components/post-meta'
 import { wwaPhoto } from '../../_wwa/assets'
 import { getPublishedPostBySlug, listPublishedPosts } from '@/lib/cms/public-posts'
 import { JsonLd, breadcrumbJsonLd, organizationRef } from '../../_components/json-ld'
+import { KeyFacts, splitGlance } from '../../_components/key-facts'
 import { absoluteUrl } from '@/lib/site-url'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -56,6 +57,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
   const mins = readingTime(p.body)
   const url = absoluteUrl(`/nea/${p.slug}`)
   const faq = faqFromMarkdown(p.body)
+  const glance = splitGlance(p.body)
   const ld: Record<string, unknown>[] = [
     {
       '@context': 'https://schema.org', '@type': 'NewsArticle', mainEntityOfPage: url, headline: p.title.slice(0, 110),
@@ -91,9 +93,17 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
       <section lang="el">
         <div className="wrap layout">
           <article className="article">
-            <div className="post-body dropcap r">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.body}</ReactMarkdown>
-            </div>
+            {glance ? (
+              <>
+                <div className="post-body dropcap r"><ReactMarkdown remarkPlugins={[remarkGfm]}>{glance.before}</ReactMarkdown></div>
+                <KeyFacts rows={glance.rows} />
+                <div className="post-body r"><ReactMarkdown remarkPlugins={[remarkGfm]}>{glance.after}</ReactMarkdown></div>
+              </>
+            ) : (
+              <div className="post-body dropcap r">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.body}</ReactMarkdown>
+              </div>
+            )}
 
             {p.otherImages.length > 0 && (
               <div className="post-gallery r">
