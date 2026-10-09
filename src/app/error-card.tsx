@@ -7,10 +7,10 @@ export function ErrorCard({ onRetry }: { onRetry: () => void }) {
       <div aria-hidden style={{ width: 56, height: 56, margin: '0 auto 16px', borderRadius: 16, display: 'grid', placeItems: 'center', background: '#EEF1FA', color: '#001B72', fontSize: 28, fontWeight: 700 }}>!</div>
       <h1 style={{ margin: '0 0 8px', fontFamily: '"Roboto Condensed", Arial Narrow, Arial, sans-serif', fontWeight: 900, fontSize: 24, textTransform: 'uppercase', letterSpacing: '.01em' }}>Κάτι δεν φόρτωσε σωστά</h1>
       <p style={{ margin: '0 0 20px', color: '#474C60', lineHeight: 1.6, fontSize: 15 }}>
-        Δοκιμάστε ξανά. Αν έχετε ενεργή την <b>αυτόματη μετάφραση</b> του browser, απενεργοποιήστε την για αυτή τη σελίδα — συχνά προκαλεί αυτό το πρόβλημα.
+        Πατήστε «Δοκιμάστε ξανά» για να φορτώσει ξανά η σελίδα. Αν το πρόβλημα επιμένει, καλέστε μας.
       </p>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <button type="button" onClick={onRetry} style={{ height: 48, padding: '0 28px', border: 0, borderRadius: 999, background: '#001B72', color: '#fff', font: '700 15px Roboto, system-ui, sans-serif', cursor: 'pointer' }}>Δοκιμάστε ξανά</button>
+        <button type="button" onClick={() => { try { onRetry() } finally { window.location.reload() } }} style={{ height: 48, padding: '0 28px', border: 0, borderRadius: 999, background: '#001B72', color: '#fff', font: '700 15px Roboto, system-ui, sans-serif', cursor: 'pointer' }}>Δοκιμάστε ξανά</button>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- πλήρης επαναφόρτωση μετά από σφάλμα */}
         <a href="/" style={{ height: 48, padding: '0 24px', display: 'inline-flex', alignItems: 'center', borderRadius: 999, border: '1px solid #001B72', color: '#001B72', font: '700 15px Roboto, system-ui, sans-serif', textDecoration: 'none' }}>Αρχική</a>
       </div>

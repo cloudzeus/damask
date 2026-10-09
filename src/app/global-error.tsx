@@ -5,7 +5,6 @@ import { ErrorCard } from './error-card'
 /**
  * Τελευταία γραμμή άμυνας (σφάλμα και στο root layout): αντικαθιστά τη μαύρη «This page couldn't load» του Next με
  * σελίδα WWA στα ελληνικά. Αυτόνομη (δικό της html/body, inline στυλ) — δεν εξαρτάται από CSS/layout που μπορεί να απέτυχαν.
- * Συχνή αιτία στον browser: αυτόματη μετάφραση/επεκτάσεις που αλλάζουν τη σελίδα — γι' αυτό η συμβουλή.
  */
 export default function GlobalError({ unstable_retry }: { error: Error & { digest?: string }; unstable_retry: () => void }) {
   return (
