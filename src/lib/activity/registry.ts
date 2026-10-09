@@ -52,6 +52,7 @@ export const ACTIONS = {
   // Leads (ενδιαφέρον) — follow-up
   'lead.assign': { category: 'COMMUNICATION', label: 'Ανάθεση lead', weight: 1 },
   'lead.communicate': { category: 'COMMUNICATION', label: 'Καταγραφή επικοινωνίας lead', weight: 2 },
+  'lead.delete': { category: 'COMMUNICATION', label: 'Διαγραφή lead', weight: 0 },
   'lead.convert': { category: 'PROSPECT', label: 'Αναγωγή σε δυνητικό πελάτη', weight: 3 },
   // Συμμετοχές / Έργα
   'application.associate': { category: 'APPLICATION', label: 'Σύνδεση πελάτη με πρόγραμμα', weight: 2 },

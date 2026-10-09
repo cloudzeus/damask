@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  MoreVertical, UserCog, Phone, MessageSquarePlus, Sparkles, XCircle, ExternalLink, LoaderCircle, History, UserPlus,
+  MoreVertical, UserCog, Phone, MessageSquarePlus, Sparkles, XCircle, ExternalLink, LoaderCircle, History, UserPlus, Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,9 +16,13 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import { relativeTime } from '@/lib/relative-time'
 import {
-  assignLead, logLeadCommunication, promoteLead, setLeadStatus, getLeadDetail,
+  assignLead, logLeadCommunication, promoteLead, setLeadStatus, getLeadDetail, deleteLead,
   type LeadRow, type LeadCommRow,
 } from '@/lib/leads/actions'
 import type { StaffOption } from '@/lib/assignments/actions'
@@ -65,6 +69,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
   const [assigning, setAssigning] = React.useState<LeadRow | null>(null)
   const [logging, setLogging] = React.useState<LeadRow | null>(null)
   const [promoting, setPromoting] = React.useState<LeadRow | null>(null)
+  const [deleting, setDeleting] = React.useState<LeadRow | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [acting, startActing] = React.useTransition()
 
@@ -87,6 +92,25 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
         router.refresh()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Η ενέργεια απέτυχε.')
+      } finally {
+        setBusyId(null)
+      }
+    })
+  }
+
+  function confirmDelete() {
+    const row = deleting
+    if (!row) return
+    setBusyId(row.id)
+    startActing(async () => {
+      try {
+        const res = await deleteLead(row.id)
+        if (!res.ok) throw new Error(res.error)
+        toast.success('Το lead διαγράφηκε.')
+        setDeleting(null)
+        router.refresh()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Η διαγραφή απέτυχε.')
       } finally {
         setBusyId(null)
       }
@@ -163,6 +187,14 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
                   </DropdownMenuItem>
                 </>
               )}
+              {canAssign && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setDeleting(r)} style={{ color: 'var(--destructive)' }}>
+                    <Trash2 className="size-3.5" aria-hidden /> Διαγραφή lead
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )
@@ -210,6 +242,22 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
       {logging && (
         <CommDialog key={logging.id} row={logging} open onOpenChange={o => { if (!o) setLogging(null) }} onDone={() => { setLogging(null); router.refresh() }} />
       )}
+      <AlertDialog open={!!deleting} onOpenChange={o => { if (!o && !acting) setDeleting(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Διαγραφή lead «{deleting?.companyName ?? deleting?.email}»;</AlertDialogTitle>
+            <AlertDialogDescription>
+              Το lead και το ιστορικό επικοινωνίας του θα διαγραφούν οριστικά. Η καρτέλα του συναλλασσόμενου (αν υπάρχει) και τυχόν αιτήσεις σε προγράμματα δεν επηρεάζονται. Η ενέργεια δεν αναιρείται.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={acting}>Άκυρο</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={acting} onClick={confirmDelete}>
+              {acting ? 'Διαγραφή…' : 'Διαγραφή'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {promoting && (
         <PromoteDialog key={promoting.id} row={promoting} open onOpenChange={o => { if (!o) setPromoting(null) }} onDone={trdrId => { setPromoting(null); router.refresh(); if (trdrId) router.push(`/partners/${trdrId}`) }} />
       )}

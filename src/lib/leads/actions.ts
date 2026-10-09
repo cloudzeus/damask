@@ -233,3 +233,17 @@ export async function promoteLead(leadId: string): Promise<{ ok: boolean; error?
   revalidatePath(`/partners/${trdrId}`)
   return { ok: true, trdrId, linked }
 }
+
+/**
+ * Οριστική διαγραφή lead (μόνο admin/super-admin — lead.assign). Σβήνει το lead και το ιστορικό επικοινωνίας του
+ * (cascade). ΔΕΝ αγγίζει την καρτέλα συναλλασσόμενου (Trdr) ούτε αιτήσεις προγραμμάτων.
+ */
+export async function deleteLead(leadId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await requirePermission('lead.assign')
+  const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { id: true, companyName: true, email: true, afm: true } })
+  if (!lead) return { ok: false, error: 'Το lead δεν βρέθηκε.' }
+  await prisma.lead.delete({ where: { id: leadId } })
+  await logActivity('lead.delete', { userId: session.user.id, entityType: 'Lead', entityId: leadId, summary: `Διαγραφή lead — ${lead.companyName ?? lead.email}`, meta: { afm: lead.afm, email: lead.email } })
+  revalidatePath('/leads')
+  return { ok: true }
+}
