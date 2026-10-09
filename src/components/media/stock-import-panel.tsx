@@ -2,22 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Play, ExternalLink, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Loader2, Play, ExternalLink, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { stockImportStatusAction, startStockImportAction } from '@/app/(app)/media/actions'
+import { stockImportStatusAction, startStockImportAction, elementsStatusAction, tagElementsNowAction, type ElementsPick } from '@/app/(app)/media/actions'
 import type { StockImportStatus } from '@/lib/stock/bulk-import'
 
-/** Θέματα για premium επιλογές από Envato Elements (χειροκίνητη λήψη με τη συνδρομή). */
-const ELEMENTS_PICKS: [string, string][] = [
-  ['Επιχειρηματίες σε συνάντηση (hero)', 'diverse business team meeting'],
-  ['Μικρομεσαία επιχείρηση', 'small business owner portrait'],
-  ['Εργοστάσιο & παραγωγή', 'modern factory workers'],
-  ['Τουρισμός & φιλοξενία', 'hotel staff greece'],
-  ['Αγροδιατροφή', 'farmer olive grove'],
-  ['Ψηφιακός μετασχηματισμός', 'team digital transformation'],
-  ['Πράσινη ενέργεια', 'solar panel engineer'],
-  ['Ευρωπαϊκή Ένωση', 'european union business'],
-]
 
 /**
  * Μαζική εισαγωγή δωρεάν stock φωτογραφιών (Pexels/Pixabay) για τα ευρωπαϊκά προγράμματα — επαγγελματίες,
@@ -106,18 +95,59 @@ export function StockImportPanel({ onProgress }: { onProgress?: () => void }) {
         )}
       </div>
 
-      <div className="glass p-4">
-        <h3 className="text-[length:var(--fs-14)] font-semibold">Premium επιλογές από Envato Elements (συνδρομή)</h3>
-        <p className="mb-2 text-[length:var(--fs-12-5)] text-muted-foreground">Για τα σημαντικά σημεία (αρχική, banners): ανοίξτε την αναζήτηση, κατεβάστε με τη συνδρομή και ανεβάστε από το «Μεταφόρτωση» — γίνονται αυτόματα WebP.</p>
-        <div className="flex flex-wrap gap-2">
-          {ELEMENTS_PICKS.map(([label, q]) => (
-            <a key={q} href={`https://elements.envato.com/photos/${encodeURIComponent(q.replace(/\s+/g, '-'))}`} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[length:var(--fs-12-5)] hover:border-primary hover:text-primary">
-              {label} <ExternalLink className="size-3.5" aria-hidden />
-            </a>
-          ))}
-        </div>
+      <ElementsPanel />
+    </div>
+  )
+}
+
+const elementsSearch = (q: string) => `https://elements.envato.com/photos/${encodeURIComponent(q.trim().toLowerCase().replace(/\s+/g, '-'))}`
+
+/**
+ * Envato Elements (συνδρομή): ο χρήστης κατεβάζει από το Elements και ανεβάζει στον φάκελο «Envato Elements» →
+ * η AI τις περιγράφει και τα άρθρα τις παίρνουν ΠΡΩΤΕΣ. Εδώ: τι να κατεβάσει ανά άρθρο + κατάσταση.
+ */
+function ElementsPanel() {
+  const [st, setSt] = useState<{ total: number; tagged: number; picks: ElementsPick[] } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const load = () => void elementsStatusAction().then(setSt).catch(() => {})
+  useEffect(() => { let alive = true; void elementsStatusAction().then(r => { if (alive) setSt(r) }).catch(() => {}); return () => { alive = false } }, [])
+  async function tagNow() {
+    setBusy(true)
+    const r = await tagElementsNowAction()
+    setBusy(false)
+    if (r.ok) toast.success(r.message); else toast.error(r.error)
+    load()
+  }
+  const missing = st?.picks.filter(p => !p.hasElements) ?? []
+  return (
+    <div className="glass p-4">
+      <h3 className="text-[length:var(--fs-14)] font-semibold">Envato Elements (συνδρομή) — φωτογραφίες για τα άρθρα</h3>
+      <ol className="my-2 list-decimal space-y-1 pl-5 text-[length:var(--fs-13)] text-muted-foreground">
+        <li>Ανοίξτε την αναζήτηση για κάθε άρθρο (παρακάτω) και κατεβάστε 1-2 φωτογραφίες με τη συνδρομή σας.</li>
+        <li>Ρίξτε τα αρχεία στον φάκελο <b>«Envato Elements»</b> του Gallery (καρτέλα «Αρχεία») — κρατούν τις αναλογίες τους.</li>
+        <li>Η AI τις περιγράφει αυτόματα και τα άρθρα τις παίρνουν πρώτες (πατήστε «Αντιστοίχιση» για όσα υπάρχουν ήδη).</li>
+      </ol>
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-[length:var(--fs-13)]">
+        <span>Στον φάκελο: <b className="tabular-nums">{st?.total ?? '…'}</b> φωτογραφίες · με περιγραφή: <b className="tabular-nums">{st?.tagged ?? '…'}</b></span>
+        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void tagNow()}>
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}Περιγραφή & αντιστοίχιση σε άρθρα
+        </Button>
       </div>
+      {missing.length > 0 && (
+        <>
+          <p className="mb-1.5 text-[length:var(--fs-12-5)] font-semibold">Άρθρα χωρίς φωτογραφία Elements ({missing.length})</p>
+          <ul className="max-h-80 space-y-1 overflow-y-auto pr-1">
+            {missing.map(p => (
+              <li key={p.slug} className="flex items-center gap-2 text-[length:var(--fs-12-5)]">
+                <span className="min-w-0 flex-1 truncate" title={p.postTitle}>{p.postTitle}</span>
+                <a href={elementsSearch(p.query)} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 hover:border-primary hover:text-primary">
+                  «{p.query}» <ExternalLink className="size-3" aria-hidden />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   )
 }

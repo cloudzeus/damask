@@ -405,3 +405,54 @@ export async function startStockImportAction(target: number): Promise<{ ok: true
   await getBoss().send('stock-import' /* QUEUE_STOCK_IMPORT */, { target: Math.max(10, Math.min(1000, Math.round(target))) }, { singletonKey: 'stock-import' })
   return { ok: true }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Envato Elements — φωτογραφίες που κατεβάζει ο χρήστης με τη συνδρομή του
+// ══════════════════════════════════════════════════════════════════════════
+
+export type ElementsPick = { postTitle: string; slug: string; query: string; hasElements: boolean }
+
+/** Κατάσταση φακέλου «Envato Elements» + τι να κατεβάσει ο χρήστης ανά άρθρο (έτοιμη αναζήτηση). */
+export async function elementsStatusAction(): Promise<{ folderId: string; total: number; tagged: number; picks: ElementsPick[] }> {
+  await requirePermission('media.manage')
+  const { ensureElementsFolder } = await import('@/lib/media/elements')
+  const folderId = await ensureElementsFolder()
+  const [assets, posts] = await Promise.all([
+    prisma.mediaAsset.findMany({ where: { folderId, type: 'IMAGE' }, select: { cdnUrl: true, meta: true } }),
+    prisma.post.findMany({ where: { status: 'PUBLISHED' }, orderBy: { publishedAt: 'desc' }, take: 40, select: { slug: true, featuredImage: true, translations: { where: { locale: 'el' }, select: { title: true } } } }),
+  ])
+  const elementsUrls = new Set(assets.map(a => a.cdnUrl))
+  const featured = await prisma.mediaAsset.findMany({ where: { cdnUrl: { in: posts.map(p => p.featuredImage).filter(Boolean) as string[] } }, select: { cdnUrl: true, meta: true } })
+  const themeOf = new Map(featured.map(f => [f.cdnUrl, (f.meta as { theme?: string } | null)?.theme ?? '']))
+  return {
+    folderId,
+    total: assets.length,
+    tagged: assets.filter(a => !!(a.meta as { tags?: string } | null)?.tags).length,
+    picks: posts.map(p => ({
+      postTitle: p.translations[0]?.title ?? p.slug, slug: p.slug,
+      query: (p.featuredImage && themeOf.get(p.featuredImage)) || 'business',
+      hasElements: !!p.featuredImage && elementsUrls.has(p.featuredImage),
+    })),
+  }
+}
+
+/** AI περιγραφή για φωτογραφίες Elements που ανέβηκαν χωρίς αυτήν + αντικατάσταση εικόνων άρθρων με Elements. */
+export async function tagElementsNowAction(): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+  await requirePermission('media.manage')
+  try {
+    const { tagPendingElements } = await import('@/lib/media/elements')
+    const n = await tagPendingElements(60)
+    const { pickImage } = await import('@/lib/seo-content/engine')
+    // Άρθρα χωρίς φωτογραφία Elements → δοκίμασε να βρεις κατάλληλη Elements (βάσει θέματος της τωρινής).
+    const status = await elementsStatusAction()
+    let replaced = 0
+    for (const p of status.picks.filter(x => !x.hasElements)) {
+      const pick = await pickImage(undefined, p.query)
+      if (pick?.via === 'elements') { await prisma.post.update({ where: { slug: p.slug }, data: { featuredImage: pick.url } }); replaced++ }
+    }
+    revalidatePath('/media')
+    return { ok: true, message: `Περιγράφηκαν ${n} φωτογραφίες· ${replaced} άρθρα πήραν φωτογραφία Elements.` }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}

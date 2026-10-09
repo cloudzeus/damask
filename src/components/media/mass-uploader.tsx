@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { isConvertibleImage, processImageToWebp } from '@/lib/image-processing'
+import { isConvertibleImage, processImageToWebp, processPhotoToWebp } from '@/lib/image-processing'
 import { MEDIA_MAX_BYTES, tooLargeMessage } from '@/lib/media-limits'
 
 export type UploadedAsset = {
@@ -32,6 +32,8 @@ export type MassUploaderProps = {
   maxConcurrent?: number
   /** Media Gallery: φάκελος προορισμού (MediaFolder.id) — προαιρετικό, default κανένας (ρίζα) */
   folderId?: string | null
+  /** Φωτογραφίες (π.χ. Envato Elements): κρατά τις αναλογίες, χωρίς λευκό καμβά 1920×1920. */
+  keepAspect?: boolean
   /** Αρχεία που προστίθενται «απ' έξω» (π.χ. full-screen drop). Κάθε νέο `id`
    * βάζει τα `files` στην ουρά μία φορά. */
   incoming?: { id: number; files: File[] } | null
@@ -84,7 +86,7 @@ function greekUploadError(status: number, body: unknown): string {
   return 'Η μεταφόρτωση απέτυχε.'
 }
 
-export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, maxConcurrent = 3, folderId = null, incoming, hideDropzone = false, onStateChange }: MassUploaderProps) {
+export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, maxConcurrent = 3, folderId = null, keepAspect = false, incoming, hideDropzone = false, onStateChange }: MassUploaderProps) {
   const [items, setItems] = useState<QueueItem[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -119,7 +121,7 @@ export function MassUploader({ pathPrefix, onUploaded, accept = DEFAULT_ACCEPT, 
 
       if (isConvertibleImage(file)) {
         updateItem(id, { status: 'converting' })
-        const webp = await processImageToWebp(file)
+        const webp = keepAspect ? await processPhotoToWebp(file) : await processImageToWebp(file)
         uploadBlob = webp
         uploadName = `${file.name.replace(/\.[a-z0-9]+$/i, '')}.webp`
         uploadType = 'image/webp'

@@ -74,6 +74,7 @@ export function UploadTray({
           incoming={incoming}
           pathPrefix={`media-gallery/${folderId ?? 'root'}`}
           folderId={folderId}
+          keepAspect={/elements/i.test(folderLabel)}
           onStateChange={setSummary}
           onUploaded={(assets: UploadedAsset[]) => { if (assets.length > 0) onUploaded() }}
         />

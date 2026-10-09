@@ -160,12 +160,15 @@ export async function runStockImport(target = 500): Promise<StockImportStatus> {
           const res = await fetch(c.download, { headers: { 'User-Agent': 'WWA (wwa-espa.com)' }, signal: AbortSignal.timeout(60_000) })
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const webp = await toWebp(Buffer.from(await res.arrayBuffer()))
+          // Έλεγχος AI: όχι ξένα νομίσματα/σημαίες/τοπία, θρησκευτικά σύμβολα, κείμενο, άσχετα θέματα.
+          const { vetImage } = await import('@/lib/media/vision')
+          if (!(await vetImage(webp, `${t.label} (${t.query})`)).ok) { status.skipped++; seen.add(stockKey); continue }
           await storeMediaBuffer({
             body: webp, filename: `${t.query.split(' ').slice(0, 3).join('-')}-${c.provider}-${c.id}.webp`, mimeType: 'image/webp',
             path: `media-gallery/${folderId}`, folderId,
             name: `${t.label} — ${c.author || c.provider}`.slice(0, 200),
             alt: c.alt ? c.alt.slice(0, 300) : t.label,
-            meta: { source: c.provider, stockKey, stockUrl: c.url, author: c.author, theme: t.label, license: c.provider === 'pexels' ? 'Pexels License' : c.provider === 'pixabay' ? 'Pixabay Content License' : 'CC0 / Public Domain (Openverse)' },
+            meta: { source: c.provider, vetted: true, stockKey, stockUrl: c.url, author: c.author, theme: t.label, license: c.provider === 'pexels' ? 'Pexels License' : c.provider === 'pixabay' ? 'Pixabay Content License' : 'CC0 / Public Domain (Openverse)' },
           })
           seen.add(stockKey)
           got++

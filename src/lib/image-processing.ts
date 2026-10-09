@@ -28,3 +28,22 @@ export async function processImageToWebp(file: File): Promise<Blob> {
     bitmap.close()
   }
 }
+
+/** Φωτογραφία (όχι προϊόν): WebP με τις ΑΡΧΙΚΕΣ αναλογίες, μεγαλύτερη πλευρά ≤ maxSide — χωρίς καμβά/περιθώριο. */
+export async function processPhotoToWebp(file: File, maxSide = 2560): Promise<Blob> {
+  const bitmap = await createImageBitmap(file)
+  try {
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    const ctx = canvas.getContext('2d')!
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', 0.86))
+    if (!blob) throw new Error('Η μετατροπή σε WebP απέτυχε')
+    return blob
+  } finally {
+    bitmap.close()
+  }
+}

@@ -30,6 +30,7 @@ export function UploadDialog({
         <MassUploader
           pathPrefix={`media-gallery/${folderId ?? 'root'}`}
           folderId={folderId}
+          keepAspect={/elements/i.test(folderLabel)}
           onUploaded={handleUploaded}
         />
       </DialogContent>

@@ -55,12 +55,14 @@ export async function POST(request: Request) {
 
   // Προαιρετικός φάκελος (Media Gallery) — αν δοθεί, πρέπει να υπάρχει.
   let folderId: string | null = null
+  let folderName = ''
   if (typeof folderIdRaw === 'string' && folderIdRaw.trim() !== '') {
     const folder = await prisma.mediaFolder.findUnique({ where: { id: folderIdRaw } })
     if (!folder) {
       return NextResponse.json({ error: 'Ο φάκελος προορισμού δεν βρέθηκε.' }, { status: 400 })
     }
     folderId = folder.id
+    folderName = folder.name
   }
 
   let arrayBuffer: ArrayBuffer
@@ -72,6 +74,10 @@ export async function POST(request: Request) {
 
   try {
     const stored = await storeMediaBuffer({ body: arrayBuffer, filename: file.name, mimeType: file.type, path: safePath, folderId, userId: session?.user?.id })
+    // Φάκελος «Envato Elements»: η AI περιγράφει κάθε φωτογραφία (alt + tags) ώστε τα άρθρα να τη βρίσκουν πρώτη.
+    if ((/elements/i.test(folderName) || /\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}-utc/i.test(file.name)) && file.type.startsWith('image/')) {
+      void import('@/lib/media/elements').then(m => m.tagElementsAsset(stored.id, Buffer.from(arrayBuffer), file.type)).catch(() => {})
+    }
     return NextResponse.json({ id: stored.id, url: stored.url, path: stored.path, size: stored.size })
   } catch (err) {
     if (err instanceof MediaStoreError) return NextResponse.json({ error: err.message, ...(err.detail ? { detail: err.detail } : {}) }, { status: err.status })

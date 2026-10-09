@@ -170,7 +170,7 @@ const STYLE = [
   'Μήκος 900-1300 λέξεις. Ελληνικά, σωστός τονισμός, ακρωνύμια ολόκληρα την πρώτη φορά (π.χ. «Μικρομεσαίες Επιχειρήσεις (ΜμΕ)»).',
 ].join('\n')
 
-type Draft = { title: string; slug?: string; excerpt: string; body: string; seoTitle: string; seoDescription: string; imageTheme?: string; imageQuery?: string }
+type Draft = { title: string; slug?: string; excerpt: string; body: string; seoTitle: string; seoDescription: string; imageTheme?: string; imageQuery?: string; elementsImage?: number }
 
 /** Πηγή & πλαίσιο ανά τύπο ιδέας. */
 async function sourceFor(idea: { source: string; sourceUrl: string | null; programId: string | null; title: string; summary: string | null; targetKeyword: string | null }) {
@@ -218,7 +218,7 @@ async function imageThemes(): Promise<string[]> {
 }
 
 /** Εικόνα για το άρθρο — επιστρέφει URL και από πού βρέθηκε. Προτιμά πάντα όσες δεν χρησιμοποιούνται ήδη σε άρθρο. */
-export async function pickImage(theme: string | undefined, query: string | undefined): Promise<{ url: string; via: 'theme' | 'gallery' | 'stock' } | null> {
+export async function pickImage(theme: string | undefined, query: string | undefined): Promise<{ url: string; via: 'theme' | 'elements' | 'gallery' | 'stock' } | null> {
   const used = new Set((await prisma.post.findMany({ where: { featuredImage: { not: null } }, select: { featuredImage: true } })).map(p => p.featuredImage))
 
   // 1) Θέμα από τη μαζική εισαγωγή stock (meta.theme).
@@ -226,6 +226,23 @@ export async function pickImage(theme: string | undefined, query: string | undef
     const rows = await prisma.$queryRaw<{ cdnUrl: string }[]>`SELECT "cdnUrl" FROM "MediaAsset" WHERE "type" = 'IMAGE' AND "meta"->>'theme' = ${theme} ORDER BY random() LIMIT 40`
     const hit = rows.find(r => !used.has(r.cdnUrl))
     if (hit) return { url: hit.cdnUrl, via: 'theme' }
+  }
+
+  const words = (query ?? '').toLowerCase().split(/[^a-z0-9α-ωάέήίόύώϊϋΐΰ]+/i).filter(w => w.length > 2 && !['the', 'and', 'with', 'for', 'photo', 'image', 'people'].includes(w))
+
+  // 1β) ΠΡΩΤΑ φωτογραφίες από Envato Elements (ανεβασμένες στον φάκελο «Envato Elements», με AI περιγραφή/tags).
+  if (words.length) {
+    const els = await prisma.$queryRaw<{ cdnUrl: string; alt: string | null; tags: string | null }[]>`
+      SELECT "cdnUrl", "alt", "meta"->>'tags' AS tags FROM "MediaAsset"
+      WHERE "type" = 'IMAGE' AND "meta"->>'source' = 'elements' AND COALESCE("meta"->>'suitable', 'true') = 'true'`
+    let best: { url: string; score: number } | null = null
+    for (const e of els) {
+      if (used.has(e.cdnUrl)) continue
+      const hay = `${e.alt ?? ''} ${e.tags ?? ''}`.toLowerCase()
+      const score = words.reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0)
+      if (score >= 1 && (!best || score > best.score)) best = { url: e.cdnUrl, score }
+    }
+    if (best) return { url: best.url, via: 'elements' }
   }
 
   // 2) ΝΕΑ φωτογραφία από API (Pexels/Pixabay αν υπάρχει κλειδί, αλλιώς Openverse — κοινό κτήμα) → εισαγωγή στο Gallery.
@@ -244,7 +261,12 @@ export async function pickImage(theme: string | undefined, query: string | undef
           const res = await fetch(f.download, { headers: { 'User-Agent': 'WWA (wwa-espa.com)' }, signal: AbortSignal.timeout(60_000) }).catch(() => null)
           if (!res?.ok || !(res.headers.get('content-type') ?? '').startsWith('image/')) continue
           try {
-            webp = await sharp(Buffer.from(await res.arrayBuffer())).rotate().resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer()
+            const candidate = await sharp(Buffer.from(await res.arrayBuffer())).rotate().resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer()
+            // Έλεγχος AI: όχι ξένα νομίσματα/σημαίες/τοπία, θρησκευτικά σύμβολα, κείμενο, άσχετα θέματα.
+            const { vetImage } = await import('@/lib/media/vision')
+            const vet = await vetImage(candidate, query)
+            if (!vet.ok) { console.log(`[seo] απορρίφθηκε εικόνα (${f.provider}:${f.id}): ${vet.reason}`); continue }
+            webp = candidate
             c = f
             break
           } catch { /* επόμενη */ }
@@ -258,7 +280,7 @@ export async function pickImage(theme: string | undefined, query: string | undef
         const stored = await storeMediaBuffer({
           body: webp, filename: `article-${c.provider}-${c.id}.webp`, mimeType: 'image/webp', path: `media-gallery/${folder.id}`, folderId: folder.id,
           name: `${query} — ${c.author || c.provider}`.slice(0, 200), alt: c.alt || query,
-          meta: { source: c.provider, stockKey: `${c.provider}:${c.id}`, stockUrl: c.url, author: c.author, theme: query, license: c.provider === 'pexels' ? 'Pexels License' : c.provider === 'pixabay' ? 'Pixabay Content License' : 'CC0 / Public Domain (Openverse)' },
+          meta: { source: c.provider, vetted: true, stockKey: `${c.provider}:${c.id}`, stockUrl: c.url, author: c.author, theme: query, license: c.provider === 'pexels' ? 'Pexels License' : c.provider === 'pixabay' ? 'Pixabay Content License' : 'CC0 / Public Domain (Openverse)' },
         })
         return { url: stored.url, via: 'stock' }
       }
@@ -267,12 +289,14 @@ export async function pickImage(theme: string | undefined, query: string | undef
     }
   }
   // 3) Έσχατη λύση: ταίριασμα λέξεων της περιγραφής με όνομα/alt/θέμα των εικόνων του Gallery.
-  const words = (query ?? '').toLowerCase().split(/[^a-z0-9α-ωάέήίόύώϊϋΐΰ]+/i).filter(w => w.length > 2 && !['the', 'and', 'with', 'for', 'photo', 'image', 'people'].includes(w))
   if (words.length) {
     const assets = await prisma.mediaAsset.findMany({ where: { type: 'IMAGE' }, select: { cdnUrl: true, name: true, alt: true, meta: true }, take: 3000, orderBy: { createdAt: 'desc' } })
     let best: { url: string; score: number } | null = null
     for (const a of assets) {
       if (used.has(a.cdnUrl)) continue
+      const m = (a.meta ?? {}) as { source?: string; vetted?: boolean; suitable?: boolean }
+      if (['openverse', 'pexels', 'pixabay'].includes(m.source ?? '') && !m.vetted) continue // ανεπιβεβαίωτες εικόνες API
+      if (m.suitable === false) continue
       const hay = `${a.name} ${a.alt ?? ''} ${(a.meta as { theme?: string } | null)?.theme ?? ''} ${a.cdnUrl.split('/').pop() ?? ''}`.toLowerCase().replace(/[-_]/g, ' ')
       const score = words.reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0)
       if (score >= Math.min(2, words.length) && (!best || score > best.score)) best = { url: a.cdnUrl, score }
@@ -318,7 +342,8 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
   const idea = await prisma.contentIdea.findUniqueOrThrow({ where: { id: ideaId } })
   await prisma.contentIdea.update({ where: { id: ideaId }, data: { status: 'WRITING', error: null } })
   try {
-    const [{ sourceText, sourceUrl, sourceDate }, links, themes] = await Promise.all([sourceFor(idea), internalLinks(), imageThemes()])
+    const { elementsCandidates } = await import('@/lib/media/elements')
+    const [{ sourceText, sourceUrl, sourceDate }, links, themes, elements] = await Promise.all([sourceFor(idea), internalLinks(), imageThemes(), elementsCandidates(80)])
     const today = new Date().toISOString().slice(0, 10)
     const brief = [
       `ΣΗΜΕΡΑ: ${today}. ΘΕΜΑ: ${idea.title}`,
@@ -327,10 +352,11 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
       sourceUrl ? `ΕΠΙΣΗΜΗ ΠΗΓΗ (σύνδεσμος): ${sourceUrl.startsWith('/') ? sourceUrl : sourceUrl}` : '',
       sourceDate ? `ΗΜΕΡΟΜΗΝΙΑ ΠΗΓΗΣ: ${sourceDate.toISOString().slice(0, 10)}` : '',
       `ΣΕΛΙΔΕΣ ΓΙΑ ΕΣΩΤΕΡΙΚΟΥΣ ΣΥΝΔΕΣΜΟΥΣ:\n${links}`,
+      elements.length ? `ΦΩΤΟΓΡΑΦΙΕΣ ENVATO ELEMENTS (προτίμησέ τες — διάλεξε τον ΑΡΙΘΜΟ της πιο ταιριαστής στο θέμα, ή 0 αν καμία δεν ταιριάζει):\n${elements.map((e, i) => `${i + 1}) ${e.label}`).join('\n')}` : '',
       themes.length ? `ΘΕΜΑΤΑ ΕΙΚΟΝΑΣ (διάλεξε ΕΝΑ ακριβώς όπως γράφεται): ${themes.join(' | ')}` : '',
       `ΠΗΓΗ (η μόνη βάση για γεγονότα/αριθμούς):\n${sourceText}`,
     ].filter(Boolean).join('\n\n')
-    const shape = 'ΑΥΣΤΗΡΑ JSON: {"title":"ελκυστικός τίτλος ≤ 70 χαρ. με τη λέξη-κλειδί (μοτίβο π.χ. «Πρόγραμμα 2026: έως X% επιδότηση — ποιοι δικαιούνται»)","excerpt":"1-2 προτάσεις","body":"markdown","seoTitle":"≤ 60 χαρ.","seoDescription":"140-160 χαρ., με όφελος + κάλεσμα","imageTheme":"ένα από τα θέματα εικόνας ή κενό","imageQuery":"3-6 αγγλικές λέξεις για την ιδανική φωτογραφία (επάγγελμα, άνθρωποι, χώρος — π.χ. bakery owner small business greece)"}'
+    const shape = 'ΑΥΣΤΗΡΑ JSON: {"title":"ελκυστικός τίτλος ≤ 70 χαρ. με τη λέξη-κλειδί (μοτίβο π.χ. «Πρόγραμμα 2026: έως X% επιδότηση — ποιοι δικαιούνται»)","excerpt":"1-2 προτάσεις","body":"markdown","seoTitle":"≤ 60 χαρ.","seoDescription":"140-160 χαρ., με όφελος + κάλεσμα","imageTheme":"ένα από τα θέματα εικόνας ή κενό","elementsImage":0,"imageQuery":"3-6 αγγλικές λέξεις για την ιδανική φωτογραφία (επάγγελμα, άνθρωποι, χώρος — π.χ. bakery owner small business greece)"}'
 
     // Συγγραφή — με μία επανάληψη αν το JSON βγει κενό/κομμένο.
     let draft: Draft | null = null
@@ -368,7 +394,11 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
 
     const { authorId, categoryId } = await ensureAuthorAndCategory()
     const slug = await uniqueSlug(slugify(final.slug || final.title).slice(0, 90))
-    const picked = await pickImage(final.imageTheme || draft.imageTheme, final.imageQuery || draft.imageQuery || idea.targetKeyword || undefined)
+    // Πρώτα η φωτογραφία Elements που διάλεξε ο συγγραφέας· αλλιώς αναζήτηση (θέμα → API με έλεγχο AI → Gallery).
+    const chosen = Number(final.elementsImage ?? draft.elementsImage ?? 0)
+    const picked = chosen >= 1 && chosen <= elements.length
+      ? { url: elements[chosen - 1].url, via: 'elements' as const }
+      : await pickImage(final.imageTheme || draft.imageTheme, final.imageQuery || draft.imageQuery || idea.targetKeyword || undefined)
     const image = picked?.url ?? null
     const post = await prisma.post.create({
       data: {
