@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- public φωτογραφίες με object-fit cover */
+ 
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { Pic } from './pic'

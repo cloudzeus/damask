@@ -39,7 +39,7 @@ export function ProgramCard({
   return (
     <article className="card card-hover pcard r">
       <div className="media">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <Pic src={image} alt={imageAlt} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" widths={[480, 768, 1080]} loading="lazy" />
         <Badge variant={status}>{STATUS_LABEL[status]}</Badge>
         {isNew && <span className="badge badge-new badge-nodot">Νέο</span>}

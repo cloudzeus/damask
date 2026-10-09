@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- public φωτογραφίες με object-fit cover */
+ 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'

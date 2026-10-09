@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- public site φωτογραφίες με object-fit cover· next/image δεν ταιριάζει με .photo/.media */
+ 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Button } from './_components/button'

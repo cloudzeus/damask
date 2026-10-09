@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- public φωτογραφίες με object-fit cover */
+ 
 import type { Metadata } from 'next'
 import { SubBanner } from '../_components/sub-banner'
 import { EligibilityCta } from '../_components/eligibility-cta'
