@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T06:47:30.645Z",
+  "timestamp": "2026-10-09T06:49:24.210Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -18,9 +18,21 @@
   "uncommitted_files": [
     {
       "status": "M",
-      "path": ".planning/HANDOFF.json"
+      "path": "src/app/portal/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/portal/portal.css"
+    },
+    {
+      "status": "M",
+      "path": "src/components/thanos/thanos-widget.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/app/portal/_components/ask-thanos.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n875eadd style(portal): ίδια αισθητική με το δημόσιο site (λευκό topbar με λογότυπο, banner με φωτογραφία, κάρτες/pill κουμπιά/Condensed τίτλοι, navy panel βοηθού) — CSS απομονωμένο σε .wwa-portal\n5df8919 feat(emails): όλα τα emails με το επίσημο πρότυπο WWA (αυτόματο τύλιγμα στο sendMail), ξαναγραμμένες ενημερώσεις με πίνακα στοιχείων + κουμπί δράσης, διόρθωση υπογραφής (έγραφε το όνομα του πελάτη), footer «απαντήστε» στα νήματα πελατών\n2319701 style(site): sub-banner v2 — διαβαθμισμένο overlay (η φωτογραφία φαίνεται), υπότιτλος σε κανονική γραφή, συμπαγές ύψος, κουμπί αντί υπογραμμισμένου link, γραμμή χρωμάτων λογότυπου\n1026e0b feat(portal): «οδηγός έργου» για πελάτες — πορεία 6 βημάτων με «πού βρισκόμαστε/τι ακολουθεί», τι χρειαζόμαστε (ανέβασμα), ποσά/δόσεις/ημερομηνίες, γρήγορες ερωτήσεις στον Thanos, σύμβουλος· προεπισκόπηση portal ως επαφή για το προσωπικό\n4c0491d feat(analytics): Google Consent Mode v2 (basic) για GA4/GTM — default denied + update με τις επιλογές του επισκέπτη"
+  "context_notes": "Recent commits:\n4aa0046 chore: ενημέρωση HANDOFF\n71eaca9 fix(seo): 301 των παλιών δελτίων Τύπου στο αντίστοιχο άρθρο (1:1)\n875eadd style(portal): ίδια αισθητική με το δημόσιο site (λευκό topbar με λογότυπο, banner με φωτογραφία, κάρτες/pill κουμπιά/Condensed τίτλοι, navy panel βοηθού) — CSS απομονωμένο σε .wwa-portal\n5df8919 feat(emails): όλα τα emails με το επίσημο πρότυπο WWA (αυτόματο τύλιγμα στο sendMail), ξαναγραμμένες ενημερώσεις με πίνακα στοιχείων + κουμπί δράσης, διόρθωση υπογραφής (έγραφε το όνομα του πελάτη), footer «απαντήστε» στα νήματα πελατών\n2319701 style(site): sub-banner v2 — διαβαθμισμένο overlay (η φωτογραφία φαίνεται), υπότιτλος σε κανονική γραφή, συμπαγές ύψος, κουμπί αντί υπογραμμισμένου link, γραμμή χρωμάτων λογότυπου"
 }
