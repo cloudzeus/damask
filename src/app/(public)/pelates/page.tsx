@@ -8,6 +8,7 @@ import { IconCheck } from '../_components/icons'
 import { wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/pelates' },
   title: 'Πελάτες — Έργα ΕΣΠΑ ανά κλάδο | World Wide Associates',
   description: 'Μεταποίηση, τουρισμός, λιανεμπόριο, τεχνολογία, καλλυντικά — επιχειρήσεις που χρηματοδοτήθηκαν μέσω ΕΣΠΑ με τη WWA, σε 13 περιφέρειες.',
 }

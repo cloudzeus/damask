@@ -8,6 +8,7 @@ import { wwaPhoto } from '../_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/programmata' },
   title: 'Ενεργά προγράμματα ΕΣΠΑ — World Wide Associates',
   description: 'Δείτε τα ενεργά επιδοτούμενα προγράμματα ΕΣΠΑ και ελέγξτε δωρεάν σε ποια είναι επιλέξιμη η επιχείρησή σας, σε μία εργάσιμη.',
 }

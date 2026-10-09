@@ -6,6 +6,7 @@ import { IconCheck, IconPhone, IconMail, IconPin } from '../_components/icons'
 import { wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/epikoinonia' },
   title: 'Επικοινωνία — World Wide Associates, Σύμβουλοι ΕΣΠΑ',
   description: 'Τηλέφωνο 210 721 8758, email info@wwa-espa.com, Αλεξανδρουπόλεως 25 Αθήνα. Δωρεάν έλεγχος επιλεξιμότητας ΕΣΠΑ, απάντηση σε μία εργάσιμη.',
 }

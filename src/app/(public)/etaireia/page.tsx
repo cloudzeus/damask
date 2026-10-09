@@ -8,6 +8,7 @@ import { IconCheck, IconShield, IconChart, IconInfo } from '../_components/icons
 import { wwaPhoto, wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/etaireia' },
   title: 'Η εταιρεία — World Wide Associates, Σύμβουλοι ΕΣΠΑ',
   description: 'Σύμβουλοι ΕΣΠΑ με έδρα την Αθήνα και 2.500+ εγκεκριμένα επενδυτικά σχέδια, ποσοστό εγκρίσεων 98–100%. Διαφάνεια, αξιοπιστία, αποτελεσματικότητα.',
 }

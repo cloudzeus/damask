@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { EligibilityWizard } from './eligibility-wizard'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/eligibility' },
   title: 'Έλεγχος επιλεξιμότητας — World Wide Associates',
   description:
     'Δες άμεσα σε ποια ενεργά επιδοτούμενα προγράμματα μπορεί να ενταχθεί η επιχείρησή σου. Συμπλήρωσε ΑΦΜ, email και τηλέφωνο.',

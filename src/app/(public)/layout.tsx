@@ -9,6 +9,7 @@ import { WwaMotion } from './_components/wwa-motion'
 import { EligibilityModal } from './_components/eligibility-modal'
 import { CONSENT_COOKIE_NAME, parseConsentCookie, shouldShowBanner } from '@/lib/consent'
 import { ConsentBanner } from '@/components/consent/consent-banner'
+import { JsonLd, organizationJsonLd } from './_components/json-ld'
 
 // WWA public design system — φορτώνεται ΜΟΝΟ στο (public) bundle, οπότε δεν
 // επηρεάζει το (app)/admin/login/portal (που κρατούν το root globals.css).
@@ -41,6 +42,7 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <>
+      <JsonLd data={organizationJsonLd()} />
       {/* Google Tag Manager */}
       {gtmId && hasAnalyticsConsent && (
         <Script id="gtm-init" strategy="afterInteractive">

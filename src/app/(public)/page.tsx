@@ -11,6 +11,7 @@ import { PostMeta } from './_components/post-meta'
 import { listPublishedPosts } from '@/lib/cms/public-posts'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/' },
   title: 'World Wide Associates — Σύμβουλοι ΕΣΠΑ & Ευρωπαϊκών Προγραμμάτων',
   description:
     'Δωρεάν έλεγχος επιλεξιμότητας ΕΣΠΑ σε μία εργάσιμη. 2.500+ εγκεκριμένα επενδυτικά σχέδια, εγκρίσεις 98–100%. Σχεδιασμός, υποβολή και διαχείριση φακέλου μέχρι την εκταμίευση.',

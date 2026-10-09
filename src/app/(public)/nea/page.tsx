@@ -9,6 +9,7 @@ import { wwaPhoto } from '../_wwa/assets'
 import { listPublishedPosts, type PublicPostCard } from '@/lib/cms/public-posts'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/nea' },
   title: 'Νέα & προκηρύξεις ΕΣΠΑ — World Wide Associates',
   description: 'Νέες προκηρύξεις, εκδηλώσεις και ενημερώσεις ΕΣΠΑ από τη World Wide Associates. Ένα email τον μήνα για όσους εγγραφούν.',
 }

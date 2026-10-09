@@ -96,8 +96,10 @@ const FALLBACK_IMAGES = [
 ]
 
 export async function listPublicPrograms(): Promise<PublicProgramCard[]> {
+  // Μόνο ανοιχτές προσκλήσεις: όσες έχουν περασμένη προθεσμία υποβολών δεν προβάλλονται ως «ενεργές».
+  const today = new Date(new Date().toISOString().slice(0, 10))
   const rows = await prisma.program.findMany({
-    where: { status: 'ACTIVE' },
+    where: { status: 'ACTIVE', OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
     orderBy: { updatedAt: 'desc' },
     select: {
       id: true, title: true, summary: true, publicSlug: true, imageUrl: true, cmsContent: true,
@@ -144,15 +146,21 @@ export type PublicProgramDetail = {
   fundingRate: number | null
   totalBudget: number | null
   durationMonths: number | null
+  /** SEO: ISO ημερομηνίες (λήξη υποβολών, τελευταία ενημέρωση) + περιοχές για structured data. */
+  deadlineIso: string | null
+  updated: string
+  updatedIso: string
+  regions: string[]
+  summary: string | null
 }
 
 export async function getPublicProgramBySlug(slug: string): Promise<PublicProgramDetail | null> {
   const p = await prisma.program.findFirst({
     where: { publicSlug: slug, status: 'ACTIVE' },
     select: {
-      id: true, title: true, summary: true, publicSlug: true, imageUrl: true, cmsContent: true,
+      id: true, title: true, summary: true, publicSlug: true, imageUrl: true, cmsContent: true, updatedAt: true,
       totalBudget: true, fundingRate: true, durationMonths: true, submissionEnd: true,
-      regions: { select: { name: true }, take: 4 },
+      regions: { select: { name: true }, take: 13 },
       _count: { select: { regions: true } },
     },
   })
@@ -172,6 +180,11 @@ export async function getPublicProgramBySlug(slug: string): Promise<PublicProgra
     fundingRate: p.fundingRate != null ? Number(p.fundingRate) : null,
     totalBudget: p.totalBudget != null ? Number(p.totalBudget) : null,
     durationMonths: p.durationMonths,
+    deadlineIso: p.submissionEnd ? p.submissionEnd.toISOString() : null,
+    updated: dateFmt.format(p.updatedAt),
+    updatedIso: p.updatedAt.toISOString(),
+    regions: p.regions.map(r => r.name),
+    summary: p.summary,
   }
 }
 

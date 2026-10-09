@@ -6,6 +6,8 @@ import { EligibilityCta } from '../../_components/eligibility-cta'
 import { Faq } from '../../_components/faq'
 import { richNumbers } from '../../_components/rich'
 import { getPublicProgramBySlug, PROGRAM_PROCESS_STEPS } from '@/lib/programs/public'
+import { JsonLd, breadcrumbJsonLd } from '../../_components/json-ld'
+import { absoluteUrl } from '@/lib/site-url'
 
 const tick = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
@@ -15,10 +17,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const p = await getPublicProgramBySlug(slug)
   if (!p) return { title: 'Πρόγραμμα — World Wide Associates' }
+  const description = p.cms?.seoDescription || (p.cms?.overview || p.summary || '').replace(/\s+/g, ' ').trim().slice(0, 155) || undefined
   return {
     title: p.cms?.seoTitle || `${p.title} — World Wide Associates`,
-    description: p.cms?.seoDescription || undefined,
+    description,
     keywords: p.cms?.keywords?.length ? p.cms.keywords : undefined,
+    alternates: { canonical: `/programmata/${p.slug}` },
+    openGraph: { type: 'article', title: p.cms?.heroTitle || p.title, description, url: `/programmata/${p.slug}`, images: [p.image], modifiedTime: p.updatedIso },
+    twitter: { card: 'summary_large_image', images: [p.image] },
   }
 }
 
@@ -32,9 +38,23 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
   if (!p) notFound()
   const cms = p.cms
   const overviewParas = (cms?.overview || '').split(/\n{2,}/).map(s => s.trim()).filter(Boolean)
+  // Structured data: η επιχορήγηση ως MonetaryGrant (ποσό/ποσοστό, λήξη, περιοχές) + breadcrumbs — για Google & AI απαντήσεις.
+  const ld: Record<string, unknown>[] = [
+    {
+      '@context': 'https://schema.org', '@type': 'MonetaryGrant', name: p.title, url: absoluteUrl(`/programmata/${p.slug}`),
+      description: (cms?.overview || p.summary || '').replace(/\s+/g, ' ').slice(0, 500) || undefined,
+      ...(p.totalBudget ? { amount: { '@type': 'MonetaryAmount', currency: 'EUR', value: p.totalBudget } } : {}),
+      funder: [{ '@type': 'GovernmentOrganization', name: 'ΕΣΠΑ 2021-2027', url: 'https://www.espa.gr' }, { '@type': 'GovernmentOrganization', name: 'Ευρωπαϊκή Ένωση' }],
+      ...(p.regions.length ? { areaServed: p.regions.map(r => ({ '@type': 'AdministrativeArea', name: r })) } : { areaServed: { '@type': 'Country', name: 'Ελλάδα' } }),
+      ...(p.deadlineIso ? { validThrough: p.deadlineIso } : {}),
+      dateModified: p.updatedIso, inLanguage: 'el-GR',
+    },
+    breadcrumbJsonLd([{ label: 'Προγράμματα', href: '/programmata' }, { label: p.title }]),
+  ]
 
   return (
     <>
+      <JsonLd data={ld} />
       <section className="sub-banner" lang="el">
         <img src={p.image} alt="" />
         <div className="wrap"><div className="content anim-in">
@@ -43,10 +63,11 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
           {cms?.heroSubtitle && <p style={{ marginTop: 14, fontSize: 17, color: 'rgba(255,255,255,.85)', maxWidth: '54ch' }}>{cms.heroSubtitle}</p>}
           <div className="meta">
             {p.deadline
-              ? <span className="pill pill-date">Υποβολές έως {p.deadline}</span>
+              ? <span className="pill pill-date">Υποβολές έως <time dateTime={p.deadlineIso ?? undefined}>{p.deadline}</time></span>
               : p.deadlineOpen ? <span className="pill pill-open">Ανοιχτή πρόσκληση</span> : null}
             {p.region && <span className="pill pill-region">{p.region}</span>}
             {p.amountNote && <span className="pill">{p.amountNote}</span>}
+            <span className="pill">Ενημερώθηκε <time dateTime={p.updatedIso}>{p.updated}</time></span>
           </div>
         </div></div>
       </section>

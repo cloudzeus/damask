@@ -20,6 +20,11 @@ export type PublicPostCard = {
 }
 
 export type PublicPostDetail = PublicPostCard & {
+  /** Ημερομηνία τελευταίας ενημέρωσης (SEO: dateModified + «Ενημερώθηκε»). */
+  updated: string
+  updatedIso: string
+  authorBio: string | null
+  authorAvatar: string | null
   body: string
   otherImages: string[]
   seoTitle: string | null
@@ -64,7 +69,7 @@ export async function getPublishedPostBySlug(slug: string): Promise<PublicPostDe
   const p = await prisma.post.findUnique({
     where: { slug },
     include: {
-      author: { select: { name: true } },
+      author: { select: { name: true, bio: true, avatarUrl: true } },
       category: { include: { translations: true } },
       translations: true,
     },
@@ -82,6 +87,10 @@ export async function getPublishedPostBySlug(slug: string): Promise<PublicPostDe
     dateIso: when.toISOString(),
     category: p.category?.translations.find(c => c.locale === 'el')?.name ?? null,
     author: p.author?.name ?? null,
+    updated: dateFmt.format(p.updatedAt > when ? p.updatedAt : when),
+    updatedIso: (p.updatedAt > when ? p.updatedAt : when).toISOString(),
+    authorBio: p.author?.bio ?? null,
+    authorAvatar: p.author?.avatarUrl ?? null,
     body: t.body,
     otherImages: asStringArray(p.otherImages),
     seoTitle: t.seoTitle,

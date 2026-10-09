@@ -4,6 +4,7 @@ import { SubBanner } from '../../_components/sub-banner'
 import { wwaPhoto } from '../../_wwa/assets'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/legal/privacy' },
   title: 'Πολιτική απορρήτου — World Wide Associates',
   description: 'Πώς η World Wide Associates συλλέγει, χρησιμοποιεί και προστατεύει τα προσωπικά σας δεδομένα, σύμφωνα με τον GDPR.',
 }

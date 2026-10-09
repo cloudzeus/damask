@@ -8,6 +8,7 @@ import { IconCheck } from '../_components/icons'
 import { wwaPageImage } from '../_wwa/assets'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/ypiresies' },
   title: 'Υπηρεσίες — Σύμβουλοι ΕΣΠΑ | World Wide Associates',
   description: 'Σχεδιασμός επενδυτικού σχεδίου, σύνταξη και υποβολή φακέλου ΕΣΠΑ, διαχείριση έργου μέχρι την εκταμίευση. Αμοιβή επιτυχίας μετά την έγκριση.',
 }

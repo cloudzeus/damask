@@ -39,10 +39,10 @@ export function Faq({
           ))}
         </div>
         <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--fg-3)', marginTop: 20 }}>
-          Δεν βρήκατε την απάντηση; <a href="#contact" style={{ color: 'var(--brand)', fontWeight: 500 }}>Ρωτήστε μας</a> — απαντάμε σε μία εργάσιμη.
+          Δεν βρήκατε την απάντηση; <a href="/epikoinonia#contact" style={{ color: 'var(--brand)', fontWeight: 500 }}>Ρωτήστε μας</a> — απαντάμε σε μία εργάσιμη.
         </p>
       </div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }} />
     </section>
   )
 }

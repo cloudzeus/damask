@@ -4,6 +4,7 @@ import { SubBanner } from '../../_components/sub-banner'
 import { wwaPhoto } from '../../_wwa/assets'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/legal/terms' },
   title: 'Όροι χρήσης — World Wide Associates',
   description: 'Οι όροι χρήσης του ιστότοπου και των υπηρεσιών της World Wide Associates: έλεγχος επιλεξιμότητας, αμοιβή επιτυχίας, ευθύνη.',
 }

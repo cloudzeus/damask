@@ -4,6 +4,7 @@ import { SubBanner } from '../../_components/sub-banner'
 import { wwaPhoto } from '../../_wwa/assets'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/legal/cookies' },
   title: 'Πολιτική cookies — World Wide Associates',
   description: 'Ποια cookies και τεχνολογίες αποθήκευσης χρησιμοποιεί ο ιστότοπος της World Wide Associates και πώς τα διαχειρίζεστε.',
 }
