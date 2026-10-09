@@ -166,3 +166,11 @@ export function programFamily(officialUrl: string | null, title = ''): ProgramFa
   if (/agrotikianaptixi|LEADER|ΣΣ ΚΑΠ|ΚΑΠ 2023/i.test(s)) return { kind: 'kap', label: 'πρόγραμμα του Στρατηγικού Σχεδίου ΚΑΠ (LEADER/αγροτική ανάπτυξη)', funder: [{ name: 'Στρατηγικό Σχέδιο ΚΑΠ 2023–2027', url: 'https://www.agrotikianaptixi.gr' }, { name: 'Ευρωπαϊκή Ένωση', url: 'https://european-union.europa.eu' }] }
   return { kind: 'espa', label: 'πρόγραμμα ΕΣΠΑ', funder: [{ name: 'ΕΣΠΑ 2021-2027', url: 'https://www.espa.gr' }, { name: 'Ευρωπαϊκή Ένωση', url: 'https://european-union.europa.eu' }] }
 }
+
+/** Εύρος επιδότησης από ετικέτες «έως 70%» → «έως 70%» ή «από 50% έως 80%» (null αν δεν υπάρχει ποσοστό). */
+export function rateRangeText(labels: (string | null | undefined)[]): string | null {
+  const rates = labels.map(l => Number((l ?? '').match(/(\d+(?:[.,]\d+)?)\s*%/)?.[1]?.replace(',', '.'))).filter(x => Number.isFinite(x) && x > 0)
+  if (!rates.length) return null
+  const lo = Math.min(...rates), hi = Math.max(...rates)
+  return lo === hi ? `έως ${hi}%` : `από ${lo}% έως ${hi}%`
+}

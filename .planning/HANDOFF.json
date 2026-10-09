@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T10:35:52.600Z",
+  "timestamp": "2026-10-09T11:12:47.614Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,37 +22,33 @@
     },
     {
       "status": "M",
-      "path": "src/app/(public)/_components/wwa-footer.tsx"
+      "path": "src/app/(public)/espa/[perifereia]/page.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/(public)/_wwa/site.css"
+      "path": "src/app/(public)/programmata/[slug]/page.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/llms.txt/route.ts"
+      "path": "src/app/(public)/programmata/page.tsx"
     },
     {
       "status": "M",
-      "path": "src/app/sitemap.ts"
+      "path": "src/lib/programs/cms.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/seo-content/faq-hub.ts"
+      "path": "src/lib/programs/public.ts"
     },
     {
       "status": "M",
-      "path": "src/proxy.ts"
+      "path": "src/lib/seo-content/engine.ts"
     },
     {
-      "status": "??",
-      "path": "src/app/(public)/elegxos-kad/"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/seo-content/kad-check.ts"
+      "status": "M",
+      "path": "src/lib/seo-content/hubs.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n822ddee feat(programs): συλλογή προσκλήσεων από περισσότερες πηγές — Αναπτυξιακός Νόμος (ependyseis.mindev.gov.gr, νεότερος κύκλος ανά καθεστώς), ΣΣ ΚΑΠ/LEADER (agrotikianaptixi.gr RSS + PDF από τη σελίδα), περιφερειακά προγράμματα μέσω βαθύτερης σάρωσης espa.gr (500)· AI κρίνει και αν η υποβολή είναι ανοιχτή όπου δεν υπάρχει επίσημη περίοδος· dry-run για δοκιμές\n9ea96c2 feat(site): «Σε αριθμούς» ως σκούρα μπάντα με κορδέλες λογότυπου σε αργή κίνηση, λευκοί μετρητές, εικονίδια και χρωματιστές μπάρες που γεμίζουν (αρχική/εταιρεία/πελάτες)· fix: πρόωρο return στο wwa-motion εμπόδιζε μετρητές και μπάρες\n741834c feat(site): εμβόλιμο CTA «Ενημερωθείτε πρώτοι» με χρώματα λογότυπου + παράδειγμα ειδοποίησης (αρχική, προγράμματα, περιφέρειες, κλάδοι, προθεσμίες, νέα 2026) — modal σε mode 'notify' (ΑΦΜ/email/τηλέφωνο, επιβεβαίωση email, ρητή συγκατάθεση)· πραγματικός χάρτης OpenStreetMap στην Επικοινωνία με κάρτα διεύθυνσης και «Οδηγίες»\n70cce67 feat(site): «Βρείτε τι σας αφορά» στα Προγράμματα — περιφέρειες/κλάδοι ως chips με πλήθος ενεργών προγραμμάτων, μόνο όσοι έχουν πρόγραμμα, έμφαση στις περιφέρειες με δικό τους πρόγραμμα + γρήγοροι σύνδεσμοι (νέα 2026, προθεσμίες, FAQ, γλωσσάριο)· hubCounts με σωστή αναγνώριση πανελλαδικών· «Δείτε επίσης» χωρίς άδειους κόμβους· κάρτες/κουμπί hero\nb836e41 chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\n402fa42 fix: σελίδες κωδικού/σύνδεσης/portal/modal με translate=\"no\" (η αυτόματη μετάφραση του Chrome έριχνε το React → «This page couldn't load»)· επώνυμη σελίδα σφάλματος WWA στα ελληνικά (error + global-error) με «Δοκιμάστε ξανά»\n1655154 fix(programs): συλλογή — αποκωδικοποίηση αριθμητικών HTML entities, έλεγχος διπλοτύπων με τίτλο, επιλογές espaIds/filter για στοχευμένη συλλογή χωρίς σάρωση\nbd3c09f feat(geo): llms.txt — κάλυψη Περιφερειακών/Αναπτυξιακού/LEADER, επίσημες πηγές που παρακολουθούμε, δωρεάν έλεγχος\n3c2e179 feat(geo): Organization schema — knowsAbout με Περιφερειακά/LEADER-ΚΑΠ/ΚΑΔ/ΕΜΕ/εκταμίευση + hasOfferCatalog με τις 5 υπηρεσίες (δωρεάν έλεγχος €0)\n07b7e43 feat(seo): IndexNow στέλνει και κάθε νέα στατική σελίδα (π.χ. συχνές ερωτήσεις, έλεγχος ΚΑΔ) μία φορά"
 }

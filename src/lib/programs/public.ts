@@ -113,7 +113,7 @@ export async function listPublicPrograms(): Promise<PublicProgramCard[]> {
   for (let i = 0; i < rows.length; i++) {
     const p = rows[i]
     const cms = cmsOf(p.cmsContent)
-    const slug = await ensureProgramSlug(p.id, p.title, p.publicSlug)
+    const slug = await ensureProgramSlug(p.id, cms?.cardTitle || p.title, p.publicSlug) // URL από τον καθαρό δημόσιο τίτλο
     const { budget, rate } = programFigures(p.fundingRate != null ? Number(p.fundingRate) : null, cms)
     out.push({
       slug,

@@ -8,7 +8,7 @@ import { Faq, type FaqItem } from '../_components/faq'
 import { wwaPhoto } from '../_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
 import { AnswerBox } from '../_components/program-grid'
-import { listDeadlines, nProgramms } from '@/lib/seo-content/hubs'
+import { listDeadlines, nProgramms, rateRangeText } from '@/lib/seo-content/hubs'
 import { HubExplorer } from '../_components/hub-explorer'
 import { JsonLd, itemListJsonLd } from '../_components/json-ld'
 
@@ -30,6 +30,7 @@ export default async function ProgrammataPage() {
   const [programs, deadlines] = await Promise.all([listPublicPrograms(), listDeadlines()])
   const next = deadlines.find(d => d.deadline)
   const n = programs.length
+  const rateRange = rateRangeText(programs.map(p => p.rate))
   return (
     <>
       <JsonLd data={itemListJsonLd('Ενεργά προγράμματα ΕΣΠΑ 2026', programs.map(p => ({ name: p.title, href: `/programmata/${p.slug}` })))} />
@@ -48,8 +49,8 @@ export default async function ProgrammataPage() {
       <section lang="el" style={{ paddingBottom: 0 }}>
         <div className="wrap">
           <AnswerBox updated={new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })}>
-            Αυτή τη στιγμή είναι ανοιχτ{n === 1 ? 'ό' : 'ά'} <b>{nProgramms(n)} ΕΣΠΑ για επιχειρήσεις</b>
-            {programs.some(p => p.rate) && <>, με επιδότηση {programs.map(p => p.rate).filter(Boolean).join(' / ')}</>}.
+            Αυτή τη στιγμή είναι ανοιχτ{n === 1 ? 'ό' : 'ά'} <b>{nProgramms(n)} για επιχειρήσεις</b> (ΕΣΠΑ, Περιφερειακά, Αναπτυξιακός Νόμος, LEADER)
+            {rateRange && <>, με επιδότηση {rateRange}</>}.
             {next?.deadline && <> Η πλησιέστερη προθεσμία λήγει στις <b>{next.deadline.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</b> (<Link href="/prothesmies-espa">όλες οι προθεσμίες</Link>).</>}
             {' '}Ελέγξτε δωρεάν, με τον ΑΦΜ σας, σε ποια είναι επιλέξιμη η επιχείρησή σας.
           </AnswerBox>

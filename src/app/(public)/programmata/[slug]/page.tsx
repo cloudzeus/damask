@@ -45,10 +45,12 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
   const cms = p.cms
   const [hubs, official, guides] = await Promise.all([hubsForProgram(p.slug), officialSourceFor(p.id), relatedPostsForProgram(p.slug, p.id, 4)])
   const family = programFamily(official, p.title)
+  // Δημόσιο όνομα: ο καθαρός τίτλος της σελίδας (ο επίσημος, συχνά μακροσκελής, μένει στο admin).
+  const name = cms?.cardTitle || p.title
   // AEO: 40-60 λέξεις που απαντούν «τι είναι, πόσο, ποιοι, μέχρι πότε» — από τα δεδομένα, όχι από AI.
   const who = cms?.audience?.[0]?.replace(/[.;]+$/, '')
   const lead = [
-    `Το «${p.title}» είναι ${family.label} για επιχειρήσεις${p.fundingRate != null ? ` με επιδότηση έως ${p.fundingRate}%` : ''}${p.amount && p.amount.includes('€') ? ` (${p.amount})` : ''}.`,
+    `Το «${name}» είναι ${family.label} για επιχειρήσεις${p.fundingRate != null ? ` με επιδότηση έως ${p.fundingRate}%` : ''}${p.amount && p.amount.includes('€') ? ` (${p.amount})` : ''}.`,
     who ? `Απευθύνεται σε: ${who.charAt(0).toLowerCase()}${who.slice(1)}.` : '',
     p.deadline ? `Οι αιτήσεις υποβάλλονται έως ${p.deadline}.` : 'Η πρόσκληση είναι ανοιχτή.',
     p.region ? `Περιοχή: ${p.region}.` : '',
@@ -57,7 +59,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
   // Structured data: η επιχορήγηση ως MonetaryGrant (ποσό/ποσοστό, λήξη, περιοχές) + breadcrumbs — για Google & AI απαντήσεις.
   const ld: Record<string, unknown>[] = [
     {
-      '@context': 'https://schema.org', '@type': 'MonetaryGrant', name: p.title, url: absoluteUrl(`/programmata/${p.slug}`),
+      '@context': 'https://schema.org', '@type': 'MonetaryGrant', name, alternateName: name !== p.title ? p.title : undefined, url: absoluteUrl(`/programmata/${p.slug}`),
       description: (cms?.overview || p.summary || '').replace(/\s+/g, ' ').slice(0, 500) || undefined,
       ...(p.totalBudget ? { amount: { '@type': 'MonetaryAmount', currency: 'EUR', value: p.totalBudget } } : {}),
       funder: family.funder.map(f => ({ '@type': 'GovernmentOrganization', ...f })),
@@ -66,7 +68,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       dateModified: p.updatedIso, inLanguage: 'el-GR',
       ...(official ? { sameAs: official } : {}),
     },
-    breadcrumbJsonLd([{ label: 'Προγράμματα', href: '/programmata' }, { label: p.title }]),
+    breadcrumbJsonLd([{ label: 'Προγράμματα', href: '/programmata' }, { label: name }]),
   ]
 
   return (
@@ -75,7 +77,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       <section className="sub-banner" lang="el">
         <Pic src={p.image} alt={p.title} fetchPriority="high" />
         <div className="wrap"><div className="content anim-in">
-          <div className="crumbs"><Link href="/">Αρχική</Link><span aria-hidden>›</span><Link href="/programmata">Προγράμματα</Link><span aria-hidden>›</span><span>{p.title}</span></div>
+          <div className="crumbs"><Link href="/">Αρχική</Link><span aria-hidden>›</span><Link href="/programmata">Προγράμματα</Link><span aria-hidden>›</span><span>{name}</span></div>
           <h1>{cms?.heroTitle || p.title}{p.amount && p.amount !== '—' ? <> <span className="amount">{p.amount}</span></> : null}</h1>
           {cms?.heroSubtitle && <p style={{ marginTop: 14, fontSize: 17, color: 'rgba(255,255,255,.85)', maxWidth: '54ch' }}>{cms.heroSubtitle}</p>}
           <div className="meta">

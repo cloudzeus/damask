@@ -218,8 +218,9 @@ async function imageThemes(): Promise<string[]> {
 }
 
 /** Εικόνα για το άρθρο — επιστρέφει URL και από πού βρέθηκε. Προτιμά πάντα όσες δεν χρησιμοποιούνται ήδη σε άρθρο. */
-export async function pickImage(theme: string | undefined, query: string | undefined): Promise<{ url: string; via: 'theme' | 'elements' | 'gallery' | 'stock' } | null> {
-  const used = new Set((await prisma.post.findMany({ where: { featuredImage: { not: null } }, select: { featuredImage: true } })).map(p => p.featuredImage))
+export async function pickImage(theme: string | undefined, query: string | undefined, exclude: Iterable<string> = []): Promise<{ url: string; via: 'theme' | 'elements' | 'gallery' | 'stock' } | null> {
+  // Όχι εικόνα που χρησιμοποιεί ήδη άρθρο ή (για προγράμματα) άλλο πρόγραμμα.
+  const used = new Set<string | null>([...(await prisma.post.findMany({ where: { featuredImage: { not: null } }, select: { featuredImage: true } })).map(p => p.featuredImage), ...exclude])
 
   // 1) Θέμα από τη μαζική εισαγωγή stock (meta.theme).
   if (theme) {

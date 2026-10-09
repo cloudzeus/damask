@@ -116,11 +116,13 @@ export async function generateProgramCms(
 ): Promise<ProgramCms> {
   const data = await collectProgramData(programId)
   if (!data) throw new Error('Το πρόγραμμα δεν βρέθηκε.')
+  const { officialSourceFor, programFamily } = await import('@/lib/seo-content/hubs')
+  const family = programFamily(await officialSourceFor(programId).catch(() => null), String((data as { title?: unknown }).title ?? ''))
 
   const raw = await deepseekChat(
     [
       { role: 'system', content: `${PROGRAM_CMS_SYSTEM_PROMPT}\n\nΣΧΗΜΑ JSON:\n${PROGRAM_CMS_JSON_SHAPE}` },
-      { role: 'user', content: buildProgramCmsUserMessage(data) },
+      { role: 'user', content: `${buildProgramCmsUserMessage(data)}\n\nΠΛΑΙΣΙΟ ΧΡΗΜΑΤΟΔΟΤΗΣΗΣ: ${family.label}.${family.kind === 'espa' ? '' : ' ΜΗΝ το αποκαλείς «ΕΣΠΑ» σε κανένα πεδίο (seoTitle, τίτλους, κείμενα) — χρησιμοποίησε το σωστό πλαίσιο.'}` },
     ],
     { model: CMS_MODEL, temperature: 0.5, maxTokens: 4000, scope: 'CMS_GENERATE', refType: 'program-cms', refId: programId, userId: opts.userId ?? null },
   )
