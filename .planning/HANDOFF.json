@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T04:13:24.510Z",
+  "timestamp": "2026-10-09T04:23:20.143Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ned4fec7 feat(thanos): η φωνή ξεκινά από την πρώτη πρόταση όσο γράφεται η απάντηση\ncbeea83 chore: ενημέρωση HANDOFF\n5c0dfbe feat(thanos): απαντήσεις σε ροή (streaming) με ένδειξη «τι κάνει τώρα»\nd0b01aa perf(thanos): γρηγορότερη απάντηση & φωνή\n2f94abd chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\neb6c21a fix(preview): «Δεν υποστηρίζεται προεπισκόπηση» σε αρχεία χωρίς κατάληξη στο όνομα\n0d8e5e4 chore: ενημέρωση HANDOFF\ned4fec7 feat(thanos): η φωνή ξεκινά από την πρώτη πρόταση όσο γράφεται η απάντηση\ncbeea83 chore: ενημέρωση HANDOFF\n5c0dfbe feat(thanos): απαντήσεις σε ροή (streaming) με ένδειξη «τι κάνει τώρα»"
 }
