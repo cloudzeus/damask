@@ -241,3 +241,61 @@ export async function removeTeamMember(contactId: string): Promise<{ ok: boolean
   await createNotification({ title: `${contact.trdr?.NAME ?? 'Πελάτης'}: αφαίρεση επαφής από έργα`, body: `${contact.name} αφαίρεσε τον/την ${target.name} από τα έργα μέσω του portal.`, entityType: 'Trdr', entityId: contact.trdrId, meta: { kind: 'portal-team-remove', contactId } })
   return { ok: true, message: `Ο/Η ${target.name} δεν θα λαμβάνει πλέον ειδοποιήσεις για τα έργα σας.` }
 }
+
+// ── 4. Ευκαιρίες ένταξης ───────────────────────────────────────────────────
+
+export type Opportunity = { programId: string; title: string; summary: string | null; rate: string | null; deadline: string | null; slug: string | null; fit: 'eligible' | 'check' }
+export type OpportunitiesView = { ok: true; items: Opportunity[]; preview: boolean } | { ok: false }
+
+/** Ενεργά προγράμματα που ταιριάζουν στην επιχείρηση (ΚΑΔ/περιφέρεια/μορφή/ΕΜΕ/έτη) και δεν τα έχει ήδη. */
+export async function listOpportunities(previewContactId?: string): Promise<OpportunitiesView> {
+  const contact = await resolvePortalContact(previewContactId)
+  if (!contact) return { ok: false }
+  const { computeSinglePair } = await import('@/lib/prospects/evaluate-pair')
+  const today = new Date(new Date().toISOString().slice(0, 10))
+  const [programs, mine] = await Promise.all([
+    prisma.program.findMany({
+      where: { status: 'ACTIVE', OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+      orderBy: { submissionEnd: 'asc' }, take: 30,
+      select: { id: true, title: true, summary: true, fundingRate: true, submissionEnd: true, publicSlug: true },
+    }),
+    prisma.programApplication.findMany({ where: { trdrId: contact.trdrId }, select: { programId: true } }),
+  ])
+  const have = new Set(mine.map(m => m.programId))
+  const items: Opportunity[] = []
+  for (const p of programs.filter(p => !have.has(p.id))) {
+    const fit = await computeSinglePair(contact.trdrId, p.id).catch(() => null)
+    if (!fit || fit.failed.length) continue // δεν πληροί βασικό κριτήριο → δεν το προτείνουμε
+    items.push({
+      programId: p.id, title: p.title, summary: p.summary?.slice(0, 220) ?? null, slug: p.publicSlug,
+      rate: p.fundingRate != null ? `έως ${Number(p.fundingRate)}%` : null, deadline: p.submissionEnd?.toISOString() ?? null,
+      fit: fit.eligible && !fit.unknown.length ? 'eligible' : 'check',
+    })
+  }
+  items.sort((a, b) => (a.fit === b.fit ? 0 : a.fit === 'eligible' ? -1 : 1))
+  return { ok: true, items, preview: contact.preview }
+}
+
+/** «Ενδιαφέρομαι»: το πρόγραμμα γίνεται δυνητικό έργο του πελάτη (φαίνεται στο admin) + ειδοποίηση στο γραφείο. */
+export async function expressInterest(programId: string): Promise<{ ok: boolean; message: string }> {
+  const contact = await resolvePortalContact()
+  if (!contact || contact.preview) return { ok: false, message: 'Δεν έχετε πρόσβαση.' }
+  const program = await prisma.program.findFirst({ where: { id: programId, status: 'ACTIVE' }, select: { id: true, title: true } })
+  if (!program) return { ok: false, message: 'Το πρόγραμμα δεν είναι πλέον ενεργό.' }
+  const app = await prisma.programApplication.upsert({
+    where: { trdrId_programId: { trdrId: contact.trdrId, programId } },
+    create: { trdrId: contact.trdrId, programId, lifecycle: 'POTENTIAL', notes: `Εκδήλωση ενδιαφέροντος από το portal — ${contact.name} (${new Date().toLocaleDateString('el-GR')})` },
+    update: {},
+    select: { id: true },
+  })
+  await prisma.applicationContact.upsert({
+    where: { applicationId_contactId: { applicationId: app.id, contactId: contact.id } },
+    update: {}, create: { applicationId: app.id, contactId: contact.id, role: 'Εκδήλωση ενδιαφέροντος' },
+  })
+  await createNotification({
+    title: `Ενδιαφέρον για πρόγραμμα: ${contact.trdr?.NAME ?? 'πελάτης'}`,
+    body: `${contact.name} δήλωσε ενδιαφέρον για «${program.title}» μέσω του portal. Το έργο προστέθηκε ως δυνητικό — επικοινωνήστε για αξιολόγηση.`,
+    entityType: 'Trdr', entityId: contact.trdrId, meta: { kind: 'portal-interest', applicationId: app.id, programId },
+  })
+  return { ok: true, message: `Ευχαριστούμε! Καταγράψαμε το ενδιαφέρον σας για «${program.title}» — ο σύμβουλός σας θα επικοινωνήσει μαζί σας για την αξιολόγηση.` }
+}

@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { LuFileText, LuTriangleAlert, LuClock, LuChevronRight, LuCircleCheck, LuUsers, LuBanknote } from 'react-icons/lu'
 import { getContactPortalDashboard, type PortalApp } from '@/lib/pm/portal-contact'
-import { listMyDocuments, type MyDocument } from '@/lib/pm/portal-documents'
+import { listMyDocuments, listOpportunities, type MyDocument } from '@/lib/pm/portal-documents'
+import { Opportunities } from '../_components/opportunities'
 import { PortalBanner, PreviewNote, withPreview } from '../_components/portal-banner'
 
 export const metadata = { title: 'Επισκόπηση — Portal World Wide Associates' }
@@ -15,7 +16,7 @@ type Attention = { key: string; href: string; tone: 'warn' | 'bad' | 'ok'; title
 /** Customer dashboard: τι χρειάζεται την προσοχή του πελάτη σε ΟΛΑ τα έργα + σύνοψη έργων/δικαιολογητικών. */
 export default async function PortalHome({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const { preview } = await searchParams
-  const [dash, docs] = await Promise.all([getContactPortalDashboard(preview || undefined), listMyDocuments(preview || undefined)])
+  const [dash, docs, opps] = await Promise.all([getContactPortalDashboard(preview || undefined), listMyDocuments(preview || undefined), listOpportunities(preview || undefined)])
   const pv = (h: string) => withPreview(h, preview)
 
   if (!dash.ok) {
@@ -84,6 +85,14 @@ export default async function PortalHome({ searchParams }: { searchParams: Promi
               )
             })}
           </div>
+
+          {opps.ok && opps.items.length > 0 && (
+            <>
+              <div className="p-section-title"><h2>Ευκαιρίες ένταξης για εσάς</h2></div>
+              <p className="p-muted" style={{ margin: '-8px 0 0', fontSize: 14 }}>Ενεργά προγράμματα που ταιριάζουν στα στοιχεία της επιχείρησής σας (ΚΑΔ, περιοχή, μέγεθος). Πατήστε «Ενδιαφέρομαι» και ο σύμβουλός σας θα κάνει την πλήρη αξιολόγηση.</p>
+              <Opportunities items={opps.items} preview={opps.preview} />
+            </>
+          )}
 
           <div className="p-kpis" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             <Link className="p-kpi" href={pv('/portal/omada')}><div className="k" style={{ marginTop: 0, display: 'flex', gap: 8, alignItems: 'center' }}><LuUsers aria-hidden style={{ width: 18, height: 18, color: 'var(--p-brand)' }} /> <b>Η ομάδα σας</b></div><div className="k">Ορίστε λογιστή και υπεύθυνο έργου — θα λαμβάνουν τις σχετικές ειδοποιήσεις.</div></Link>
