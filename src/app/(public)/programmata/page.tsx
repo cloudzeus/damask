@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- public φωτογραφίες με object-fit cover */
 import type { Metadata } from 'next'
+import { NotifyBanner } from '../_components/notify-banner'
 import Link from 'next/link'
 import { ProgramCard } from '../_components/program-card'
 import { EligibilityCta } from '../_components/eligibility-cta'
@@ -86,6 +87,8 @@ export default async function ProgrammataPage() {
           )}
         </div>
       </section>
+
+      <NotifyBanner />
 
       <HubExplorer idx="02" />
 

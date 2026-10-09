@@ -767,3 +767,63 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 @media (max-width: 760px) { .hubx-grid, .hubx-quick { grid-template-columns: 1fr; } .hubx-panel { padding: 22px; } }
 @media (prefers-reduced-motion: reduce) { .hubx-quick a:hover .go { transform: none; } }
 .hub-links .hub-n { color: var(--fg-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* ── Εμβόλιμο CTA «Ενημερωθείτε πρώτοι» (χρώματα λογότυπου πάνω σε navy) ── */
+.notifyb-sec { padding-block: clamp(32px, 4vw, 56px); }
+.notifyb { position: relative; overflow: hidden; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center; padding: clamp(28px, 4vw, 56px); border-radius: var(--radius-xl); background: radial-gradient(120% 140% at 0% 0%, #0B1A8C 0%, var(--wwa-navy-950) 55%), var(--wwa-navy-950); color: #fff; box-shadow: 0 24px 60px rgba(0, 0, 34, .28); }
+.notifyb-ribbons { position: absolute; inset: -40% -10% -40% 52%; z-index: -1; display: flex; gap: 18px; transform: skewX(-18deg); opacity: .9; pointer-events: none; }
+.notifyb-ribbons i { flex: 1; border-radius: 999px; }
+.notifyb-ribbons i:nth-child(1) { background: linear-gradient(180deg, transparent, var(--wwa-cyan-400) 40%, #0E5BD8); opacity: .95; }
+.notifyb-ribbons i:nth-child(2) { background: linear-gradient(180deg, var(--wwa-lime-500), #00B85C 50%, transparent); opacity: .7; }
+.notifyb-ribbons i:nth-child(3) { background: linear-gradient(180deg, transparent, var(--wwa-magenta-500) 45%, var(--wwa-violet-600)); opacity: .95; }
+.notifyb-ribbons i:nth-child(4) { background: linear-gradient(180deg, var(--wwa-violet-600), var(--wwa-pink-400) 60%, transparent); opacity: .75; }
+.notifyb::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, var(--wwa-navy-950) 34%, rgba(0, 0, 34, .25) 58%, rgba(0, 0, 34, 0) 80%); }
+.notifyb-body { display: grid; gap: 14px; justify-items: start; }
+.notifyb-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: var(--radius-pill); background: rgba(52, 200, 246, .14); color: var(--wwa-cyan-400); font-size: 13px; font-weight: 500; }
+.notifyb-eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: wwaPulseDot 1.8s ease-in-out infinite; }
+.notifyb h2 { margin: 0; color: #fff; text-align: left; font-size: clamp(1.6rem, 3vw, 2.25rem); line-height: 1.08; max-width: 18ch; }
+.notifyb p { margin: 0; color: rgba(255, 255, 255, .84); max-width: 54ch; line-height: 1.6; }
+.notifyb p b { color: var(--wwa-cyan-400); }
+.notifyb-checks { list-style: none; margin: 4px 0 6px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: #fff; }
+.notifyb-checks li { display: inline-flex; align-items: center; gap: 6px; }
+.notifyb-checks svg { width: 18px; height: 18px; color: var(--wwa-cyan-400); }
+.notifyb-btn { gap: 10px; box-shadow: 0 10px 28px rgba(52, 200, 246, .35); }
+.notifyb-btn svg { width: 19px; height: 19px; }
+.notifyb-btn:hover svg { animation: notifybRing .6s ease-in-out; }
+.notifyb-demo { position: relative; display: grid; justify-items: center; gap: 10px; }
+.notifyb-card { position: relative; z-index: 2; display: flex; gap: 14px; align-items: flex-start; width: min(100%, 360px); padding: 16px 18px; border-radius: 18px; background: #fff; color: var(--fg-1); box-shadow: 0 18px 40px rgba(0, 0, 34, .35); animation: notifybFloat 5s ease-in-out infinite; }
+.notifyb-card > div { display: grid; gap: 4px; min-width: 0; }
+.notifyb-card small { font-size: 12px; color: var(--fg-3); }
+.notifyb-card b { font-size: 15px; line-height: 1.35; }
+.notifyb-card .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.notifyb-card em { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: var(--radius-pill); background: var(--navy-50); color: var(--brand); font-style: normal; font-size: 12px; font-weight: 500; }
+.notifyb-card em svg { width: 13px; height: 13px; }
+.notifyb-card-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--wwa-magenta-500), var(--wwa-violet-600)); color: #fff; }
+.notifyb-card-ic svg { width: 20px; height: 20px; }
+.notifyb-card.is-back { z-index: 1; width: min(92%, 330px); margin-top: -6px; opacity: .92; transform: scale(.96); animation-delay: -2.5s; }
+.notifyb-card.is-back .notifyb-card-ic { background: linear-gradient(135deg, var(--wwa-cyan-400), #0E5BD8); }
+.notifyb-demo-cap { font-size: 12px; color: rgba(255, 255, 255, .6); }
+@keyframes notifybFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes notifybRing { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(14deg); } 75% { transform: rotate(-14deg); } }
+.notifyb-sec.is-compact .notifyb-demo { display: none; }
+.notifyb-sec.is-compact .notifyb { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .notifyb { grid-template-columns: 1fr; gap: 28px; }
+  .notifyb-ribbons { inset: 40% -30% -30% 20%; opacity: .6; }
+  .notifyb::after { background: linear-gradient(180deg, var(--wwa-navy-950) 45%, rgba(0, 0, 34, .7)); }
+}
+@media (max-width: 640px) { .notifyb-btn { width: 100%; } .notifyb-demo { display: none; } }
+@media (prefers-reduced-motion: reduce) { .notifyb-card, .notifyb-eyebrow .dot, .notifyb-btn:hover svg { animation: none; } }
+.wwa-modal .m-notify-head { display: flex; align-items: center; gap: 12px; }
+.wwa-modal .m-notify-head h3 { margin: 0; }
+.wwa-modal .m-notify-ic { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 14px; background: linear-gradient(135deg, var(--wwa-magenta-500), var(--wwa-violet-600)); color: #fff; }
+/* Πραγματικός χάρτης (OpenStreetMap, χωρίς cookies) + κάρτα διεύθυνσης */
+.map.map-live { min-height: 360px; flex: 1; display: block; }
+.map.map-live iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; filter: saturate(.85); }
+.map-card { position: absolute; left: 16px; right: 16px; bottom: 30px; display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px; border-radius: var(--radius-lg); background: #fff; box-shadow: var(--elev-2); }
+.map-card > div { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.map-card b { font-size: 14px; color: var(--fg-1); }
+.map-card span { font-size: 13px; color: var(--fg-3); }
+.map-card-ic { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--navy-50); color: var(--brand); }
+.map-card-ic svg { width: 22px; height: 22px; }
+.map-card .btn { flex: none; min-height: 44px; }

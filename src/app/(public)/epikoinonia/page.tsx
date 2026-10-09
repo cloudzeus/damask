@@ -19,6 +19,8 @@ const FAQS: FaqItem[] = [
   { q: 'Είναι υποχρεωτική η επίσκεψη στα γραφεία σας;', a: 'Όχι. Όλη η διαδικασία μπορεί να γίνει εξ αποστάσεως, με ηλεκτρονική ανταλλαγή εγγράφων και υπογραφών.' },
 ]
 
+const MAPS_URL = 'https://www.google.com/maps/dir/?api=1&destination=37.9838838,23.7638799'
+
 export default function ContactPage() {
   return (
     <>
@@ -53,7 +55,18 @@ export default function ContactPage() {
                 <div className="row"><IconMail /><div><b><a href="mailto:info@wwa-espa.com" style={{ textDecoration: 'none', color: 'inherit' }}>info@wwa-espa.com</a></b><span>Απάντηση εντός μίας εργάσιμης</span></div></div>
                 <div className="row"><IconPin /><div><b>Αλεξανδρουπόλεως 25, Αθήνα 115 27</b><span>Ιλίσια · 5΄ από το μετρό Ευαγγελισμός</span></div></div>
               </div>
-              <div className="map"><div className="grid" /><div className="pin"><IconPin /><b>World Wide Associates · Αλεξανδρουπόλεως 25</b></div></div>
+              <div className="map map-live">
+                <iframe
+                  title="Χάρτης: World Wide Associates, Αλεξανδρουπόλεως 25, Αθήνα"
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=23.7578%2C37.9808%2C23.7700%2C37.9870&amp;layer=mapnik&amp;marker=37.9838838%2C23.7638799"
+                  loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                />
+                <div className="map-card">
+                  <span className="map-card-ic" aria-hidden><IconPin /></span>
+                  <div><b>World Wide Associates</b><span>Αλεξανδρουπόλεως 25, Αθήνα 115 27</span></div>
+                  <a className="btn btn-sm" href={MAPS_URL} target="_blank" rel="noopener noreferrer">Οδηγίες</a>
+                </div>
+              </div>
             </div>
           </div>
         </div>

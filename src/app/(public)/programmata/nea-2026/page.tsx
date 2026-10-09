@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { NotifyBanner } from '../../_components/notify-banner'
 import Link from 'next/link'
 import { SubBanner } from '../../_components/sub-banner'
 import { EligibilityCta } from '../../_components/eligibility-cta'
@@ -30,7 +31,7 @@ export default async function NewPrograms2026() {
       <JsonLd data={breadcrumbJsonLd([{ label: 'Προγράμματα', href: '/programmata' }, { label: 'Νέα 2026' }])} />
       <SubBanner image={wwaPhoto('startup')} crumbs={[{ label: 'Προγράμματα', href: '/programmata' }, { label: 'Νέα 2026' }]}
         title="Νέα & αναμενόμενα προγράμματα ΕΣΠΑ 2026" lead="Τι ανοίγει για επιχειρήσεις και πώς να είστε έτοιμοι από την πρώτη ημέρα."
-        meta={<EligibilityCta variant="inverse">Ενημερωθείτε πρώτοι</EligibilityCta>} />
+        meta={<EligibilityCta variant="inverse" mode="notify">Ενημερωθείτε πρώτοι</EligibilityCta>} />
       <section lang="el">
         <div className="wrap">
           <AnswerBox updated={new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })}>
@@ -46,6 +47,7 @@ export default async function NewPrograms2026() {
           )}
         </div>
       </section>
+      <NotifyBanner />
       <Faq items={FAQ} idx="02" title="Νέα προγράμματα ΕΣΠΑ 2026: συχνές ερωτήσεις" />
     </>
   )

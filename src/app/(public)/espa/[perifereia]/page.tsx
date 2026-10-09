@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { NotifyBanner } from '../../_components/notify-banner'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { SubBanner } from '../../_components/sub-banner'
@@ -68,6 +69,7 @@ export default async function RegionPage({ params }: { params: Promise<{ perifer
           </div>
         </div>
       </section>
+      <NotifyBanner />
       <Faq items={faq} idx="02" title={`ΕΣΠΑ ${r.short}: συχνές ερωτήσεις`} />
     </>
   )

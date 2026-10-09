@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { NotifyBanner } from '../_components/notify-banner'
 import Link from 'next/link'
 import { SubBanner } from '../_components/sub-banner'
 import { EligibilityCta } from '../_components/eligibility-cta'
@@ -68,6 +69,7 @@ export default async function DeadlinesPage() {
           </p>
         </div>
       </section>
+      <NotifyBanner />
       <Faq items={faq} idx="02" title="Προθεσμίες ΕΣΠΑ: συχνές ερωτήσεις" />
     </>
   )

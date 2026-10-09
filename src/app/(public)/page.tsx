@@ -1,5 +1,6 @@
  
 import type { Metadata } from 'next'
+import { NotifyBanner } from './_components/notify-banner'
 import Link from 'next/link'
 import { Button } from './_components/button'
 import { ProgramCard, type ProgramCardData } from './_components/program-card'
@@ -132,6 +133,8 @@ export default async function HomePage() {
       </section>
 
       {/* SERVICES */}
+      <NotifyBanner />
+
       <section lang="el" className="services" id="services">
         <div className="wrap">
           <div className="sec-head r"><span className="eyebrow"><span className="idx">02</span>Υπηρεσίες</span><h2>Ολοκληρωμένη υποστήριξη σε τρία στάδια</h2><p>Μία ομάδα αναλαμβάνει το έργο σας από την ιδέα μέχρι την εκταμίευση. Δεν χρειάζεται να συντονίσετε λογιστή, μηχανικό και σύμβουλο — το κάνουμε εμείς.</p></div>

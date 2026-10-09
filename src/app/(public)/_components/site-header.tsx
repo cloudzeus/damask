@@ -60,7 +60,7 @@ export function SiteHeader() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
               Σύνδεση
             </a>
-            <button type="button" className="btn btn-sm hide-mobile" onClick={openEligibility}>Δωρεάν αξιολόγηση</button>
+            <button type="button" className="btn btn-sm hide-mobile" onClick={() => openEligibility()}>Δωρεάν αξιολόγηση</button>
             <button className="btn btn-ghost btn-icon btn-sm burger" aria-label="Μενού" aria-expanded={open} onClick={() => setOpen(v => !v)}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
             </button>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { ShieldCheck, Mail, CheckCircle2, RefreshCw, X, AlertCircle } from 'lucide-react'
+import { ShieldCheck, Mail, CheckCircle2, RefreshCw, X, AlertCircle, BellRing } from 'lucide-react'
 import { startLeadRequest, verifyLeadOtp, resendLeadOtp, type EligibleProgram } from '@/lib/public-lead/actions'
 import { NEWSLETTER_CONSENT_TEXT } from '@/lib/public-lead/consent'
 
@@ -10,10 +10,14 @@ import { NEWSLETTER_CONSENT_TEXT } from '@/lib/public-lead/consent'
  * openEligibility() (custom event) από οποιοδήποτε CTA, ή με hash #eligibility.
  * Ροή: στοιχεία (ΑΦΜ/email/τηλ) → ΑΑΔΕ lookup + OTP → επιβεβαίωση → αξιολόγηση
  * ενεργών προγραμμάτων. Server actions ίδια με τη σελίδα /eligibility.
+ * mode 'notify' = «Ενημερώστε με για νέα προγράμματα»: ίδια ροή (ΑΦΜ → επιβεβαίωση email = double opt-in),
+ * με ΥΠΟΧΡΕΩΤΙΚΗ ρητή συναίνεση (όχι προεπιλεγμένη) — ο υποψήφιος μπαίνει με ΚΑΔ/περιφέρεια ώστε να
+ * ειδοποιείται όταν ανοίγει πρόγραμμα που του ταιριάζει.
  */
 const EVENT = 'wwa:eligibility'
-export function openEligibility() {
-  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(EVENT))
+export type EligibilityMode = 'check' | 'notify'
+export function openEligibility(mode: EligibilityMode = 'check') {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(EVENT, { detail: { mode } }))
 }
 
 type Step = 'form' | 'otp' | 'done'
@@ -24,6 +28,7 @@ const VERIFY_MSGS = ['Επιβεβαίωση κωδικού…', 'Εντοπισ
 
 export function EligibilityModal() {
   const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<EligibilityMode>('check')
   const [step, setStep] = useState<Step>('form')
   const [phase, setPhase] = useState<Phase>('idle')
   const [pending, startTransition] = useTransition()
@@ -52,9 +57,13 @@ export function EligibilityModal() {
 
   // Open via event ή hash· lock scroll· Esc για κλείσιμο.
   useEffect(() => {
-    const onOpen = () => { reset(); setOpen(true) }
+    const onOpen = (e?: Event) => {
+      const m = (e as CustomEvent<{ mode?: EligibilityMode }> | undefined)?.detail?.mode ?? 'check'
+      reset(); setMode(m); setNewsletter(m !== 'notify'); setOpen(true)
+    }
     window.addEventListener(EVENT, onOpen)
     if (window.location.hash === '#eligibility') onOpen()
+    if (window.location.hash === '#enimerosi') onOpen(new CustomEvent(EVENT, { detail: { mode: 'notify' } }))
     return () => window.removeEventListener(EVENT, onOpen)
   }, [])
 
@@ -68,7 +77,9 @@ export function EligibilityModal() {
   }, [open, pending])
 
   function submitForm(e: React.FormEvent) {
-    e.preventDefault(); setError(null); setFieldErrors({}); setPhase('lookup')
+    e.preventDefault(); setError(null); setFieldErrors({})
+    if (mode === 'notify' && !newsletter) { setError('Για να σας ενημερώνουμε χρειάζεται η συγκατάθεσή σας (τικ παραπάνω).'); return }
+    setPhase('lookup')
     startTransition(async () => {
       const res = await startLeadRequest({ afm, email, phone, newsletterOptIn: newsletter })
       setPhase('idle')
@@ -102,7 +113,7 @@ export function EligibilityModal() {
   const showPreloader = pending && phase !== 'idle'
 
   return (
-    <div className="wwa-overlay" role="dialog" aria-modal="true" aria-label="Έλεγχος επιλεξιμότητας"
+    <div className="wwa-overlay" role="dialog" aria-modal="true" aria-label={mode === 'notify' ? 'Ενημέρωση για νέα προγράμματα' : 'Έλεγχος επιλεξιμότητας'}
       onMouseDown={e => { if (e.target === e.currentTarget && !pending) setOpen(false) }}>
       <div className="wwa-modal" ref={dialogRef} tabIndex={-1} lang="el">
         <button className="close" aria-label="Κλείσιμο" onClick={() => { if (!pending) setOpen(false) }}><X size={18} /></button>
@@ -119,8 +130,17 @@ export function EligibilityModal() {
 
             {step === 'form' && (
               <form onSubmit={submitForm} style={{ display: 'grid', gap: 14 }}>
-                <h3>Δωρεάν έλεγχος επιλεξιμότητας</h3>
-                <p className="m-lead">Συμπληρώστε τα στοιχεία σας και θα βρούμε άμεσα σε ποια ενεργά επιδοτούμενα προγράμματα μπορεί να ενταχθεί η επιχείρησή σας.</p>
+                {mode === 'notify' ? (
+                  <>
+                    <div className="m-notify-head"><span className="m-notify-ic" aria-hidden><BellRing size={22} /></span><h3>Ενημερωθείτε πρώτοι</h3></div>
+                    <p className="m-lead">Με το ΑΦΜ σας βλέπουμε ΚΑΔ και περιφέρεια — μόλις ανοίξει πρόγραμμα που ταιριάζει στην επιχείρησή σας, σας ειδοποιούμε με email και τηλέφωνο. Δωρεάν, χωρίς δέσμευση.</p>
+                  </>
+                ) : (
+                  <>
+                    <h3>Δωρεάν έλεγχος επιλεξιμότητας</h3>
+                    <p className="m-lead">Συμπληρώστε τα στοιχεία σας και θα βρούμε άμεσα σε ποια ενεργά επιδοτούμενα προγράμματα μπορεί να ενταχθεί η επιχείρησή σας.</p>
+                  </>
+                )}
                 <div className="field"><label htmlFor="el-afm">ΑΦΜ</label>
                   <input id="el-afm" className="input" inputMode="numeric" autoComplete="off" value={afm} onChange={e => setAfm(e.target.value.replace(/[^\d]/g, '').slice(0, 9))} placeholder="9 ψηφία" required />
                   {fieldErrors.afm && <span className="error">{fieldErrors.afm}</span>}
@@ -134,11 +154,11 @@ export function EligibilityModal() {
                   {fieldErrors.phone && <span className="error">{fieldErrors.phone}</span>}
                 </div>
                 <label className="check" style={{ alignItems: 'flex-start', fontSize: 13, lineHeight: 1.45, color: 'var(--fg-2)' }}>
-                  <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} />
+                  <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} required={mode === 'notify'} />
                   <span>{NEWSLETTER_CONSENT_TEXT}</span>
                 </label>
                 {error && <ModalAlert>{error}</ModalAlert>}
-                <button type="submit" className="btn btn-lg" style={{ width: '100%' }} disabled={pending}><ShieldCheck size={17} /> Έλεγχος επιλεξιμότητας</button>
+                <button type="submit" className="btn btn-lg" style={{ width: '100%' }} disabled={pending}>{mode === 'notify' ? <><BellRing size={17} /> Ενημερώστε με</> : <><ShieldCheck size={17} /> Έλεγχος επιλεξιμότητας</>}</button>
                 <p className="m-fine">Θα σας στείλουμε 6ψήφιο κωδικό επιβεβαίωσης στο email σας.</p>
               </form>
             )}
@@ -165,7 +185,7 @@ export function EligibilityModal() {
               <div style={{ display: 'grid', gap: 14 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 999, background: 'var(--success-100)', color: 'var(--success-500)', flex: 'none' }}><CheckCircle2 size={22} /></span>
-                  <div><h3 style={{ margin: 0 }}>Ολοκληρώθηκε ο έλεγχος</h3>{companyName && <p style={{ margin: '2px 0 0', fontSize: 14, color: 'var(--fg-3)' }}>{companyName}</p>}</div>
+                  <div><h3 style={{ margin: 0 }}>{mode === 'notify' ? 'Εγγραφήκατε στις ενημερώσεις' : 'Ολοκληρώθηκε ο έλεγχος'}</h3>{companyName && <p style={{ margin: '2px 0 0', fontSize: 14, color: 'var(--fg-3)' }}>{companyName}</p>}</div>
                 </div>
                 {alreadyCustomer && (
                   <div className="alert alert-info" style={{ fontSize: 14 }}>
@@ -186,6 +206,8 @@ export function EligibilityModal() {
                       ))}
                     </ul>
                   </>
+                ) : mode === 'notify' ? (
+                  <p className="m-lead">Αυτή τη στιγμή δεν υπάρχει ανοιχτό πρόγραμμα που να ταιριάζει πλήρως — <b style={{ color: 'var(--fg-1)' }}>θα σας ειδοποιήσουμε μόλις ανοίξει</b>. Μπορείτε να διαγραφείτε οποιαδήποτε στιγμή από τον σύνδεσμο σε κάθε email.</p>
                 ) : (
                   <p className="m-lead">Αυτή τη στιγμή δεν εντοπίσαμε ενεργό πρόγραμμα που να ταιριάζει πλήρως. Η ομάδα μας έλαβε το αίτημά σας και θα επικοινωνήσει μαζί σας για εναλλακτικές δυνατότητες.</p>
                 )}
