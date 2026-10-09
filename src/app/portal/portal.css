@@ -1,0 +1,152 @@
+/* ============================================================
+   Portal πελατών — ίδια αισθητική με το δημόσιο site (WWA design system v2.4),
+   ΑΠΟΜΟΝΩΜΕΝΗ κάτω από .wwa-portal ώστε να μη συγκρούεται με τα tokens του admin
+   (Tailwind --text-*, shadcn --accent) που χρησιμοποιεί ο Thanos widget.
+   ============================================================ */
+.wwa-portal {
+  --p-brand: #001B72; --p-brand-hover: #00085E; --p-navy-950: #000022; --p-navy-50: #EEF1FA;
+  --p-cyan: #34C8F6; --p-violet: #4000A6; --p-canvas: #F6F7FA; --p-rule: #DFE2EA;
+  --p-ink: #0B0F2A; --p-fg-2: #474C60; --p-fg-3: #666C80;
+  --p-success: #117235; --p-success-bg: #E1F3E7; --p-warning: #8F4B00; --p-warning-bg: #FBEEDC; --p-danger: #B3261E;
+  --p-elev-1: 0 1px 2px rgba(0,0,34,.04), 0 2px 8px rgba(0,0,34,.05);
+  --p-elev-2: 0 4px 12px rgba(0,0,34,.08), 0 12px 32px rgba(0,0,34,.10);
+  --p-display: var(--font-display), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  --p-body: var(--font-sans), Roboto, system-ui, Arial, sans-serif;
+  min-height: 100dvh; background: var(--p-canvas); color: var(--p-ink); font-family: var(--p-body); font-size: 15px; line-height: 1.6;
+}
+.wwa-portal *:focus-visible { outline: 2px solid var(--p-violet); outline-offset: 2px; }
+.wwa-portal .p-wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 768px) { .wwa-portal .p-wrap { padding: 0 32px; } }
+
+/* Κεφαλίδα — λευκή όπως το topbar του site */
+.wwa-portal .p-top { position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid var(--p-rule); }
+.wwa-portal .p-top .p-wrap { display: flex; align-items: center; gap: 12px; height: 72px; }
+.wwa-portal .p-top img { height: 38px; width: auto; display: block; }
+.wwa-portal .p-top .p-user { margin-left: auto; font-size: 14px; color: var(--p-fg-2); display: none; }
+@media (min-width: 640px) { .wwa-portal .p-top .p-user { display: inline; } }
+
+/* Κουμπιά pill */
+.wwa-portal .p-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--p-brand); background: var(--p-brand); color: #fff; font: 700 14px/1 var(--p-body); cursor: pointer; text-decoration: none; transition: background .2s, border-color .2s, color .2s; white-space: nowrap; }
+.wwa-portal .p-btn:hover { background: var(--p-brand-hover); border-color: var(--p-brand-hover); }
+.wwa-portal .p-btn-outline { background: transparent; color: var(--p-brand); }
+.wwa-portal .p-btn-outline:hover { background: var(--p-navy-50); color: var(--p-brand); }
+.wwa-portal .p-btn[aria-disabled="true"], .wwa-portal .p-btn:disabled { opacity: .5; cursor: not-allowed; }
+.wwa-portal .p-btn svg { width: 16px; height: 16px; }
+.wwa-portal .p-top .p-btn { min-height: 40px; padding: 0 18px; }
+
+/* Banner με φωτογραφία (όπως το sub-banner του site) */
+.wwa-portal .p-banner { position: relative; overflow: hidden; background: var(--p-navy-950); color: #fff; }
+.wwa-portal .p-banner > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 40%; }
+.wwa-portal .p-banner::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgba(0,0,34,.94) 0%, rgba(0,0,34,.84) 40%, rgba(0,0,34,.4) 100%); }
+.wwa-portal .p-banner .p-wrap { position: relative; z-index: 2; padding-top: 40px; padding-bottom: 44px; }
+.wwa-portal .p-banner .p-eyebrow { font-size: 13px; color: rgba(255,255,255,.75); }
+.wwa-portal .p-banner h1 { margin: 6px 0 0; font: 900 clamp(1.75rem, 3.4vw, 2.5rem)/1.08 var(--p-display); text-transform: uppercase; letter-spacing: .01em; color: #fff; }
+.wwa-portal .p-banner p { margin: 10px 0 0; max-width: 56ch; color: rgba(255,255,255,.85); font-size: 16px; }
+.wwa-portal .p-banner .p-rule { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 2; background: linear-gradient(90deg, #4000A6, #251BC8 35%, #34C8F6 70%, #FF0677); }
+
+.wwa-portal main { padding: 28px 0 56px; }
+.wwa-portal .p-stack { display: flex; flex-direction: column; gap: 20px; }
+
+/* Ειδοποιήσεις */
+.wwa-portal .p-alert { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: #fff; box-shadow: var(--p-elev-1); border-left: 4px solid var(--p-warning); font-size: 15px; }
+.wwa-portal .p-alert svg { flex: none; width: 20px; height: 20px; color: var(--p-warning); margin-top: 2px; }
+.wwa-portal .p-alert.info { border-left-color: var(--p-brand); }
+.wwa-portal .p-alert.info svg { color: var(--p-brand); }
+.wwa-portal .p-muted { color: var(--p-fg-3); }
+
+/* Κάρτα έργου */
+.wwa-portal .p-card { background: #fff; border-radius: 16px; box-shadow: var(--p-elev-1); overflow: hidden; }
+.wwa-portal .p-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; padding: 20px 22px; border-bottom: 1px solid var(--p-rule); }
+.wwa-portal .p-card-head .p-kicker { font-size: 12px; font-weight: 500; color: var(--p-fg-3); letter-spacing: .04em; }
+.wwa-portal .p-card-head h2 { margin: 2px 0 0; font: 900 clamp(1.125rem, 2vw, 1.375rem)/1.15 var(--p-display); text-transform: uppercase; letter-spacing: .01em; color: var(--p-brand); }
+.wwa-portal .p-card-body { display: flex; flex-direction: column; gap: 26px; padding: 22px; }
+.wwa-portal h3.p-h3 { margin: 0 0 10px; font: 900 15px/1.2 var(--p-display); text-transform: uppercase; letter-spacing: .03em; color: var(--p-ink); }
+
+.wwa-portal .p-badge { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 500; background: var(--p-navy-50); color: var(--p-brand); white-space: nowrap; }
+.wwa-portal .p-badge.ok { background: var(--p-success-bg); color: var(--p-success); }
+.wwa-portal .p-badge.warn { background: var(--p-warning-bg); color: var(--p-warning); }
+.wwa-portal .p-badge.bad { background: #FCE8E6; color: var(--p-danger); }
+.wwa-portal .p-badge svg { width: 13px; height: 13px; }
+
+/* Πορεία 6 βημάτων */
+.wwa-portal .p-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); }
+.wwa-portal .p-steps li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.wwa-portal .p-steps li + li::before { content: ""; position: absolute; top: 17px; right: 50%; width: 100%; height: 3px; background: var(--p-rule); }
+.wwa-portal .p-steps li.done::before, .wwa-portal .p-steps li.current::before { background: var(--p-brand); }
+.wwa-portal .p-steps .dot { position: relative; z-index: 1; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font: 700 15px/1 var(--p-display); background: #fff; color: var(--p-fg-3); border: 2px solid var(--p-rule); }
+.wwa-portal .p-steps li.done .dot { background: var(--p-brand); border-color: var(--p-brand); color: #fff; }
+.wwa-portal .p-steps li.current .dot { border-color: var(--p-brand); color: var(--p-brand); box-shadow: 0 0 0 5px rgba(0,27,114,.12); }
+.wwa-portal .p-steps .lbl { font-size: 12.5px; line-height: 1.25; color: var(--p-fg-3); }
+.wwa-portal .p-steps li.current .lbl { color: var(--p-ink); font-weight: 700; }
+@media (max-width: 639px) { .wwa-portal .p-steps li:not(.current) .lbl { display: none; } }
+
+.wwa-portal .p-now { margin-top: 18px; padding: 16px 18px; border-radius: 12px; background: var(--p-navy-50); }
+.wwa-portal .p-now .t { display: flex; align-items: center; gap: 6px; font: 700 13px/1 var(--p-body); color: var(--p-brand); text-transform: uppercase; letter-spacing: .04em; }
+.wwa-portal .p-now .t svg { width: 15px; height: 15px; }
+.wwa-portal .p-now p { margin: 8px 0 0; font-size: 15.5px; }
+.wwa-portal .p-now .next { display: flex; gap: 6px; margin-top: 10px; font-size: 14px; color: var(--p-fg-2); }
+.wwa-portal .p-now .next svg { flex: none; width: 15px; height: 15px; margin-top: 3px; }
+
+/* Λίστα «τι χρειαζόμαστε» */
+.wwa-portal .p-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--p-rule); border-radius: 12px; }
+.wwa-portal .p-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; }
+.wwa-portal .p-list li + li { border-top: 1px solid var(--p-rule); }
+.wwa-portal .p-list .ico { flex: none; width: 18px; height: 18px; color: var(--p-fg-3); }
+.wwa-portal .p-list .name { flex: 1; min-width: 0; font-weight: 500; }
+.wwa-portal .p-list .sub { font-size: 13px; color: var(--p-fg-3); }
+.wwa-portal .p-list .sub.bad { color: var(--p-danger); }
+.wwa-portal .p-done { margin-top: 10px; }
+.wwa-portal .p-done summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-size: 14px; color: var(--p-fg-2); }
+.wwa-portal .p-done summary::-webkit-details-marker { display: none; }
+.wwa-portal .p-done summary svg { width: 15px; height: 15px; transition: transform .2s; }
+.wwa-portal .p-done[open] summary svg { transform: rotate(180deg); }
+.wwa-portal .p-done ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.wwa-portal .p-done li { display: flex; align-items: center; gap: 8px; }
+.wwa-portal .p-done li svg { width: 15px; height: 15px; color: var(--p-success); flex: none; }
+
+/* Αριθμοί */
+.wwa-portal .p-figs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 720px) { .wwa-portal .p-figs { grid-template-columns: repeat(4, 1fr); } }
+.wwa-portal .p-fig { padding: 14px; border: 1px solid var(--p-rule); border-radius: 12px; }
+.wwa-portal .p-fig .k { font-size: 12.5px; color: var(--p-fg-3); }
+.wwa-portal .p-fig .v { margin-top: 2px; font: 700 clamp(1.25rem, 2.4vw, 1.5rem)/1.1 var(--p-display); color: var(--p-brand); font-variant-numeric: tabular-nums; }
+.wwa-portal .p-fig .bar { margin-top: 8px; height: 6px; border-radius: 999px; background: var(--p-navy-50); overflow: hidden; }
+.wwa-portal .p-fig .bar > span { display: block; height: 100%; border-radius: 999px; background: var(--p-brand); }
+.wwa-portal .p-fig .h { margin-top: 6px; font-size: 12px; color: var(--p-fg-3); }
+.wwa-portal .p-pays { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.wwa-portal .p-pays li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Ημερομηνίες */
+.wwa-portal .p-dates { display: grid; grid-template-columns: 1fr; gap: 6px 24px; margin: 0; font-size: 14px; }
+@media (min-width: 640px) { .wwa-portal .p-dates { grid-template-columns: 1fr 1fr; } }
+.wwa-portal .p-dates div { display: flex; align-items: center; gap: 8px; }
+.wwa-portal .p-dates svg { width: 15px; height: 15px; color: var(--p-fg-3); flex: none; }
+.wwa-portal .p-dates dt { color: var(--p-fg-3); }
+.wwa-portal .p-dates dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Βοηθός — navy panel με cyan (όπως τα promo panels του site) */
+.wwa-portal .p-assist { padding: 18px; border-radius: 16px; background: var(--p-navy-950); color: #fff; }
+.wwa-portal .p-assist .t { display: flex; align-items: center; gap: 8px; font: 900 15px/1.2 var(--p-display); text-transform: uppercase; letter-spacing: .03em; }
+.wwa-portal .p-assist .t svg { width: 18px; height: 18px; color: var(--p-cyan); }
+.wwa-portal .p-assist p { margin: 6px 0 12px; font-size: 14px; color: rgba(255,255,255,.75); }
+.wwa-portal .p-assist .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.wwa-portal .p-chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; font: 500 14px/1 var(--p-body); cursor: pointer; transition: background .2s, border-color .2s; }
+.wwa-portal .p-chip:hover { background: rgba(255,255,255,.1); border-color: #fff; }
+.wwa-portal .p-chip:disabled { opacity: .45; cursor: not-allowed; }
+
+.wwa-portal .p-advisor { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: var(--p-fg-2); }
+.wwa-portal .p-advisor svg { width: 16px; height: 16px; }
+.wwa-portal .p-advisor a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--p-brand); font-weight: 500; text-decoration: none; }
+.wwa-portal .p-advisor a:hover { text-decoration: underline; }
+
+.wwa-portal .p-foot { border-top: 1px solid var(--p-rule); background: #fff; padding: 22px 0; font-size: 13px; color: var(--p-fg-3); }
+.wwa-portal .p-foot .p-wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+.wwa-portal .p-foot a { color: var(--p-brand); text-decoration: none; }
+
+.wwa-portal .p-empty { padding: 40px 24px; text-align: center; background: #fff; border-radius: 16px; box-shadow: var(--p-elev-1); }
+.wwa-portal .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@keyframes p-spin { to { transform: rotate(360deg); } }
+.wwa-portal .spin { animation: p-spin 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .wwa-portal * { transition: none !important; animation: none !important; } }
+.wwa-portal .p-top .p-signout { margin-left: auto; }
+.wwa-portal .p-top .p-user + .p-signout { margin-left: 4px; }

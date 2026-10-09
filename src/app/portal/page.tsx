@@ -1,12 +1,17 @@
+/* eslint-disable @next/next/no-img-element -- λογότυπο/φωτογραφία από το CDN */
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { LuInfo, LuLogOut } from 'react-icons/lu'
 import { auth, signOut } from '@/auth'
 import { getContactPortalDashboard } from '@/lib/pm/portal-contact'
 import { PortalPrograms } from './_components/portal-programs'
 import { ThanosWidget } from '@/components/thanos/thanos-widget'
+import { wwaLogoDark, wwaPhoto } from '../(public)/_wwa/assets'
+import './portal.css'
 
-export const metadata = { title: 'Portal — World Wide Associates' }
+export const metadata = { title: 'Τα έργα μου — World Wide Associates', robots: { index: false, follow: false } }
 
+/** Portal πελάτη — ίδια αισθητική με το δημόσιο site (portal.css, scoped .wwa-portal). */
 export default async function PortalPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const session = await auth()
   if (!session?.user) redirect('/login')
@@ -14,48 +19,53 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
   // ?preview=<contactId>: χρήστης της εφαρμογής βλέπει το portal όπως η επαφή (μόνο ανάγνωση).
   const { preview } = await searchParams
   const dash = await getContactPortalDashboard(preview || undefined)
+  const firstName = dash.ok ? dash.contactName.split(' ')[0] : session.user.name?.split(' ')[0]
 
   return (
-    <div className="app-canvas min-h-screen">
-      <header className="sticky top-0 z-10 border-b border-border bg-card/80 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <Link href="/" className="wordmark text-[length:var(--fs-16)] text-foreground">World Wide Associates</Link>
-          <div className="flex-1" />
-          <span className="hidden text-[length:var(--fs-12-5)] text-muted-foreground sm:inline">{session.user.name}</span>
-          <form action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }}>
-            <button type="submit" className="btn-pill btn-glass h-9 px-3 text-[length:var(--fs-12-5)]">Αποσύνδεση</button>
+    <div className="wwa-portal" lang="el">
+      <header className="p-top">
+        <div className="p-wrap">
+          <Link href="/" aria-label="World Wide Associates — αρχική"><img src={wwaLogoDark} alt="World Wide Associates" /></Link>
+          <span className="p-user">{session.user.name}</span>
+          <form action={async () => { 'use server'; await signOut({ redirectTo: '/login' }) }} className="p-signout">
+            <button type="submit" className="p-btn p-btn-outline"><LuLogOut aria-hidden /> Αποσύνδεση</button>
           </form>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        {dash.ok && dash.preview && (
-          <div className="mb-4 rounded-xl border p-3 text-[length:var(--fs-13)] text-foreground" style={{ background: 'var(--card)', borderColor: 'var(--warning)', borderLeftWidth: 4 }} role="status">
-            <b>Προεπισκόπηση:</b> έτσι βλέπει το portal η επαφή <b>{dash.contactName}</b>. Το ανέβασμα και ο βοηθός είναι απενεργοποιημένα εδώ.
-          </div>
-        )}
-        {!dash.ok ? (
-          <div className="glass p-8 text-center">
-            <h1 className="mb-2 text-[length:var(--fs-20)]">Καλώς ήρθατε, {session.user.name}</h1>
-            <p className="text-sm text-muted-foreground">{preview ? 'Η επαφή δεν βρέθηκε ή δεν έχετε δικαίωμα προβολής.' : 'Δεν υπάρχουν διαθέσιμα προγράμματα για τον λογαριασμό σας αυτή τη στιγμή. Επικοινωνήστε με τον σύμβουλό σας στη WWA.'}</p>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4">
-              <h1 className="text-[length:var(--fs-22)] font-semibold">Καλώς ήρθατε, {dash.contactName.split(' ')[0]}</h1>
-              <p className="text-[length:var(--fs-14)]">Εδώ βλέπετε πού βρίσκεται κάθε έργο σας, τι χρειαζόμαστε από εσάς και τι ακολουθεί.</p>
-              <p className="text-[length:var(--fs-13)] text-muted-foreground">
-                {dash.companyName}
-                {dash.central
-                  ? ' · κεντρική πρόσβαση (όλα τα προγράμματα)'
-                  : ' · πρόσβαση στα προγράμματα που σας αφορούν'}
-              </p>
+      <section className="p-banner">
+        <img src={wwaPhoto('consulting')} alt="" />
+        <div className="p-wrap">
+          <div className="p-eyebrow">{dash.ok ? dash.companyName : 'World Wide Associates'}</div>
+          <h1>Καλώς ήρθατε{firstName ? `, ${firstName}` : ''}</h1>
+          <p>Εδώ βλέπετε πού βρίσκεται κάθε έργο σας, τι χρειαζόμαστε από εσάς και τι ακολουθεί.</p>
+        </div>
+        <span className="p-rule" aria-hidden />
+      </section>
+
+      <main>
+        <div className="p-wrap p-stack">
+          {dash.ok && dash.preview && (
+            <div className="p-alert info" role="status"><LuInfo aria-hidden /><span><b>Προεπισκόπηση:</b> έτσι βλέπει το portal η επαφή <b>{dash.contactName}</b>. Το ανέβασμα και ο βοηθός είναι απενεργοποιημένα εδώ.</span></div>
+          )}
+          {!dash.ok ? (
+            <div className="p-empty">
+              <p>{preview ? 'Η επαφή δεν βρέθηκε ή δεν έχετε δικαίωμα προβολής.' : 'Δεν υπάρχουν διαθέσιμα έργα για τον λογαριασμό σας αυτή τη στιγμή. Επικοινωνήστε με τον σύμβουλό σας στο 210 721 8758.'}</p>
             </div>
+          ) : (
             <PortalPrograms applications={dash.applications} preview={dash.preview} />
-            {!dash.preview && <ThanosWidget firstName={session.user.name?.split(' ')[0]} />}
-          </>
-        )}
+          )}
+        </div>
       </main>
+
+      <footer className="p-foot">
+        <div className="p-wrap">
+          <span>World Wide Associates Ε.Ε. · Αλεξανδρουπόλεως 25, Αθήνα 115 27</span>
+          <span><a href="tel:+302107218758">210 721 8758</a> · <a href="mailto:info@wwa-espa.com">info@wwa-espa.com</a></span>
+        </div>
+      </footer>
+
+      {dash.ok && !dash.preview && <ThanosWidget firstName={firstName} />}
     </div>
   )
 }
