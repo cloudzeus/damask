@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { thanosStatus, thanosTranscribe, executeThanosAction, cancelThanosAction, rateThanosTurn } from '@/lib/thanos/actions'
 import type { ThanosActionCard, ThanosEvent, ThanosReply } from '@/lib/thanos/agent'
 import type { PageContext } from '@/lib/thanos/context'
+import { SentenceFeeder, plain } from '@/lib/voice/stream-sentences'
 
 /**
  * Πλωτό κουμπί + panel του Thanos (app & portal). Page-aware από το URL.
@@ -126,7 +127,66 @@ function splitForSpeech(text: string): string[] {
   return [t]
 }
 
-const plain = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^#{1,4}\s+/gm, '')
+
+type TtsResult = Blob | 'limit' | null
+async function fetchTts(text: string): Promise<TtsResult> {
+  try {
+    const r = await fetch('/api/thanos/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
+    if (r.status === 429) return 'limit'
+    return r.ok ? await r.blob() : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Ουρά φωνής: κάθε κομμάτι ζητείται ΑΜΕΣΩΣ (παράλληλα) και παίζει με τη σειρά, χωρίς κενά.
+ * Τροφοδοτείται είτε από τη ροή (πρόταση-πρόταση όσο γράφεται) είτε από ολόκληρο κείμενο.
+ */
+class SpeechQueue {
+  private seq = 0
+  private loopSeq = -1
+  private items: Promise<TtsResult>[] = []
+  private pushed = 0
+  constructor(
+    private audio: () => HTMLAudioElement,
+    private rate: () => number,
+    private on: { limit: () => void; blocked: () => void; idle: () => void },
+  ) {}
+  push(text: string) {
+    const t = text.trim()
+    if (!t) return
+    this.items.push(fetchTts(t))
+    this.pushed++
+    if (this.loopSeq !== this.seq) void this.run(this.seq)
+  }
+  /** Κράτα μόνο τα πρώτα n κομμάτια συνολικά (π.χ. σε ενέργειες: μόνο η εισαγωγική πρόταση). */
+  limitTo(n: number) {
+    const consumed = this.pushed - this.items.length
+    this.items = this.items.slice(0, Math.max(0, n - consumed))
+    this.pushed = consumed + this.items.length
+  }
+  cancel() {
+    this.seq++
+    this.items = []
+    this.pushed = 0
+    this.audio().pause()
+  }
+  get active() { return this.loopSeq === this.seq }
+  private async run(id: number) {
+    this.loopSeq = id
+    while (this.items.length && id === this.seq) {
+      const r = await this.items.shift()!
+      if (id !== this.seq) break
+      if (r === 'limit') { this.cancel(); this.on.limit(); break }
+      if (!r) continue
+      const res = await playToEnd(this.audio(), URL.createObjectURL(r), this.rate())
+      if (res === 'blocked') { this.cancel(); this.on.blocked(); break }
+      if (res === 'stopped') break
+    }
+    if (this.loopSeq === id) { this.loopSeq = -1; if (id === this.seq) this.on.idle() }
+  }
+}
 
 export function ThanosWidget({ firstName }: { firstName?: string }) {
   const pathname = usePathname() ?? '/'
@@ -145,7 +205,8 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
   const [voiceLimited, setVoiceLimited] = useState(false)
   const recRef = useRef<MediaRecorder | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const speakSeq = useRef(0)
+  const queueRef = useRef<SpeechQueue | null>(null)
+  const rateRef = useRef(1.15)
   const [speaking, setSpeaking] = useState<string | null>(null)
   const [audioBlocked, setAudioBlocked] = useState(false)
   const listRef = useRef<HTMLDivElement | null>(null)
@@ -156,6 +217,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
   useEffect(() => { if (hydrated.current) write('session', STORE, msgs.slice(-40)) }, [msgs])
   useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }) }, [msgs, busy, liveText, liveStatus])
   useEffect(() => { if (open) inputRef.current?.focus() }, [open])
+  useEffect(() => { rateRef.current = status?.speed ?? 1.15 }, [status?.speed])
 
   // Η συζήτηση (ανά tab) και η προτίμηση φωνής φορτώνονται με το πρώτο άνοιγμα.
   function openPanel() {
@@ -180,44 +242,35 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
     void playUrl(audioRef.current, SILENT_WAV)
   }
 
-  /**
-   * Φωνή σε κομμάτια: η ΠΡΩΤΗ πρόταση ζητείται και παίζει αμέσως, ενώ το υπόλοιπο ετοιμάζεται ΠΑΡΑΛΛΗΛΑ
-   * και παίζει αμέσως μετά — ο χρήστης ακούει σε ~1″ αντί να περιμένει όλο το κείμενο.
-   */
-  const speak = useCallback(async (text: string, force = false, ttsReady?: boolean) => {
-    if ((!voice && !force) || !(ttsReady ?? status?.tts)) return
-    const id = ++speakSeq.current
-    setSpeaking(text)
-    const done = () => setSpeaking(s => (s === text ? null : s))
-    const tts = (t: string) => fetch('/api/thanos/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: t }) })
-    try {
-      const chunks = splitForSpeech(plain(text))
-      const pending = chunks.map(tts) // όλα μαζί, παράλληλα
-      for (const p of pending) {
-        const res = await p
-        if (id !== speakSeq.current) return
-        if (res.status === 429) {
-          // Ημερήσιο όριο φωνής (πελάτες): κλείνει η φωνή μέχρι αύριο, οι απαντήσεις συνεχίζουν σε κείμενο.
-          setVoice(false)
-          write('local', VOICE, false)
-          write('local', VOICE_LIMIT, new Date().toDateString())
-          setVoiceLimited(true)
-          setSpeaking(null)
-          setMsgs(m => [...m, { role: 'assistant', content: 'Ολοκληρώθηκαν τα 2 λεπτά φωνητικής συνομιλίας για σήμερα — από εδώ και πέρα θα σας απαντώ γραπτώς. Η φωνή θα είναι ξανά διαθέσιμη αύριο.' }])
-          return
-        }
-        if (!res.ok) { done(); return }
-        const url = URL.createObjectURL(await res.blob())
-        if (!audioRef.current) audioRef.current = new Audio()
-        const ended = await playToEnd(audioRef.current, url, status?.speed ?? 1.15)
-        if (ended === 'blocked') { setSpeaking(null); setAudioBlocked(true); return }
-        if (ended === 'stopped' || id !== speakSeq.current) return
-      }
-      done()
-    } catch {
-      setSpeaking(null)
+  /** Ημερήσιο όριο φωνής (πελάτες): κλείνει η φωνή μέχρι αύριο, οι απαντήσεις συνεχίζουν σε κείμενο. */
+  function onVoiceLimit() {
+    setVoice(false)
+    write('local', VOICE, false)
+    write('local', VOICE_LIMIT, new Date().toDateString())
+    setVoiceLimited(true)
+    setSpeaking(null)
+    setMsgs(m => [...m, { role: 'assistant', content: 'Ολοκληρώθηκαν τα 2 λεπτά φωνητικής συνομιλίας για σήμερα — από εδώ και πέρα θα σας απαντώ γραπτώς. Η φωνή θα είναι ξανά διαθέσιμη αύριο.' }])
+  }
+
+  function getQueue(): SpeechQueue {
+    if (!queueRef.current) {
+      queueRef.current = new SpeechQueue(
+        () => audioRef.current ?? (audioRef.current = new Audio()),
+        () => rateRef.current,
+        { limit: onVoiceLimit, blocked: () => { setSpeaking(null); setAudioBlocked(true) }, idle: () => setSpeaking(null) },
+      )
     }
-  }, [voice, status?.tts, status?.speed])
+    return queueRef.current
+  }
+
+  /** Ολόκληρο κείμενο → φωνή (πρώτη πρόταση αμέσως, το υπόλοιπο παράλληλα). */
+  const speak = useCallback((text: string, force = false, ttsReady?: boolean) => {
+    if ((!voice && !force) || !(ttsReady ?? status?.tts)) return
+    const q = getQueue()
+    q.cancel()
+    setSpeaking(text)
+    splitForSpeech(plain(text)).forEach(chunk => q.push(chunk))
+  }, [voice, status?.tts]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Πελάτες: καλωσόρισμα μία φορά ανά συνεδρία (κείμενο + φωνή, αν είναι διαθέσιμη). */
   function onStatus(s: Status) {
@@ -227,14 +280,13 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
     write('session', WELCOMED, true)
     setMsgs([{ role: 'assistant', content: s.welcome }])
     const limitedToday = read<string | null>('local', VOICE_LIMIT, null) === new Date().toDateString()
-    if (!limitedToday && read('local', VOICE, true)) void speak(s.welcome, true, s.tts)
+    if (!limitedToday && read('local', VOICE, true)) speak(s.welcome, true, s.tts)
   }
 
   useEffect(() => { if (open && !status) void thanosStatus().then(onStatus) }, [open, status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function stopSpeaking() {
-    speakSeq.current++
-    audioRef.current?.pause()
+    queueRef.current?.cancel()
     setSpeaking(null)
   }
 
@@ -249,6 +301,12 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
     if (!conversationId || msgs.length === 0) { conversationId = crypto.randomUUID(); write('session', CONVERSATION, conversationId) }
     setLiveStatus('Σκέφτομαι…')
     setLiveText('')
+    // Φωνή ΟΣΟ γράφεται: κάθε ολοκληρωμένη πρόταση πάει αμέσως στην ουρά φωνής.
+    const q = voice && status?.tts && !voiceLimited ? getQueue() : null
+    q?.cancel()
+    let feeder = new SentenceFeeder()
+    let spoke = false
+    const STREAM_KEY = '\u0000stream'
     let final: ThanosReply | null = null
     let error: string | null = null
     try {
@@ -269,8 +327,14 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
           if (!line) continue
           const e = JSON.parse(line) as ThanosEvent
           if (e.type === 'status') { setLiveStatus(e.text); setLiveText('') }
-          else if (e.type === 'delta') setLiveText(t => t + e.text)
-          else if (e.type === 'reset') setLiveText('')
+          else if (e.type === 'delta') {
+            setLiveText(t => t + e.text)
+            if (q) for (const sentence of feeder.feed(e.text)) { q.push(sentence); if (!spoke) { spoke = true; setSpeaking(STREAM_KEY) } }
+          } else if (e.type === 'reset') {
+            setLiveText('')
+            if (q && spoke) { q.cancel(); spoke = false }
+            feeder = new SentenceFeeder()
+          }
           else if (e.type === 'done') final = e.data
           else if (e.type === 'error') error = e.error
         }
@@ -284,8 +348,15 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
     if (!final) { setMsgs(m => [...m, { role: 'assistant', content: error ?? 'Ο Thanos δεν απάντησε — δοκιμάστε ξανά.', error: true }]); return }
     const reply: ThanosReply = final
     setMsgs(m => [...m, { role: 'assistant', content: reply.reply, speech: reply.speech, actions: reply.actions, turnId: reply.turnId }])
-    void speak(reply.speech)
-  }, [busy, msgs, page, speak])
+    if (!q) return
+    if (!spoke) { speak(reply.speech); return } // π.χ. απάντηση από cache (χωρίς ροή)
+    if (reply.actions.length) q.limitTo(1) // ενέργεια: μόνο η εισαγωγική πρόταση
+    else {
+      feeder.flush().forEach(sentence => q.push(sentence))
+      if (feeder.listItems > 3) q.push('Η πλήρης λίστα είναι γραμμένη στη συνομιλία.')
+    }
+    if (q.active) setSpeaking(reply.speech ?? reply.reply)
+  }, [busy, msgs, page, speak, voice, status?.tts, voiceLimited]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function toggleMic() {
     if (recording) { recRef.current?.stop(); return }
@@ -424,7 +495,7 @@ export function ThanosWidget({ firstName }: { firstName?: string }) {
                 </div>
                 {m.role === 'assistant' && !m.error && status?.tts && !voiceLimited && (
                   <button type="button"
-                    onClick={() => { unlockAudio(); setAudioBlocked(false); if (speaking === (m.speech ?? m.content)) stopSpeaking(); else void speak(m.speech ?? m.content, true) }}
+                    onClick={() => { unlockAudio(); setAudioBlocked(false); if (speaking === (m.speech ?? m.content)) stopSpeaking(); else speak(m.speech ?? m.content, true) }}
                     aria-label={speaking === (m.speech ?? m.content) ? 'Διακοπή ακρόασης' : 'Ακρόαση απάντησης'} title={speaking === (m.speech ?? m.content) ? 'Διακοπή' : 'Ακρόαση'}
                     className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
                     {speaking === (m.speech ?? m.content) ? <Square className="size-3.5" /> : <Volume2 className="size-4" />}
