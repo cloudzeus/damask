@@ -20,7 +20,7 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!session?.user) redirect('/login')
   const [companies, current] = await Promise.all([portalCompanies(), resolvePortalContact()])
   return (
-    <div className="wwa-portal" lang="el">
+    <div className="wwa-portal" lang="el" translate="no">
       <header className="p-top">
         <div className="p-wrap">
           <Link href="/portal" aria-label="Portal — επισκόπηση"><img src={wwaLogoDark} alt="World Wide Associates" /></Link>

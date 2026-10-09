@@ -6,7 +6,7 @@ import '../portal.css'
 /** Κέλυφος σελίδων σύνδεσης/ανάκτησης κωδικού (ίδιο για προσωπικό & πελάτες) — ύφος δημόσιου site. */
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="wwa-portal p-auth" lang="el">
+    <div className="wwa-portal p-auth" lang="el" translate="no">
       <header className="p-top"><div className="p-wrap"><Link href="/" aria-label="World Wide Associates — αρχική"><img src={wwaLogoDark} alt="World Wide Associates" /></Link></div></header>
       <main className="p-auth-main">
         <img className="p-auth-bg" src={wwaPhoto('consulting')} alt="" />

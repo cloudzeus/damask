@@ -113,7 +113,7 @@ export function EligibilityModal() {
   const showPreloader = pending && phase !== 'idle'
 
   return (
-    <div className="wwa-overlay" role="dialog" aria-modal="true" aria-label={mode === 'notify' ? 'Ενημέρωση για νέα προγράμματα' : 'Έλεγχος επιλεξιμότητας'}
+    <div className="wwa-overlay" translate="no" role="dialog" aria-modal="true" aria-label={mode === 'notify' ? 'Ενημέρωση για νέα προγράμματα' : 'Έλεγχος επιλεξιμότητας'}
       onMouseDown={e => { if (e.target === e.currentTarget && !pending) setOpen(false) }}>
       <div className="wwa-modal" ref={dialogRef} tabIndex={-1} lang="el">
         <button className="close" aria-label="Κλείσιμο" onClick={() => { if (!pending) setOpen(false) }}><X size={18} /></button>
