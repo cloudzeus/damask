@@ -981,3 +981,8 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 @media (max-width: 900px) { .svct { grid-template-columns: 1fr; } }
 .hub-grid .hub-rest { margin: 10px 0 0; font-size: 13px; color: var(--fg-3); line-height: 1.5; }
 .hub-grid .hub-rest a { color: var(--brand); font-weight: 500; }
+
+/* ── Ενότητα «άμεσης απάντησης»: ίσος αέρας πάνω/κάτω (8pt κλίμακα) ── */
+.answer-sec { padding-block: clamp(40px, 5vw, 64px); }
+/* Επόμενη ενότητα με ΙΔΙΟ (λευκό) φόντο: μοιράζονται το κενό, δεν διπλασιάζεται. Με διαφορετικό φόντο κρατά πλήρη αέρα. */
+.answer-sec + section:not(.alt):not(.sband):not(.sub-banner):not(.notifyb-sec) { padding-top: 0; }

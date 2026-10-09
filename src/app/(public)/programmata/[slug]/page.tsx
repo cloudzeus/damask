@@ -91,7 +91,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
         </div></div>
       </section>
 
-      <section lang="el" style={{ paddingBottom: 0 }}>
+      <section lang="el" className="answer-sec">
         <div className="wrap"><AnswerBox updated={p.updated}>{lead}</AnswerBox></div>
       </section>
 

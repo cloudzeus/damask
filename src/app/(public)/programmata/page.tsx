@@ -46,7 +46,7 @@ export default async function ProgrammataPage() {
         </div></div>
       </section>
 
-      <section lang="el" style={{ paddingBottom: 0 }}>
+      <section lang="el" className="answer-sec">
         <div className="wrap">
           <AnswerBox updated={new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })}>
             Αυτή τη στιγμή είναι ανοιχτ{n === 1 ? 'ό' : 'ά'} <b>{nProgramms(n)} για επιχειρήσεις</b> (ΕΣΠΑ, Περιφερειακά, Αναπτυξιακός Νόμος, LEADER)

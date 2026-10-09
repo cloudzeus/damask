@@ -60,7 +60,7 @@ export default function ServicesPage() {
         meta={<><EligibilityCta variant="inverse">Δωρεάν αξιολόγηση</EligibilityCta><Link className="btn btn-inverse-outline" href="/pyli-pelaton">Η πύλη πελατών</Link></>}
       />
 
-      <section lang="el" style={{ paddingBottom: 0 }}>
+      <section lang="el" className="answer-sec">
         <div className="wrap">
           <AnswerBox>
             Η World Wide Associates σχεδιάζει, υποβάλλει και διαχειρίζεται επιδοτούμενα επενδυτικά σχέδια επιχειρήσεων — ΕΣΠΑ, Αναπτυξιακός Νόμος, LEADER — από τον <b>δωρεάν έλεγχο επιλεξιμότητας</b> έως την <b>εκταμίευση</b>, με αμοιβή επιτυχίας μετά την έγκριση. Με <b>μακροχρόνια συνεργασία</b> παρακολουθούμε όλα τα έργα σας μαζί και εντοπίζουμε έγκαιρα κάθε νέο πρόγραμμα που σας ταιριάζει.
