@@ -205,6 +205,14 @@ export async function startQueue(): Promise<void> {
     } catch (err) {
       console.error('[pg-boss] espa-calls απέτυχε', err)
     }
+    // Ίδιο ημερήσιο tick: δυνητικά προγράμματα όλων των πελατών (νέοι πελάτες/ΚΑΔ/προγράμματα της ημέρας).
+    try {
+      const { runPotentialMatching } = await import('@/lib/pm/potential-matching')
+      const m = await runPotentialMatching()
+      console.log('[pg-boss] potential-matching:', JSON.stringify({ programs: m.programs, customers: m.customers, matches: m.matches }))
+    } catch (err) {
+      console.error('[pg-boss] potential-matching απέτυχε', err)
+    }
     // Ίδιο ημερήσιο tick: αιτήματα κριτικής Google σε νέες εγκρίσεις/πληρωμές (τοπικό SEO).
     try {
       const { runReviewRequests } = await import('@/lib/reviews/review-requests')

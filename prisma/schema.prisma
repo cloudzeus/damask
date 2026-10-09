@@ -303,100 +303,101 @@ model MediaAsset {
 /// όχι Prisma relation, ώστε η σειρά sync (S1 reference data πριν τα TRDR) να
 /// μην είναι FK-constrained.
 model Trdr {
-  id                   String                   @id @default(cuid())
-  TRDR                 Int?                     @unique // null = καρτέλα που δεν έχει συγχρονιστεί ακόμα με SoftOne (π.χ. δημιουργήθηκε από OCR)
-  SODTYPE              Int                      @default(13) // 13 = Πελάτης, 12 = Προμηθευτής
-  CODE                 String?
-  NAME                 String
-  AFM                  String?
-  IRSDATA              String? // κωδ.Δ.Ο.Υ. (soft ref στο mirror Irsdata.CODE — string κωδικός, ΟΧΙ το Irsdata.IRSDATA numeric id)
-  JOBTYPETRD           String? // επάγγελμα, free text
-  ADDRESS              String?
-  ZIP                  String?
-  DISTRICT             String?
-  CITY                 String?
-  COUNTRY              Int? // soft ref Country.COUNTRY
-  PHONE01              String?
-  PHONE02              String?
-  FAX                  String?
-  EMAIL                String?
-  EMAILACC             String? // email λογιστηρίου (SoftOne TRDR.EMAILACC)
-  WEBPAGE              String?
-  TRDCATEGORY          Int? // soft ref TrdCategory.TRDCATEGORY
-  TRDPGROUP            Int?
-  TRDBUSINESS          Int?
-  PAYMENT              Int? // soft ref S1Payment.PAYMENT
-  SHIPMENT             Int? // soft ref Shipment.SHIPMENT
-  SOCURRENCY           Int?                     @default(100) // 100 = ΕΥΡΩ (default SoftOne)
-  ISACTIVE             Int                      @default(1)
-  ISPROSP              Int                      @default(0) // 1 = Υποψήφιος (lead flag)
-  REMARKS              String?
-  CODE1                String?
-  UPDDATE              DateTime? // τελευταία μεταβολή στο SoftOne
+  id                     String                   @id @default(cuid())
+  TRDR                   Int?                     @unique // null = καρτέλα που δεν έχει συγχρονιστεί ακόμα με SoftOne (π.χ. δημιουργήθηκε από OCR)
+  SODTYPE                Int                      @default(13) // 13 = Πελάτης, 12 = Προμηθευτής
+  CODE                   String?
+  NAME                   String
+  AFM                    String?
+  IRSDATA                String? // κωδ.Δ.Ο.Υ. (soft ref στο mirror Irsdata.CODE — string κωδικός, ΟΧΙ το Irsdata.IRSDATA numeric id)
+  JOBTYPETRD             String? // επάγγελμα, free text
+  ADDRESS                String?
+  ZIP                    String?
+  DISTRICT               String?
+  CITY                   String?
+  COUNTRY                Int? // soft ref Country.COUNTRY
+  PHONE01                String?
+  PHONE02                String?
+  FAX                    String?
+  EMAIL                  String?
+  EMAILACC               String? // email λογιστηρίου (SoftOne TRDR.EMAILACC)
+  WEBPAGE                String?
+  TRDCATEGORY            Int? // soft ref TrdCategory.TRDCATEGORY
+  TRDPGROUP              Int?
+  TRDBUSINESS            Int?
+  PAYMENT                Int? // soft ref S1Payment.PAYMENT
+  SHIPMENT               Int? // soft ref Shipment.SHIPMENT
+  SOCURRENCY             Int?                     @default(100) // 100 = ΕΥΡΩ (default SoftOne)
+  ISACTIVE               Int                      @default(1)
+  ISPROSP                Int                      @default(0) // 1 = Υποψήφιος (lead flag)
+  REMARKS                String?
+  CODE1                  String?
+  UPDDATE                DateTime? // τελευταία μεταβολή στο SoftOne
   // ── app extras (ΟΧΙ SoftOne) ──
-  appLat               Float?
-  appLng               Float?
-  appLogoUrl           String?
-  appLegalForm         String?
-  appNotes             String?
-  appEmployees         Int? // αριθμός εργαζομένων (app-only, από import/χειροκίνητα)
+  appLat                 Float?
+  appLng                 Float?
+  appLogoUrl             String?
+  appLegalForm           String?
+  appNotes               String?
+  appEmployees           Int? // αριθμός εργαζομένων (app-only, από import/χειροκίνητα)
   /// ΕΜΕ (ετήσιες μονάδες εργασίας) της τελευταίας χρήσης από «Πίνακα ταξινόμησης βάσει μεγέθους».
-  appEme               Decimal?                 @db.Decimal(8, 2)
+  appEme                 Decimal?                 @db.Decimal(8, 2)
   /// Χρήση από την οποία προέρχονται οι εργαζόμενοι/ΕΜΕ (νεότερο ΕΜΕ → ενημέρωση).
-  appEmployeesYear     Int?
+  appEmployeesYear       Int?
   /// 'EME' = από ανεβασμένο ΕΜΕ · 'MANUAL' = διόρθωση χρήστη · 'IMPORT'
-  appEmployeesSource   String?
-  appAnnualRevenue     Decimal?                 @db.Decimal(14, 2) // τελευταία ετήσια έσοδα € (app-only)
+  appEmployeesSource     String?
+  appAnnualRevenue       Decimal?                 @db.Decimal(14, 2) // τελευταία ετήσια έσοδα € (app-only)
   /// Χρήση από την οποία προέρχεται ο κύκλος εργασιών (νεότερο Ε3 → ενημέρωση).
-  appRevenueYear       Int?
+  appRevenueYear         Int?
   /// 'E3' = από ανεβασμένο Ε3 · 'MANUAL' = διόρθωση χρήστη
-  appRevenueSource     String?
-  cdnFolder            String? // path στο Bunny (private) — αυτόματος φάκελος ανά συναλλασσόμενο (partners/<type>/<ΑΦΜ>/)
-  syncedAt             DateTime?
+  appRevenueSource       String?
+  cdnFolder              String? // path στο Bunny (private) — αυτόματος φάκελος ανά συναλλασσόμενο (partners/<type>/<ΑΦΜ>/)
+  syncedAt               DateTime?
   // ΓΕΜΗ (Open Data businessportal.gr)
-  arGemi               String?                  @unique // Αριθμός ΓΕΜΗ
-  gemiOffice           String? // Τοπική Υπηρεσία ΓΕΜΗ
-  gemiStatus           String? // Κατάσταση επιχείρησης (ΓΕΜΗ)
-  gemiObjective        String? // Σκοπός εταιρείας
-  gemiIsBranch         Boolean? // Υποκατάστημα ή Μητρική
-  gemiAutoRegistered   Boolean? // Ολοκληρωμένη αυτοαπογραφή
-  gemiLastStatusChange DateTime?
-  gemiSyncedAt         DateTime?
-  gemiData             Json? // raw GEMI response για future-proofing
+  arGemi                 String?                  @unique // Αριθμός ΓΕΜΗ
+  gemiOffice             String? // Τοπική Υπηρεσία ΓΕΜΗ
+  gemiStatus             String? // Κατάσταση επιχείρησης (ΓΕΜΗ)
+  gemiObjective          String? // Σκοπός εταιρείας
+  gemiIsBranch           Boolean? // Υποκατάστημα ή Μητρική
+  gemiAutoRegistered     Boolean? // Ολοκληρωμένη αυτοαπογραφή
+  gemiLastStatusChange   DateTime?
+  gemiSyncedAt           DateTime?
+  gemiData               Json? // raw GEMI response για future-proofing
   // ΑΑΔΕ (vat.wwa.gr/afm2info)
-  foundingDate         DateTime? // ημερομηνία ίδρυσης (regist_date)
-  aadeStatus           String? // deactivation_flag_descr
-  aadeFirmKind         String? // firm_flag_descr
-  aadeSyncedAt         DateTime?
+  foundingDate           DateTime? // ημερομηνία ίδρυσης (regist_date)
+  aadeStatus             String? // deactivation_flag_descr
+  aadeFirmKind           String? // firm_flag_descr
+  aadeSyncedAt           DateTime?
   // Geocoding / Region (reuse appLat/appLng — ΟΧΙ νέα lat/lng)
-  geocodedAt           DateTime?
-  geocodedAddress      String? // canonical address returned by geocoder
-  regionCode           String?
-  region               Region?                  @relation(fields: [regionCode], references: [code], onDelete: SetNull)
+  geocodedAt             DateTime?
+  geocodedAddress        String? // canonical address returned by geocoder
+  regionCode             String?
+  region                 Region?                  @relation(fields: [regionCode], references: [code], onDelete: SetNull)
   // Συστήστης — ποιος έφερε τον πελάτη (άλλη εταιρία/συνεργάτης ή ιδιώτης)
-  referrerId           String?
-  referrer             Referrer?                @relation("TrdrReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
-  users                User[]
-  contacts             Contact[]
-  orders               Order[]
-  architects           ArchitectCustomer[]
-  priceCache           PriceCache[]
-  formRecords          TrdrFormRecord[]
-  financialValues      TrdrFinancialValue[]
-  programApplications  ProgramApplication[]
-  documentRequests     DocumentRequest[]
-  portalTokens         PortalToken[]
-  kads                 TrdrKad[]
-  documents            TrdrDocument[]
-  dossierDocs          TrdrDossierDocument[]
-  supplierExpenses     ProgramExpense[]         @relation("ExpenseSupplier")
-  programLeads         ProgramLead[]
-  referrerLinks        Referrer[]               @relation("ReferrerTrdr") // Referrer records που δείχνουν σε αυτόν τον Trdr
-  publicLeadRequests   PublicLeadRequest[] // αιτήματα από τη δημόσια φόρμα επιλεξιμότητας
-  newsletterSubs       NewsletterSubscription[]
-  leads                Lead[]                   @relation("TrdrLeads")
+  referrerId             String?
+  referrer               Referrer?                @relation("TrdrReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  users                  User[]
+  contacts               Contact[]
+  orders                 Order[]
+  architects             ArchitectCustomer[]
+  priceCache             PriceCache[]
+  formRecords            TrdrFormRecord[]
+  financialValues        TrdrFinancialValue[]
+  programApplications    ProgramApplication[]
+  documentRequests       DocumentRequest[]
+  portalTokens           PortalToken[]
+  kads                   TrdrKad[]
+  documents              TrdrDocument[]
+  dossierDocs            TrdrDossierDocument[]
+  supplierExpenses       ProgramExpense[]         @relation("ExpenseSupplier")
+  programLeads           ProgramLead[]
+  programMatches         TrdrProgramMatch[]
+  referrerLinks          Referrer[]               @relation("ReferrerTrdr") // Referrer records που δείχνουν σε αυτόν τον Trdr
+  publicLeadRequests     PublicLeadRequest[] // αιτήματα από τη δημόσια φόρμα επιλεξιμότητας
+  newsletterSubs         NewsletterSubscription[]
+  leads                  Lead[]                   @relation("TrdrLeads")
   eligibilityAssessments EligibilityAssessment[]
 
   @@index([SODTYPE, ISPROSP])
@@ -1256,57 +1257,58 @@ enum DeliverableScope {
 }
 
 model Program {
-  id                   String                       @id @default(cuid())
-  title                String
-  summary              String?
-  imageUrl             String? // δημόσια εικόνα προγράμματος (front-end)
-  referenceCode        String?
-  sourceFileName       String?
-  storageKey           String?                      @unique
-  mimeType             String?
-  size                 Int?
-  publicationDate      DateTime?
-  submissionStart      DateTime?
-  submissionEnd        DateTime?
-  totalBudget          Decimal?                     @db.Decimal(18, 2)
-  fundingRate          Decimal?                     @db.Decimal(5, 2)
-  durationMonths       Int?
-  minEmployeesFte      Decimal?                     @db.Decimal(10, 2)
-  minOperationalYears  Decimal?                     @db.Decimal(5, 2)
-  eligibilityNote      String?
-  status               ProgramStatus                @default(DRAFT)
-  extractStatus        ProgramExtractStatus         @default(PENDING)
-  extractedData        Json?
-  cmsContent           Json? // περιεχόμενο public front-end (SEO/GEO/AEO), auto από DeepSeek
-  cmsGeneratedAt       DateTime?
-  cmsModel             String?
-  publicSlug           String?                      @unique // SEO-friendly slug για /programmata/[slug]
-  model                String?
-  tokensUsed           Int?
-  errorMessage         String?
-  notes                String?
-  createdById          String?
-  createdAt            DateTime                     @default(now())
-  updatedAt            DateTime                     @updatedAt
-  expenseCats          ProgramExpenseCategory[]
-  kads                 ProgramKad[]
-  bonuses              ProgramBonus[]
-  criteria             ProgramCriterion[]
-  deadlines            ProgramDeadline[]
-  phases               ProgramPhase[]
-  deliverables         ProgramDeliverable[]
-  regions              ProgramRegion[]
-  legalForms           ProgramEligibleLegalForm[]
-  applications         ProgramApplication[]
-  requiredForms        ProgramRequiredForm[]
-  phaseFiles           ProgramPhaseFile[]
-  taskTemplates        ProgramTaskTemplate[]
-  deliverableTemplates ProgramDeliverableTemplate[]
-  leads                ProgramLead[]
-  dossierDocs          TrdrDossierDocument[]
+  id                     String                       @id @default(cuid())
+  title                  String
+  summary                String?
+  imageUrl               String? // δημόσια εικόνα προγράμματος (front-end)
+  referenceCode          String?
+  sourceFileName         String?
+  storageKey             String?                      @unique
+  mimeType               String?
+  size                   Int?
+  publicationDate        DateTime?
+  submissionStart        DateTime?
+  submissionEnd          DateTime?
+  totalBudget            Decimal?                     @db.Decimal(18, 2)
+  fundingRate            Decimal?                     @db.Decimal(5, 2)
+  durationMonths         Int?
+  minEmployeesFte        Decimal?                     @db.Decimal(10, 2)
+  minOperationalYears    Decimal?                     @db.Decimal(5, 2)
+  eligibilityNote        String?
+  status                 ProgramStatus                @default(DRAFT)
+  extractStatus          ProgramExtractStatus         @default(PENDING)
+  extractedData          Json?
+  cmsContent             Json? // περιεχόμενο public front-end (SEO/GEO/AEO), auto από DeepSeek
+  cmsGeneratedAt         DateTime?
+  cmsModel               String?
+  publicSlug             String?                      @unique // SEO-friendly slug για /programmata/[slug]
+  model                  String?
+  tokensUsed             Int?
+  errorMessage           String?
+  notes                  String?
+  createdById            String?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  expenseCats            ProgramExpenseCategory[]
+  kads                   ProgramKad[]
+  bonuses                ProgramBonus[]
+  criteria               ProgramCriterion[]
+  deadlines              ProgramDeadline[]
+  phases                 ProgramPhase[]
+  deliverables           ProgramDeliverable[]
+  regions                ProgramRegion[]
+  legalForms             ProgramEligibleLegalForm[]
+  applications           ProgramApplication[]
+  requiredForms          ProgramRequiredForm[]
+  phaseFiles             ProgramPhaseFile[]
+  taskTemplates          ProgramTaskTemplate[]
+  deliverableTemplates   ProgramDeliverableTemplate[]
+  leads                  ProgramLead[]
+  trdrMatches            TrdrProgramMatch[]
+  dossierDocs            TrdrDossierDocument[]
   eligibilityAssessments EligibilityAssessment[]
-  references           ProgramReference[]
-  ideaSets             ProgramIdeaSet[]
+  references             ProgramReference[]
+  ideaSets               ProgramIdeaSet[]
 
   @@index([status])
   @@index([extractStatus])
@@ -2827,13 +2829,13 @@ model ProgramExpenseLine {
 /// Ευρετήριο αναζήτησης εγγράφων (ένα ανά αρχείο του FileIndexEntry): κείμενο & ετικέτες από
 /// τα μεταδεδομένα της εφαρμογής + embedding (pgvector) για σημασιολογική αναζήτηση.
 model DocumentSearch {
-  id           String   @id @default(cuid())
-  key          String   @unique
+  id           String                      @id @default(cuid())
+  key          String                      @unique
   title        String
   tags         String[]
-  content      String   @db.Text
+  content      String                      @db.Text
   /// πεζά, χωρίς τόνους (trigram/ILIKE)
-  searchText   String   @db.Text
+  searchText   String                      @db.Text
   category     String
   trdrId       String?
   trdrName     String?
@@ -2843,7 +2845,7 @@ model DocumentSearch {
   contentHash  String
   embedding    Unsupported("vector(768)")?
   embeddedHash String?
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime                    @updatedAt
 
   @@index([trdrId])
   @@index([category])
@@ -2883,9 +2885,9 @@ model EligibilityAssessment {
 /// επεξήγηση του χρήστη. Η AI κρατά σύνοψη κανόνων (digest) και τη λαμβάνει υπόψη σε αξιολόγηση ένταξης,
 /// επιλεξιμότητα δαπανών, έλεγχο σχεδίου, σάρωση προσφοράς — υπερισχύει του αρχικού οδηγού όπου διαφωνεί.
 model ProgramReference {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   programId   String
-  program     Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
   kind        String // FILE | URL | NOTE
   title       String
   url         String?
@@ -2893,16 +2895,16 @@ model ProgramReference {
   fileName    String?
   mimeType    String?
   /// Τι να προσέξει η AI — γραμμένο από τον χρήστη.
-  note        String?   @db.Text
+  note        String?  @db.Text
   /// Σύνοψη κανόνων από την AI (αυτό μπαίνει στα prompts).
-  digest      String?   @db.Text
-  status      String    @default("PROCESSING") // PROCESSING | READY | ERROR
+  digest      String?  @db.Text
+  status      String   @default("PROCESSING") // PROCESSING | READY | ERROR
   error       String?
   /// Ενεργό στα prompts της AI (μπορεί να απενεργοποιηθεί χωρίς διαγραφή).
-  active      Boolean   @default(true)
+  active      Boolean  @default(true)
   createdById String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([programId])
 }
@@ -2910,16 +2912,16 @@ model ProgramReference {
 /// Προτάσεις εφαρμογών που μπορούμε να αναπτύξουμε (βάσει του αντικειμένου μας) και εντάσσονται στο πρόγραμμα —
 /// κάθε ιδέα με κατηγορία δαπάνης, παραπομπή στον οδηγό, δικαιούχους, προϋπολογισμό, βεβαιότητα.
 model ProgramIdeaSet {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   programId    String
-  program      Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
-  status       String   @default("RUNNING") // RUNNING | DONE | ERROR
-  capabilities String?  @db.Text
+  program      Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status       String    @default("RUNNING") // RUNNING | DONE | ERROR
+  capabilities String?   @db.Text
   result       Json?
   model        String?
   error        String?
   createdById  String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   finishedAt   DateTime?
 
   @@index([programId, createdAt])
@@ -2928,16 +2930,16 @@ model ProgramIdeaSet {
 /// Ενέργεια που ετοίμασε ο Thanos (email/link) και περιμένει «Αποστολή» από τον χρήστη — ποτέ αυτόματα.
 /// mode STAFF (χρήστης εφαρμογής) ή CUSTOMER (πελάτης portal)· ο εκτελών πρέπει να είναι ο ίδιος χρήστης.
 model ThanosAction {
-  id          String    @id @default(cuid())
-  userId      String
-  mode        String // STAFF | CUSTOMER
-  kind        String // DOC_REQUEST | ACCOUNTANT_LINK
-  status      String    @default("PENDING") // PENDING | SENT | CANCELLED | ERROR
-  payload     Json
-  result      Json?
-  error       String?
-  createdAt   DateTime  @default(now())
-  executedAt  DateTime?
+  id         String    @id @default(cuid())
+  userId     String
+  mode       String // STAFF | CUSTOMER
+  kind       String // DOC_REQUEST | ACCOUNTANT_LINK
+  status     String    @default("PENDING") // PENDING | SENT | CANCELLED | ERROR
+  payload    Json
+  result     Json?
+  error      String?
+  createdAt  DateTime  @default(now())
+  executedAt DateTime?
 
   @@index([userId, createdAt])
 }
@@ -3001,17 +3003,17 @@ model ThanosTurn {
 /// «Μαθήματα» του Thanos: γενική, επαναχρησιμοποιήσιμη γνώση (χωρίς προσωπικά δεδομένα) από συζητήσεις
 /// (👍, νυχτερινή απόσταξη) ή χειροκίνητα. Ανακτώνται σημασιολογικά (pgvector) σε κάθε νέα ερώτηση.
 model ThanosLesson {
-  id           String   @id @default(cuid())
-  question     String   @db.Text
-  answer       String   @db.Text
+  id           String                      @id @default(cuid())
+  question     String                      @db.Text
+  answer       String                      @db.Text
   programId    String?
-  status       String   @default("SUGGESTED") // ACTIVE | SUGGESTED | REJECTED
+  status       String                      @default("SUGGESTED") // ACTIVE | SUGGESTED | REJECTED
   source       String // FEEDBACK | DISTILLED | MANUAL | CORRECTION
   sourceTurnId String?
-  uses         Int      @default(0)
+  uses         Int                         @default(0)
   embedding    Unsupported("vector(768)")?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
 
   @@index([status])
   @@index([programId])
@@ -3035,4 +3037,25 @@ model ContentIdea {
   updatedAt     DateTime  @updatedAt
 
   @@index([status, score])
+}
+
+/// Βασικός έλεγχος «δυνητικών προγραμμάτων»: κάθε πελάτης × ενεργό/αναμενόμενο πρόγραμμα σε περιφέρεια, ΚΑΔ,
+/// νομική μορφή. Λίστα για το γραφείο (tab «Δυνητικά προγράμματα») — η δυνητική συμμετοχή δημιουργείται με 1 κλικ.
+model TrdrProgramMatch {
+  id          String   @id @default(cuid())
+  trdrId      String
+  trdr        Trdr     @relation(fields: [trdrId], references: [id], onDelete: Cascade)
+  programId   String
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  eligible    Boolean
+  /// true όταν το πρόγραμμα περιορίζει πραγματικά (λίστα ΚΑΔ ή περιφέρειες) — όχι «ταιριάζουν όλοι».
+  restricted  Boolean  @default(false)
+  matched     String[] // κριτήρια που ταίριαξαν: kad / region / legalForm
+  failed      String[]
+  matchedKads String[]
+  evaluatedAt DateTime @default(now())
+
+  @@unique([trdrId, programId])
+  @@index([programId, eligible])
+  @@index([trdrId, eligible])
 }

@@ -1,5 +1,6 @@
 'use server'
 
+import { after } from 'next/server'
 import type { Prisma, DeliverablePhase } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ensureTrdrProgramFolder } from '@/lib/trdr/cdn-folder'
@@ -121,6 +122,7 @@ export async function updateProgramMeta(
   },
 ): Promise<void> {
   await requirePermission('programs.manage')
+  const before = await prisma.program.findUnique({ where: { id }, select: { status: true } })
   await prisma.program.update({
     where: { id },
     data: {
@@ -142,6 +144,14 @@ export async function updateProgramMeta(
   })
   revalidatePath(`/programs/${id}`)
   revalidatePath('/', 'layout') // δημόσιο site: προγράμματα/κόμβοι/προθεσμίες
+  // Δυνητικά προγράμματα: έλεγχος όλων των πελατών για αυτό το πρόγραμμα (στο παρασκήνιο, μετά την απάντηση).
+  if (input.status === 'ACTIVE' || (input.status === undefined && before?.status === 'ACTIVE')) {
+    const announce = input.status === 'ACTIVE' && before?.status !== 'ACTIVE'
+    after(async () => {
+      const { matchProgramForAllCustomers } = await import('@/lib/pm/potential-matching')
+      await matchProgramForAllCustomers(id, announce).catch(err => console.error('[potential-matching]', err))
+    })
+  }
 }
 
 /** CMS tab — παραγωγή public περιεχομένου (SEO/GEO/AEO) μέσω DeepSeek. */

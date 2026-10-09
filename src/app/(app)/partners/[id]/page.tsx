@@ -13,6 +13,8 @@ import { PartnerMapCard } from './partner-map-card'
 import { ContactsPanel, type ContactRow } from './contacts-panel'
 import { FinancialsTab } from '@/components/tax/financials-tab'
 import { TrdrProgramsPanel } from '@/components/pm/trdr-programs-panel'
+import { PotentialProgramsPanel } from '@/components/pm/potential-programs-panel'
+import { listPotentialPrograms } from '@/lib/pm/potential-matching'
 import { CommunicationTimeline } from '@/components/communications/communication-timeline'
 import { FileBrowser } from '@/components/trdr/file-browser'
 import { TrdrDossier } from '@/components/trdr/trdr-dossier'
@@ -42,6 +44,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
   ])
 
   if (!trdr) notFound()
+  const potential = await listPotentialPrograms(trdr.id)
 
   // Display-only lookups των S1 combo κωδικών σε ονόματα (info card) — soft
   // reference, όχι Prisma relation (βλ. σχόλιο Trdr στο schema.prisma).
@@ -194,6 +197,7 @@ export default async function PartnerDetailPage({ params }: { params: Promise<{ 
               aadeSyncedAt={dateTimeLabel(trdr.aadeSyncedAt)}
             />
           }
+          potential={<PotentialProgramsPanel trdrId={trdr.id} {...potential} canManage={canManagePrograms} />}
           kad={<TrdrKadCard kads={kadRows} trdrId={trdr.id} afm={trdr.AFM} canEdit={canEdit} />}
           docs={<TrdrDocumentsCard trdrId={trdr.id} arGemi={trdr.arGemi} documents={documentRows} />}
           dossier={
