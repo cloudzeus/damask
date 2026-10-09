@@ -6,6 +6,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // pdfjs (ανάγνωση PDF προσκλήσεων στον server) φορτώνεται ως εξωτερικό πακέτο — όχι μέσα στο bundle.
+  serverExternalPackages: ['pdfjs-dist'],
   // Φωτογραφίες του site (Bunny CDN, χωρίς Optimizer): σωστό μέγεθος ανά συσκευή μέσω του /_next/image (WebP/AVIF + cache 30 ημερών).
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'damask-1.b-cdn.net' }],

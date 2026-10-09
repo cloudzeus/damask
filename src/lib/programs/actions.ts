@@ -826,3 +826,18 @@ export async function setProgramPdf(programId: string, input: { pdfBase64: strin
   })
   revalidatePath(`/programs/${programId}`)
 }
+
+/** Χειροκίνητη συλλογή νέων προσκλήσεων για επιχειρήσεις από το espa.gr (ίδια με το ημερήσιο tick). */
+export async function harvestEspaCallsNow(): Promise<{ ok: boolean; message: string }> {
+  await requirePermission('programs.manage')
+  try {
+    const { harvestEspaCalls } = await import('@/lib/programs/espa-harvest')
+    const r = await harvestEspaCalls()
+    revalidatePath('/programs')
+    return { ok: true, message: r.created.length
+      ? `Προστέθηκαν ${r.created.length} νέες προσκλήσεις για επιχειρήσεις ως πρόχειρα — ελέγξτε και ενεργοποιήστε τις.`
+      : `Ελέγχθηκαν ${r.checked} προσκλήσεις — καμία νέα για επιχειρήσεις.` }
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : 'Η συλλογή απέτυχε.' }
+  }
+}

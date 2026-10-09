@@ -2,6 +2,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { listPrograms } from '@/lib/programs/actions'
 import { ProgramsTable } from '@/components/programs/programs-table'
 import { ProgramWizard } from '@/components/programs/program-wizard'
+import { HarvestEspaButton } from '@/components/programs/harvest-button'
 import { PageHeader } from '@/components/ui/page-header'
 
 export default async function ProgramsPage() {
@@ -15,7 +16,7 @@ export default async function ProgramsPage() {
         breadcrumb={<>Διαχείριση <span aria-hidden>›</span></>}
         title="Προγράμματα"
         subtitle="Ανέβασε την προκήρυξη ενός προγράμματος χρηματοδότησης — η αποδελτίωση εξάγει αυτόματα τα βασικά στοιχεία του."
-        actions={<ProgramWizard />}
+        actions={<div className="flex flex-wrap gap-2"><HarvestEspaButton /><ProgramWizard /></div>}
       />
 
       <ProgramsTable rows={rows} />

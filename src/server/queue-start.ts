@@ -197,6 +197,14 @@ export async function startQueue(): Promise<void> {
     } catch (err) {
       console.error('[pg-boss] seo-autopilot απέτυχε', err) // never rethrow — scheduled tick
     }
+    // Ίδιο ημερήσιο tick: νέες προσκλήσεις για επιχειρήσεις από το espa.gr → πρόχειρα προγράμματα (έλεγχος από γραφείο).
+    try {
+      const { harvestEspaCalls } = await import('@/lib/programs/espa-harvest')
+      const h = await harvestEspaCalls()
+      console.log('[pg-boss] espa-calls:', JSON.stringify({ checked: h.checked, business: h.business, created: h.created.length }))
+    } catch (err) {
+      console.error('[pg-boss] espa-calls απέτυχε', err)
+    }
     // Ίδιο ημερήσιο tick: αιτήματα κριτικής Google σε νέες εγκρίσεις/πληρωμές (τοπικό SEO).
     try {
       const { runReviewRequests } = await import('@/lib/reviews/review-requests')
