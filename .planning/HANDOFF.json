@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T11:12:47.614Z",
+  "timestamp": "2026-10-09T12:17:04.583Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,36 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/espa/[perifereia]/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/programmata/[slug]/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/programmata/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/programs/cms.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/programs/public.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/seo-content/engine.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/seo-content/hubs.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n402fa42 fix: σελίδες κωδικού/σύνδεσης/portal/modal με translate=\"no\" (η αυτόματη μετάφραση του Chrome έριχνε το React → «This page couldn't load»)· επώνυμη σελίδα σφάλματος WWA στα ελληνικά (error + global-error) με «Δοκιμάστε ξανά»\n1655154 fix(programs): συλλογή — αποκωδικοποίηση αριθμητικών HTML entities, έλεγχος διπλοτύπων με τίτλο, επιλογές espaIds/filter για στοχευμένη συλλογή χωρίς σάρωση\nbd3c09f feat(geo): llms.txt — κάλυψη Περιφερειακών/Αναπτυξιακού/LEADER, επίσημες πηγές που παρακολουθούμε, δωρεάν έλεγχος\n3c2e179 feat(geo): Organization schema — knowsAbout με Περιφερειακά/LEADER-ΚΑΠ/ΚΑΔ/ΕΜΕ/εκταμίευση + hasOfferCatalog με τις 5 υπηρεσίες (δωρεάν έλεγχος €0)\n07b7e43 feat(seo): IndexNow στέλνει και κάθε νέα στατική σελίδα (π.χ. συχνές ερωτήσεις, έλεγχος ΚΑΔ) μία φορά"
+  "context_notes": "Recent commits:\na9ce7c3 feat(pm): δυνητικά προγράμματα πελατών — βασικός μαζικός έλεγχος (περιφέρεια/ΚΑΔ/νομική μορφή) όλων των πελατών × ενεργών/αναμενόμενων προγραμμάτων (TrdrProgramMatch, ~5s για 1.000 πελάτες)· κουμπί «Έλεγχος δυνητικών πελατών» στα Προγράμματα με αποτελέσματα ανά πρόγραμμα· νέο tab «Δυνητικά προγράμματα» στην καρτέλα πελάτη (ισχυρά / χωρίς περιορισμό, ΚΑΔ που ταίριαξαν, Επανέλεγχος, δυνητική συμμετοχή με 1 κλικ ή σε όλα)· αυτόματα: σε ενεργοποίηση/αλλαγή προγράμματος (+ ειδοποίηση «Χ δυνητικοί πελάτες») και στο ημερήσιο tick\na198e7c feat(leads): διαγραφή lead από το ⋮ (μόνο admin/super-admin, lead.assign) με επιβεβαίωση — σβήνει lead + ιστορικό επικοινωνίας, όχι την καρτέλα ή τις αιτήσεις· καταγραφή ενέργειας\nae9f457 fix(eligibility): ΑΦΜ χωρίς επιχειρηματική δραστηριότητα στην ΑΑΔΕ (κανένας ΚΑΔ) δεν βγαίνει ποτέ «επιλέξιμο» — δεν γίνεται αξιολόγηση, σαφές μήνυμα στον χρήστη· computeSinglePair: χωρίς ΚΑΔ → μη επιλέξιμος (προγράμματα χωρίς περιορισμούς «περνούσαν» τους πάντες)\n46be025 fix: σελίδα σφάλματος χωρίς τη (λανθασμένη) συμβουλή μετάφρασης· «Δοκιμάστε ξανά» = πλήρης ανανέωση\n2ce33b5 fix: φόρμα αξιολόγησης/ενημέρωσης δεν ρίχνει πια τη σελίδα — σφάλματα server action (π.χ. νέα έκδοση site ενώ η σελίδα είναι ανοιχτή) πιάνονται και εμφανίζονται μέσα στη φόρμα με «Ανανέωση»· deploymentId ανά build (version skew → αθόρυβη επαναφόρτωση αντί για σφάλμα)"
 }
