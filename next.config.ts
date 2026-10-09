@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
   // Φωτογραφίες του site (Bunny CDN, χωρίς Optimizer): σωστό μέγεθος ανά συσκευή μέσω του /_next/image (WebP/AVIF + cache 30 ημερών).
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'damask-1.b-cdn.net' }],
-    formats: ['image/avif', 'image/webp'],
+    // Μόνο WebP (όλοι οι browsers): μία μορφή ανά URL → ασφαλές cache στο Cloudflare χωρίς «Vary: Accept».
+    formats: ['image/webp'],
     qualities: [72],
     deviceSizes: [480, 768, 1080, 1440, 1920],
     imageSizes: [128, 256, 384],
