@@ -170,7 +170,7 @@ const STYLE = [
   'Μήκος 900-1300 λέξεις. Ελληνικά, σωστός τονισμός, ακρωνύμια ολόκληρα την πρώτη φορά (π.χ. «Μικρομεσαίες Επιχειρήσεις (ΜμΕ)»).',
 ].join('\n')
 
-type Draft = { title: string; slug?: string; excerpt: string; body: string; seoTitle: string; seoDescription: string; imageTheme?: string; imageQuery?: string; elementsImage?: number }
+type Draft = { title: string; slug?: string; excerpt: string; body: string; seoTitle: string; seoDescription: string; imageTheme?: string; imageQuery?: string }
 
 /** Πηγή & πλαίσιο ανά τύπο ιδέας. */
 async function sourceFor(idea: { source: string; sourceUrl: string | null; programId: string | null; title: string; summary: string | null; targetKeyword: string | null }) {
@@ -342,8 +342,7 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
   const idea = await prisma.contentIdea.findUniqueOrThrow({ where: { id: ideaId } })
   await prisma.contentIdea.update({ where: { id: ideaId }, data: { status: 'WRITING', error: null } })
   try {
-    const { elementsCandidates } = await import('@/lib/media/elements')
-    const [{ sourceText, sourceUrl, sourceDate }, links, themes, elements] = await Promise.all([sourceFor(idea), internalLinks(), imageThemes(), elementsCandidates(80)])
+    const [{ sourceText, sourceUrl, sourceDate }, links, themes] = await Promise.all([sourceFor(idea), internalLinks(), imageThemes()])
     const today = new Date().toISOString().slice(0, 10)
     const brief = [
       `ΣΗΜΕΡΑ: ${today}. ΘΕΜΑ: ${idea.title}`,
@@ -352,11 +351,10 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
       sourceUrl ? `ΕΠΙΣΗΜΗ ΠΗΓΗ (σύνδεσμος): ${sourceUrl.startsWith('/') ? sourceUrl : sourceUrl}` : '',
       sourceDate ? `ΗΜΕΡΟΜΗΝΙΑ ΠΗΓΗΣ: ${sourceDate.toISOString().slice(0, 10)}` : '',
       `ΣΕΛΙΔΕΣ ΓΙΑ ΕΣΩΤΕΡΙΚΟΥΣ ΣΥΝΔΕΣΜΟΥΣ:\n${links}`,
-      elements.length ? `ΦΩΤΟΓΡΑΦΙΕΣ ENVATO ELEMENTS (προτίμησέ τες — διάλεξε τον ΑΡΙΘΜΟ της πιο ταιριαστής στο θέμα, ή 0 αν καμία δεν ταιριάζει):\n${elements.map((e, i) => `${i + 1}) ${e.label}`).join('\n')}` : '',
       themes.length ? `ΘΕΜΑΤΑ ΕΙΚΟΝΑΣ (διάλεξε ΕΝΑ ακριβώς όπως γράφεται): ${themes.join(' | ')}` : '',
       `ΠΗΓΗ (η μόνη βάση για γεγονότα/αριθμούς):\n${sourceText}`,
     ].filter(Boolean).join('\n\n')
-    const shape = 'ΑΥΣΤΗΡΑ JSON: {"title":"ελκυστικός τίτλος ≤ 70 χαρ. με τη λέξη-κλειδί (μοτίβο π.χ. «Πρόγραμμα 2026: έως X% επιδότηση — ποιοι δικαιούνται»)","excerpt":"1-2 προτάσεις","body":"markdown","seoTitle":"≤ 60 χαρ.","seoDescription":"140-160 χαρ., με όφελος + κάλεσμα","imageTheme":"ένα από τα θέματα εικόνας ή κενό","elementsImage":0,"imageQuery":"3-6 αγγλικές λέξεις για την ιδανική φωτογραφία (επάγγελμα, άνθρωποι, χώρος — π.χ. bakery owner small business greece)"}'
+    const shape = 'ΑΥΣΤΗΡΑ JSON: {"title":"ελκυστικός τίτλος ≤ 70 χαρ. με τη λέξη-κλειδί (μοτίβο π.χ. «Πρόγραμμα 2026: έως X% επιδότηση — ποιοι δικαιούνται»)","excerpt":"1-2 προτάσεις","body":"markdown","seoTitle":"≤ 60 χαρ.","seoDescription":"140-160 χαρ., με όφελος + κάλεσμα","imageTheme":"ένα από τα θέματα εικόνας ή κενό","imageQuery":"3-6 αγγλικές λέξεις για την ιδανική φωτογραφία (επάγγελμα, άνθρωποι, χώρος — π.χ. bakery owner small business greece)"}'
 
     // Συγγραφή — με μία επανάληψη αν το JSON βγει κενό/κομμένο.
     let draft: Draft | null = null
@@ -394,10 +392,11 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
 
     const { authorId, categoryId } = await ensureAuthorAndCategory()
     const slug = await uniqueSlug(slugify(final.slug || final.title).slice(0, 90))
-    // Πρώτα η φωτογραφία Elements που διάλεξε ο συγγραφέας· αλλιώς αναζήτηση (θέμα → API με έλεγχο AI → Gallery).
-    const chosen = Number(final.elementsImage ?? draft.elementsImage ?? 0)
-    const picked = chosen >= 1 && chosen <= elements.length
-      ? { url: elements[chosen - 1].url, via: 'elements' as const }
+    // Πρώτα φωτογραφία Elements που ταιριάζει στο θέμα (από το ΟΝΟΜΑ αρχείου, ξεχωριστό βήμα)· αλλιώς αναζήτηση (θέμα → API με έλεγχο AI → Gallery).
+    const { matchPhotoForArticle } = await import('./image-match')
+    const matched = await matchPhotoForArticle(final.title, final.excerpt)
+    const picked = matched
+      ? { url: matched.url, via: 'elements' as const }
       : await pickImage(final.imageTheme || draft.imageTheme, final.imageQuery || draft.imageQuery || idea.targetKeyword || undefined)
     const image = picked?.url ?? null
     const post = await prisma.post.create({

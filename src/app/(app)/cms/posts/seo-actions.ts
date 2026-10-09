@@ -80,3 +80,14 @@ export async function seedCompetitorIdeas(): Promise<R> {
   const n = await addKeywordIdeas(COMPETITOR_IDEAS)
   return done(n ? `Προστέθηκαν ${n} ιδέες από την ανάλυση ανταγωνισμού.` : 'Υπάρχουν ήδη.')
 }
+
+/** Ξανα-αντιστοίχιση φωτογραφιών όλων των AI άρθρων από τα ονόματα αρχείων Envato Elements της Gallery. */
+export async function rematchPhotosNow(): Promise<R> {
+  await requirePermission('cms.edit')
+  try {
+    const { rematchAllArticlePhotos } = await import('@/lib/seo-content/image-match')
+    const r = await rematchAllArticlePhotos()
+    revalidatePath('/nea', 'layout')
+    return done(r.updated ? `Άλλαξε η φωτογραφία σε ${r.updated} άρθρα.` : 'Οι φωτογραφίες ταιριάζουν ήδη — καμία αλλαγή.')
+  } catch (err) { return fail(err) }
+}

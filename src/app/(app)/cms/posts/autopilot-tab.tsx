@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Sparkles, RefreshCw, PenLine, EyeOff, RotateCcw, Plus, ExternalLink, Loader2, Lightbulb } from 'lucide-react'
+import { Sparkles, RefreshCw, PenLine, EyeOff, RotateCcw, Plus, ExternalLink, Loader2, Lightbulb, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
-import { autopilotState, saveAutopilotSettings, harvestNow, writeIdeaNow, setIdeaStatus, addIdea, seedCompetitorIdeas, type IdeaRow } from './seo-actions'
+import { autopilotState, saveAutopilotSettings, harvestNow, writeIdeaNow, setIdeaStatus, addIdea, seedCompetitorIdeas, rematchPhotosNow, type IdeaRow } from './seo-actions'
 
 const SOURCE: Record<string, string> = { ESPA_NEWS: 'espa.gr', PROGRAM: 'Πρόγραμμα', KEYWORD: 'Λέξη-κλειδί', MANUAL: 'Χειροκίνητη' }
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -79,6 +79,7 @@ export function AutopilotTab({ canEdit }: { canEdit: boolean }) {
           <div className="mt-3 flex flex-wrap gap-2">
             <Button type="button" variant="outline" disabled={pending} onClick={() => run(harvestNow)}><RefreshCw className="size-4" />Νέες ιδέες από espa.gr</Button>
             <Button type="button" variant="outline" disabled={pending} onClick={() => run(seedCompetitorIdeas)}><Lightbulb className="size-4" />Ιδέες από ανάλυση ανταγωνισμού</Button>
+            <Button type="button" variant="outline" disabled={pending} onClick={() => run(rematchPhotosNow)}><ImageIcon className="size-4" />Αντιστοίχιση φωτογραφιών (Elements)</Button>
           </div>
         )}
       </div>
