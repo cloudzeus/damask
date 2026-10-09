@@ -67,7 +67,7 @@ export async function FamilyHub({ page }: { page: FamilyPage }) {
           <div className="famx-about r">
             {page.about.map(a => <article key={a.h}><h3>{a.h}</h3><p>{a.p}</p></article>)}
           </div>
-          <p className="famx-source r">Επίσημη πηγή: <a href={page.officialUrl} target="_blank" rel="noopener">{page.officialName} <LuExternalLink aria-hidden /></a> · Δείτε επίσης: <Link href="/programmata">όλα τα προγράμματα</Link> · <Link href="/prothesmies-espa">προθεσμίες</Link> · <Link href="/syxnes-erotiseis">συχνές ερωτήσεις</Link></p>
+          <p className="famx-source r">Επίσημη πηγή: <a href={page.officialUrl} target="_blank" rel="noopener">{page.officialName} <LuExternalLink aria-hidden /></a> · Δείτε επίσης: <Link href="/programmata">όλα τα προγράμματα</Link> · <Link href="/prothesmies-espa">προθεσμίες</Link> · <Link href="/syxnes-erotiseis">συχνές ερωτήσεις</Link> · <Link href="/espa-anaptyxiakos-leader">σύγκριση ΕΣΠΑ / Αναπτυξιακού / LEADER</Link></p>
         </div>
       </section>
 

@@ -920,3 +920,19 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 @media (max-width: 520px) { .famx-facts { grid-template-columns: 1fr; } }
 .hubx-fam { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; margin: -8px 0 24px; }
 .hubx-fam > span { font-size: 14px; color: var(--fg-3); margin-right: 4px; }
+
+/* ── Συγκριτικός πίνακας ΕΣΠΑ / Αναπτυξιακός / LEADER ── */
+.cmpx { margin-top: 32px; overflow-x: auto; border-radius: var(--radius-lg); box-shadow: var(--elev-1); background: #fff; }
+.cmpx:focus-visible { outline: 2px solid var(--accent-3); outline-offset: 2px; }
+.cmpx table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 14px; line-height: 1.5; }
+.cmpx thead th { padding: 16px 18px; background: var(--wwa-navy-950); color: #fff; text-align: left; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .02em; text-transform: uppercase; }
+.cmpx thead th:nth-child(2) { box-shadow: inset 0 -4px 0 var(--wwa-cyan-400); }
+.cmpx thead th:nth-child(3) { box-shadow: inset 0 -4px 0 var(--wwa-magenta-500); }
+.cmpx thead th:nth-child(4) { box-shadow: inset 0 -4px 0 #00B85C; }
+.cmpx tbody th { width: 160px; padding: 14px 18px; text-align: left; vertical-align: top; color: var(--fg-1); font-weight: 700; background: var(--bg-canvas); }
+.cmpx td { padding: 14px 18px; vertical-align: top; color: var(--fg-2); border-left: 1px solid var(--rule); }
+.cmpx tbody tr + tr > * { border-top: 1px solid var(--rule); }
+.cmpx tr.live td { color: var(--fg-1); background: var(--navy-50); }
+.cmpx tr.live td b { color: var(--brand); }
+.cmpx tr.live td a { display: block; margin-top: 4px; color: var(--brand); font-weight: 500; }
+.cmpx-note { margin: 12px 0 0; font-size: 13px; color: var(--fg-3); text-align: center; }

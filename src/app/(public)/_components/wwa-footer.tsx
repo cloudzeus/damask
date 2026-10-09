@@ -26,6 +26,7 @@ export function WwaFooter() {
               <li><Link href="/typos">Η WWA στον Τύπο</Link></li>
               <li><Link href="/anaptyxiakos-nomos">Αναπτυξιακός Νόμος</Link></li>
               <li><Link href="/leader">LEADER & ΚΑΠ</Link></li>
+              <li><Link href="/espa-anaptyxiakos-leader">ΕΣΠΑ, Αναπτυξιακός ή LEADER;</Link></li>
               <li><Link href="/elegxos-kad">Έλεγχος ΚΑΔ για ΕΣΠΑ</Link></li>
               <li><Link href="/syxnes-erotiseis">Συχνές ερωτήσεις</Link></li>
               <li><Link href="/glossari">Γλωσσάριο ΕΣΠΑ</Link></li>
