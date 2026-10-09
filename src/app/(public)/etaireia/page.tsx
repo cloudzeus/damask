@@ -6,8 +6,6 @@ import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck, IconShield, IconChart, IconInfo } from '../_components/icons'
 import { wwaPhoto, wwaPageImage } from '../_wwa/assets'
-import { JsonLd, organizationRef } from '../_components/json-ld'
-import { prisma } from '@/lib/prisma'
 
 export const revalidate = 3600
 
@@ -29,10 +27,7 @@ const tick = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
 )
 
-export default async function CompanyPage() {
-  // Πραγματικά πρόσωπα: συγγραφείς με βιογραφικό, όχι οι «συλλογικοί» (εταιρεία/ομάδα).
-  const team = (await prisma.author.findMany({ where: { bio: { not: null } }, select: { name: true, bio: true, avatarUrl: true }, orderBy: { createdAt: 'asc' } }))
-    .filter(a => !/world wide|ομάδα|wwa/i.test(a.name) && (a.bio ?? '').length > 20)
+export default function CompanyPage() {
   return (
     <>
       <SubBanner
@@ -95,24 +90,6 @@ export default async function CompanyPage() {
           <div className="note" style={{ maxWidth: 760 }}><IconInfo /><span>Έδρα: Αλεξανδρουπόλεως 25, Αθήνα 115 27 · Εξυπηρετούμε επιχειρήσεις σε όλη την Ελλάδα, με επιτόπιες επισκέψεις όπου χρειάζεται.</span></div>
         </div>
       </section>
-
-      {/* Η ΟΜΑΔΑ — από τους Συγγραφείς του CMS (μόνο πραγματικά πρόσωπα με βιογραφικό· E-E-A-T) */}
-      {team.length > 0 && (
-        <section lang="el">
-          <div className="wrap">
-            <JsonLd data={team.map(t => ({ '@context': 'https://schema.org', '@type': 'Person', name: t.name, description: t.bio, ...(t.avatarUrl ? { image: t.avatarUrl } : {}), worksFor: organizationRef }))} />
-            <div className="sec-head r"><span className="eyebrow">Η ομάδα</span><h2>Οι σύμβουλοι πίσω από κάθε φάκελο</h2></div>
-            <div className="cards3">
-              {team.map(t => (
-                <article key={t.name} className="card r" style={{ padding: 24, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                  {t.avatarUrl && <img src={t.avatarUrl} alt={t.name} width={72} height={72} style={{ borderRadius: '50%', objectFit: 'cover', flex: '0 0 72px' }} loading="lazy" />}
-                  <div><h3 style={{ fontSize: '1.125rem' }}>{t.name}</h3><p style={{ color: 'var(--fg-2)', marginTop: 6 }}>{t.bio}</p></div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ΣΕ ΑΡΙΘΜΟΥΣ */}
       <section lang="el" className="stats alt">

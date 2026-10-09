@@ -408,6 +408,7 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
       select: { id: true },
     })
     await prisma.contentIdea.update({ where: { id: ideaId }, data: { status: 'USED', postId: post.id, error: quality.ok ? null : `Έλεγχος ποιότητας: ${quality.words} λέξεις, ${quality.faq} ερωτήσεις, ${quality.internalLinks} εσωτ. σύνδεσμοι — σε αναμονή έγκρισης.` } })
+    if (publish) { const { pingIndexNow } = await import('./indexnow'); void pingIndexNow([`/nea/${slug}`, '/nea']) }
     return { postId: post.id, quality }
   } catch (err) {
     await prisma.contentIdea.update({ where: { id: ideaId }, data: { status: 'ERROR', error: (err instanceof Error ? err.message : String(err)).slice(0, 400) } })
@@ -419,6 +420,8 @@ export async function writeArticle(ideaId: string, opts: { publish: boolean }): 
 
 /** Ημερήσιο tick: συλλογή ιδεών + (αν χρειάζεται για τον εβδομαδιαίο ρυθμό) ένα νέο άρθρο από την καλύτερη ιδέα. */
 export async function runAutopilot(force = false): Promise<{ harvested: number; wrote: string | null; reason?: string }> {
+  // Καθημερινή ειδοποίηση IndexNow για ό,τι άλλαξε (και από τη χειροκίνητη διαχείριση) — ανεξάρτητα από το autopilot.
+  await import('./indexnow').then(m => m.pingChangedSince()).catch(() => 0)
   const s = await getAutopilot()
   if (!s.enabled && !force) return { harvested: 0, wrote: null, reason: 'απενεργοποιημένο' }
   const { added } = await harvestIdeas()

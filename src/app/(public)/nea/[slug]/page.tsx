@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     alternates: { canonical: `/nea/${p.slug}` },
     openGraph: {
       type: 'article', title: p.title, description, url: `/nea/${p.slug}`,
-      publishedTime: p.dateIso, modifiedTime: p.updatedIso, authors: p.author ? [p.author] : undefined, section: p.category ?? undefined,
+      publishedTime: p.dateIso, modifiedTime: p.updatedIso, section: p.category ?? undefined,
       images: p.image ? [p.image] : undefined,
     },
     twitter: { card: 'summary_large_image', title: p.title, description, images: p.image ? [p.image] : undefined },
@@ -67,7 +67,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
       '@context': 'https://schema.org', '@type': 'NewsArticle', mainEntityOfPage: url, headline: p.title.slice(0, 110),
       description: p.seoDescription || p.excerpt || undefined, image: p.image ? [p.image] : undefined,
       datePublished: p.dateIso, dateModified: p.updatedIso, inLanguage: 'el-GR',
-      author: p.author ? { '@type': 'Person', name: p.author, ...(p.authorBio ? { description: p.authorBio } : {}) } : organizationRef,
+      author: organizationRef, // χωρίς ονόματα προσώπων — συγγραφέας η εταιρεία
       publisher: organizationRef, articleSection: p.category ?? undefined, wordCount: p.body.split(/\s+/).length,
     },
     breadcrumbJsonLd([{ label: 'Νέα', href: '/nea' }, { label: p.title }]),

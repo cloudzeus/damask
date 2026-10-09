@@ -256,6 +256,7 @@ export async function updatePost(postId: string, values: PostFormValues): Promis
 
   revalidatePosts()
   revalidatePath(`/cms/posts/${postId}/edit`)
+  if (nowPublishing || wasPublished) { const { pingIndexNow } = await import('@/lib/seo-content/indexnow'); void pingIndexNow([`/nea/${slug}`, '/nea']) }
   return { ok: true, message: `Οι αλλαγές για «${data.el.title}» αποθηκεύτηκαν.`, id: postId }
 }
 
