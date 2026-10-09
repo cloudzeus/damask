@@ -25,6 +25,12 @@ const nextConfig: NextConfig = {
     // από αυτό το body κόβεται και το formData() στο /api/media/upload αποτύγχανε
     // με «Μη έγκυρα δεδομένα φόρμας». Συγχρονισμένο με MEDIA_MAX_BYTES (src/lib/media-limits.ts).
     proxyClientMaxBodySize: '105mb',
+    // Build: οι δημόσιες σελίδες γίνονται prerender και διαβάζουν την (κοινή) Postgres. Με 17 workers × pool
+    // ξεπερνιόταν το max_connections («too many clients») → λίγοι workers, λίγες σελίδες ταυτόχρονα, retries.
+    cpus: 2,
+    staticGenerationMaxConcurrency: 4,
+    staticGenerationMinPagesPerWorker: 50,
+    staticGenerationRetryCount: 2,
   },
 }
 
