@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T06:14:44.726Z",
+  "timestamp": "2026-10-09T06:21:47.508Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,124 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/_components/json-ld.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/_components/wwa-footer.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/_components/wwa-motion.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/_wwa/site.css"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/_wwa/tokens.css"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/etaireia/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/layout.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/nea/[slug]/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/nea/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/programmata/[slug]/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(public)/programmata/page.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/api/consent/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/app/layout.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/app/llms.txt/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/app/sitemap.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/components/consent/consent-banner.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/cms/public-posts.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/programs/public.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/proxy.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/_components/consent-gate.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/_components/program-grid.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/espa/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/glossari/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/programmata/nea-2026/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/prothesmies-espa/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/typos/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/prothesmies-espa.ics/"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/seo-content/hubs.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nc2a279c fix(images): αντιστοίχιση φωτογραφιών Elements με βάση το όνομα αρχείου (ξεχωριστό βήμα 1-προς-1) + κουμπί ξανα-αντιστοίχισης\n108f9b9 chore: ενημέρωση HANDOFF\n2bb13b8 feat(images): Envato Elements πρώτα + έλεγχος AI για κάθε φωτογραφία API\n8addede feat(images): νέες φωτογραφίες από API χωρίς κλειδί (Openverse — κοινό κτήμα CC0) για άρθρα & μαζική εισαγωγή\ncb90bda feat(site): GSAP + ScrollTrigger κίνηση, parallax, εναλλαγή φωτογραφιών στο hero, πινελιές λογότυπου"
+  "context_notes": "Recent commits:\n7a7814c docs(seo): οδηγός μετάβασης wwa-espa.com στο Cloudflare\nf9e022e chore: ενημέρωση HANDOFF\n87e6325 feat(seo): σελίδες-κόμβοι ΕΣΠΑ ανά περιφέρεια/κλάδο, προθεσμίες + .ics, νέα 2026, γλωσσάριο, Τύπος· AEO απαντήσεις, εσωτερικοί σύνδεσμοι, επίσημη πηγή, H1 αρχικής, ομάδα/memberOf, sitemap/llms/proxy/footer\n0bc37db perf(site): consent/tracking στον browser + χωρίς cookies() στο layout και χωρίς αχρησιμοποίητο NextIntlProvider → cacheable σελίδες· fonts μόνο μέσω next/font\nc2a279c fix(images): αντιστοίχιση φωτογραφιών Elements με βάση το όνομα αρχείου (ξεχωριστό βήμα 1-προς-1) + κουμπί ξανα-αντιστοίχισης"
 }
