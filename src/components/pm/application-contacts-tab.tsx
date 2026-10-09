@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search, MoreVertical, Pencil, Unlink, Trash2, FileCheck2, KeyRound } from 'lucide-react'
+import { Users, UserPlus, UserRoundPlus, Mail, Phone, Check, LoaderCircle, Search, MoreVertical, Pencil, Unlink, Trash2, FileCheck2, KeyRound, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -447,6 +447,9 @@ function ContactCard({
                   title={contact.email ? undefined : 'Η επαφή δεν έχει email'}
                 >
                   <KeyRound className="size-3.5" aria-hidden /> Πρόσβαση στο portal
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.open(`/portal?preview=${contact.contactId}`, '_blank', 'noopener')}>
+                  <Eye className="size-3.5" aria-hidden /> Προβολή portal ως επαφή
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onEdit(contact)}>

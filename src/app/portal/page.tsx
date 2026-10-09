@@ -7,11 +7,13 @@ import { ThanosWidget } from '@/components/thanos/thanos-widget'
 
 export const metadata = { title: 'Portal — World Wide Associates' }
 
-export default async function PortalPage() {
+export default async function PortalPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const session = await auth()
   if (!session?.user) redirect('/login')
 
-  const dash = await getContactPortalDashboard()
+  // ?preview=<contactId>: χρήστης της εφαρμογής βλέπει το portal όπως η επαφή (μόνο ανάγνωση).
+  const { preview } = await searchParams
+  const dash = await getContactPortalDashboard(preview || undefined)
 
   return (
     <div className="app-canvas min-h-screen">
@@ -27,15 +29,21 @@ export default async function PortalPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-6">
+        {dash.ok && dash.preview && (
+          <div className="mb-4 rounded-xl border p-3 text-[length:var(--fs-13)] text-foreground" style={{ background: 'var(--card)', borderColor: 'var(--warning)', borderLeftWidth: 4 }} role="status">
+            <b>Προεπισκόπηση:</b> έτσι βλέπει το portal η επαφή <b>{dash.contactName}</b>. Το ανέβασμα και ο βοηθός είναι απενεργοποιημένα εδώ.
+          </div>
+        )}
         {!dash.ok ? (
           <div className="glass p-8 text-center">
-            <h1 className="mb-2 text-[length:var(--fs-20)]">Καλωσόρισες, {session.user.name}</h1>
-            <p className="text-sm text-muted-foreground">Δεν υπάρχουν διαθέσιμα προγράμματα για τον λογαριασμό σου αυτή τη στιγμή. Επικοινώνησε με τον σύμβουλό σου στη WWA.</p>
+            <h1 className="mb-2 text-[length:var(--fs-20)]">Καλώς ήρθατε, {session.user.name}</h1>
+            <p className="text-sm text-muted-foreground">{preview ? 'Η επαφή δεν βρέθηκε ή δεν έχετε δικαίωμα προβολής.' : 'Δεν υπάρχουν διαθέσιμα προγράμματα για τον λογαριασμό σας αυτή τη στιγμή. Επικοινωνήστε με τον σύμβουλό σας στη WWA.'}</p>
           </div>
         ) : (
           <>
             <div className="mb-4">
-              <h1 className="text-[length:var(--fs-22)] font-semibold">Τα προγράμματά μου</h1>
+              <h1 className="text-[length:var(--fs-22)] font-semibold">Καλώς ήρθατε, {dash.contactName.split(' ')[0]}</h1>
+              <p className="text-[length:var(--fs-14)]">Εδώ βλέπετε πού βρίσκεται κάθε έργο σας, τι χρειαζόμαστε από εσάς και τι ακολουθεί.</p>
               <p className="text-[length:var(--fs-13)] text-muted-foreground">
                 {dash.companyName}
                 {dash.central
@@ -43,8 +51,8 @@ export default async function PortalPage() {
                   : ' · πρόσβαση στα προγράμματα που σας αφορούν'}
               </p>
             </div>
-            <PortalPrograms applications={dash.applications} />
-            <ThanosWidget firstName={session.user.name?.split(' ')[0]} />
+            <PortalPrograms applications={dash.applications} preview={dash.preview} />
+            {!dash.preview && <ThanosWidget firstName={session.user.name?.split(' ')[0]} />}
           </>
         )}
       </main>
