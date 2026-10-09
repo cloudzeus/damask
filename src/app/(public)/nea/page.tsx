@@ -8,6 +8,7 @@ import { PostMeta } from '../_components/post-meta'
 import { wwaPhoto } from '../_wwa/assets'
 import { listPublishedPosts, type PublicPostCard } from '@/lib/cms/public-posts'
 import { Pic } from '../_components/pic'
+import { JsonLd, itemListJsonLd } from '../_components/json-ld'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/nea' },
@@ -43,6 +44,7 @@ export default async function NewsPage() {
 
   return (
     <>
+      <JsonLd data={itemListJsonLd('Οδηγοί & νέα ΕΣΠΑ', posts.map(p => ({ name: p.title, href: `/nea/${p.slug}` })))} />
       <SubBanner
         image={wwaPhoto('ecommerce')}
         crumbs={[{ label: 'Νέα' }]}

@@ -80,6 +80,16 @@ Cloudflare → **wwa-espa.com** → DNS:
 > ❌ **ΜΗΝ** φτιάξετε κανόνα «Cache Everything» για όλο το site: θα έμπαιναν σε cache και σελίδες διαχείρισης συνδεδεμένων χρηστών. Η προεπιλογή αρκεί, γιατί τα στατικά αρχεία (`/_next/static`, εικόνες) γίνονται cache αυτόματα.
 > Προαιρετικά: Speed → **Early Hints** On, **HTTP/3** On, **Brotli** On.
 
+## 6β. Cache εικόνων (μετά τη μετάβαση)
+
+Οι φωτογραφίες σερβίρονται βελτιστοποιημένες από την εφαρμογή στο `/_next/image?...` (AVIF/WebP σε σωστό μέγεθος). Για να τις κρατά και το Cloudflare (ταχύτερα, λιγότερο φορτίο στον server):
+
+**Caching → Cache Rules → Create rule**
+- Όνομα: `Images optimizer`
+- Συνθήκη: *URI Path* **starts with** `/_next/image`
+- Ενέργεια: **Eligible for cache** · Edge TTL: **Use cache-control header if present** (η εφαρμογή στέλνει 30 ημέρες) · Browser TTL: Respect origin
+- **Cache key:** να περιλαμβάνει το **query string** (default) και, στο «Header», το **Accept** — ώστε AVIF και WebP να κρατιούνται χωριστά.
+
 ## 7. Εξωτερικές υπηρεσίες με URL της εφαρμογής
 
 Αλλάξτε `espa.nuboy.gr` → `wwa-espa.com` όπου υπάρχει:

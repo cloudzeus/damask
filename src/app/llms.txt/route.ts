@@ -37,6 +37,7 @@ export async function GET() {
     '## Πρόσφατοι οδηγοί',
     ...posts.filter(p => p.translations[0]).map(p => `- [${p.translations[0].title}](${absoluteUrl(`/nea/${p.slug}`)})${p.translations[0].excerpt ? `: ${p.translations[0].excerpt}` : ''}`),
     '',
+    `Πλήρες περιεχόμενο (όροι προγραμμάτων, γλωσσάριο, οδηγοί): ${absoluteUrl('/llms-full.txt')}`,
     `Επίσημη πηγή για όλα τα προγράμματα: https://www.espa.gr · Ιστότοπος: ${SITE_URL}`,
   ]
   return new Response(lines.join('\n'), { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } })

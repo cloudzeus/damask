@@ -5,7 +5,7 @@ import { SubBanner } from '../../_components/sub-banner'
 import { EligibilityCta } from '../../_components/eligibility-cta'
 import { Faq } from '../../_components/faq'
 import { ProgramGrid, AnswerBox } from '../../_components/program-grid'
-import { JsonLd, breadcrumbJsonLd } from '../../_components/json-ld'
+import { JsonLd, breadcrumbJsonLd, itemListJsonLd } from '../../_components/json-ld'
 import { wwaPhotoFor } from '../../_wwa/assets'
 import { REGIONS, SECTORS, programsForRegion, guidesMatching, nProgramms } from '@/lib/seo-content/hubs'
 
@@ -43,6 +43,7 @@ export default async function RegionPage({ params }: { params: Promise<{ perifer
   return (
     <>
       <JsonLd data={breadcrumbJsonLd([{ label: 'ΕΣΠΑ ανά περιοχή', href: '/espa' }, { label: r.short }])} />
+      {programs.length > 0 && <JsonLd data={itemListJsonLd(`Προγράμματα ΕΣΠΑ ${r.short}`, programs.map(p => ({ name: p.title, href: `/programmata/${p.slug}` })))} />}
       <SubBanner image={wwaPhotoFor(r.slug)} crumbs={[{ label: 'ΕΣΠΑ ανά περιοχή', href: '/espa' }, { label: r.short }]}
         title={<>ΕΣΠΑ {r.short} 2026</>} lead={`Ενεργά προγράμματα και επιδοτήσεις για επιχειρήσεις ${r.of}.`}
         meta={<EligibilityCta size="lg">Δείτε αν δικαιούστε</EligibilityCta>} />

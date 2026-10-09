@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from 'next/server'
  * και ΟΛΑ παίρνουν noindex (το robots.txt απαγορεύει τα πάντα).
  */
 const SITE_PUBLIC = process.env.SITE_PUBLIC === '1'
-const SITE_PATHS = ['/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/espa', '/prothesmies-espa', '/prothesmies-espa.ics', '/glossari', '/typos', '/sitemap.xml', '/llms.txt', '/rss.xml']
+const SITE_PATHS = ['/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/espa', '/prothesmies-espa', '/prothesmies-espa.ics', '/glossari', '/typos', '/sitemap.xml', '/llms.txt', '/llms-full.txt', '/rss.xml']
 const PUBLIC_PATHS = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password', '/api/consent', '/eligibility', '/robots.txt',
   ...(SITE_PUBLIC ? SITE_PATHS : []),
@@ -41,7 +41,7 @@ export function proxy(req: NextRequest) {
   if (PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
     const res = NextResponse.next()
     // Ό,τι δεν είναι σελίδα του website (login, portal, magic links, api) δεν ευρετηριάζεται.
-    const indexable = SITE_PUBLIC && (INDEXABLE_PATHS.has(pathname) || INDEXABLE_PREFIXES.some(p => pathname.startsWith(p)) || pathname === '/robots.txt' || pathname === '/sitemap.xml' || pathname === '/llms.txt' || pathname === '/rss.xml')
+    const indexable = SITE_PUBLIC && (INDEXABLE_PATHS.has(pathname) || INDEXABLE_PREFIXES.some(p => pathname.startsWith(p)) || pathname === '/robots.txt' || pathname === '/sitemap.xml' || pathname === '/llms.txt' || pathname === '/llms-full.txt' || pathname === '/rss.xml')
     if (!indexable) res.headers.set('X-Robots-Tag', 'noindex, nofollow')
     return res
   }

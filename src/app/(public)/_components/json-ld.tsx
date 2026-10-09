@@ -49,3 +49,11 @@ export function breadcrumbJsonLd(crumbs: { label: string; href?: string }[]): Re
 }
 
 export const organizationRef = { '@id': ORG_ID }
+
+/** ItemList (λίστα προγραμμάτων/άρθρων) — το Google/AI καταλαβαίνει ότι η σελίδα είναι κατάλογος. */
+export function itemListJsonLd(name: string, items: { name: string; href: string }[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org', '@type': 'ItemList', name, numberOfItems: items.length,
+    itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, url: absoluteUrl(it.href) })),
+  }
+}

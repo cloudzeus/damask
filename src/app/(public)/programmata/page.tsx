@@ -8,6 +8,7 @@ import { wwaPhoto } from '../_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
 import { AnswerBox } from '../_components/program-grid'
 import { REGIONS, SECTORS, listDeadlines, nProgramms } from '@/lib/seo-content/hubs'
+import { JsonLd, itemListJsonLd } from '../_components/json-ld'
 
 export const revalidate = 3600
 
@@ -29,6 +30,7 @@ export default async function ProgrammataPage() {
   const n = programs.length
   return (
     <>
+      <JsonLd data={itemListJsonLd('Ενεργά προγράμματα ΕΣΠΑ 2026', programs.map(p => ({ name: p.title, href: `/programmata/${p.slug}` })))} />
       <section className="sub-banner" lang="el">
         <img src={wwaPhoto('consulting')} alt="" />
         <div className="wrap"><div className="content">
