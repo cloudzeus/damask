@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Wand2, UploadCloud } from 'lucide-react'
 import { FolderPanel } from './folder-panel'
 import { AssetToolbar } from './asset-toolbar'
@@ -12,6 +13,7 @@ import { UploadTray } from './upload-tray'
 import { BulkActionBar } from './bulk-action-bar'
 import { MediaLightbox } from './media-lightbox'
 import { MediaPicker } from '@/components/media/media-picker'
+import { EnvatoBrowser } from '@/components/media/envato-browser'
 import { ProductImageCollection, type CollectionImage } from '@/components/media/product-image-collection'
 import {
   THUMB_SIZE_MAX, THUMB_SIZE_MIN,
@@ -34,6 +36,7 @@ export function MediaGallery({
   const [loading, setLoading] = useState(false)
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const [view, setView] = useState<'files' | 'envato'>('files')
   const [typeFilter, setTypeFilter] = useState<MediaKind | null>(null)
   const [queryInput, setQueryInput] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -200,6 +203,10 @@ export function MediaGallery({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
+        <div className="flex gap-1.5" role="tablist" aria-label="Πηγή">
+          <button type="button" role="tab" aria-selected={view === 'files'} className={cn('pill', view === 'files' && 'on')} onClick={() => setView('files')}>Αρχεία</button>
+          <button type="button" role="tab" aria-selected={view === 'envato'} className={cn('pill', view === 'envato' && 'on')} onClick={() => setView('envato')}>Envato</button>
+        </div>
         <div className="flex-1" />
         <button type="button" className="btn-pill btn-glass" onClick={() => setPickerOpen(true)}>
           <Wand2 className="size-3.5" strokeWidth={1.8} aria-hidden /> Δοκιμή Picker
@@ -214,6 +221,15 @@ export function MediaGallery({
           onChanged={refresh}
         />
 
+        {view === 'envato' ? (
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <EnvatoBrowser
+              folderId={selectedFolderId}
+              folderName={selectedFolder?.name ?? null}
+              onImported={() => { refresh(); setView('files') }}
+            />
+          </div>
+        ) : (
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <AssetToolbar
             query={queryInput}
@@ -244,6 +260,7 @@ export function MediaGallery({
             />
           </div>
         </div>
+        )}
       </div>
 
       <UploadDialog

@@ -321,3 +321,64 @@ export async function bulkDeleteAssets(assetIds: string[]): Promise<ActionResult
   const word = assets.length === 1 ? 'αρχείο διαγράφηκε' : 'αρχεία διαγράφηκαν'
   return { ok: true, message: `${assets.length} ${word}.` }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Envato (tab «Envato» στο Media Gallery & στον MediaPicker)
+// ══════════════════════════════════════════════════════════════════════════
+
+export async function envatoSearchAction(term: string, kind: 'photo' | 'video', page = 1): Promise<
+  { ok: true; total: number; pages: number; items: import('@/lib/envato').EnvatoItem[] } | { ok: false; error: string }
+> {
+  await requirePermission('media.manage')
+  const q = term.trim()
+  if (!q) return { ok: false, error: 'Γράψε τι ψάχνεις.' }
+  try {
+    const { searchEnvato } = await import('@/lib/envato')
+    const r = await searchEnvato(q.slice(0, 100), kind === 'video' ? 'video' : 'photo', Math.max(1, Math.min(60, page)))
+    return { ok: true, ...r }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+/**
+ * Εισαγωγή ΑΓΟΡΑΣΜΕΝΟΥ item του Envato στο Media Gallery (στον φάκελο folderId). Οι εικόνες γίνονται WebP έως 2560px.
+ * Μη αγορασμένα δεν εισάγονται (άδεια χρήσης — οι προεπισκοπήσεις έχουν υδατογράφημα).
+ */
+export async function envatoImportAction(input: { itemId: number; kind: 'photo' | 'video'; name: string; url: string; author: string; folderId: string | null }): Promise<
+  { ok: true; asset: { id: string; url: string; name: string; type: 'IMAGE' | 'VIDEO' | 'MODEL_3D' | 'FILE' } } | { ok: false; error: string }
+> {
+  const session = await requirePermission('media.manage')
+  try {
+    const { downloadPurchased, purchasedItemIds } = await import('@/lib/envato')
+    if (!(await purchasedItemIds()).has(input.itemId)) return { ok: false, error: 'Αυτό το item δεν έχει αγοραστεί — αγόρασέ το πρώτα στο Envato για να αποκτήσεις άδεια χρήσης.' }
+    if (input.folderId && !(await prisma.mediaFolder.findUnique({ where: { id: input.folderId }, select: { id: true } }))) return { ok: false, error: 'Ο φάκελος δεν βρέθηκε.' }
+
+    const file = await downloadPurchased(input.itemId, input.kind)
+    let body: Uint8Array | Buffer = file.data
+    let filename = file.filename
+    let mime = file.mime
+    if (mime.startsWith('image/')) {
+      try {
+        const sharp = (await import('sharp')).default
+        body = await sharp(Buffer.from(file.data)).rotate().resize({ width: 2560, height: 2560, fit: 'inside', withoutEnlargement: true }).webp({ quality: 85 }).toBuffer()
+        filename = filename.replace(/\.[a-z0-9]+$/i, '') + '.webp'
+        mime = 'image/webp'
+      } catch { /* χωρίς sharp: αποθηκεύεται το πρωτότυπο */ }
+    }
+    const { MEDIA_MAX_BYTES, tooLargeMessage } = await import('@/lib/media-limits')
+    if (body.byteLength > MEDIA_MAX_BYTES) return { ok: false, error: tooLargeMessage(body.byteLength) }
+
+    const { storeMediaBuffer } = await import('@/lib/media-store')
+    const stored = await storeMediaBuffer({
+      body: Buffer.from(body), filename, mimeType: mime,
+      path: `media-gallery/${input.folderId ?? 'root'}`, folderId: input.folderId, userId: session.user.id,
+      name: input.name.slice(0, 200),
+      meta: { source: 'envato', envatoId: input.itemId, envatoUrl: input.url, author: input.author, license: 'Envato Market' },
+    })
+    revalidatePath('/media')
+    return { ok: true, asset: { id: stored.id, url: stored.url, name: stored.name, type: stored.type } }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}

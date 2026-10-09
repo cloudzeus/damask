@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
+import { EnvatoBrowser } from './envato-browser'
 import { MassUploader, type UploadedAsset } from './mass-uploader'
 import {
   buildFolderTree, MEDIA_KIND_LABEL,
@@ -48,7 +49,7 @@ export function MediaPicker({
   accept,
   defaultFolderId = null,
 }: MediaPickerProps) {
-  const [tab, setTab] = useState<'gallery' | 'upload'>('gallery')
+  const [tab, setTab] = useState<'gallery' | 'upload' | 'envato'>('gallery')
   const [folders, setFolders] = useState<MediaFolderDTO[]>([])
   const [assets, setAssets] = useState<MediaAssetDTO[]>([])
   const [loading, setLoading] = useState(false)
@@ -171,6 +172,11 @@ export function MediaPicker({
           <button type="button" className={cn('pill', tab === 'upload' && 'on')} onClick={() => setTab('upload')}>
             Μεταφόρτωση
           </button>
+          {(!accept || accept.includes('IMAGE') || accept.includes('VIDEO')) && (
+            <button type="button" className={cn('pill', tab === 'envato' && 'on')} onClick={() => setTab('envato')}>
+              Envato
+            </button>
+          )}
         </div>
 
         <div className="flex min-h-0 flex-1 gap-3 overflow-hidden" style={{ height: 440 }}>
@@ -231,6 +237,16 @@ export function MediaPicker({
                 </div>
               </div>
             </>
+          ) : tab === 'envato' ? (
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <EnvatoBrowser
+                compact
+                folderId={currentFolderId}
+                folderName={folders.find(f => f.id === currentFolderId)?.name ?? null}
+                accept={accept}
+                onImported={a => handleUploaded([{ id: a.id, url: a.url, path: '', name: a.name, type: a.type, size: 0 }])}
+              />
+            </div>
           ) : (
             <div className="flex-1 overflow-y-auto pr-1">
               <MassUploader

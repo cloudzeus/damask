@@ -1,63 +1,12 @@
 import { NextResponse } from 'next/server'
-import { randomUUID } from 'node:crypto'
 import { auth } from '@/auth'
 import { can } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
-import { logApiUsage } from '@/lib/api-usage'
-import type { MediaType } from '@prisma/client'
+import { storeMediaBuffer, sanitizeMediaPath, MediaStoreError } from '@/lib/media-store'
 import { MEDIA_MAX_BYTES, tooLargeMessage } from '@/lib/media-limits'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
-
-const EXT_BY_MIME: Record<string, string> = {
-  'image/webp': '.webp',
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/gif': '.gif',
-  'image/bmp': '.bmp',
-  'image/avif': '.avif',
-  'image/svg+xml': '.svg',
-  'video/mp4': '.mp4',
-  'video/webm': '.webm',
-  'video/quicktime': '.mov',
-  'model/gltf-binary': '.glb',
-  'model/gltf+json': '.gltf',
-  'application/pdf': '.pdf',
-}
-
-function sanitizePath(raw: string): string | null {
-  const trimmed = raw.trim().replace(/^\/+|\/+$/g, '')
-  if (!trimmed) return null
-  if (trimmed.includes('..')) return null
-  if (!/^[a-z0-9/_-]+$/.test(trimmed)) return null
-  return trimmed
-}
-
-function slugify(input: string): string {
-  const slug = input
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  return slug || 'file'
-}
-
-function extensionFor(file: File): string {
-  const fromMime = EXT_BY_MIME[file.type]
-  if (fromMime) return fromMime
-  const match = /\.[a-z0-9]+$/i.exec(file.name)
-  return match ? match[0].toLowerCase() : ''
-}
-
-/** Ίδια λογική ταξινόμησης τύπου με το client (mass-uploader.tsx detectAssetType). */
-function detectMediaType(mimeType: string, filename: string): MediaType {
-  if (mimeType.startsWith('image/')) return 'IMAGE'
-  if (mimeType.startsWith('video/')) return 'VIDEO'
-  const lower = filename.toLowerCase()
-  if (lower.endsWith('.glb') || lower.endsWith('.gltf')) return 'MODEL_3D'
-  return 'FILE'
-}
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -65,11 +14,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Δεν έχεις δικαίωμα μεταφόρτωσης.' }, { status: 403 })
   }
 
-  const storageApi = process.env.BUNNY_STORAGE_API
-  const storageZone = process.env.BUNNY_STORAGE_ZONE
-  const storagePassword = process.env.BUNNY_STORAGE_PASSWORD
-  const pullZoneUrl = process.env.BUNNY_PULL_ZONE_URL
-  if (!storageApi || !storageZone || !storagePassword || !pullZoneUrl) {
+  if (!process.env.BUNNY_STORAGE_API || !process.env.BUNNY_STORAGE_ZONE || !process.env.BUNNY_STORAGE_PASSWORD || !process.env.BUNNY_PULL_ZONE_URL) {
     return NextResponse.json(
       { error: 'Λείπουν ρυθμίσεις BunnyCDN στον server.' },
       { status: 500 },
@@ -103,7 +48,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Λείπει η διαδρομή προορισμού.' }, { status: 400 })
   }
 
-  const safePath = sanitizePath(path)
+  const safePath = sanitizeMediaPath(path)
   if (!safePath) {
     return NextResponse.json({ error: 'Μη έγκυρη διαδρομή προορισμού.' }, { status: 400 })
   }
@@ -118,11 +63,6 @@ export async function POST(request: Request) {
     folderId = folder.id
   }
 
-  const ext = extensionFor(file)
-  const baseName = file.name.replace(/\.[a-z0-9]+$/i, '')
-  const objectName = `${Date.now()}-${randomUUID().slice(0, 8)}-${slugify(baseName)}${ext}`
-  const fullPath = `${safePath}/${objectName}`
-
   let arrayBuffer: ArrayBuffer
   try {
     arrayBuffer = await file.arrayBuffer()
@@ -130,55 +70,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Αδυναμία ανάγνωσης του αρχείου.' }, { status: 400 })
   }
 
-  let bunnyRes: Response
   try {
-    bunnyRes = await fetch(`${storageApi}/${storageZone}/${fullPath}`, {
-      method: 'PUT',
-      headers: {
-        AccessKey: storagePassword,
-        'Content-Type': 'application/octet-stream',
-      },
-      body: arrayBuffer,
-    })
+    const stored = await storeMediaBuffer({ body: arrayBuffer, filename: file.name, mimeType: file.type, path: safePath, folderId, userId: session?.user?.id })
+    return NextResponse.json({ id: stored.id, url: stored.url, path: stored.path, size: stored.size })
   } catch (err) {
-    return NextResponse.json(
-      { error: 'Αποτυχία σύνδεσης με το BunnyCDN.', detail: err instanceof Error ? err.message : String(err) },
-      { status: 502 },
-    )
+    if (err instanceof MediaStoreError) return NextResponse.json({ error: err.message, ...(err.detail ? { detail: err.detail } : {}) }, { status: err.status })
+    throw err
   }
-
-  if (bunnyRes.status !== 201) {
-    const detail = await bunnyRes.text().catch(() => '')
-    return NextResponse.json(
-      { error: 'Το BunnyCDN απέρριψε τη μεταφόρτωση.', detail },
-      { status: 502 },
-    )
-  }
-
-  const cdnUrl = `${pullZoneUrl}/${fullPath}`
-  void import('@/lib/search/live-index').then(m => m.notifyStorageChange({ key: fullPath, size: file.size, op: 'put' })).catch(() => {})
-
-  const asset = await prisma.mediaAsset.create({
-    data: {
-      folderId,
-      productId: null,
-      name: baseName,
-      type: detectMediaType(file.type, file.name),
-      cdnUrl,
-      size: file.size,
-      mimeType: file.type || null,
-    },
-  })
-
-  void logApiUsage({
-    service: 'bunnycdn', operation: 'upload', units: file.size / 1e9,
-    userId: session?.user?.id, refType: 'mediaAsset', refId: asset.id,
-  })
-
-  return NextResponse.json({
-    id: asset.id,
-    url: cdnUrl,
-    path: fullPath,
-    size: file.size,
-  })
 }
