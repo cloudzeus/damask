@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   // pdfjs (ανάγνωση PDF προσκλήσεων στον server) φορτώνεται ως εξωτερικό πακέτο — όχι μέσα στο bundle.
   serverExternalPackages: ['pdfjs-dist'],
+  // Version skew: μετά από νέο deploy, ανοιχτές σελίδες της παλιάς έκδοσης κάνουν αθόρυβα πλήρη επαναφόρτωση
+  // αντί για σφάλμα σε φόρμες (Server Actions). Παράγεται μία φορά στο build (standalone → «παγώνει» στο image).
+  deploymentId: process.env.NODE_ENV === 'production' ? (process.env.NEXT_DEPLOYMENT_ID || process.env.SOURCE_COMMIT || `b${Date.now().toString(36)}`) : undefined,
   // Φωτογραφίες του site (Bunny CDN, χωρίς Optimizer): σωστό μέγεθος ανά συσκευή μέσω του /_next/image (WebP/AVIF + cache 30 ημερών).
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'damask-1.b-cdn.net' }],

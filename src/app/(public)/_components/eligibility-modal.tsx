@@ -26,6 +26,12 @@ type Phase = 'idle' | 'lookup' | 'verify'
 const LOOKUP_MSGS = ['Σύνδεση με την ΑΑΔΕ…', 'Ανάκτηση επωνυμίας & δραστηριότητας…', 'Αποστολή κωδικού επιβεβαίωσης…']
 const VERIFY_MSGS = ['Επιβεβαίωση κωδικού…', 'Εντοπισμός ΚΑΔ & περιφέρειας…', 'Έλεγχος ενεργών προγραμμάτων…', 'Υπολογισμός επιλεξιμότητας…']
 
+const NETWORK_ERROR = 'Δεν ήταν δυνατή η αποστολή — ίσως η σελίδα ενημερώθηκε στο μεταξύ. Πατήστε «Ανανέωση» και δοκιμάστε ξανά.'
+/** Server action χωρίς ποτέ να «ρίξει» τη σελίδα (σφάλμα δικτύου/νέα έκδοση site → null). */
+async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
+  try { return await fn() } catch (err) { console.error('[eligibility]', err); return null }
+}
+
 export function EligibilityModal() {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<EligibilityMode>('check')
@@ -40,6 +46,7 @@ export function EligibilityModal() {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<'afm' | 'email' | 'phone', string>>>({})
 
   const [error, setError] = useState<string | null>(null)
+  const [stale, setStale] = useState(false)
   const [requestId, setRequestId] = useState<string | null>(null)
   const [companyName, setCompanyName] = useState<string | null>(null)
   const [code, setCode] = useState('')
@@ -52,7 +59,7 @@ export function EligibilityModal() {
 
   function reset() {
     setStep('form'); setPhase('idle'); setAfm(''); setEmail(''); setPhone(''); setNewsletter(true)
-    setFieldErrors({}); setError(null); setRequestId(null); setCompanyName(null); setCode(''); setRemaining(null); setResent(false); setEligible([]); setAlreadyCustomer(false)
+    setFieldErrors({}); setError(null); setRequestId(null); setCompanyName(null); setCode(''); setRemaining(null); setResent(false); setEligible([]); setAlreadyCustomer(false); setStale(false)
   }
 
   // Open via event ή hash· lock scroll· Esc για κλείσιμο.
@@ -81,8 +88,9 @@ export function EligibilityModal() {
     if (mode === 'notify' && !newsletter) { setError('Για να σας ενημερώνουμε χρειάζεται η συγκατάθεσή σας (τικ παραπάνω).'); return }
     setPhase('lookup')
     startTransition(async () => {
-      const res = await startLeadRequest({ afm, email, phone, newsletterOptIn: newsletter })
+      const res = await safe(() => startLeadRequest({ afm, email, phone, newsletterOptIn: newsletter }))
       setPhase('idle')
+      if (!res) { setError(NETWORK_ERROR); setStale(true); return }
       if (!res.ok) { setError(res.error ?? 'Κάτι πήγε στραβά.'); if (res.fieldErrors) setFieldErrors(res.fieldErrors); return }
       setRequestId(res.requestId ?? null); setCompanyName(res.companyName ?? null); setStep('otp')
     })
@@ -91,8 +99,9 @@ export function EligibilityModal() {
   function submitOtp(e: React.FormEvent) {
     e.preventDefault(); if (!requestId) return; setError(null); setPhase('verify')
     startTransition(async () => {
-      const res = await verifyLeadOtp({ requestId, code })
+      const res = await safe(() => verifyLeadOtp({ requestId, code }))
       setPhase('idle')
+      if (!res) { setError(NETWORK_ERROR); setStale(true); return }
       if (!res.ok) { setError(res.error ?? 'Λάθος κωδικός.'); setRemaining(res.remainingAttempts ?? null); return }
       setEligible(res.eligible ?? []); setCompanyName(res.companyName ?? companyName); setAlreadyCustomer(res.alreadyCustomer ?? false); setStep('done')
     })
@@ -101,7 +110,8 @@ export function EligibilityModal() {
   function resend() {
     if (!requestId) return; setError(null); setResent(false)
     startTransition(async () => {
-      const res = await resendLeadOtp(requestId)
+      const res = await safe(() => resendLeadOtp(requestId))
+      if (!res) { setError(NETWORK_ERROR); setStale(true); return }
       if (!res.ok) setError(res.error ?? 'Δεν ήταν δυνατή η αποστολή.')
       else { setResent(true); setCode(''); setRemaining(null) }
     })
@@ -157,7 +167,7 @@ export function EligibilityModal() {
                   <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} required={mode === 'notify'} />
                   <span>{NEWSLETTER_CONSENT_TEXT}</span>
                 </label>
-                {error && <ModalAlert>{error}</ModalAlert>}
+                {error && <ModalAlert>{error}{stale && <> <button type="button" className="btn btn-sm" style={{ marginTop: 8 }} onClick={() => window.location.reload()}>Ανανέωση</button></>}</ModalAlert>}
                 <button type="submit" className="btn btn-lg" style={{ width: '100%' }} disabled={pending}>{mode === 'notify' ? <><BellRing size={17} /> Ενημερώστε με</> : <><ShieldCheck size={17} /> Έλεγχος επιλεξιμότητας</>}</button>
                 <p className="m-fine">Θα σας στείλουμε 6ψήφιο κωδικό επιβεβαίωσης στο email σας.</p>
               </form>
@@ -175,7 +185,7 @@ export function EligibilityModal() {
                 </div>
                 {resent && <p className="m-fine" style={{ color: 'var(--success-500)' }}>Στάλθηκε νέος κωδικός.</p>}
                 {remaining != null && remaining > 0 && <p className="m-fine">Απομένουν {remaining} προσπάθειες.</p>}
-                {error && <ModalAlert>{error}</ModalAlert>}
+                {error && <ModalAlert>{error}{stale && <> <button type="button" className="btn btn-sm" style={{ marginTop: 8 }} onClick={() => window.location.reload()}>Ανανέωση</button></>}</ModalAlert>}
                 <button type="submit" className="btn btn-lg" style={{ width: '100%' }} disabled={pending || code.length !== 6}><CheckCircle2 size={17} /> Επιβεβαίωση</button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={resend} disabled={pending} style={{ justifySelf: 'center' }}><RefreshCw size={14} /> Νέος κωδικός</button>
               </form>

@@ -36,7 +36,7 @@ export function EligibilityWizard() {
     setError(null)
     setFieldErrors({})
     startTransition(async () => {
-      const res = await startLeadRequest({ afm, email, phone, newsletterOptIn: newsletter })
+      const res = await startLeadRequest({ afm, email, phone, newsletterOptIn: newsletter }).catch(() => ({ ok: false as const, error: 'Δεν ήταν δυνατή η αποστολή — ίσως η σελίδα ενημερώθηκε στο μεταξύ. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.' }) as Awaited<ReturnType<typeof startLeadRequest>>)
       if (!res.ok) {
         setError(res.error ?? 'Κάτι πήγε στραβά.')
         if (res.fieldErrors) setFieldErrors(res.fieldErrors)
@@ -53,7 +53,7 @@ export function EligibilityWizard() {
     if (!requestId) return
     setError(null)
     startTransition(async () => {
-      const res = await verifyLeadOtp({ requestId, code })
+      const res = await verifyLeadOtp({ requestId, code }).catch(() => ({ ok: false as const, error: 'Δεν ήταν δυνατή η αποστολή — ίσως η σελίδα ενημερώθηκε στο μεταξύ. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.' }) as Awaited<ReturnType<typeof verifyLeadOtp>>)
       if (!res.ok) {
         setError(res.error ?? 'Λάθος κωδικός.')
         setRemaining(res.remainingAttempts ?? null)
@@ -70,7 +70,7 @@ export function EligibilityWizard() {
     setError(null)
     setResent(false)
     startTransition(async () => {
-      const res = await resendLeadOtp(requestId)
+      const res = await resendLeadOtp(requestId).catch(() => ({ ok: false as const, error: 'Δεν ήταν δυνατή η αποστολή — ίσως η σελίδα ενημερώθηκε στο μεταξύ. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.' }))
       if (!res.ok) setError(res.error ?? 'Δεν ήταν δυνατή η αποστολή.')
       else {
         setResent(true)

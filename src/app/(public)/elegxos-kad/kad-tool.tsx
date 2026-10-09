@@ -26,13 +26,13 @@ export function KadTool() {
   useEffect(() => {
     window.clearTimeout(timer.current)
     if (q.trim().length < 2) return
-    timer.current = window.setTimeout(() => { kadSuggestAction(q).then(setSugg) }, 220)
+    timer.current = window.setTimeout(() => { kadSuggestAction(q).then(setSugg).catch(() => setSugg([])) }, 220)
     return () => window.clearTimeout(timer.current)
   }, [q])
 
   const check = (code: string) => {
     setSugg([]); setSearched(true)
-    start(async () => setResult(await kadCheckAction(code)))
+    start(async () => setResult(await kadCheckAction(code).catch(() => null)))
   }
   const visibleSugg = q.trim().length >= 2 ? sugg : []
 
