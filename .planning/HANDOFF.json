@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T06:21:47.508Z",
+  "timestamp": "2026-10-09T06:26:56.484Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,20 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(public)/_wwa/site.css"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(public)/glossari/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(public)/page.tsx"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n7a7814c docs(seo): οδηγός μετάβασης wwa-espa.com στο Cloudflare\nf9e022e chore: ενημέρωση HANDOFF\n87e6325 feat(seo): σελίδες-κόμβοι ΕΣΠΑ ανά περιφέρεια/κλάδο, προθεσμίες + .ics, νέα 2026, γλωσσάριο, Τύπος· AEO απαντήσεις, εσωτερικοί σύνδεσμοι, επίσημη πηγή, H1 αρχικής, ομάδα/memberOf, sitemap/llms/proxy/footer\n0bc37db perf(site): consent/tracking στον browser + χωρίς cookies() στο layout και χωρίς αχρησιμοποίητο NextIntlProvider → cacheable σελίδες· fonts μόνο μέσω next/font\nc2a279c fix(images): αντιστοίχιση φωτογραφιών Elements με βάση το όνομα αρχείου (ξεχωριστό βήμα 1-προς-1) + κουμπί ξανα-αντιστοίχισης"
+  "context_notes": "Recent commits:\n55229ee feat(seo): IndexNow (Bing/ChatGPT search) σε κάθε δημοσίευση + καθημερινό ping αλλαγών· χωρίς ονόματα προσώπων (ομάδα/Person schema αφαιρέθηκαν, συγγραφέας = εταιρεία)\nbb958b3 chore: ενημέρωση HANDOFF\n7a7814c docs(seo): οδηγός μετάβασης wwa-espa.com στο Cloudflare\nf9e022e chore: ενημέρωση HANDOFF\n87e6325 feat(seo): σελίδες-κόμβοι ΕΣΠΑ ανά περιφέρεια/κλάδο, προθεσμίες + .ics, νέα 2026, γλωσσάριο, Τύπος· AEO απαντήσεις, εσωτερικοί σύνδεσμοι, επίσημη πηγή, H1 αρχικής, ομάδα/memberOf, sitemap/llms/proxy/footer"
 }
