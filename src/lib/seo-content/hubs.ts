@@ -122,7 +122,7 @@ export async function hubsForProgram(slug: string): Promise<{ regions: Hub[]; se
 export async function officialSourceFor(programId: string): Promise<string | null> {
   const refs = await prisma.programReference.findMany({ where: { programId, kind: 'URL', url: { not: null }, active: true }, select: { url: true }, orderBy: { createdAt: 'asc' } })
   const urls = refs.map(r => r.url!).filter(u => /^https:\/\//i.test(u))
-  const official = /(espa\.gr|ependyseis\.gr|gov\.gr|antagonistikotita|pepattikis|\.europa\.eu|mou\.gr|ependyseis)/i
+  const official = /(espa\.gr|ependyseis\.gr|gov\.gr|agrotikianaptixi\.gr|antagonistikotita|pepattikis|\.europa\.eu|mou\.gr|ependyseis)/i
   return urls.find(u => official.test(u)) ?? urls[0] ?? null
 }
 

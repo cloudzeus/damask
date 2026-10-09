@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-09T10:08:21.547Z",
+  "timestamp": "2026-10-09T10:35:52.600Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -30,10 +30,6 @@
     },
     {
       "status": "M",
-      "path": "src/app/llms-full.txt/route.ts"
-    },
-    {
-      "status": "M",
       "path": "src/app/llms.txt/route.ts"
     },
     {
@@ -42,7 +38,7 @@
     },
     {
       "status": "M",
-      "path": "src/lib/programs/espa-harvest.ts"
+      "path": "src/lib/seo-content/faq-hub.ts"
     },
     {
       "status": "M",
@@ -50,21 +46,13 @@
     },
     {
       "status": "??",
-      "path": "scripts/_q.ts"
+      "path": "src/app/(public)/elegxos-kad/"
     },
     {
       "status": "??",
-      "path": "src/app/(public)/_components/faq-hub-list.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(public)/syxnes-erotiseis/"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/seo-content/faq-hub.ts"
+      "path": "src/lib/seo-content/kad-check.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nb62d1d9 fix(site): κάρτες προγραμμάτων αρχικής γεμίζουν το πλάτος όταν είναι λιγότερες από 3 (2 → 2 στήλες, 1 → 1)\nb17d497 feat(programs): αυτόματη συλλογή ενεργών προσκλήσεων από espa.gr — φίλτρο «μόνο για επιχειρήσεις» με AI, πρόχειρο πρόγραμμα με αποδελτίωση PDF + CMS + πηγές, ειδοποίηση γραφείου· ημερήσια στις 09:30 + κουμπί στα Προγράμματα\n6dd49eb fix(site): favicon με το σήμα WWA (αντί του προεπιλεγμένου), σφιχτό icon· κουμπιά hero σε σκούρα banners: λευκό κύριο + διάφανο δευτερεύον ίδιου ύψους\n6768aa5 feat(site): λογότυπα φορέων/συνεργατών (ΣΕΔΕ, ΣΥΣΕΠ, GR.EC.A, ΠΣΒΑΚ, BNI Greece, Entersoftone) από τα επίσημα sites, στο CDN μας, με συνδέσμους — αρχική & Εταιρεία· memberOf με URL στο schema\n6159dd5 docs(seo): ανάλυση ανταγωνισμού (espa.io κ.ά.) + πλάνο «πρώτοι στο Google» σε 3 φάσεις με KPI"
+  "context_notes": "Recent commits:\n822ddee feat(programs): συλλογή προσκλήσεων από περισσότερες πηγές — Αναπτυξιακός Νόμος (ependyseis.mindev.gov.gr, νεότερος κύκλος ανά καθεστώς), ΣΣ ΚΑΠ/LEADER (agrotikianaptixi.gr RSS + PDF από τη σελίδα), περιφερειακά προγράμματα μέσω βαθύτερης σάρωσης espa.gr (500)· AI κρίνει και αν η υποβολή είναι ανοιχτή όπου δεν υπάρχει επίσημη περίοδος· dry-run για δοκιμές\n9ea96c2 feat(site): «Σε αριθμούς» ως σκούρα μπάντα με κορδέλες λογότυπου σε αργή κίνηση, λευκοί μετρητές, εικονίδια και χρωματιστές μπάρες που γεμίζουν (αρχική/εταιρεία/πελάτες)· fix: πρόωρο return στο wwa-motion εμπόδιζε μετρητές και μπάρες\n741834c feat(site): εμβόλιμο CTA «Ενημερωθείτε πρώτοι» με χρώματα λογότυπου + παράδειγμα ειδοποίησης (αρχική, προγράμματα, περιφέρειες, κλάδοι, προθεσμίες, νέα 2026) — modal σε mode 'notify' (ΑΦΜ/email/τηλέφωνο, επιβεβαίωση email, ρητή συγκατάθεση)· πραγματικός χάρτης OpenStreetMap στην Επικοινωνία με κάρτα διεύθυνσης και «Οδηγίες»\n70cce67 feat(site): «Βρείτε τι σας αφορά» στα Προγράμματα — περιφέρειες/κλάδοι ως chips με πλήθος ενεργών προγραμμάτων, μόνο όσοι έχουν πρόγραμμα, έμφαση στις περιφέρειες με δικό τους πρόγραμμα + γρήγοροι σύνδεσμοι (νέα 2026, προθεσμίες, FAQ, γλωσσάριο)· hubCounts με σωστή αναγνώριση πανελλαδικών· «Δείτε επίσης» χωρίς άδειους κόμβους· κάρτες/κουμπί hero\nb836e41 chore: ενημέρωση HANDOFF"
 }
