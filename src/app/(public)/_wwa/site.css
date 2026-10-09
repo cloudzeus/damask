@@ -86,8 +86,15 @@ section.hero { display: block; grid-template-columns: none; gap: 0; padding: 0; 
 .hero p { margin-top: 18px; font-size: 17px; line-height: 1.55; color: rgba(255,255,255,.85); max-width: 48ch; }
 .hero .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
 .hero .dots { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 2; }
-.hero .dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.4); }
-.hero .dots span.on { background: #fff; width: 24px; border-radius: 4px; }
+.hero .dots button { width: 10px; height: 10px; padding: 0; border: 0; border-radius: 999px; background: rgba(255,255,255,.45); cursor: pointer; transition: width .3s var(--ease-standard, ease), background .3s; position: relative; }
+.hero .dots button::after { content: ""; position: absolute; inset: -12px; } /* μεγαλύτερη περιοχή αφής */
+.hero .dots button:hover { background: rgba(255,255,255,.8); }
+.hero .dots button.on { background: #fff; width: 28px; }
+.hero .dots button:focus-visible { outline: 2px solid var(--wwa-cyan-400); outline-offset: 3px; }
+/* Hero: εναλλασσόμενες φωτογραφίες */
+.hero .banner > .hero-slides { position: absolute; inset: 0; z-index: 0; will-change: transform; }
+.hero-slides > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 50%; opacity: 0; }
+.hero-slides > img.on { opacity: 1; }
 /* quick strip κάτω από το hero (nova: "feature blocks") */
 .strip { background: #fff; border-bottom: 1px solid var(--border-subtle); }
 .strip .wrap { display: grid; grid-template-columns: repeat(4, 1fr); }
@@ -195,6 +202,10 @@ body > section[aria-label^="Notifications"] { position: fixed; inset: auto; }
 
 /* motion helpers */
 .is-typing::after { content: "|"; font-weight: 400; color: var(--wwa-cyan-400); animation: caret 1s steps(1) infinite; margin-left: 2px; }
+/* Typewriter με σταθερό ύψος: το κείμενο που δεν έχει «γραφτεί» μένει αόρατο στη θέση του. */
+.tw-rest { visibility: hidden; }
+.tw-caret { display: inline-block; width: 0; position: relative; }
+.tw-caret::after { content: ""; position: absolute; left: 1px; top: .12em; width: 3px; height: .9em; background: var(--wwa-cyan-400); animation: caret 1s steps(1) infinite; }
 @keyframes caret { 50% { opacity: 0; } }
 .topbar { transition: box-shadow var(--dur-hover) var(--ease-standard); }
 .topbar.scrolled { box-shadow: 0 4px 16px rgba(0,0,34,.08); }
@@ -581,3 +592,7 @@ a.btn, a.btn:hover, a.btn:focus, a.btn:visited, a.btn:active { color: var(--_fg)
 /* Δεξιά στήλη άρθρου/σελίδων: ακολουθεί το scroll (κάτω από το sticky header). */
 .layout > aside { position: sticky; top: 104px; }
 @media (max-width: 1024px) { .layout > aside { position: static; } }
+
+/* Πινελιά λογότυπου: λεπτή γραμμή με τα 4 χρώματα του WWA κάτω από τους τίτλους ενοτήτων. */
+.sec-head h2::after { content: ""; display: block; width: 72px; height: 4px; margin: 14px auto 0; border-radius: 999px;
+  background: linear-gradient(90deg, #4000A6, #251BC8 40%, #34C8F6 70%, #FF0677); }

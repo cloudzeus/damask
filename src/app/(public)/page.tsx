@@ -58,6 +58,7 @@ export default async function HomePage() {
     : FALLBACK_PROGRAMS
   const news = await listPublishedPosts(3)
   const featured = active[0] ?? null
+  const heroSlides = [...new Set([featured?.image, wwaPhoto('team'), wwaPhoto('manufacturing'), wwaPhoto('consulting'), wwaPhoto('hotel')].filter(Boolean) as string[])].slice(0, 4)
   const heroDeadline = featured
     ? (featured.deadline ? `υποβολές έως ${featured.deadline}` : featured.deadlineOpen ? 'ανοιχτή πρόσκληση' : 'ενεργό πρόγραμμα')
     : null
@@ -66,7 +67,10 @@ export default async function HomePage() {
       {/* HERO */}
       <section lang="el" className="hero" id="top">
         <div className="banner">
-          <img src={featured?.image || wwaPhoto('consulting')} alt="" />
+          {/* Εναλλαγή φωτογραφιών (GSAP crossfade) — η πρώτη φαίνεται και χωρίς JS. */}
+          <div className="hero-slides" aria-hidden>
+            {heroSlides.map((src, i) => <img key={src} src={src} alt="" className={i === 0 ? 'on' : undefined} fetchPriority={i === 0 ? 'high' : undefined} loading={i === 0 ? 'eager' : 'lazy'} />)}
+          </div>
           {featured ? (
             <div className="wrap"><div className="content">
               <span className="tag">Πιο πρόσφατο πρόγραμμα · {heroDeadline}</span>
@@ -88,7 +92,9 @@ export default async function HomePage() {
               </div>
             </div></div>
           )}
-          <div className="dots"><span className="on" /><span /><span /></div>
+          <div className="dots" role="group" aria-label="Φωτογραφίες">
+            {heroSlides.map((src, i) => <button key={src} type="button" data-hero-dot className={i === 0 ? 'on' : undefined} aria-pressed={i === 0} aria-label={`Φωτογραφία ${i + 1} από ${heroSlides.length}`} />)}
+          </div>
         </div>
         <div className="strip"><div className="wrap">
           <div className="item">{check}<div><b>2.500+ επενδυτικά σχέδια</b><span>με εγκρίσεις 98–100%</span></div></div>
