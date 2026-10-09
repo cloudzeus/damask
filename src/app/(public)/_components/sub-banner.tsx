@@ -9,9 +9,11 @@ import Link from 'next/link'
 export type Crumb = { label: string; href?: string }
 
 export function SubBanner({
-  image, crumbs, title, sub, lead, meta, typewrite, badges,
+  image, imageAlt = '', crumbs, title, sub, lead, meta, typewrite, badges,
 }: {
   image: string
+  /** Περιγραφή της φωτογραφίας όταν είναι το κύριο οπτικό του περιεχομένου (άρθρα/προγράμματα — Google Images). */
+  imageAlt?: string
   crumbs: Crumb[]
   title: ReactNode
   sub?: ReactNode
@@ -22,7 +24,7 @@ export function SubBanner({
 }) {
   return (
     <section className="sub-banner" lang="el">
-      <img src={image} alt="" />
+      <img src={image} alt={imageAlt} fetchPriority="high" />
       <div className="wrap"><div className="content anim-in">
         <div className="crumbs">
           <Link href="/">Αρχική</Link>

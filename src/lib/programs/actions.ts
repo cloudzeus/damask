@@ -141,6 +141,7 @@ export async function updateProgramMeta(
     },
   })
   revalidatePath(`/programs/${id}`)
+  revalidatePath('/', 'layout') // δημόσιο site: προγράμματα/κόμβοι/προθεσμίες
 }
 
 /** CMS tab — παραγωγή public περιεχομένου (SEO/GEO/AEO) μέσω DeepSeek. */
@@ -166,6 +167,7 @@ export async function saveProgramCmsAction(programId: string, cms: ProgramCms): 
   await requirePermission('programs.manage')
   await saveProgramCms(programId, cms)
   revalidatePath(`/programs/${programId}`)
+  revalidatePath('/', 'layout') // δημόσιο site: προγράμματα/κόμβοι/προθεσμίες
   return { ok: true }
 }
 
@@ -174,6 +176,7 @@ export async function deleteProgram(id: string): Promise<void> {
   await prisma.program.delete({ where: { id } })
   await logActivity('program.delete', { entityType: 'program', entityId: id })
   revalidatePath('/programs')
+  revalidatePath('/', 'layout') // δημόσιο site: προγράμματα/κόμβοι/προθεσμίες
 }
 
 export async function extractProgram(programId: string, text: string): Promise<{ ok: boolean; cost: OcrCostView | null; error?: string }> {

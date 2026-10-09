@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from 'next/server'
  * και ΟΛΑ παίρνουν noindex (το robots.txt απαγορεύει τα πάντα).
  */
 const SITE_PUBLIC = process.env.SITE_PUBLIC === '1'
-const SITE_PATHS = ['/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/espa', '/prothesmies-espa', '/prothesmies-espa.ics', '/glossari', '/typos', '/sitemap.xml', '/llms.txt']
+const SITE_PATHS = ['/programmata', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/espa', '/prothesmies-espa', '/prothesmies-espa.ics', '/glossari', '/typos', '/sitemap.xml', '/llms.txt', '/rss.xml']
 const PUBLIC_PATHS = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password', '/api/consent', '/eligibility', '/robots.txt',
   ...(SITE_PUBLIC ? SITE_PATHS : []),
@@ -31,11 +31,17 @@ const PUBLIC_PREFIXES = [
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+  // Ένα μόνο host για το SEO: www.wwa-espa.com → wwa-espa.com (301, κρατά path + query).
+  const host = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').split(':')[0]
+  if (SITE_PUBLIC && host.startsWith('www.')) {
+    const url = new URL(`${pathname}${req.nextUrl.search}`, `https://${host.slice(4)}`)
+    return NextResponse.redirect(url, 301)
+  }
   if (STATIC_FILE.test(pathname) && !pathname.startsWith('/api/')) return NextResponse.next()
   if (PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
     const res = NextResponse.next()
     // Ό,τι δεν είναι σελίδα του website (login, portal, magic links, api) δεν ευρετηριάζεται.
-    const indexable = SITE_PUBLIC && (INDEXABLE_PATHS.has(pathname) || INDEXABLE_PREFIXES.some(p => pathname.startsWith(p)) || pathname === '/robots.txt' || pathname === '/sitemap.xml' || pathname === '/llms.txt')
+    const indexable = SITE_PUBLIC && (INDEXABLE_PATHS.has(pathname) || INDEXABLE_PREFIXES.some(p => pathname.startsWith(p)) || pathname === '/robots.txt' || pathname === '/sitemap.xml' || pathname === '/llms.txt' || pathname === '/rss.xml')
     if (!indexable) res.headers.set('X-Robots-Tag', 'noindex, nofollow')
     return res
   }

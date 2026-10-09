@@ -12,6 +12,7 @@ import { AnswerBox } from '../../_components/program-grid'
 import { hubsForProgram, officialSourceFor, relatedPostsForProgram } from '@/lib/seo-content/hubs'
 
 export const revalidate = 3600
+export function generateStaticParams() { return [] }
 
 const tick = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
@@ -70,7 +71,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
     <>
       <JsonLd data={ld} />
       <section className="sub-banner" lang="el">
-        <img src={p.image} alt="" />
+        <img src={p.image} alt={p.title} fetchPriority="high" />
         <div className="wrap"><div className="content anim-in">
           <div className="crumbs"><Link href="/">Αρχική</Link><span aria-hidden>›</span><Link href="/programmata">Προγράμματα</Link><span aria-hidden>›</span><span>{p.title}</span></div>
           <h1>{cms?.heroTitle || p.title}{p.amount && p.amount !== '—' ? <> <span className="amount">{p.amount}</span></> : null}</h1>

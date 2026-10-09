@@ -16,6 +16,10 @@ import { KeyFacts, splitGlance } from '../../_components/key-facts'
 import { absoluteUrl } from '@/lib/site-url'
 import { listPublicPrograms } from '@/lib/programs/public'
 
+// ISR: η σελίδα φτιάχνεται στην πρώτη επίσκεψη και σερβίρεται από cache (ανανέωση ανά ώρα ή αμέσως από το CMS).
+export const revalidate = 3600
+export function generateStaticParams() { return [] }
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   const p = await getPublishedPostBySlug(slug)
@@ -79,6 +83,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
       <JsonLd data={ld} />
       <SubBanner
         image={p.image || wwaPhotoFor(p.slug)}
+        imageAlt={p.title}
         crumbs={[{ label: 'Νέα', href: '/nea' }, { label: p.title }]}
         title={p.title}
         typewrite

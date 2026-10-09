@@ -10,8 +10,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!SITE_INDEXABLE) return []
   const now = new Date()
   const [programs, posts] = await Promise.all([
-    prisma.program.findMany({ where: { status: 'ACTIVE', publicSlug: { not: null } }, select: { publicSlug: true, updatedAt: true } }),
-    prisma.post.findMany({ where: { status: 'PUBLISHED' }, select: { slug: true, updatedAt: true, publishedAt: true } }),
+    prisma.program.findMany({ where: { status: 'ACTIVE', publicSlug: { not: null } }, select: { publicSlug: true, updatedAt: true, imageUrl: true } }),
+    prisma.post.findMany({ where: { status: 'PUBLISHED' }, select: { slug: true, updatedAt: true, publishedAt: true, featuredImage: true } }),
   ])
   // Σελίδες περιφέρειας/κλάδου ΜΟΝΟ όταν έχουν ενεργό πρόγραμμα (οι άδειες είναι noindex).
   const [regions, sectors] = await Promise.all([
@@ -35,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/glossari'), changeFrequency: 'monthly', priority: 0.6 },
     { url: absoluteUrl('/typos'), lastModified: latestPost ?? now, changeFrequency: 'monthly', priority: 0.4 },
     ...[...regions, ...sectors].filter((u): u is string => !!u).map(u => ({ url: absoluteUrl(u), lastModified: latestProgram ?? now, changeFrequency: 'weekly' as const, priority: 0.7 })),
-    ...programs.map(p => ({ url: absoluteUrl(`/programmata/${p.publicSlug}`), lastModified: p.updatedAt, changeFrequency: 'weekly' as const, priority: 0.9 })),
-    ...posts.map(p => ({ url: absoluteUrl(`/nea/${p.slug}`), lastModified: p.updatedAt, changeFrequency: 'monthly' as const, priority: 0.7 })),
+    ...programs.map(p => ({ url: absoluteUrl(`/programmata/${p.publicSlug}`), lastModified: p.updatedAt, changeFrequency: 'weekly' as const, priority: 0.9, ...(p.imageUrl ? { images: [p.imageUrl] } : {}) })),
+    ...posts.map(p => ({ url: absoluteUrl(`/nea/${p.slug}`), lastModified: p.updatedAt, changeFrequency: 'monthly' as const, priority: 0.7, ...(p.featuredImage ? { images: [p.featuredImage] } : {}) })),
   ]
 }

@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   title: 'World Wide Associates — Σύμβουλοι ΕΣΠΑ & Επιδοτήσεων',
   description: 'Σύμβουλοι ΕΣΠΑ και ευρωπαϊκών προγραμμάτων: δωρεάν έλεγχος επιλεξιμότητας, υποβολή, υλοποίηση και αποπληρωμή επιδοτήσεων για επιχειρήσεις.',
   applicationName: SITE_NAME,
+  alternates: { types: { 'application/rss+xml': [{ url: '/rss.xml', title: 'World Wide Associates — Οδηγοί & νέα ΕΣΠΑ' }] } },
   openGraph: { siteName: SITE_NAME, locale: 'el_GR', type: 'website' },
   twitter: { card: 'summary_large_image' },
   ...(SITE_INDEXABLE ? {} : { robots: { index: false, follow: false } }),

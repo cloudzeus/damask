@@ -36,6 +36,8 @@ function emptyToNull(value: string): string | null {
 
 function revalidatePosts() {
   revalidatePath('/cms/posts')
+  // Δημόσιο site (αρχική, /nea, άρθρα, /typos, sitemap, llms.txt): άμεση ανανέωση των cached σελίδων.
+  revalidatePath('/', 'layout')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
