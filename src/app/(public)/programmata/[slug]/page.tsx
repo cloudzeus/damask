@@ -7,7 +7,7 @@ import { Faq } from '../../_components/faq'
 import { richNumbers } from '../../_components/rich'
 import { getPublicProgramBySlug, PROGRAM_PROCESS_STEPS } from '@/lib/programs/public'
 import { JsonLd, breadcrumbJsonLd } from '../../_components/json-ld'
-import { absoluteUrl } from '@/lib/site-url'
+import { absoluteUrl, clampMeta } from '@/lib/site-url'
 import { AnswerBox } from '../../_components/program-grid'
 import { hubsForProgram, officialSourceFor, relatedPostsForProgram, programFamily } from '@/lib/seo-content/hubs'
 import { Pic } from '../../_components/pic'
@@ -23,9 +23,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const p = await getPublicProgramBySlug(slug)
   if (!p) return { title: 'Πρόγραμμα — World Wide Associates' }
-  const description = p.cms?.seoDescription || (p.cms?.overview || p.summary || '').replace(/\s+/g, ' ').trim().slice(0, 155) || undefined
+  const description = clampMeta(p.cms?.seoDescription || (p.cms?.overview || p.summary || ''), 158) || undefined
   return {
-    title: p.cms?.seoTitle || `${p.title} — World Wide Associates`,
+    title: clampMeta(p.cms?.seoTitle || p.cms?.cardTitle || p.title, 62),
     description,
     keywords: p.cms?.keywords?.length ? p.cms.keywords : undefined,
     alternates: { canonical: `/programmata/${p.slug}` },
@@ -156,6 +156,8 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
                 {hubs.regions.slice(0, 6).map(r => <li key={r.slug}><Link href={`/espa/${r.slug}`}>ΕΣΠΑ {r.short}</Link></li>)}
                 {hubs.sectors.slice(0, 6).map(s => <li key={s.slug}><Link href={`/espa/klados/${s.slug}`}>ΕΣΠΑ για {s.short}</Link></li>)}
                 <li><Link href="/prothesmies-espa">Προθεσμίες ΕΣΠΑ</Link></li>
+                {family.kind === 'anaptyxiakos' && <li><Link href="/anaptyxiakos-nomos">Αναπτυξιακός Νόμος 2026: όλα τα ενεργά καθεστώτα</Link></li>}
+                {family.kind === 'kap' && <li><Link href="/leader">LEADER & ΣΣ ΚΑΠ 2026: όλες οι προσκλήσεις</Link></li>}
               </ul>
             </div>
           </div>
