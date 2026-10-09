@@ -35,6 +35,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/glossari'), changeFrequency: 'monthly', priority: 0.6 },
     { url: absoluteUrl('/syxnes-erotiseis'), changeFrequency: 'monthly', priority: 0.7 },
     { url: absoluteUrl('/elegxos-kad'), changeFrequency: 'weekly', priority: 0.8 },
+    { url: absoluteUrl('/anaptyxiakos-nomos'), changeFrequency: 'daily', priority: 0.9 },
+    { url: absoluteUrl('/leader'), changeFrequency: 'daily', priority: 0.9 },
     { url: absoluteUrl('/pyli-pelaton'), changeFrequency: 'monthly', priority: 0.7 },
     { url: absoluteUrl('/typos'), lastModified: latestPost ?? now, changeFrequency: 'monthly', priority: 0.4 },
     ...[...regions, ...sectors].filter((u): u is string => !!u).map(u => ({ url: absoluteUrl(u), lastModified: latestProgram ?? now, changeFrequency: 'weekly' as const, priority: 0.7 })),

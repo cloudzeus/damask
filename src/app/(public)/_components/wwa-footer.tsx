@@ -24,6 +24,8 @@ export function WwaFooter() {
               <li><Link href="/pelates">Πελάτες</Link></li>
               <li><Link href="/nea">Οδηγοί & νέα</Link></li>
               <li><Link href="/typos">Η WWA στον Τύπο</Link></li>
+              <li><Link href="/anaptyxiakos-nomos">Αναπτυξιακός Νόμος</Link></li>
+              <li><Link href="/leader">LEADER & ΚΑΠ</Link></li>
               <li><Link href="/elegxos-kad">Έλεγχος ΚΑΔ για ΕΣΠΑ</Link></li>
               <li><Link href="/syxnes-erotiseis">Συχνές ερωτήσεις</Link></li>
               <li><Link href="/glossari">Γλωσσάριο ΕΣΠΑ</Link></li>

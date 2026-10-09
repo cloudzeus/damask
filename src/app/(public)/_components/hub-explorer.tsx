@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { LuMapPin, LuFactory, LuCalendarClock, LuSparkles, LuCircleHelp, LuBookOpen, LuArrowRight } from 'react-icons/lu'
-import { hubCounts, nProgramms } from '@/lib/seo-content/hubs'
+import { hubCounts, nProgramms, programsByFamily } from '@/lib/seo-content/hubs'
 
 /**
  * «Βρείτε τι σας αφορά»: πλοήγηση ανά περιφέρεια/κλάδο ΜΕ πλήθος ενεργών προγραμμάτων.
@@ -8,7 +8,12 @@ import { hubCounts, nProgramms } from '@/lib/seo-content/hubs'
  * πρόγραμμα τονίζονται, ώστε να φαίνεται τι διαφέρει από τα πανελλαδικά.
  */
 export async function HubExplorer({ idx = '02' }: { idx?: string }) {
-  const c = await hubCounts()
+  const [c, fam] = await Promise.all([hubCounts(), programsByFamily()])
+  const families = [
+    { href: '/espa', label: 'ΕΣΠΑ & Περιφερειακά', n: fam.espa.length },
+    { href: '/anaptyxiakos-nomos', label: 'Αναπτυξιακός Νόμος', n: fam.anaptyxiakos.length },
+    { href: '/leader', label: 'LEADER & ΚΑΠ', n: fam.kap.length },
+  ].filter(f => f.n > 0)
   if (!c.total) return null
   const regions = c.regions.filter(r => r.total > 0).sort((a, b) => b.local - a.local || a.hub.short.localeCompare(b.hub.short, 'el'))
   const sectors = c.sectors.filter(s => s.total > 0).sort((a, b) => b.total - a.total)
@@ -21,6 +26,12 @@ export async function HubExplorer({ idx = '02' }: { idx?: string }) {
           <h2>Βρείτε τι σας αφορά</h2>
           <p>Επιλέξτε την περιφέρεια ή τον κλάδο της επιχείρησής σας — ο αριθμός δείχνει πόσα ενεργά προγράμματα ισχύουν εκεί.</p>
         </div>
+        {families.length > 1 && (
+          <nav className="hubx-fam r" aria-label="Ανά είδος προγράμματος">
+            <span>Ανά είδος:</span>
+            {families.map(f => <Link key={f.href} href={f.href} className="hubx-chip is-local">{f.label}<span className="n">{f.n}</span></Link>)}
+          </nav>
+        )}
         <div className="hubx-grid r">
           <div className="hubx-panel">
             <h3><LuMapPin aria-hidden /> Ανά περιφέρεια</h3>

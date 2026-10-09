@@ -5,7 +5,7 @@ import type { PublicProgramCard } from '@/lib/programs/public'
 export function ProgramGrid({ programs, empty }: { programs: PublicProgramCard[]; empty: string }) {
   if (!programs.length) return <p className="r" style={{ textAlign: 'center', color: 'var(--fg-3)', maxWidth: 640, margin: '0 auto' }}>{empty}</p>
   return (
-    <div className="cards3">
+    <div className={`cards3${programs.length < 3 ? ` cards-n${programs.length}` : ''}`}>
       {programs.map(p => (
         <ProgramCard key={p.slug} image={p.image} title={p.title} description={p.summary} budget={p.budget} rate={p.rate}
           deadline={p.deadline ?? undefined} deadlineOpen={p.deadlineOpen} region={p.region ?? undefined} status="active" href={`/programmata/${p.slug}`} />

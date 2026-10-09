@@ -31,7 +31,7 @@ const LAST = 'seo.indexnow.lastPing'
 
 /** Ό,τι άλλαξε από το προηγούμενο ping (άρθρα, προγράμματα) + οι κόμβοι που εξαρτώνται από αυτά. Καλείται καθημερινά. */
 /** Στατικές σελίδες του site — όποια δεν έχει σταλεί ποτέ στο IndexNow στέλνεται στο επόμενο tick (νέες σελίδες). */
-const STATIC_PATHS = ['/', '/programmata', '/programmata/nea-2026', '/prothesmies-espa', '/espa', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/glossari', '/syxnes-erotiseis', '/elegxos-kad', '/pyli-pelaton', '/eligibility']
+const STATIC_PATHS = ['/', '/programmata', '/programmata/nea-2026', '/prothesmies-espa', '/espa', '/ypiresies', '/etaireia', '/pelates', '/nea', '/epikoinonia', '/glossari', '/syxnes-erotiseis', '/elegxos-kad', '/anaptyxiakos-nomos', '/leader', '/pyli-pelaton', '/eligibility']
 const STATIC_KEY = 'indexnow.static'
 
 export async function pingChangedSince(): Promise<number> {

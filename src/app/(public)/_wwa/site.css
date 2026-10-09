@@ -903,3 +903,20 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 @media (max-width: 1024px) { .kadw { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .kadw { grid-template-columns: 1fr; } .kadt-form { padding-left: 44px; } .kadt-form .btn { padding: 0 18px; } }
 .kadt-form input, .kadt-form input:focus { border: 0 !important; box-shadow: none !important; outline: 0 !important; padding: 0; }
+
+/* ── Κόμβοι πλαισίου (Αναπτυξιακός / LEADER) ── */
+.famx-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 28px 0 0; }
+.famx-facts > div { padding: 18px 20px; border-radius: var(--radius-lg); background: var(--bg-canvas); border-top: 3px solid var(--brand); }
+.famx-facts dt { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-3); }
+.famx-facts dd { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: var(--fg-1); font-weight: 500; }
+.famx-about { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-6); }
+.famx-about article { padding: 26px; border-radius: var(--radius-lg); background: #fff; box-shadow: var(--elev-1); }
+.famx-about h3 { margin: 0 0 10px; font-size: 1.125rem; }
+.famx-about p { margin: 0; color: var(--fg-2); line-height: 1.65; }
+.famx-source { margin: 28px 0 0; text-align: center; font-size: 14px; color: var(--fg-3); }
+.famx-source a { color: var(--brand); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.famx-source svg { width: 14px; height: 14px; }
+@media (max-width: 1024px) { .famx-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .famx-about { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .famx-facts { grid-template-columns: 1fr; } }
+.hubx-fam { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; margin: -8px 0 24px; }
+.hubx-fam > span { font-size: 14px; color: var(--fg-3); margin-right: 4px; }

@@ -162,8 +162,9 @@ export type ProgramFamily = { kind: 'espa' | 'anaptyxiakos' | 'kap'; label: stri
 /** Σε ποιο «πλαίσιο» ανήκει ένα πρόγραμμα (από την επίσημη πηγή του) — για σωστή διατύπωση και schema. */
 export function programFamily(officialUrl: string | null, title = ''): ProgramFamily {
   const s = `${officialUrl ?? ''} ${title}`
-  if (/ependyseis\.mindev|ependyseis\.gr|αναπτυξιακ/i.test(s)) return { kind: 'anaptyxiakos', label: 'πρόγραμμα του Αναπτυξιακού Νόμου', funder: [{ name: 'Υπουργείο Ανάπτυξης — Αναπτυξιακός Νόμος 4887/2022', url: 'https://ependyseis.mindev.gov.gr' }] }
-  if (/agrotikianaptixi|LEADER|ΣΣ ΚΑΠ|ΚΑΠ 2023/i.test(s)) return { kind: 'kap', label: 'πρόγραμμα του Στρατηγικού Σχεδίου ΚΑΠ (LEADER/αγροτική ανάπτυξη)', funder: [{ name: 'Στρατηγικό Σχέδιο ΚΑΠ 2023–2027', url: 'https://www.agrotikianaptixi.gr' }, { name: 'Ευρωπαϊκή Ένωση', url: 'https://european-union.europa.eu' }] }
+  // Μόνο «Αναπτυξιακός Νόμος» (όχι π.χ. «Δίκαιη Αναπτυξιακή Μετάβαση», που είναι ΕΣΠΑ).
+  if (/ependyseis\.mindev|ependyseis\.gr|αναπτυξιακ(ός|ού)\s+ν[όο]μ|ν\.\s*4887\/2022/i.test(s)) return { kind: 'anaptyxiakos', label: 'πρόγραμμα του Αναπτυξιακού Νόμου', funder: [{ name: 'Υπουργείο Ανάπτυξης — Αναπτυξιακός Νόμος 4887/2022', url: 'https://ependyseis.mindev.gov.gr' }] }
+  if (/agrotikianaptixi|\bLEADER\b|ΣΣ ΚΑΠ|ΚΑΠ 2023/i.test(s)) return { kind: 'kap', label: 'πρόγραμμα του Στρατηγικού Σχεδίου ΚΑΠ (LEADER/αγροτική ανάπτυξη)', funder: [{ name: 'Στρατηγικό Σχέδιο ΚΑΠ 2023–2027', url: 'https://www.agrotikianaptixi.gr' }, { name: 'Ευρωπαϊκή Ένωση', url: 'https://european-union.europa.eu' }] }
   return { kind: 'espa', label: 'πρόγραμμα ΕΣΠΑ', funder: [{ name: 'ΕΣΠΑ 2021-2027', url: 'https://www.espa.gr' }, { name: 'Ευρωπαϊκή Ένωση', url: 'https://european-union.europa.eu' }] }
 }
 
@@ -173,4 +174,21 @@ export function rateRangeText(labels: (string | null | undefined)[]): string | n
   if (!rates.length) return null
   const lo = Math.min(...rates), hi = Math.max(...rates)
   return lo === hi ? `έως ${hi}%` : `από ${lo}% έως ${hi}%`
+}
+
+/** Ενεργά δημόσια προγράμματα ανά πλαίσιο (ΕΣΠΑ / Αναπτυξιακός / ΣΣ ΚΑΠ-LEADER) — από την επίσημη πηγή κάθε προγράμματος. */
+export async function programsByFamily(): Promise<Record<ProgramFamily['kind'], PublicProgramCard[]>> {
+  const all = await listPublicPrograms()
+  const rows = await prisma.program.findMany({
+    where: { publicSlug: { in: all.map(p => p.slug) } },
+    select: { publicSlug: true, title: true, references: { where: { kind: 'URL', url: { not: null } }, select: { url: true }, orderBy: { createdAt: 'asc' } } },
+  })
+  const official = /(espa\.gr|ependyseis|gov\.gr|agrotikianaptixi\.gr)/i
+  const kindBySlug = new Map(rows.map(r => {
+    const urls = r.references.map(x => x.url!).filter(Boolean)
+    return [r.publicSlug!, programFamily(urls.find(u => official.test(u)) ?? urls[0] ?? null, r.title).kind] as const
+  }))
+  const out: Record<ProgramFamily['kind'], PublicProgramCard[]> = { espa: [], anaptyxiakos: [], kap: [] }
+  for (const p of all) out[kindBySlug.get(p.slug) ?? 'espa'].push(p)
+  return out
 }
