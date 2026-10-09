@@ -10,6 +10,8 @@ import { ensureEmeTemplate, extractEmeWithAi, applyEmeToTrdr } from '@/lib/tax/e
 import { isE3TypeName, extractE3WithAi, applyE3ToTrdr } from '@/lib/tax/e3'
 import { isMmeTypeName, extractMmeWithAi, applyMmeToTrdr } from '@/lib/tax/mme'
 import { verifyRequestedUpload } from '@/lib/file-requests/verify-upload'
+import { notifyRejectedUpload } from '@/lib/file-requests/rejection'
+import { documentHint } from '@/lib/file-requests/doc-hints'
 
 /**
  * Public upload endpoint (token-gated, ΧΩΡΙΣ session — βλ. proxy.ts /api/file-requests/).
@@ -86,7 +88,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
     bytes: Buffer.from(arrayBuffer), mimeType: file.type || '', fileName: file.name,
     expected: { label: item.label, description: item.description }, company: { name: trdr?.NAME ?? '', afm: trdr?.AFM },
   })
-  if (!verdict.ok) return NextResponse.json({ error: verdict.reason, rejected: true }, { status: 422 })
+  if (!verdict.ok) {
+    // Ενημέρωση γραφείου + πελάτη (στο παρασκήνιο) και λίστα των ζητούμενων με εξήγηση για αυτόν που ανεβάζει.
+    void notifyRejectedUpload({ fileRequestId: fr.id, itemLabel: item.label, fileName: file.name, reason: verdict.reason }).catch(err => console.error('[file-request] rejection notify failed', err))
+    const pending = await prisma.fileRequestItem.findMany({ where: { fileRequestId: fr.id, fileKey: null, fileUrl: null }, orderBy: { order: 'asc' }, select: { label: true, description: true } })
+    return NextResponse.json({ error: verdict.reason, rejected: true, requested: pending.map(p => ({ label: p.label, hint: documentHint(p.label, p.description) ?? p.description })) }, { status: 422 })
+  }
 
   try {
     await bunnyUploadPrivate({ key: storageKey, body: Buffer.from(arrayBuffer), contentType: file.type || 'application/octet-stream' })

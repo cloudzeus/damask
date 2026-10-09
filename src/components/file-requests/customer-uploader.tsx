@@ -8,6 +8,7 @@ import { xhrUpload } from '@/components/ui/file-dropzone'
 import type { PublicFileRequest } from '@/lib/file-requests/public'
 import { recognizeFileForRequest } from '@/lib/file-requests/classify'
 import { readForRecognition } from '@/lib/ocr/read-for-recognition'
+import { documentHint } from '@/lib/file-requests/doc-hints'
 
 /**
  * Δημόσιος uploader δικαιολογητικών (token-gated, ΧΩΡΙΣ session). Ο πελάτης
@@ -205,6 +206,9 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                 {item.description && (
                   <p style={{ margin: '0.2rem 0 0', fontSize: 'var(--fs-12-5)', lineHeight: 1.45, color: 'var(--muted-foreground, #64748b)' }}>{item.description}</p>
                 )}
+                {!item.uploaded && documentHint(item.label, item.description) && (
+                  <p style={{ margin: '0.2rem 0 0', fontSize: 'var(--fs-12-5)', lineHeight: 1.45, color: 'var(--muted-foreground, #64748b)' }}><b>Πού το βρίσκετε:</b> {documentHint(item.label, item.description)}</p>
+                )}
                 <p style={{ margin: '0.3rem 0 0', fontSize: 'var(--fs-12)', color: item.uploaded ? 'var(--success, #059669)' : 'var(--muted-foreground, #94a3b8)' }}>
                   {item.uploaded ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -218,6 +222,20 @@ export function CustomerUploader({ token, request }: { token: string; request: O
           ))}
         </ul>
       </section>
+
+      {/* Απορρίφθηκε αρχείο → υπενθύμιση ΤΙ ζητήσαμε, με εξήγηση */}
+      {queue.some(q => q.status === 'error') && items.some(i => !i.uploaded) && (
+        <div role="alert" style={{ padding: '1rem 1.1rem', borderRadius: 14, background: '#FCE8E6', borderLeft: '4px solid #B3261E', color: '#0B0F2A' }}>
+          <p style={{ margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><AlertTriangle size={16} aria-hidden style={{ color: '#B3261E' }} /> Κάποιο αρχείο δεν έγινε δεκτό — σας έχουμε ζητήσει τα εξής δικαιολογητικά:</p>
+          <ul style={{ margin: '0.6rem 0 0', paddingLeft: '1.1rem', display: 'grid', gap: '0.45rem' }}>
+            {items.filter(i => !i.uploaded).map(i => {
+              const hint = documentHint(i.label, i.description) ?? i.description
+              return <li key={i.id} style={{ fontSize: 'var(--fs-13)' }}><b>{i.label}</b>{hint ? <><br /><span style={{ color: '#474C60' }}>{hint}</span></> : null}</li>
+            })}
+          </ul>
+          <p style={{ margin: '0.6rem 0 0', fontSize: 'var(--fs-12-5)', color: '#474C60' }}>Κάθε αρχείο ελέγχεται αυτόματα — ανεβάστε μόνο τα παραπάνω έγγραφα, της συγκεκριμένης επιχείρησης, σε PDF ή φωτογραφία.</p>
+        </div>
+      )}
 
       {/* Ζώνη μεταφόρτωσης */}
       <div
