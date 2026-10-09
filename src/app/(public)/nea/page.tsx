@@ -7,6 +7,7 @@ import { Faq, type FaqItem } from '../_components/faq'
 import { PostMeta } from '../_components/post-meta'
 import { wwaPhoto } from '../_wwa/assets'
 import { listPublishedPosts, type PublicPostCard } from '@/lib/cms/public-posts'
+import { Pic } from '../_components/pic'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/nea' },
@@ -26,7 +27,7 @@ const FALLBACK = [wwaPhoto('manufacturing'), wwaPhoto('hotel'), wwaPhoto('startu
 function NCard({ post, i }: { post: PublicPostCard; i: number }) {
   return (
     <article className="card card-hover ncard r">
-      <div className="media"><img src={post.image || FALLBACK[i % FALLBACK.length]} alt="" /></div>
+      <div className="media"><Pic src={post.image || FALLBACK[i % FALLBACK.length]} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" widths={[480, 768, 1080]} loading="lazy" /></div>
       <div className="body">
         <PostMeta category={post.category} date={post.date} />
         <h3><Link href={`/nea/${post.slug}`}>{post.title}</Link></h3>
@@ -59,7 +60,7 @@ export default async function NewsPage() {
             <>
               {featured && (
                 <article className="feat-post">
-                  <div className="photo square"><img src={featured.image || FALLBACK[0]} alt="" /></div>
+                  <div className="photo square"><Pic src={featured.image || FALLBACK[0]} sizes="(min-width: 1024px) 50vw, 100vw" /></div>
                   <div className="b">
                     <PostMeta category={featured.category} date={featured.date} />
                     <h2>{featured.title}</h2>

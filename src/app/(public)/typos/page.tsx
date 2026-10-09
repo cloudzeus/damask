@@ -6,6 +6,7 @@ import { PostMeta } from '../_components/post-meta'
 import { JsonLd, breadcrumbJsonLd } from '../_components/json-ld'
 import { wwaPhoto } from '../_wwa/assets'
 import { listPublishedPosts } from '@/lib/cms/public-posts'
+import { Pic } from '../_components/pic'
 
 export const revalidate = 3600
 export const metadata: Metadata = {
@@ -29,7 +30,7 @@ export default async function PressPage() {
             : <div className="cards3 cards-2rows">
                 {posts.map(p => (
                   <article key={p.slug} className="card card-hover ncard r">
-                    <div className="media"><img src={p.image || wwaPhoto('team')} alt="" loading="lazy" /></div>
+                    <div className="media"><Pic src={p.image || wwaPhoto('team')} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" widths={[480, 768, 1080]} loading="lazy" /></div>
                     <div className="body">
                       <PostMeta category={p.category} date={p.date} />
                       <h3><Link href={`/nea/${p.slug}`}>{p.title}</Link></h3>

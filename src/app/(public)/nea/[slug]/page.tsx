@@ -16,6 +16,7 @@ import { KeyFacts, splitGlance } from '../../_components/key-facts'
 import { absoluteUrl } from '@/lib/site-url'
 import { listPublicPrograms } from '@/lib/programs/public'
 import { linkGlossaryTerms } from '@/lib/seo-content/glossary'
+import { Pic } from '../../_components/pic'
 
 // ISR: η σελίδα φτιάχνεται στην πρώτη επίσκεψη και σερβίρεται από cache (ανανέωση ανά ώρα ή αμέσως από το CMS).
 export const revalidate = 3600
@@ -161,7 +162,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
               <div className="aside-box aside-related r"><h4>Σχετικά προγράμματα</h4><ul>
                 {programs.map(r => (
                   <li key={r.slug}>
-                    <Link href={`/programmata/${r.slug}`} className="thumb"><img src={r.image} alt="" loading="lazy" /></Link>
+                    <Link href={`/programmata/${r.slug}`} className="thumb"><Pic src={r.image} sizes="128px" widths={[128, 256]} loading="lazy" /></Link>
                     <div className="rl-body">
                       <Link href={`/programmata/${r.slug}`}>{r.title}</Link>
                       <span className="pm" style={{ fontSize: 13, color: 'var(--fg-3)' }}>{[r.rate, r.deadline ? `έως ${r.deadline}` : 'ανοιχτή πρόσκληση'].filter(Boolean).join(' · ')}</span>
@@ -174,7 +175,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
               <div className="aside-box aside-related r"><h4>Σχετικά άρθρα</h4><ul>
                 {related.map(r => (
                   <li key={r.slug}>
-                    {r.image && <Link href={`/nea/${r.slug}`} className="thumb"><img src={r.image} alt="" loading="lazy" /></Link>}
+                    {r.image && <Link href={`/nea/${r.slug}`} className="thumb"><Pic src={r.image} sizes="128px" widths={[128, 256]} loading="lazy" /></Link>}
                     <div className="rl-body">
                       <Link href={`/nea/${r.slug}`}>{r.title}</Link>
                       <PostMeta category={r.category} date={r.date} />
@@ -195,7 +196,7 @@ export default async function NewsArticlePage({ params }: { params: Promise<{ sl
             <div className="cards3">
               {related.map(r => (
                 <article key={r.slug} className="card card-hover ncard r">
-                  <div className="media"><img src={r.image || wwaPhotoFor(r.slug)} alt="" loading="lazy" /></div>
+                  <div className="media"><Pic src={r.image || wwaPhotoFor(r.slug)} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" widths={[480, 768, 1080]} loading="lazy" /></div>
                   <div className="body"><PostMeta category={r.category} date={r.date} /><h3><Link href={`/nea/${r.slug}`}>{r.title}</Link></h3></div>
                 </article>
               ))}

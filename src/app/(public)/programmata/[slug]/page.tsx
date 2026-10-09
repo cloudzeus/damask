@@ -10,6 +10,7 @@ import { JsonLd, breadcrumbJsonLd } from '../../_components/json-ld'
 import { absoluteUrl } from '@/lib/site-url'
 import { AnswerBox } from '../../_components/program-grid'
 import { hubsForProgram, officialSourceFor, relatedPostsForProgram } from '@/lib/seo-content/hubs'
+import { Pic } from '../../_components/pic'
 
 export const revalidate = 3600
 export function generateStaticParams() { return [] }
@@ -71,7 +72,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
     <>
       <JsonLd data={ld} />
       <section className="sub-banner" lang="el">
-        <img src={p.image} alt={p.title} fetchPriority="high" />
+        <Pic src={p.image} alt={p.title} fetchPriority="high" />
         <div className="wrap"><div className="content anim-in">
           <div className="crumbs"><Link href="/">Αρχική</Link><span aria-hidden>›</span><Link href="/programmata">Προγράμματα</Link><span aria-hidden>›</span><span>{p.title}</span></div>
           <h1>{cms?.heroTitle || p.title}{p.amount && p.amount !== '—' ? <> <span className="amount">{p.amount}</span></> : null}</h1>

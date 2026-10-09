@@ -6,6 +6,7 @@ import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck, IconShield, IconChart, IconInfo } from '../_components/icons'
 import { wwaPhoto, wwaPageImage } from '../_wwa/assets'
+import { Pic } from '../_components/pic'
 
 export const revalidate = 3600
 
@@ -42,7 +43,7 @@ export default function CompanyPage() {
       <section lang="el" className="company">
         <div className="wrap">
           <div className="promo r">
-            <div className="photo square"><img src={wwaPageImage('promo-team')} alt="Συνάντηση με επιχείρηση-πελάτη" /></div>
+            <div className="photo square"><Pic src={wwaPageImage('promo-team')} alt="Συνάντηση με επιχείρηση-πελάτη" sizes="(min-width: 1024px) 50vw, 100vw" loading="lazy" /></div>
             <div className="txt">
               <span className="eyebrow" style={{ color: 'rgba(255,255,255,.7)' }}><span className="idx" style={{ color: 'var(--wwa-cyan-400)' }}>01</span>Ποιοι είμαστε</span>
               <h2>Μια ομάδα δίπλα σε κάθε ελληνική επιχείρηση</h2>
@@ -74,7 +75,7 @@ export default function CompanyPage() {
       <section lang="el">
         <div className="wrap">
           <article className="feature">
-            <div className="photo"><img src={wwaPhoto('consulting')} alt="" /></div>
+            <div className="photo"><Pic src={wwaPhoto('consulting')} sizes="(min-width: 1024px) 50vw, 100vw" loading="lazy" /></div>
             <div>
               <span className="eyebrow"><span className="idx">03</span>Η προσέγγισή μας</span>
               <h2 style={{ marginTop: 12 }}>Λιγότερο άγχος για εσάς, περισσότερη δουλειά για εμάς</h2>

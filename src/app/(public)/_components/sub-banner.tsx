@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- public φωτογραφίες με object-fit cover */
 import type { ReactNode } from 'react'
 import Link from 'next/link'
+import { Pic } from './pic'
 
 /**
  * WWA sub-banner (εσωτερικές σελίδες): φωτογραφία 320px+ με navy overlay,
@@ -24,7 +25,7 @@ export function SubBanner({
 }) {
   return (
     <section className="sub-banner" lang="el">
-      <img src={image} alt={imageAlt} fetchPriority="high" />
+      <Pic src={image} alt={imageAlt} fetchPriority="high" />
       <div className="wrap"><div className="content anim-in">
         <div className="crumbs">
           <Link href="/">Αρχική</Link>

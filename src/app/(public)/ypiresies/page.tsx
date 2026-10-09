@@ -6,6 +6,7 @@ import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck } from '../_components/icons'
 import { wwaPageImage } from '../_wwa/assets'
+import { Pic } from '../_components/pic'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/ypiresies' },
@@ -27,7 +28,7 @@ function Feature({ idx, stage, title, text, items, photo, primary, link }: {
 }) {
   return (
     <article className="feature">
-      <div className="photo"><img src={photo} alt="" /></div>
+      <div className="photo"><Pic src={photo} sizes="(min-width: 1024px) 50vw, 100vw" loading="lazy" /></div>
       <div>
         <span className="eyebrow"><span className="idx">{idx}</span>{stage}</span>
         <h2 style={{ marginTop: 12 }}>{title}</h2>

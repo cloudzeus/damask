@@ -6,6 +6,15 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Φωτογραφίες του site (Bunny CDN, χωρίς Optimizer): σωστό μέγεθος ανά συσκευή μέσω του /_next/image (WebP/AVIF + cache 30 ημερών).
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: 'damask-1.b-cdn.net' }],
+    formats: ['image/avif', 'image/webp'],
+    qualities: [72],
+    deviceSizes: [480, 768, 1080, 1440, 1920],
+    imageSizes: [128, 256, 384],
+    minimumCacheTTL: 2_592_000,
+  },
   // 301 από τα URL του παλιού WordPress (wwa-espa.com) — κρατά τις θέσεις στο Google μετά την αντικατάσταση.
   async redirects() {
     return legacyRedirects()

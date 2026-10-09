@@ -9,6 +9,7 @@ import { wwaPhoto, wwaPageImage } from './_wwa/assets'
 import { listPublicPrograms } from '@/lib/programs/public'
 import { PostMeta } from './_components/post-meta'
 import { listPublishedPosts } from '@/lib/cms/public-posts'
+import { Pic } from './_components/pic'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -69,7 +70,7 @@ export default async function HomePage() {
         <div className="banner">
           {/* Εναλλαγή φωτογραφιών (GSAP crossfade) — η πρώτη φαίνεται και χωρίς JS. */}
           <div className="hero-slides" aria-hidden>
-            {heroSlides.map((src, i) => <img key={src} src={src} alt="" className={i === 0 ? 'on' : undefined} fetchPriority={i === 0 ? 'high' : undefined} loading={i === 0 ? 'eager' : 'lazy'} />)}
+            {heroSlides.map((src, i) => <Pic key={src} src={src} alt="" className={i === 0 ? 'on' : undefined} fetchPriority={i === 0 ? 'high' : undefined} loading={i === 0 ? 'eager' : 'lazy'} />)}
           </div>
           {featured ? (
             <div className="wrap"><div className="content">
@@ -154,7 +155,7 @@ export default async function HomePage() {
       <section lang="el" className="company" id="company">
         <div className="wrap">
           <div className="promo r">
-            <div className="photo square"><img src={wwaPageImage('promo-team')} alt="Η ομάδα σε επιχείρηση-πελάτη" /></div>
+            <div className="photo square"><Pic src={wwaPageImage('promo-team')} alt="Η ομάδα σε επιχείρηση-πελάτη" sizes="(min-width: 1024px) 50vw, 100vw" loading="lazy" /></div>
             <div className="txt">
               <span className="eyebrow" style={{ color: 'rgba(255,255,255,.7)' }}><span className="idx" style={{ color: 'var(--wwa-cyan-400)' }}>03</span>Η εταιρεία</span>
               <h2>Γιατί οι επιχειρήσεις μάς εμπιστεύονται ξανά</h2>
@@ -191,7 +192,7 @@ export default async function HomePage() {
             <div className="cards3">
               {news.map((post, i) => (
                 <article key={post.slug} className="card card-hover ncard r">
-                  <div className="media"><img src={post.image || wwaPhoto(['ecommerce', 'cosmetics', 'hotel'][i % 3] as 'ecommerce')} alt="" /></div>
+                  <div className="media"><Pic src={post.image || wwaPhoto(['ecommerce', 'cosmetics', 'hotel'][i % 3] as 'ecommerce')} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" widths={[480, 768, 1080]} loading="lazy" /></div>
                   <div className="body">
                     <PostMeta category={post.category} date={post.date} />
                     <h3><Link href={`/nea/${post.slug}`}>{post.title}</Link></h3>

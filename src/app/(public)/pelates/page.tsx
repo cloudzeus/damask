@@ -6,6 +6,7 @@ import { Button } from '../_components/button'
 import { Faq, type FaqItem } from '../_components/faq'
 import { IconCheck } from '../_components/icons'
 import { wwaPageImage } from '../_wwa/assets'
+import { Pic } from '../_components/pic'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/pelates' },
@@ -74,7 +75,7 @@ export default function ClientsPage() {
         <div className="wrap">
           <div className="sec-head"><span className="eyebrow"><span className="idx">02</span>Ενδεικτικό έργο</span><h2>Από την αίτηση στην εκταμίευση σε 14 μήνες</h2></div>
           <article className="feature" style={{ paddingTop: 0 }}>
-            <div className="photo"><img src={wwaPageImage('cl-hotel')} alt="" /></div>
+            <div className="photo"><Pic src={wwaPageImage('cl-hotel')} sizes="(min-width: 1024px) 50vw, 100vw" loading="lazy" /></div>
             <div>
               <span className="badge badge-closed">Ολοκληρωμένο</span>
               <h2 style={{ marginTop: 14 }}>Villa Kerkyra Suites — Ενίσχυση Τουριστικών ΜμΕ</h2>
