@@ -939,3 +939,42 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .ptag-urgent { background: var(--warning-100, #FBEEDC); color: var(--warning, #8F4B00); }
 .ptag-urgent::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: wwaPulseDot 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .ptag-urgent::before { animation: none; } }
+
+/* ── Υπηρεσίες: «Το μοντέλο μας» (σε .sband) ── */
+.svcm-lead { max-width: 62ch; margin: 12px auto 0; color: rgba(255,255,255,.78); line-height: 1.6; }
+.svcm-pillars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.svcm-pillars .sband-item h3 { margin: 4px 0 0; color: #fff; font-size: 1.125rem; }
+.svcm-pillars .sband-item p { margin: 0; font-size: 14px; line-height: 1.55; color: rgba(255,255,255,.75); }
+.svcm-journey { margin-top: 28px; padding: 22px 24px 18px; border-radius: var(--radius-lg); background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); }
+.svcm-journey-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-bottom: 18px; }
+.svcm-journey-head b { color: #fff; font-family: var(--font-display); font-size: 15px; letter-spacing: .04em; text-transform: uppercase; }
+.svcm-journey-head span { font-size: 12px; color: rgba(255,255,255,.55); }
+.svcm-journey ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; position: relative; }
+.svcm-journey ol::before { content: ""; position: absolute; left: 6px; right: 6px; top: 31px; height: 2px; background: linear-gradient(90deg, var(--wwa-cyan-400), var(--wwa-pink-400), #7CFF6B, #A98BFF); opacity: .6; }
+.svcm-journey li { --c: var(--wwa-cyan-400); position: relative; display: grid; gap: 4px; align-content: start; }
+.svcm-journey li.c1 { --c: var(--wwa-pink-400); } .svcm-journey li.c2 { --c: #7CFF6B; } .svcm-journey li.c3 { --c: #A98BFF; }
+.svcm-journey .yr { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.svcm-journey .dot { width: 14px; height: 14px; margin: 3px 0 6px; border-radius: 50%; background: var(--wwa-navy-950); border: 3px solid var(--c); position: relative; z-index: 1; }
+.svcm-journey li.c3 .dot { animation: wwaPulseDot 1.8s ease-in-out infinite; }
+.svcm-journey b { color: #fff; font-size: 15px; line-height: 1.3; }
+.svcm-journey small { color: rgba(255,255,255,.65); font-size: 13px; }
+.svcm-journey em { justify-self: start; margin-top: 4px; padding: 3px 10px; border-radius: var(--radius-pill); font-style: normal; font-size: 12px; font-weight: 600; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+@media (max-width: 1024px) { .svcm-pillars { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) {
+  .svcm-pillars { grid-template-columns: 1fr; }
+  .svcm-journey ol { grid-template-columns: 1fr; gap: 16px; padding-left: 26px; }
+  .svcm-journey ol::before { left: 6px; right: auto; top: 6px; bottom: 6px; width: 2px; height: auto; background: linear-gradient(180deg, var(--wwa-cyan-400), var(--wwa-pink-400), #7CFF6B, #A98BFF); }
+  .svcm-journey .dot { position: absolute; left: -26px; top: 2px; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .svcm-journey li.c3 .dot { animation: none; } }
+
+/* ── Υπηρεσίες: Thanos ── */
+.svct { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-12, 48px); align-items: center; }
+.svct-copy h2 { text-align: left; margin: 12px 0 0; }
+.svct-copy > p { margin: 14px 0 0; color: var(--fg-2); line-height: 1.65; max-width: 52ch; }
+.svct-list { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 12px; }
+.svct-list li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; color: var(--fg-2); }
+.svct-list svg { flex: none; width: 36px; height: 36px; padding: 8px; border-radius: 10px; background: var(--navy-50); color: var(--brand); }
+.svct-list b { color: var(--fg-1); }
+.svct-acts { margin-top: 24px; }
+@media (max-width: 900px) { .svct { grid-template-columns: 1fr; } }
