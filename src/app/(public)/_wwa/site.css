@@ -647,3 +647,25 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
   .footer .cols a { display: inline-flex; align-items: center; min-height: 40px; }
   .btn-link { min-height: 44px; }
 }
+
+/* ── Sub-banner v2 (ui-ux-pro-max): συμπαγές, η φωτογραφία «αναπνέει» δεξιά, ιεραρχία τίτλος → υπότιτλος → κείμενο ── */
+.sub-banner { min-height: 0; }
+.sub-banner::before {
+  background:
+    linear-gradient(90deg, rgba(0,0,34,.94) 0%, rgba(0,0,34,.86) 32%, rgba(0,0,34,.52) 62%, rgba(0,0,34,.18) 100%),
+    linear-gradient(0deg, rgba(0,0,34,.55) 0%, rgba(0,0,34,0) 45%);
+}
+.sub-banner .content { padding: clamp(40px, 6vw, 72px) 0 clamp(44px, 6vw, 76px); max-width: 680px; }
+.sub-banner h1 { text-wrap: balance; }
+.sub-banner .sub { margin-top: 10px; font-family: var(--font-body); font-weight: 500; font-size: clamp(1.0625rem, 1.4vw, 1.25rem); line-height: 1.4; color: #fff; text-transform: none; letter-spacing: 0; }
+.sub-banner .lead { margin-top: 12px; font-size: 16px; line-height: 1.6; color: rgba(255,255,255,.8); max-width: 56ch; }
+.sub-banner .meta { margin-top: 22px; }
+.sub-banner .meta a.pill { text-decoration: none; min-height: 40px; padding: 0 16px; border: 1px solid rgba(255,255,255,.4); background: transparent; transition: background .2s, border-color .2s; }
+.sub-banner .meta a.pill:hover { background: rgba(255,255,255,.1); border-color: #fff; }
+/* Λεπτή γραμμή με τα χρώματα του λογότυπου στη βάση του banner */
+.sub-banner-rule { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 2; background: linear-gradient(90deg, #4000A6, #251BC8 35%, #34C8F6 70%, #FF0677); }
+@media (max-width: 767px) {
+  .sub-banner::before { background: linear-gradient(180deg, rgba(0,0,34,.78) 0%, rgba(0,0,34,.9) 100%); }
+  .sub-banner .content { padding: 32px 0 40px; }
+  .sub-banner .lead { font-size: 15px; }
+}

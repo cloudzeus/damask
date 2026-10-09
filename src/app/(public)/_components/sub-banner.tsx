@@ -35,10 +35,11 @@ export function SubBanner({
         </div>
         {badges && <div className="hero-badges">{badges}</div>}
         <h1 {...(typewrite ? { 'data-typewrite': true } : {})}>{title}</h1>
-        {sub && <p className="sub" style={{ marginTop: 8, fontSize: 20, color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 900, textTransform: 'uppercase' }}>{sub}</p>}
-        {lead && <p style={{ marginTop: 14, fontSize: 17, color: 'rgba(255,255,255,.85)', maxWidth: '58ch' }}>{lead}</p>}
+        {sub && <p className="sub">{sub}</p>}
+        {lead && <p className="lead">{lead}</p>}
         {meta && <div className="meta">{meta}</div>}
       </div></div>
+      <span className="sub-banner-rule" aria-hidden />
     </section>
   )
 }
