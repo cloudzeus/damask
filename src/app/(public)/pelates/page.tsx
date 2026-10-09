@@ -1,5 +1,6 @@
  
 import type { Metadata } from 'next'
+import { StatsBand, WWA_STATS } from '../_components/stats-band'
 import { SubBanner } from '../_components/sub-banner'
 import { EligibilityCta } from '../_components/eligibility-cta'
 import { Button } from '../_components/button'
@@ -102,14 +103,11 @@ export default function ClientsPage() {
         </div>
       </section>
 
-      <section lang="el" className="stats">
-        <div className="wrap">
-          <div className="stat"><div className="value" data-count="2500" data-suffix="+">2.500+</div><div className="label">επενδυτικά σχέδια με έγκριση</div></div>
-          <div className="stat accent"><div className="value">98–100%</div><div className="label">ποσοστό εγκρίσεων</div></div>
-          <div className="stat"><div className="value">6</div><div className="label">κλάδοι με εξειδίκευση</div></div>
-          <div className="stat"><div className="value">13</div><div className="label">περιφέρειες με έργα</div></div>
-        </div>
-      </section>
+      <StatsBand title="Εμπιστοσύνη σε όλη την Ελλάδα" items={[
+        WWA_STATS[0], WWA_STATS[1],
+        { count: 6, display: '6', label: 'κλάδοι με εξειδίκευση', icon: 'sectors', fill: 60 },
+        { count: 13, display: '13', label: 'περιφέρειες με έργα', icon: 'regions', fill: 100 },
+      ]} />
 
       <Faq items={FAQS} idx="04" subtitle="Τα πιο συχνά ερωτήματα από νέους πελάτες." />
     </>

@@ -118,7 +118,7 @@ export function WwaMotion() {
       // Στο τέλος της σελίδας κάποια στοιχεία δεν «περνούν» ποτέ το όριο — μετά από κάθε scroll εμφανίζεται ό,τι φαίνεται.
       const sweep = () => reveal(below.filter(e => e.getBoundingClientRect().top < window.innerHeight))
       ScrollTrigger.addEventListener('scrollEnd', sweep)
-      return () => ScrollTrigger.removeEventListener('scrollEnd', sweep)
+      cleanups.push(() => ScrollTrigger.removeEventListener('scrollEnd', sweep))
 
       // Μετρητές
       gsap.utils.toArray<HTMLElement>('[data-count]').forEach(el => {
@@ -133,7 +133,7 @@ export function WwaMotion() {
         const p = Number(getComputedStyle(ring).getPropertyValue('--p')) || 0
         gsap.fromTo(ring, { '--p': 0 }, { '--p': p, duration: 1.4, ease: 'power3.out', scrollTrigger: { trigger: ring, start: 'top 88%', once: true } })
       })
-      gsap.utils.toArray<HTMLElement>('.kf-bar-fill, .kf-bar-min').forEach(bar => {
+      gsap.utils.toArray<HTMLElement>('.kf-bar-fill, .kf-bar-min, .sb-bar i').forEach(bar => {
         gsap.from(bar, { scaleX: 0, transformOrigin: 'left center', duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: bar, start: 'top 92%', once: true } })
       })
     })

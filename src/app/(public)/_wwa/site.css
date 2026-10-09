@@ -827,3 +827,31 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 .map-card-ic { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--navy-50); color: var(--brand); }
 .map-card-ic svg { width: 22px; height: 22px; }
 .map-card .btn { flex: none; min-height: 44px; }
+
+/* ── «Σε αριθμούς»: σκούρα μπάντα με κορδέλες λογότυπου ── */
+.sband { position: relative; overflow: hidden; isolation: isolate; background: radial-gradient(90% 120% at 100% 0%, #0B1A8C 0%, var(--wwa-navy-950) 60%), var(--wwa-navy-950); color: #fff; padding-block: clamp(56px, 6vw, 88px); }
+.sband-ribbons { position: absolute; top: -30%; bottom: -30%; right: -6%; width: 46%; z-index: -1; display: flex; gap: 22px; transform: skewX(-18deg); opacity: .22; pointer-events: none; }
+.sband-ribbons i { flex: 1; border-radius: 999px; animation: sbandDrift 14s ease-in-out infinite alternate; }
+.sband-ribbons i:nth-child(1) { background: linear-gradient(180deg, transparent, var(--wwa-cyan-400), #0E5BD8); }
+.sband-ribbons i:nth-child(2) { background: linear-gradient(180deg, var(--wwa-lime-500), #00B85C, transparent); animation-delay: -4s; }
+.sband-ribbons i:nth-child(3) { background: linear-gradient(180deg, transparent, var(--wwa-magenta-500), var(--wwa-violet-600)); animation-delay: -8s; }
+.sband-ribbons i:nth-child(4) { background: linear-gradient(180deg, var(--wwa-violet-600), var(--wwa-pink-400), transparent); animation-delay: -11s; }
+@keyframes sbandDrift { from { transform: translateY(-6%); } to { transform: translateY(6%); } }
+.sband-head { text-align: center; margin-bottom: 40px; }
+.sband-eyebrow { display: inline-block; padding: 6px 14px; border-radius: var(--radius-pill); background: rgba(52, 200, 246, .14); color: var(--wwa-cyan-400); font-size: 13px; font-weight: 500; }
+.sband-head h2 { color: #fff; margin: 12px 0 0; }
+.sband-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.sband-item { --c: var(--wwa-cyan-400); position: relative; display: grid; gap: 10px; align-content: start; padding: 26px 24px 24px; border-radius: var(--radius-lg); background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); backdrop-filter: blur(2px); transition: background-color .25s, border-color .25s, transform .25s; }
+.sband-item:hover { background: rgba(255, 255, 255, .08); border-color: color-mix(in srgb, var(--c) 55%, transparent); transform: translateY(-3px); }
+.sband-item.c1 { --c: var(--wwa-pink-400); }
+.sband-item.c2 { --c: #7CFF6B; }
+.sband-item.c3 { --c: #A98BFF; }
+.sband-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+.sband-ic svg { width: 22px; height: 22px; }
+.sband-val { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.25rem, 3.6vw, 3.25rem); line-height: 1; letter-spacing: -.01em; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sband-label { font-size: 14px; line-height: 1.45; color: rgba(255, 255, 255, .72); min-height: 2.9em; }
+.sb-bar { display: block; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.sb-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, transparent), var(--c)); }
+@media (max-width: 1024px) { .sband-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .sband-grid { grid-template-columns: 1fr; } .sband-label { min-height: 0; } }
+@media (prefers-reduced-motion: reduce) { .sband-ribbons i { animation: none; } .sband-item:hover { transform: none; } }

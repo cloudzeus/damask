@@ -1,5 +1,6 @@
  
 import type { Metadata } from 'next'
+import { StatsBand, WWA_STATS } from '../_components/stats-band'
 import { SubBanner } from '../_components/sub-banner'
 import { EligibilityCta } from '../_components/eligibility-cta'
 import { Button } from '../_components/button'
@@ -94,14 +95,7 @@ export default function CompanyPage() {
       </section>
 
       {/* ΣΕ ΑΡΙΘΜΟΥΣ */}
-      <section lang="el" className="stats alt">
-        <div className="wrap">
-          <div className="stat r"><div className="value" data-count="2500" data-suffix="+">2.500+</div><div className="label">επενδυτικά σχέδια με έγκριση</div></div>
-          <div className="stat r"><div className="value">98–100%</div><div className="label">ποσοστό εγκρίσεων</div></div>
-          <div className="stat r"><div className="value" data-count="30" data-suffix="+">30+</div><div className="label">προγράμματα σε υλοποίηση ή ολοκληρωμένα</div></div>
-          <div className="stat r"><div className="value">3</div><div className="label">προγραμματικές περίοδοι ΕΣΠΑ</div></div>
-        </div>
-      </section>
+      <StatsBand items={WWA_STATS} />
 
       {/* ΦΟΡΕΙΣ */}
       <section lang="el">

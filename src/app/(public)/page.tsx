@@ -1,5 +1,6 @@
  
 import type { Metadata } from 'next'
+import { StatsBand, WWA_STATS } from './_components/stats-band'
 import { NotifyBanner } from './_components/notify-banner'
 import Link from 'next/link'
 import { Button } from './_components/button'
@@ -147,14 +148,7 @@ export default async function HomePage() {
       </section>
 
       {/* STATS */}
-      <section lang="el" className="stats alt">
-        <div className="wrap">
-          <div className="stat r"><div className="value" data-count="2500" data-suffix="+">2.500+</div><div className="label">επενδυτικά σχέδια με έγκριση</div></div>
-          <div className="stat accent r"><div className="value">98–100%</div><div className="label">ποσοστό εγκρίσεων</div></div>
-          <div className="stat r"><div className="value" data-count="30" data-suffix="+">30+</div><div className="label">προγράμματα σε υλοποίηση ή ολοκληρωμένα</div></div>
-          <div className="stat r"><div className="value">6</div><div className="label">κλαδικοί φορείς — σύμβουλοι ή μέλη</div></div>
-        </div>
-      </section>
+      <StatsBand items={WWA_STATS} />
 
       {/* COMPANY / PROMO */}
       <section lang="el" className="company" id="company">
