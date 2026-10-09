@@ -855,3 +855,51 @@ a.chip.chip-primary { background: var(--brand); border-color: var(--brand); colo
 @media (max-width: 1024px) { .sband-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .sband-grid { grid-template-columns: 1fr; } .sband-label { min-height: 0; } }
 @media (prefers-reduced-motion: reduce) { .sband-ribbons i { animation: none; } .sband-item:hover { transform: none; } }
+
+/* ── Έλεγχος ΚΑΔ ── */
+.kadw { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-6); }
+.kadw li { display: grid; gap: 8px; align-content: start; padding: 24px; border-radius: var(--radius-lg); background: #fff; box-shadow: var(--elev-1); }
+.kadw .ic { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--navy-50); color: var(--brand); }
+.kadw .ic svg { width: 24px; height: 24px; }
+.kadw b { font-size: 16px; color: var(--fg-1); }
+.kadw li > span:last-child { font-size: 14px; color: var(--fg-2); line-height: 1.5; }
+.kadw-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 18px; margin-top: 32px; }
+.kadw-cta > span { font-size: 14px; color: var(--fg-3); }
+.kadt-form { position: relative; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 48px; border-radius: var(--radius-pill); background: #fff; border: 1px solid var(--rule); box-shadow: var(--elev-1); }
+.kadt-form:focus-within { outline: 2px solid var(--accent-3); outline-offset: 2px; }
+.kadt-form > svg { position: absolute; left: 18px; width: 20px; height: 20px; color: var(--fg-3); }
+.kadt-form input { flex: 1; min-width: 0; height: 48px; border: 0; outline: 0; background: transparent; font: 400 16px var(--font-body); color: var(--fg-1); }
+.kadt-sugg { list-style: none; margin: 8px 0 0; padding: 6px; border-radius: var(--radius-lg); background: #fff; box-shadow: var(--elev-2); max-height: 340px; overflow-y: auto; }
+.kadt-sugg button { display: flex; gap: 12px; width: 100%; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; text-align: left; cursor: pointer; font: inherit; color: var(--fg-1); }
+.kadt-sugg button:hover, .kadt-sugg button:focus-visible { background: var(--navy-50); outline: 0; }
+.kadt-sugg b { flex: none; min-width: 92px; color: var(--brand); font-variant-numeric: tabular-nums; }
+.kadt-sugg span { font-size: 14px; color: var(--fg-2); }
+.kadt-empty { margin: 14px 0 0; text-align: center; color: var(--fg-3); }
+.kadt-result { margin-top: 16px; padding: 22px; border-radius: var(--radius-lg); background: #fff; box-shadow: var(--elev-1); display: grid; gap: 16px; }
+.kadt-kad { display: grid; gap: 2px; }
+.kadt-kad b { font-family: var(--font-display); font-size: 1.25rem; color: var(--brand); }
+.kadt-kad span { color: var(--fg-2); }
+.kadt-progs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.kadt-progs li { display: grid; gap: 4px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--rule); border-left-width: 4px; }
+.kadt-progs li.is-ok { border-left-color: var(--success-500, #117235); }
+.kadt-progs li.is-all { border-left-color: var(--brand); }
+.kadt-progs li.is-no { border-left-color: var(--danger, #B3261E); opacity: .85; }
+.kadt-progs .st { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.kadt-progs .is-ok .st { color: var(--success-500, #117235); }
+.kadt-progs .is-all .st { color: var(--brand); }
+.kadt-progs .is-no .st { color: var(--danger, #B3261E); }
+.kadt-progs .st svg { width: 16px; height: 16px; }
+.kadt-progs a { color: var(--fg-1); text-decoration: none; }
+.kadt-progs a:hover b { color: var(--brand); text-decoration: underline; }
+.kadt-progs small { font-size: 13px; color: var(--fg-3); }
+.kadt-upsell { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 14px; background: var(--wwa-navy-950); color: #fff; }
+.kadt-upsell > svg { width: 28px; height: 28px; color: var(--wwa-cyan-400); flex: none; }
+.kadt-upsell > div { display: grid; gap: 2px; flex: 1 1 260px; }
+.kadt-upsell span { font-size: 14px; color: rgba(255,255,255,.78); }
+.kadt-upsell .btn { --_bg: #fff; --_fg: var(--brand); --_bd: #fff; gap: 8px; }
+.kadt-fine { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 16px 0 0; font-size: 14px; color: var(--fg-3); text-align: center; }
+.kadt-fine svg { width: 18px; height: 18px; }
+.kadt-fine a { color: var(--brand); font-weight: 500; }
+@media (max-width: 1024px) { .kadw { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .kadw { grid-template-columns: 1fr; } .kadt-form { padding-left: 44px; } .kadt-form .btn { padding: 0 18px; } }
+.kadt-form input, .kadt-form input:focus { border: 0 !important; box-shadow: none !important; outline: 0 !important; padding: 0; }
