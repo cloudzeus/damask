@@ -14,10 +14,10 @@ import type { CheckResult } from '@/lib/settings'
 import type { GreekVoice } from '@/lib/voice/elevenlabs'
 import { cn } from '@/lib/utils'
 
-type CardProps<V> = { initial: Omit<V, 'apiKey'>; maskedApiKey: string | null; configured: boolean; lastCheck: CheckResult | null }
+export type CardProps<V> = { initial: Omit<V, 'apiKey'>; maskedApiKey: string | null; configured: boolean; lastCheck: CheckResult | null }
 
-/** Κοινό σκελετό: state, αποθήκευση, δοκιμή. */
-function useIntegrationCard<V extends { apiKey: string }>(p: CardProps<V>, save: (v: V) => Promise<{ ok: boolean; message: string; fieldErrors?: Record<string, string> }>, test: (v: V) => Promise<CheckResult>) {
+/** Κοινό σκελετό: state, αποθήκευση, δοκιμή (χρησιμοποιείται και από άλλες κάρτες API key). */
+export function useIntegrationCard<V extends { apiKey: string }>(p: CardProps<V>, save: (v: V) => Promise<{ ok: boolean; message: string; fieldErrors?: Record<string, string> }>, test: (v: V) => Promise<CheckResult>) {
   const [values, setValues] = useState<V>({ ...(p.initial as V), apiKey: '' })
   const [masked, setMasked] = useState(p.maskedApiKey)
   const [configured, setConfigured] = useState(p.configured)

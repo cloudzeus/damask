@@ -674,3 +674,29 @@ export async function sampleVoiceAction(voiceId: string, model?: string): Promis
     return { ok: false, message: err instanceof Error ? err.message : String(err) }
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Envato Elements — personal token (μελλοντική χρήση: φωτογραφίες/πρότυπα)
+// ══════════════════════════════════════════════════════════════════════════
+
+export type EnvatoValues = { apiKey: string }
+const envatoSchema = z.object({ apiKey: z.string().max(300) })
+
+export async function saveEnvatoSettings(values: EnvatoValues): Promise<ActionResult> {
+  await requirePermission('settings.manage')
+  const parsed = envatoSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, message: VALIDATION_MESSAGE, fieldErrors: fieldErrorsFromZod(parsed.error) }
+  await saveIntegration('envato', parsed.data, ['apiKey'])
+  revalidateSettings()
+  return { ok: true, message: 'Το κλειδί Envato αποθηκεύτηκε.' }
+}
+
+export async function testEnvatoSettings(values: EnvatoValues): Promise<CheckResult> {
+  await requirePermission('settings.manage')
+  const { testEnvato } = await import('@/lib/envato')
+  const stored = await getIntegration<Record<string, string>>('envato')
+  const result = await testEnvato(mergeNonEmpty(stored, { apiKey: values.apiKey }))
+  const check = await saveLastCheck('envato', result)
+  revalidateSettings()
+  return check
+}

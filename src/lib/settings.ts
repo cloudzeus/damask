@@ -37,7 +37,7 @@ export const PUBLIC_TRACKING_CACHE_TAG = 'public-tracking-settings'
  * — η αναζήτηση vat.wwa.gr (src/lib/aade.ts) δεν χρειάζεται credentials, οπότε δεν αποθηκεύεται εδώ.
  * 'gemi' (W2): κλειδί ΓΕΜΗ opendata-api.businessportal.gr — DB-only, ΟΧΙ env (βλ. src/lib/trdr/gemi.ts).
  * Ξεχωριστό από το ήδη υπάρχον (αχρησιμοποίητο) `maps.gemiApiKey` — αυτό είναι το ενεργό. */
-export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook' | 'maps' | 'gemi' | 'synology' | 'openrouter' | 'elevenlabs'
+export type IntegrationName = 'softone' | 'mailgun' | 'bunny' | 'deepseek' | 'claude' | 'gemini' | 'gtags' | 'facebook' | 'maps' | 'gemi' | 'synology' | 'openrouter' | 'elevenlabs' | 'envato'
 
 function settingKeyFor(name: IntegrationName): string {
   return `integration.${name}`
@@ -90,6 +90,8 @@ function envFallbackFor(name: IntegrationName): Record<string, string | undefine
         geocodeApiKey: process.env.GEOCODE_API,
         gemiApiKey: process.env.GEMI_API_KEY,
       }
+    case 'envato':
+      return { apiKey: process.env.ENVATO_API_KEY }
     // Mailgun/Claude/Gemini/Google Tags/Facebook/ΓΕΜΗ ('gemi'): integrations χωρίς προϋπάρχον .env — DB-only.
     default:
       return {}
@@ -181,6 +183,7 @@ const REQUIRED_FIELDS: Record<IntegrationName, string[]> = {
   synology: ['baseUrl', 'username', 'password'],
   openrouter: ['apiKey'],
   elevenlabs: ['apiKey', 'voiceId'],
+  envato: ['apiKey'],
 }
 
 function nonEmpty(value: unknown): boolean {

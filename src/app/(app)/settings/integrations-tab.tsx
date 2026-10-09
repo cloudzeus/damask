@@ -14,6 +14,7 @@ import { MapsCard } from './cards/maps-card'
 import { GemiCard } from './cards/gemi-card'
 import { SynologyCard } from './cards/synology-card'
 import { OpenRouterCard, ElevenLabsCard } from './cards/thanos-cards'
+import { EnvatoCard } from './cards/envato-card'
 
 function str(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
@@ -41,7 +42,7 @@ function vivaEnvCardData(config: VivaEnvConfig): VivaEnvCardData {
 }
 
 export async function IntegrationsTab() {
-  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi, synology, openrouter, elevenlabs] = await Promise.all([
+  const [softone, mailgun, bunny, deepseek, claude, gemini, gtags, facebook, viva, maps, gemi, synology, openrouter, elevenlabs, envato] = await Promise.all([
     getIntegration('softone'),
     getIntegration('mailgun'),
     getIntegration('bunny'),
@@ -56,6 +57,7 @@ export async function IntegrationsTab() {
     getIntegration('synology'),
     getIntegration('openrouter'),
     getIntegration('elevenlabs'),
+    getIntegration('envato'),
   ])
 
   return (
@@ -152,6 +154,12 @@ export async function IntegrationsTab() {
         maskedApiKey={maskSecret(elevenlabs.apiKey)}
         configured={isIntegrationConfigured('elevenlabs', elevenlabs)}
         lastCheck={checkOf(elevenlabs)}
+      />
+      <EnvatoCard
+        initial={{}}
+        maskedApiKey={maskSecret(envato.apiKey)}
+        configured={isIntegrationConfigured('envato', envato)}
+        lastCheck={checkOf(envato)}
       />
       <SynologyCard
         initial={{
