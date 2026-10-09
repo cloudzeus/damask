@@ -70,5 +70,7 @@ export async function computeSinglePair(trdrId: string, programId: string): Prom
     },
     { kad: true, region: true, legalForm: true, size: true, age: true },
   )
+  // Χωρίς κανέναν ΚΑΔ δεν μπορεί να κριθεί επιλεξιμότητα (αλλιώς προγράμματα χωρίς περιορισμούς «περνούν» τους πάντες).
+  if (!trdr.kads.length) return { eligible: false, matched: r.matched.filter(k => k !== 'kad'), failed: r.failed, unknown: [...new Set([...(r.unknown ?? []), 'kad' as const])], matchedKads: [] }
   return { eligible: r.eligible, matched: r.matched, failed: r.failed, unknown: r.unknown ?? [], matchedKads: r.matchedKads }
 }

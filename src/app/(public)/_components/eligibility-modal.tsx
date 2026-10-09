@@ -54,12 +54,13 @@ export function EligibilityModal() {
   const [resent, setResent] = useState(false)
   const [eligible, setEligible] = useState<EligibleProgram[]>([])
   const [alreadyCustomer, setAlreadyCustomer] = useState(false)
+  const [noActivity, setNoActivity] = useState(false)
 
   const dialogRef = useRef<HTMLDivElement>(null)
 
   function reset() {
     setStep('form'); setPhase('idle'); setAfm(''); setEmail(''); setPhone(''); setNewsletter(true)
-    setFieldErrors({}); setError(null); setRequestId(null); setCompanyName(null); setCode(''); setRemaining(null); setResent(false); setEligible([]); setAlreadyCustomer(false); setStale(false)
+    setFieldErrors({}); setError(null); setRequestId(null); setCompanyName(null); setCode(''); setRemaining(null); setResent(false); setEligible([]); setAlreadyCustomer(false); setStale(false); setNoActivity(false)
   }
 
   // Open via event ή hash· lock scroll· Esc για κλείσιμο.
@@ -103,7 +104,7 @@ export function EligibilityModal() {
       setPhase('idle')
       if (!res) { setError(NETWORK_ERROR); setStale(true); return }
       if (!res.ok) { setError(res.error ?? 'Λάθος κωδικός.'); setRemaining(res.remainingAttempts ?? null); return }
-      setEligible(res.eligible ?? []); setCompanyName(res.companyName ?? companyName); setAlreadyCustomer(res.alreadyCustomer ?? false); setStep('done')
+      setEligible(res.eligible ?? []); setCompanyName(res.companyName ?? companyName); setAlreadyCustomer(res.alreadyCustomer ?? false); setNoActivity(res.noActivity ?? false); setStep('done')
     })
   }
 
@@ -195,14 +196,16 @@ export function EligibilityModal() {
               <div style={{ display: 'grid', gap: 14 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 999, background: 'var(--success-100)', color: 'var(--success-500)', flex: 'none' }}><CheckCircle2 size={22} /></span>
-                  <div><h3 style={{ margin: 0 }}>{mode === 'notify' ? 'Εγγραφήκατε στις ενημερώσεις' : 'Ολοκληρώθηκε ο έλεγχος'}</h3>{companyName && <p style={{ margin: '2px 0 0', fontSize: 14, color: 'var(--fg-3)' }}>{companyName}</p>}</div>
+                  <div><h3 style={{ margin: 0 }}>{noActivity ? 'Δεν βρέθηκε επιχειρηματική δραστηριότητα' : mode === 'notify' ? 'Εγγραφήκατε στις ενημερώσεις' : 'Ολοκληρώθηκε ο έλεγχος'}</h3>{companyName && <p style={{ margin: '2px 0 0', fontSize: 14, color: 'var(--fg-3)' }}>{companyName}</p>}</div>
                 </div>
                 {alreadyCustomer && (
                   <div className="alert alert-info" style={{ fontSize: 14 }}>
                     <span>Είστε ήδη πελάτης μας — ο σύμβουλός σας θα επικοινωνήσει άμεσα μαζί σας.</span>
                   </div>
                 )}
-                {eligible.length > 0 ? (
+                {noActivity ? (
+                  <div className="alert alert-info" style={{ fontSize: 14 }}><span>Στην ΑΑΔΕ το ΑΦΜ <b>δεν εμφανίζεται ως επιχείρηση με ενεργή δραστηριότητα</b> (ΚΑΔ), οπότε δεν μπορούμε να ελέγξουμε επιλεξιμότητα. Τα προγράμματα απευθύνονται σε επιχειρήσεις — αν σχεδιάζετε να ξεκινήσετε μία, ένας σύμβουλός μας θα επικοινωνήσει μαζί σας για τις δυνατότητες νέων επιχειρήσεων.</span></div>
+                ) : eligible.length > 0 ? (
                   <>
                     <p className="m-lead">Η επιχείρησή σας φαίνεται <b style={{ color: 'var(--fg-1)' }}>επιλέξιμη</b> σε {eligible.length} {eligible.length === 1 ? 'ενεργό πρόγραμμα' : 'ενεργά προγράμματα'}:</p>
                     <ul className="elig-result">

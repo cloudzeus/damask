@@ -9,6 +9,7 @@ type Step = 'form' | 'otp' | 'done'
 
 export function EligibilityWizard() {
   const [step, setStep] = useState<Step>('form')
+  const [noActivity, setNoActivity] = useState(false)
   const [pending, startTransition] = useTransition()
 
   // form state
@@ -61,6 +62,7 @@ export function EligibilityWizard() {
       }
       setEligible(res.eligible ?? [])
       setCompanyName(res.companyName ?? companyName)
+      setNoActivity(res.noActivity ?? false)
       setStep('done')
     })
   }
@@ -161,12 +163,14 @@ export function EligibilityWizard() {
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
             <span style={successBadge}><CheckCircle2 size={18} /></span>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>Ολοκληρώθηκε ο έλεγχος</h3>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontFamily: 'var(--font-display)' }}>{noActivity ? 'Δεν βρέθηκε επιχειρηματική δραστηριότητα' : 'Ολοκληρώθηκε ο έλεγχος'}</h3>
               {companyName && <p style={{ margin: '0.1rem 0 0', fontSize: '0.85rem', color: 'var(--muted-foreground, #64748b)' }}>{companyName}</p>}
             </div>
           </div>
 
-          {eligible.length > 0 ? (
+          {noActivity ? (
+            <p style={leadStyle}>Στην ΑΑΔΕ το ΑΦΜ <b>δεν εμφανίζεται ως επιχείρηση με ενεργή δραστηριότητα</b> (ΚΑΔ), οπότε δεν μπορούμε να ελέγξουμε επιλεξιμότητα. Τα προγράμματα απευθύνονται σε επιχειρήσεις — αν σχεδιάζετε να ξεκινήσετε μία, ένας σύμβουλός μας θα επικοινωνήσει μαζί σας για τις δυνατότητες νέων επιχειρήσεων.</p>
+          ) : eligible.length > 0 ? (
             <>
               <p style={leadStyle}>
                 Η επιχείρησή σου φαίνεται <b>επιλέξιμη</b> σε {eligible.length}{' '}

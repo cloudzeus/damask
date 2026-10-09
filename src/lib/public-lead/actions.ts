@@ -160,6 +160,8 @@ export type VerifyLeadState = {
   remainingAttempts?: number
   /** true όταν το ΑΦΜ ανήκει ήδη σε πελάτη (ISPROSP=0) — δεν είναι δυνητικός, ζητά εκ νέου επικοινωνία. */
   alreadyCustomer?: boolean
+  /** true όταν η ΑΑΔΕ δεν δείχνει ενεργή επιχειρηματική δραστηριότητα (κανένας ΚΑΔ) — δεν γίνεται αξιολόγηση. */
+  noActivity?: boolean
 }
 
 /** Βήμα 2: επιβεβαίωση OTP → αξιολόγηση + καταχώριση. */
@@ -309,8 +311,12 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
     }
   }
 
-  // 4) Αξιολόγηση έναντι ΟΛΩΝ των ενεργών προγραμμάτων.
-  const activePrograms = await prisma.program.findMany({
+  // 4) Αξιολόγηση έναντι ΟΛΩΝ των ενεργών προγραμμάτων — ΜΟΝΟ αν υπάρχει επιχειρηματική δραστηριότητα (ΚΑΔ).
+  //    ΑΦΜ χωρίς ΚΑΔ (ιδιώτης / ανενεργός / αποτυχία ΑΑΔΕ) δεν βγαίνει ποτέ «επιλέξιμο»: προγράμματα χωρίς
+  //    περιορισμούς θα «περνούσαν» αλλιώς σε όλα τα κριτήρια λόγω έλλειψης στοιχείων.
+  const kadCount = await prisma.trdrKad.count({ where: { trdrId } })
+  const noActivity = kadCount === 0
+  const activePrograms = noActivity ? [] : await prisma.program.findMany({
     where: { status: 'ACTIVE' },
     select: { id: true, title: true },
     take: 60,
@@ -393,7 +399,7 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
     meta: { eligible: eligible.length, trdrId },
   })
 
-  return { ok: true, companyName, eligible, alreadyCustomer }
+  return { ok: true, companyName, eligible, alreadyCustomer, noActivity }
 }
 
 /** Εγγραφή στο newsletter + append-only απόδειξη συναίνεσης. */
