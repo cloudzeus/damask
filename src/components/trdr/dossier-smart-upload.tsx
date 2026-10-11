@@ -290,6 +290,14 @@ export function DossierSmartUpload({
             ].filter(Boolean).join(' '),
           })
         }
+        if (res.template && (res.template.found.length || res.template.afmMismatch)) {
+          const t = res.template
+          toast.success(`${t.template} ${t.year}: βρέθηκαν ${t.found.length} από ${t.found.length + t.missing.length} πεδία`, {
+            description: t.afmMismatch
+              ? '⚠ Το ΑΦΜ του εγγράφου ανήκει σε άλλη εταιρία — δεν καταχωρίστηκαν στοιχεία.'
+              : [t.appliedTo.length ? `Ενημερώθηκαν: ${t.appliedTo.join(', ')}.` : null, t.missing.length ? `Δεν βρέθηκαν: ${t.missing.join(', ')}.` : null].filter(Boolean).join(' '),
+          })
+        }
         coveredTotal += res.covered
         saved += 1
       } catch {

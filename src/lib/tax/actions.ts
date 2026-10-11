@@ -228,6 +228,7 @@ export async function getTemplateFields(templateId: string): Promise<TemplateFie
     config: r.config as unknown as TemplateField['config'],
     regionHint: r.regionHint as unknown as RegionHint | null,
     aiHint: r.aiHint,
+    target: r.target,
     required: r.required,
     order: r.order,
   }))
@@ -309,6 +310,7 @@ export async function saveFields(templateId: string, fields: unknown[]): Promise
         config: w.config != null ? (w.config as Prisma.InputJsonValue) : undefined,
         regionHint: w.regionHint != null ? (w.regionHint as Prisma.InputJsonValue) : undefined,
         aiHint: w.aiHint,
+        target: w.target,
         required: w.required,
         order: w.order,
       },
@@ -325,7 +327,7 @@ export async function saveFields(templateId: string, fields: unknown[]): Promise
 export async function testField(input: {
   image: { base64: string; mimeType: string }
   label: string
-  valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+  valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN' | 'TEXT'
   kind?: 'SINGLE' | 'SERIES'
   aiHint?: string | null
 }): Promise<{ raw: string | null; value: number | null; model: string }> {
@@ -350,7 +352,7 @@ export async function testField(input: {
  */
 export async function scanRow(input: {
   image: { base64: string; mimeType: string }
-  valueType?: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+  valueType?: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN' | 'TEXT'
 }): Promise<{ name: string | null; code: string | null; raw: string | null; value: number | null; model: string }> {
   await requirePermission('taxform.manage')
   const r = await extractRow([input.image])
@@ -385,7 +387,7 @@ export async function scanForm(input: {
   fieldImages: {
     fieldKey: string
     label: string
-    valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+    valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN' | 'TEXT'
     kind: 'SINGLE' | 'SERIES'
     aiHint?: string | null
     image: { base64: string; mimeType: string }
@@ -393,7 +395,7 @@ export async function scanForm(input: {
   tableImages?: {
     fieldKey: string
     label: string
-    valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+    valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN' | 'TEXT'
     columns?: string[]
     image: { base64: string; mimeType: string }
   }[]

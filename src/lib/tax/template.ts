@@ -1,5 +1,5 @@
 // src/lib/tax/template.ts — ISOMORPHIC (no prisma/react)
-export type FinancialValueTypeStr = 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+export type FinancialValueTypeStr = 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN' | 'TEXT'
 export type TaxFieldKindStr = 'SINGLE' | 'SERIES' | 'TABLE'
 export type Bbox = [number, number, number, number]
 export type RegionHint = { page: number; bbox: Bbox }
@@ -14,6 +14,8 @@ export type TemplateField = {
   config?: { columns: string[] } | null
   regionHint?: RegionHint | null
   aiHint?: string | null
+  /** Πού καταχωρείται (βλ. field-targets.ts) — null = μόνο στο ιστορικό ανά έτος. */
+  target?: string | null
   required: boolean
   order: number
 }

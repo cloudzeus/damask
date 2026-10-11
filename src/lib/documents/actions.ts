@@ -1,5 +1,6 @@
 'use server'
 
+import { processTemplateIfApplicable, type TemplateApplied } from '@/lib/tax/template-auto'
 import crypto from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
@@ -102,7 +103,7 @@ export async function uploadTrdrDossierDoc(
     /** Πλήρες ψηφιακό κείμενο (αν υπάρχει) — για ειδικούς τύπους όπως το ΕΜΕ. */
     fullText?: string | null
   },
-): Promise<{ id: string; covered: number; coveredPrograms: string[]; eme?: EmeApplied | null; e3?: E3Applied | null; mme?: MmeApplied | null }> {
+): Promise<{ id: string; covered: number; coveredPrograms: string[]; eme?: EmeApplied | null; e3?: E3Applied | null; mme?: MmeApplied | null; template?: TemplateApplied | null }> {
   const session = await requirePermission('customer.edit')
   const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { id: true } })
   if (!trdr) throw new Error('Ο συναλλασσόμενος δεν βρέθηκε.')
@@ -156,8 +157,12 @@ export async function uploadTrdrDossierDoc(
   // Δήλωση ΜΜΕ (επίσημη για ΟΠΣΚΕ): ΕΜΕ/κύκλος εργασιών/κατηγορία + κάλυψη ισοδύναμων τύπων.
   const mme = await processMmeIfApplicable({ docId: id, trdrId, documentTypeId: input.documentTypeId, fullText: input.fullText ?? null, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id })
   if (mme?.coveredExtra) { cover.covered += mme.coveredExtra.covered; cover.programs.push(...mme.coveredExtra.programs) }
+  // Οποιοσδήποτε άλλος τύπος με έτοιμο Οδηγό Εντύπου: βρίσκει τα δηλωμένα πεδία και τα καταχωρεί στον προορισμό τους.
+  const template = !eme && !e3 && !mme
+    ? await processTemplateIfApplicable({ docId: id, trdrId, documentTypeId: input.documentTypeId, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id })
+    : null
   revalidatePath(`/partners/${trdrId}`)
-  return { id, covered: cover.covered, coveredPrograms: [...new Set(cover.programs)], eme, e3: e3?.applied ?? null, mme: mme?.applied ?? null }
+  return { id, covered: cover.covered, coveredPrograms: [...new Set(cover.programs)], eme, e3: e3?.applied ?? null, mme: mme?.applied ?? null, template }
 }
 
 export async function updateTrdrDossierDoc(

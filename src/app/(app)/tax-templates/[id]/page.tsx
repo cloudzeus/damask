@@ -44,6 +44,7 @@ export default async function TaxTemplateDetailPage({ params }: { params: Promis
     config: f.config as unknown as TemplateField['config'],
     regionHint: f.regionHint as unknown as TemplateField['regionHint'],
     aiHint: f.aiHint,
+    target: f.target,
     required: f.required,
     order: f.order,
   }))

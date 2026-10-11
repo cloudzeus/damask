@@ -1,5 +1,7 @@
 'use server'
 
+import { after } from 'next/server'
+import { processTemplateIfApplicable } from '@/lib/tax/template-auto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
@@ -148,9 +150,12 @@ export async function uploadMyDocument(raw: z.input<typeof uploadSchema>): Promi
   const key = `dossier/${contact.trdrId}/portal-${Date.now()}.${ext}`
   await bunnyUploadPrivate({ key, body, contentType: f.mimeType || 'application/octet-stream' })
   const toDate = (s?: string | null) => (s && !Number.isNaN(Date.parse(s)) ? new Date(s) : null)
-  await prisma.trdrDossierDocument.create({
+  const doc = await prisma.trdrDossierDocument.create({
     data: { trdrId: contact.trdrId, documentTypeId: type.id, name: f.filename, storageKey: key, mimeType: f.mimeType, sizeBytes: body.length, issuedAt: toDate(f.issuedAt), expiresAt: toDate(f.expiresAt) },
+    select: { id: true },
   })
+  // Οδηγός Εντύπου του τύπου (αν υπάρχει): ανάγνωση πεδίων μετά την απάντηση — ο πελάτης δεν περιμένει.
+  after(() => processTemplateIfApplicable({ docId: doc.id, trdrId: contact.trdrId, documentTypeId: type.id, base64: f.base64, mimeType: f.mimeType, storageKey: key, name: f.filename, userId: null }).then(() => undefined))
   await createNotification({ title: `Νέο δικαιολογητικό από πελάτη: ${contact.trdr?.NAME ?? ''}`, body: `${contact.name} ανέβασε «${type.name}» στο portal.`, entityType: 'Trdr', entityId: contact.trdrId, meta: { kind: 'portal-dossier-upload' } })
   return { ok: true, message: `Το «${type.name}» αποθηκεύτηκε στα δικαιολογητικά σας.` }
 }

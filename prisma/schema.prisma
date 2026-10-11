@@ -1099,6 +1099,7 @@ enum FinancialValueType {
   INTEGER
   DATE
   BOOLEAN
+  TEXT
 }
 
 enum FinancialValueSource {
@@ -1144,6 +1145,8 @@ model TaxFormTemplateField {
   config     Json?
   regionHint Json?
   aiHint     String?
+  /// Πού καταχωρείται η τιμή (βλ. src/lib/tax/field-targets.ts) — null = μόνο στο ιστορικό του εντύπου ανά έτος.
+  target     String?
   required   Boolean            @default(false)
   order      Int                @default(0)
   createdAt  DateTime           @default(now())
@@ -2268,6 +2271,12 @@ model DocumentClassificationExample {
   wasCorrect      Boolean      @default(true)
   fileName        String
   snippet         String       @db.Text
+  /// UPLOAD = καταχώριση σε πελάτη· TRAINING = δείγμα εκπαίδευσης από το προσωπικό (σελίδα «Εκπαίδευση»).
+  origin          String       @default("UPLOAD")
+  /// Το αρχείο του δείγματος (Bunny private) — για διάγνωση/δοκιμή εξαγωγής πεδίων.
+  storageKey      String?
+  mimeType        String?
+  contentHash     String?
   trdrId          String?
   createdById     String?
   createdAt       DateTime     @default(now())

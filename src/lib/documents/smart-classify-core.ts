@@ -85,8 +85,85 @@ function withExpiryClues(text: string): string {
   return parts.length ? `${head}\n…\n[Αποσπάσματα για λήξη/ισχύ]\n${parts.map(p => `…${p}…`).join('\n')}` : head
 }
 
-const MEMORY_POOL = 500
 const MEMORY_MIN_SIM = 0.5
+/** Μέγιστα παραδείγματα ανά τύπο στη μνήμη (τα πιο πρόσφατα) — ώστε κανένας τύπος να μη «χάνεται» από τους πολυπληθείς. */
+const PER_TYPE_CAP = 60
+const SIG_MIN_EXAMPLES = 3
+
+export type MemoryExample = { id: string; documentTypeId: string; fileName: string; snippet: string; wasCorrect: boolean; trdrId: string | null; tok: Set<string> }
+export type MemoryIndex = { key: string; examples: MemoryExample[]; signatures: Map<string, string[]> }
+let memCache: MemoryIndex | null = null
+
+export function exampleTokens(fileName: string, snippet: string): Set<string> {
+  return tokens(`${fileName.replace(/\.[^.]+$/, '')} ${snippet.slice(0, 800)}`)
+}
+
+/**
+ * Μνήμη αναγνώρισης σε cache διεργασίας: ξαναχτίζεται μόνο όταν αλλάξει το πλήθος/τελευταίο παράδειγμα.
+ * «Υπογραφή» τύπου = λέξεις που υπάρχουν στο ≥60% των δειγμάτων του τύπου και σε ≤15% των υπολοίπων —
+ * από ΟΛΑ τα δείγματα (εκπαίδευση + uploads σε πολλούς πελάτες).
+ */
+export async function getMemoryIndex(): Promise<MemoryIndex> {
+  const agg = await prisma.documentClassificationExample.aggregate({ _count: { _all: true }, _max: { createdAt: true } })
+  const key = `${agg._count._all}|${agg._max.createdAt?.getTime() ?? 0}`
+  if (memCache?.key === key) return memCache
+  const rows = await prisma.documentClassificationExample.findMany({
+    orderBy: { createdAt: 'desc' }, take: 20_000,
+    select: { id: true, documentTypeId: true, fileName: true, snippet: true, wasCorrect: true, trdrId: true },
+  })
+  const perType = new Map<string, number>()
+  const examples: MemoryExample[] = []
+  for (const r of rows) {
+    const n = perType.get(r.documentTypeId) ?? 0
+    if (n >= PER_TYPE_CAP) continue
+    perType.set(r.documentTypeId, n + 1)
+    examples.push({ ...r, tok: exampleTokens(r.fileName, r.snippet) })
+  }
+  const df = new Map<string, Map<string, number>>() // type → token → πλήθος δειγμάτων
+  const dfAll = new Map<string, number>()
+  for (const e of examples) {
+    const m = df.get(e.documentTypeId) ?? new Map<string, number>()
+    df.set(e.documentTypeId, m)
+    for (const t of e.tok) { m.set(t, (m.get(t) ?? 0) + 1); dfAll.set(t, (dfAll.get(t) ?? 0) + 1) }
+  }
+  const signatures = new Map<string, string[]>()
+  for (const [typeId, m] of df) {
+    const n = perType.get(typeId) ?? 0
+    if (n < SIG_MIN_EXAMPLES) continue
+    const others = examples.length - n
+    const sig = [...m].filter(([t, c]) => c / n >= 0.6 && (others === 0 || ((dfAll.get(t) ?? 0) - c) / others <= 0.15)).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([t]) => t)
+    if (sig.length >= 4) signatures.set(typeId, sig)
+  }
+  memCache = { key, examples, signatures }
+  return memCache
+}
+
+export type MemoryHit = { typeId: string; confidence: number; reason: string; via: 'similar' | 'signature' }
+
+/** Αναγνώριση ΜΟΝΟ από τη μνήμη (χωρίς AI). `excludeId` = leave-one-out για τη μέτρηση ακρίβειας. */
+export function memoryMatch(probe: Set<string>, index: MemoryIndex, opts: { activeIds?: Set<string>; excludeId?: string; typeName?: (id: string) => string } = {}): MemoryHit | null {
+  const pool = index.examples.filter(e => e.id !== opts.excludeId && (!opts.activeIds || opts.activeIds.has(e.documentTypeId)))
+  const top = pool.map(e => ({ e, sim: jaccard(probe, e.tok) })).sort((a, b) => b.sim - a.sim).slice(0, 5)
+  const best = top[0]
+  const name = (id: string) => opts.typeName?.(id) ?? id
+  if (best && best.sim >= MEMORY_MIN_SIM) {
+    // Συμφωνία των κοντινότερων γειτόνων στον ίδιο τύπο ⇒ υψηλή βεβαιότητα.
+    const close = top.filter(x => x.sim >= MEMORY_MIN_SIM * 0.8)
+    const agree = close.filter(x => x.e.documentTypeId === best.e.documentTypeId).length / close.length
+    if (agree >= 0.7) {
+      return { typeId: best.e.documentTypeId, confidence: Math.min(0.98, 0.6 + best.sim * 0.4) * agree, via: 'similar', reason: `Μοιάζει με ${close.length} έγγραφο/α που έχουν ήδη καταχωριστεί ως «${name(best.e.documentTypeId)}».` }
+    }
+  }
+  // Υπογραφή τύπου: το έγγραφο περιέχει τις χαρακτηριστικές φράσεις ΜΟΝΟ ενός τύπου.
+  const cov = [...index.signatures]
+    .filter(([id]) => !opts.activeIds || opts.activeIds.has(id))
+    .map(([id, sig]) => ({ id, c: sig.filter(t => probe.has(t)).length / sig.length }))
+    .sort((a, b) => b.c - a.c)
+  if (cov[0] && cov[0].c >= 0.7 && (!cov[1] || cov[0].c - cov[1].c >= 0.25)) {
+    return { typeId: cov[0].id, confidence: Math.min(0.95, 0.55 + cov[0].c * 0.4), via: 'signature', reason: `Έχει τις χαρακτηριστικές φράσεις του «${name(cov[0].id)}» (από τα δείγματα που έχουν καταχωριστεί).` }
+  }
+  return null
+}
 
 /** Πυρήνας αναγνώρισης ΧΩΡΙΣ έλεγχο δικαιωμάτων — ο καλών κάνει τον έλεγχο
  * (session permission ή token αιτήματος δικαιολογητικών). */
@@ -96,15 +173,11 @@ export async function classifyDocumentCore(input: {
   text: string
 }): Promise<{ ok: true; result: SmartClassifyResult } | { ok: false; message: string }> {
   const snippet = withExpiryClues(input.text)
-  const probe = tokens(`${input.fileName.replace(/\.[^.]+$/, '')} ${snippet.slice(0, 800)}`)
+  const probe = exampleTokens(input.fileName, snippet)
 
-  const [types, examples, apps, trdr] = await Promise.all([
+  const [types, memory, apps, trdr] = await Promise.all([
     prisma.documentType.findMany({ where: { active: true }, select: { id: true, name: true, expires: true, validityDays: true, notes: true }, orderBy: { name: 'asc' } }),
-    prisma.documentClassificationExample.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: MEMORY_POOL,
-      select: { documentTypeId: true, fileName: true, snippet: true, wasCorrect: true },
-    }),
+    getMemoryIndex(),
     prisma.programApplication.findMany({
       where: { trdrId: input.trdrId },
       select: { programId: true, program: { select: { title: true, referenceCode: true } } },
@@ -116,19 +189,15 @@ export async function classifyDocumentCore(input: {
   const activeIds = new Set(types.map(t => t.id))
   const typeById = new Map(types.map(t => [t.id, t]))
 
-  // ── 1. Μνήμη ─────────────────────────────────────────────────────────────
-  const scored = examples
+  // ── 1. Μνήμη (χωρίς AI) ──────────────────────────────────────────────────
+  const scored = memory.examples
     .filter(e => activeIds.has(e.documentTypeId))
-    .map(e => ({ e, sim: jaccard(probe, tokens(`${e.fileName.replace(/\.[^.]+$/, '')} ${e.snippet.slice(0, 800)}`)) }))
+    .map(e => ({ e, sim: jaccard(probe, e.tok) }))
     .sort((a, b) => b.sim - a.sim)
-  const top = scored.slice(0, 5)
-  const best = top[0]
-  if (best && best.sim >= MEMORY_MIN_SIM) {
-    // Συμφωνία των κοντινότερων γειτόνων στον ίδιο τύπο ⇒ υψηλή βεβαιότητα.
-    const close = top.filter(x => x.sim >= MEMORY_MIN_SIM * 0.8)
-    const agree = close.filter(x => x.e.documentTypeId === best.e.documentTypeId).length / close.length
-    if (agree >= 0.7) {
-      const t = typeById.get(best.e.documentTypeId)!
+  const hit = memoryMatch(probe, memory, { activeIds, typeName: id => typeById.get(id)?.name ?? '' })
+  {
+    if (hit) {
+      const t = typeById.get(hit.typeId)!
       // AI μόνο για τα συμπληρωματικά (λήξη/πρόγραμμα) — αν δεν χρειάζονται, καμία κλήση.
       const needAi = t.expires || apps.length > 0
       const ai = needAi
@@ -138,9 +207,9 @@ export async function classifyDocumentCore(input: {
         ok: true,
         result: {
           typeId: t.id,
-          confidence: Math.min(0.98, 0.6 + best.sim * 0.4) * agree,
+          confidence: hit.confidence,
           source: 'memory',
-          reason: `Μοιάζει με ${close.length} έγγραφο/α που έχουν ήδη καταχωριστεί ως «${t.name}».`,
+          reason: hit.reason,
           programId: ai?.programId ?? null,
           reusable: ai?.reusable ?? true,
           issuedAt: ai?.issuedAt ?? null,

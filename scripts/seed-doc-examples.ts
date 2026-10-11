@@ -100,7 +100,7 @@ async function main() {
       text = await readWithAi(sample)
     }
     const fileName = basename(sample)
-    await prisma.documentClassificationExample.create({ data: { documentTypeId: type.id, fileName, snippet: text.replace(/\s+/g, ' ').trim().slice(0, 1500), wasCorrect: false } })
+    await prisma.documentClassificationExample.create({ data: { documentTypeId: type.id, fileName, snippet: text.replace(/\s+/g, ' ').trim().slice(0, 1500), wasCorrect: false, origin: 'TRAINING' } })
     console.log('learned', fileName, '→', typeName)
   }
   await prisma.$disconnect()

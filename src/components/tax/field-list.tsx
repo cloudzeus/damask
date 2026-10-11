@@ -13,6 +13,7 @@ import {
   slugFieldKey, regionKeyOf,
   type TemplateField, type FinancialValueTypeStr, type TaxFieldKindStr,
 } from '@/lib/tax/template'
+import { FIELD_TARGETS, TARGET_BY_KEY, HISTORY_ONLY_LABEL } from '@/lib/tax/field-targets'
 import type { RasterizedPage } from '@/lib/ocr/rasterize'
 
 const VALUE_TYPE_LABELS: Record<FinancialValueTypeStr, string> = {
@@ -22,6 +23,7 @@ const VALUE_TYPE_LABELS: Record<FinancialValueTypeStr, string> = {
   INTEGER: 'Ακέραιος',
   DATE: 'Ημερομηνία',
   BOOLEAN: 'Ναι/Όχι',
+  TEXT: 'Κείμενο',
 }
 const KIND_LABELS: Record<TaxFieldKindStr, string> = {
   SINGLE: 'Μονό πεδίο',
@@ -314,15 +316,42 @@ function FieldCard({
 
       <div className="mb-2">
         <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground" htmlFor={`fl-hint-${index}`}>
-          Υπόδειξη OCR (προαιρετικό)
+          Τι να βρει μέσα στο έγγραφο
         </label>
         <Input
           id={`fl-hint-${index}`}
           value={field.aiHint ?? ''}
-          placeholder="π.χ. αριθμός σε ευρώ, χωρίς δεκαδικά"
+          placeholder="π.χ. «Σύνολο εργαζομένων» στον τελευταίο πίνακα· ή «ισχύει έως» κάτω από την υπογραφή"
           onClick={e => e.stopPropagation()}
           onChange={e => onUpdate({ aiHint: e.target.value || null })}
         />
+        <p className="mt-1 text-[length:var(--fs-11)] text-muted-foreground">
+          Χωρίς σημειωμένη περιοχή, το πεδίο αναζητείται σε όλο το έγγραφο με αυτή την περιγραφή.
+        </p>
+      </div>
+
+      <div className="mb-2" onClick={e => e.stopPropagation()}>
+        <label className="mb-1 block text-[length:var(--fs-11)] font-semibold text-muted-foreground">Πού καταχωρείται</label>
+        <Select
+          value={field.target ?? '__history'}
+          onValueChange={v => {
+            const t = !v || v === '__history' ? null : TARGET_BY_KEY.get(v) ?? null
+            onUpdate(t ? { target: t.key, valueType: t.valueType, kind: 'SINGLE' } : { target: null })
+          }}
+        >
+          <SelectTrigger aria-label="Πού καταχωρείται" className="h-8 w-full text-[length:var(--fs-12-5)]">
+            <SelectValue>{(v: string) => (v === '__history' ? HISTORY_ONLY_LABEL : `${TARGET_BY_KEY.get(v)?.group ?? ''}: ${TARGET_BY_KEY.get(v)?.label ?? v}`)}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__history">{HISTORY_ONLY_LABEL}</SelectItem>
+            {(['Εταιρία', 'Έγγραφο'] as const).map(g => FIELD_TARGETS.filter(t => t.group === g).map(t => (
+              <SelectItem key={t.key} value={t.key}>{g}: {t.label}</SelectItem>
+            )))}
+          </SelectContent>
+        </Select>
+        <p className="mt-1 text-[length:var(--fs-11)] text-muted-foreground">
+          Η τιμή κρατιέται πάντα και στο ιστορικό της εταιρίας ανά έτος.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">

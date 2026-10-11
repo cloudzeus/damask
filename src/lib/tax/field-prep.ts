@@ -17,6 +17,7 @@ export type FieldWrite = {
   config: { columns: string[] } | null
   regionHint: TemplateField['regionHint'] | null
   aiHint: string | null
+  target: string | null
   required: boolean
   order: number
 }
@@ -32,6 +33,7 @@ export function prepareFieldWrites(fields: Partial<TemplateField>[]): FieldWrite
     // Drop regionHint if its bbox fails validation rather than persist garbage coordinates.
     regionHint: f.regionHint != null && isValidBbox(f.regionHint.bbox) ? f.regionHint : null,
     aiHint: f.aiHint?.trim() || null,
+    target: f.target?.trim() || null,
     required: !!f.required,
     order: i,
   }))

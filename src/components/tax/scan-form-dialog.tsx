@@ -189,7 +189,7 @@ export function ScanFormDialog({
       const fieldImages: {
         fieldKey: string
         label: string
-        valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+        valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN' | 'TEXT'
         kind: 'SINGLE' | 'SERIES'
         aiHint?: string | null
         image: { base64: string; mimeType: string }
@@ -197,7 +197,7 @@ export function ScanFormDialog({
       const tableImages: {
         fieldKey: string
         label: string
-        valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+        valueType: 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN' | 'TEXT'
         columns?: string[]
         image: { base64: string; mimeType: string }
       }[] = []

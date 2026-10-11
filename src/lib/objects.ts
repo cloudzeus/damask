@@ -4,7 +4,7 @@ import {
   Container, Settings, Shield, UserCog, Upload, Images, Newspaper, Scale,
   Cookie, CreditCard, ScanText, Coins, FileText, Landmark, FolderKanban,
   MapPin, Tags, MailCheck, UserPlus, Activity, Mails, UsersRound, Gauge,
-  Sparkles, FileCheck, HardDrive,
+  Sparkles, FileCheck, HardDrive, GraduationCap,
 } from 'lucide-react'
 
 export type PermissionDef = { key: string; description: string }
@@ -146,6 +146,9 @@ export const OBJECT_REGISTRY: ObjectModule[] = [
     ] },
     { key: 'document-types', href: '/document-types', label: 'Τύποι Δικαιολογητικών', icon: FileCheck, menuPermission: 'doctype.manage', core: true, permissions: [
       { key: 'doctype.manage', description: 'Διαχείριση τύπων δικαιολογητικών (όνομα/λήξη/σάρωση + σύνδεση Οδηγού Εντύπων)' },
+    ] },
+    { key: 'doc-training', href: '/document-training', label: 'Εκπαίδευση αναγνώρισης', icon: GraduationCap, menuPermission: 'doctraining.upload', core: true, permissions: [
+      { key: 'doctraining.upload', description: 'Ανέβασμα δειγμάτων εγγράφων με επιλογή τύπου για εκπαίδευση της αυτόματης αναγνώρισης' },
     ] },
     { key: 'form-guides', href: '/tax-templates', label: 'Οδηγοί Εντύπων', icon: FileText, menuPermission: 'taxform.manage', permissions: [
       { key: 'taxform.manage', description: 'Διαχείριση οδηγών εντύπων' },

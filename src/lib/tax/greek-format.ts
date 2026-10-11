@@ -1,4 +1,4 @@
-export type FinancialValueTypeStr = 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN'
+export type FinancialValueTypeStr = 'CURRENCY' | 'NUMBER' | 'PERCENT' | 'INTEGER' | 'DATE' | 'BOOLEAN' | 'TEXT'
 
 export function parseGreekNumber(v: unknown): number | null {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null
@@ -32,6 +32,7 @@ const FALSY = new Set(['0', 'οχι', 'όχι', 'ochi', 'no', 'false'])
 
 export function coerceFinancialValue(raw: unknown, valueType: FinancialValueTypeStr): number | null {
   switch (valueType) {
+    case 'TEXT': return null // κείμενο: κρατιέται στο valueText, όχι ως αριθμός
     case 'INTEGER': { const n = parseGreekNumber(raw); return n == null ? null : Math.round(n) }
     case 'BOOLEAN': {
       const s = String(raw ?? '').trim().toLowerCase()
