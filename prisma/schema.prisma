@@ -1593,6 +1593,9 @@ model ProgramApplication {
   // 0 = απενεργοποιημένο. lastAt = πότε στάλθηκε το τελευταίο alert.
   docFollowupDays     Int                         @default(7)
   docFollowupLastAt   DateTime?
+  /// Εισαγωγή έργου «σε εξέλιξη» (ήδη εγκεκριμένη πρόταση εκτός συστήματος): τα βήματα πριν την έγκριση
+  /// (Αξιολόγηση/Υποβολή) σημειώνονται «απαλλαγή» αυτόματα — και για όσα δημιουργούνται αργότερα.
+  onboardedAt         DateTime?
   obligations         ApplicationObligation[]
   documents           ApplicationDocument[]
   criterionScores     ApplicationCriterionScore[]

@@ -3,6 +3,7 @@ import { can } from '@/lib/rbac'
 import { listVisibleApplications, listVisibleObligations } from '@/lib/pm/actions'
 import { PmWorkspace } from '@/components/pm/pm-workspace'
 import { PageHeader } from '@/components/ui/page-header'
+import { OnboardDialog } from '@/components/pm/onboard-dialog'
 
 /**
  * `/pm` workspace (Task 9 → C2b tabbed workspace): «Έργα» (πίνακας αιτήσεων)
@@ -28,6 +29,7 @@ export default async function PmPage() {
         breadcrumb={<>Ευρωπαϊκά Προγράμματα <span aria-hidden>›</span></>}
         title="Έργα"
         subtitle="Οι αιτήσεις προγραμμάτων που έχεις ανατεθεί (ως διαχειριστής ή εισηγητής)."
+        actions={canManage ? <OnboardDialog /> : undefined}
       />
 
       <PmWorkspace applications={applications} obligations={obligations} canManage={canManage} />

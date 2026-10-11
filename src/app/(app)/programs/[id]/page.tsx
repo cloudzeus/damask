@@ -7,6 +7,7 @@ import { ProgramEditor, type ProgramData } from '@/components/programs/program-e
 import { ApplicationsPanel } from '@/components/programs/applications-panel'
 import { EmailHistory } from '@/components/email/email-history'
 import { PageHeader } from '@/components/ui/page-header'
+import { OnboardDialog } from '@/components/pm/onboard-dialog'
 
 /**
  * Detail/editor οθόνη ενός Προγράμματος (Task 14): μετά την αρχική AI
@@ -120,6 +121,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
             ανασκόπησε τα στοιχεία που εξήγαγε η AI αποδελτίωση και διόρθωσε ό,τι χρειάζεται.
           </>
         }
+        actions={<OnboardDialog programId={program.id} label="Εγκεκριμένοι πελάτες" />}
       />
 
       <ProgramEditor program={data} />

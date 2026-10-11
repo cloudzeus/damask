@@ -607,8 +607,10 @@ export async function setApplicationStage(
     }
   }
 
-  // GATE 2 — ετοιμότητα πρότασης (για να μπεις σε OPSKE_SUBMISSION+)
-  if (targetIdx >= opskeIdx) {
+  // GATE 2 — ετοιμότητα πρότασης (για να μπεις σε OPSKE_SUBMISSION+). Δεν ισχύει όταν η πρόταση έχει ήδη
+  // εγκριθεί (π.χ. έργο σε εξέλιξη που εισήχθη μετά την έγκριση).
+  const alreadyApproved = targetIdx >= opskeIdx && (await prisma.proposalSubmission.count({ where: { applicationId, status: 'APPROVED' } })) > 0
+  if (targetIdx >= opskeIdx && !alreadyApproved) {
     const readiness = await computeSubmissionReadiness(applicationId)
     if (!readiness.ready) {
       return { ok: false, message: `Δεν μπορείς να προχωρήσεις στην υποβολή: ${readiness.blockers.join(' · ')}`, pendingMandatory: 0 }
@@ -1860,6 +1862,12 @@ export async function generateExpenseDeliverables(applicationId: string): Promis
       data: pairs.map((p) => ({ dependentId: p.dependentId, prerequisiteId: p.prerequisiteId, auto: true })),
       skipDuplicates: true,
     })
+  }
+
+  // Έργο σε εξέλιξη: τα νέα βήματα πριν την έγκριση (π.χ. δαπάνης που προστέθηκε τώρα) → απαλλαγή.
+  if (app.onboardedAt) {
+    const { waivePreApprovalSteps } = await import('@/lib/pm/onboard-core')
+    await waivePreApprovalSteps(applicationId)
   }
 
   revalidatePath(`/pm/applications/${applicationId}`)

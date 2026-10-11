@@ -62,6 +62,7 @@ export const ACTIONS = {
   'application.lifecycle': { category: 'APPLICATION', label: 'Αλλαγή κατάστασης συμμετοχής', weight: 1 },
   'application.remove': { category: 'APPLICATION', label: 'Αφαίρεση σύνδεσης προγράμματος', weight: 1 },
   'application.create': { category: 'APPLICATION', label: 'Δημιουργία έργου (ένταξη)', weight: 3 },
+  'application.onboard': { category: 'APPLICATION', label: 'Εισαγωγή έργου σε εξέλιξη (εγκεκριμένο)', weight: 3 },
   'application.stage': { category: 'APPLICATION', label: 'Αλλαγή σταδίου PM', weight: 1 },
   'opportunity.create': { category: 'APPLICATION', label: 'Δημιουργία ευκαιρίας', weight: 2 },
   'proposal.submit': { category: 'APPLICATION', label: 'Υποβολή πρότασης', weight: 3 },
