@@ -851,3 +851,42 @@ export async function harvestEspaCallsNow(): Promise<{ ok: boolean; message: str
     return { ok: false, message: err instanceof Error ? err.message : 'Η συλλογή απέτυχε.' }
   }
 }
+
+export type PublicOrderItem = { id: string; title: string; image: string | null; deadline: string | null; ordered: boolean }
+
+/** Τα προγράμματα που εμφανίζονται στο website, στη σημερινή σειρά τους (για το drag & drop). */
+export async function listPublicOrder(): Promise<PublicOrderItem[]> {
+  await requirePermission('programs.manage')
+  const today = new Date(new Date().toISOString().slice(0, 10))
+  const rows = await prisma.program.findMany({
+    where: { status: 'ACTIVE', OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+    orderBy: [{ publicOrder: { sort: 'asc', nulls: 'last' } }, { updatedAt: 'desc' }],
+    select: { id: true, title: true, imageUrl: true, submissionEnd: true, publicOrder: true, cmsContent: true },
+    take: 60,
+  })
+  return rows.map(r => ({
+    id: r.id, title: (r.cmsContent as { cardTitle?: string } | null)?.cardTitle || r.title, image: r.imageUrl,
+    deadline: r.submissionEnd ? r.submissionEnd.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null,
+    ordered: r.publicOrder != null,
+  }))
+}
+
+/** Αποθήκευση σειράς εμφάνισης στο website (ids με τη νέα σειρά)· `null` = επαναφορά στην αυτόματη σειρά. */
+export async function savePublicOrder(ids: string[] | null): Promise<{ ok: boolean }> {
+  const session = await requirePermission('programs.manage')
+  // Απευθείας SQL: η αλλαγή σειράς ΔΕΝ είναι ενημέρωση περιεχομένου — δεν αγγίζει το updatedAt
+  // («Ενημερώθηκε» στη σελίδα, lastmod στο sitemap, IndexNow).
+  if (ids === null) {
+    await prisma.$executeRaw`UPDATE "Program" SET "publicOrder" = NULL WHERE "publicOrder" IS NOT NULL`
+  } else {
+    const list = ids.slice(0, 200)
+    await prisma.$transaction([
+      prisma.$executeRaw`UPDATE "Program" SET "publicOrder" = NULL WHERE "publicOrder" IS NOT NULL`,
+      ...list.map((id, i) => prisma.$executeRaw`UPDATE "Program" SET "publicOrder" = ${i + 1} WHERE "id" = ${id}`),
+    ])
+  }
+  await logActivity('program.public_order', { userId: session.user.id, entityType: 'program', entityId: 'public-order', summary: ids ? `Νέα σειρά ${ids.length} προγραμμάτων στο website` : 'Επαναφορά αυτόματης σειράς' })
+  revalidatePath('/programs')
+  revalidatePath('/', 'layout') // δημόσιο site
+  return { ok: true }
+}

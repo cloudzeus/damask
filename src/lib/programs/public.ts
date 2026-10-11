@@ -100,7 +100,8 @@ export async function listPublicPrograms(): Promise<PublicProgramCard[]> {
   const today = new Date(new Date().toISOString().slice(0, 10))
   const rows = await prisma.program.findMany({
     where: { status: 'ACTIVE', OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
-    orderBy: { updatedAt: 'desc' },
+    // Σειρά που όρισε το γραφείο (drag & drop)· όσα δεν έχουν σειρά ακολουθούν, νεότερα πρώτα.
+    orderBy: [{ publicOrder: { sort: 'asc', nulls: 'last' } }, { updatedAt: 'desc' }],
     select: {
       id: true, title: true, summary: true, publicSlug: true, imageUrl: true, cmsContent: true,
       totalBudget: true, fundingRate: true, submissionEnd: true,

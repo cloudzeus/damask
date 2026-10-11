@@ -1261,6 +1261,7 @@ model Program {
   title                  String
   summary                String?
   imageUrl               String? // δημόσια εικόνα προγράμματος (front-end)
+  publicOrder            Int? // σειρά εμφάνισης στο website (drag & drop στο admin)· null = αυτόματη (μετά τα ταξινομημένα)
   referenceCode          String?
   sourceFileName         String?
   storageKey             String?                      @unique
