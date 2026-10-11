@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-11T11:29:23.813Z",
+  "timestamp": "2026-10-11T16:03:30.182Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,85 +22,85 @@
     },
     {
       "status": "M",
+      "path": "package-lock.json"
+    },
+    {
+      "status": "M",
+      "path": "package.json"
+    },
+    {
+      "status": "M",
       "path": "prisma/schema.prisma"
     },
     {
       "status": "M",
-      "path": "src/app/(app)/tax-templates/[id]/page.tsx"
+      "path": "src/components/programs/purchase-docs-panel.tsx"
     },
     {
       "status": "M",
-      "path": "src/components/tax/field-list.tsx"
+      "path": "src/lib/activity/registry.ts"
     },
     {
       "status": "M",
-      "path": "src/components/tax/scan-form-dialog.tsx"
+      "path": "src/lib/ocr/extract.ts"
     },
     {
       "status": "M",
-      "path": "src/components/trdr/dossier-smart-upload.tsx"
+      "path": "src/lib/ocr/schema.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/actions.ts"
+      "path": "src/lib/pm/actions.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/smart-classify-core.ts"
+      "path": "src/lib/pm/payment.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/objects.ts"
+      "path": "src/lib/programs/expense-purchase.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/permissions.ts"
+      "path": "src/proxy.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/pm/portal-documents.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/tax/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/tax/field-prep.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/tax/greek-format.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/tax/template.ts"
+      "path": "tests/ocr-schema.test.ts"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20261011111656_doc_training_targets/"
+      "path": "prisma/migrations/20261011154730_supplier_certificate/"
     },
     {
       "status": "??",
-      "path": "scripts/tmp/"
+      "path": "prisma/migrations/20261011160500_expense_purchase_invoice_lines/"
     },
     {
       "status": "??",
-      "path": "src/app/(app)/document-training/"
+      "path": "src/app/(app)/supplier-cert/"
     },
     {
       "status": "??",
-      "path": "src/lib/documents/training.ts"
+      "path": "src/app/b/"
     },
     {
       "status": "??",
-      "path": "src/lib/tax/field-targets.ts"
+      "path": "src/components/programs/supplier-cert-dialog.tsx"
     },
     {
       "status": "??",
-      "path": "src/lib/tax/template-auto.ts"
+      "path": "src/components/supplier-cert/"
+    },
+    {
+      "status": "??",
+      "path": "src/components/ui/signature-pad.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/supplier-cert/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n96ea99a fix(documents): η αναγνώριση τύπου δικαιολογητικού δεν απορρίπτει πια σωστές απαντήσεις — αριθμημένος κατάλογος (το AI απαντά με αριθμό) + ανεκτική αντιστοίχιση ονόματος· πριν: 9/15 παραδείγματα χωρίς πρόταση επειδή το AI αντέγραφε και τη σημείωση του τύπου· τώρα 15/15\n3affd3a chore: ενημέρωση HANDOFF\neb1a998 feat(programs): «Σειρά στο website» — drag & drop (ποντίκι/αφή/πληκτρολόγιο) της σειράς εμφάνισης των δημοσιευμένων προγραμμάτων στο site (Program.publicOrder)· «Αυτόματη σειρά» για επαναφορά· η αλλαγή σειράς δεν αγγίζει το updatedAt (όχι ψευδής «Ενημερώθηκε»/sitemap/IndexNow)\ndf14c5c fix(ui): πλαίσιο άμεσης απάντησης με ίσο αέρα πάνω/κάτω (64px, κλίμακα 8pt) αντί για 0 κάτω — δεν «κολλάει» πια σε σκούρα/γκρι ενότητα· με επόμενη λευκή ενότητα το κενό μοιράζεται (όχι διπλό)· Υπηρεσίες, Προγράμματα, σελίδα προγράμματος\nafc4b61 feat(programs): αυτόματοι επίσημοι επιλέξιμοι ΚΑΔ για καθεστώτα Αναπτυξιακού — ο συλλέκτης βρίσκει τον πίνακα ΚΑΔ του καθεστώτος στο «Υποστηρικτικό υλικό» του ependyseis.mindev.gov.gr (ταίριασμα ονόματος με ρίζες λέξεων, ≥60%), κρατά μόνο τους επιλέξιμους συμπτυγμένους σε ομάδες, κανόνας ONLY_LISTED + επίσημη πηγή· χωρίς πίνακα κρατιούνται οι ΚΑΔ της αποδελτίωσης"
+  "context_notes": "Recent commits:\nf4a9c75 feat(pm): «Έργο σε εξέλιξη» — εισαγωγή πελατών με ήδη εγκεκριμένη πρόταση\n7e38b24 fix(documents): οι χαρακτηριστικές λέξεις τύπου βγαίνουν μόνο από ≥3 διαφορετικές πηγές — σχεδόν ίδια δείγματα (π.χ. ΕΜΕ της ίδιας εταιρίας για 2 χρονιές) μετράνε ως μία, ώστε ονόματα εργαζομένων/επωνυμίες να μη γίνονται «υπογραφή» του τύπου\n06c0a24 chore: ενημέρωση HANDOFF\nbb964bb feat(documents): Εκπαίδευση αναγνώρισης + Οδηγός με «τι βρίσκει / τύπος / πού καταχωρείται»\n96ea99a fix(documents): η αναγνώριση τύπου δικαιολογητικού δεν απορρίπτει πια σωστές απαντήσεις — αριθμημένος κατάλογος (το AI απαντά με αριθμό) + ανεκτική αντιστοίχιση ονόματος· πριν: 9/15 παραδείγματα χωρίς πρόταση επειδή το AI αντέγραφε και τη σημείωση του τύπου· τώρα 15/15"
 }
