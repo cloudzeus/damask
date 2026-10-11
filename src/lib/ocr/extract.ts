@@ -66,7 +66,7 @@ const JSON_SHAPE = `{
   "documentNumber": string|null,
   "date": string|null,
   "currency": string|null,
-  "lines": [ { "description": string, "quantity": number|null, "unitPrice": number|null, "vatPct": number|null, "total": number|null } ],
+  "lines": [ { "description": string, "code": string|null, "serial": string|null, "quantity": number|null, "unitPrice": number|null, "vatPct": number|null, "total": number|null } ],
   "totals": { "net": number|null, "vat": number|null, "gross": number|null },
   "confidence": number,
   "notes": string|null
@@ -90,6 +90,7 @@ ${JSON_SHAPE}
 - Όλα τα ποσά ως αριθμοί (numbers) με τελεία δεκαδικών, ΟΧΙ strings, ΟΧΙ σύμβολο €.
 - Αν ένα πεδίο δεν φαίνεται καθαρά στο έγγραφο, βάλε null — ΜΗΝ μαντεύεις τιμές.
 - "packing_list" = δελτίο αποστολής χωρίς τιμές/ΦΠΑ (μόνο περιγραφές/ποσότητες)· τα lines[].unitPrice/vatPct/total και τα totals μπορεί να είναι όλα null.
+- Σε κάθε γραμμή: "code" = ο κωδικός είδους όπως τυπώνεται (στήλη «Κωδικός»/«Κωδ. είδους»/part number), "serial" = σειριακός/οί αριθμός/οί (S/N) αν αναγράφονται για τη γραμμή· αλλιώς null. Η "description" ΧΩΡΙΣ τον κωδικό.
 - "receipt" = απόδειξη λιανικής, συνήθως χωρίς στοιχεία παραλήπτη (counterparty null).
 - "invoice" = τιμολόγιο, με στοιχεία παραλήπτη (counterparty) όποτε αναγράφονται.
 - Ψάξε προσεκτικά στο header ΚΑΙ στο footer του εγγράφου για τηλέφωνα, emails και website του εκδότη (issuer) ή/και του παραλήπτη (counterparty) — συχνά εμφανίζονται εκεί ως μικρά στοιχεία επικοινωνίας. Αν βρεις, γέμισε τα "phones"/"emails" (arrays — μπορεί να έχουν 0, 1, ή περισσότερα στοιχεία το καθένα) και το "website" (string ή null). ΜΗΝ επινοείς στοιχεία επικοινωνίας που δεν φαίνονται καθαρά.

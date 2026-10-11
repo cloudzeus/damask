@@ -337,6 +337,8 @@ model Trdr {
   appLat                 Float?
   appLng                 Float?
   appLogoUrl             String?
+  /// Λογότυπο που ανέβασε ο ίδιος ο προμηθευτής (Bunny private) — μπαίνει στις βεβαιώσεις του.
+  supplierLogoKey        String?
   appLegalForm           String?
   appNotes               String?
   appEmployees           Int? // αριθμός εργαζομένων (app-only, από import/χειροκίνητα)
@@ -1692,6 +1694,7 @@ model ProgramExpense {
   updatedAt            DateTime                     @updatedAt
   deliverables         ExpenseDeliverable[]
   lines                ProgramExpenseLine[]
+  supplierCertificate  SupplierCertificate?
 
   @@index([applicationId])
   @@index([categoryId])
@@ -1903,6 +1906,8 @@ model ExpensePurchase {
   ocrNumber        String?
   ocrDate          DateTime?
   ocrCheckedAt     DateTime?
+  /// Γραμμές του παραστατικού όπως τις διάβασε το OCR (περιγραφή/κωδικός/ποσότητα/σειριακός) — γεμίζουν τη βεβαίωση προμηθευτή.
+  invoiceLines     Json?
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
 }
@@ -3071,4 +3076,34 @@ model TrdrProgramMatch {
   @@unique([trdrId, programId])
   @@index([programId, eligible])
   @@index([trdrId, eligible])
+}
+
+/// Αυτόματη «Βεβαίωση προμηθευτή» (καινούργιο & αμεταχείριστο κ.λπ.) ανά δαπάνη: συντάσσεται από τα στοιχεία
+/// της αγοράς, στέλνεται στον προμηθευτή με σύνδεσμο (token) και υπογράφεται στην οθόνη (χέρι) ή με σφραγίδα.
+/// Το υπογεγραμμένο PDF γίνεται το έγγραφο «Βεβαίωση προμηθευτή» της αγοράς (ExpensePurchase.supplierCertKey).
+model SupplierCertificate {
+  id             String         @id @default(cuid())
+  expenseId      String         @unique
+  expense        ProgramExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  token          String         @unique
+  /// DRAFT | SENT | SIGNED
+  status         String         @default("DRAFT")
+  /// Στιγμιότυπο: προμηθευτής, αγοραστής, πρόγραμμα, τιμολόγιο, είδη (κωδ./περιγραφή/ποσότητα/σειριακός), τόπος.
+  data           Json
+  supplierTrdrId String?
+  sentTo         String?
+  sentAt         DateTime?
+  viewedAt       DateTime?
+  signedAt       DateTime?
+  signerName     String?
+  signerTitle    String?
+  signatureKey   String?
+  stampKey       String?
+  pdfKey         String?
+  expiresAt      DateTime
+  createdById    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([status])
 }

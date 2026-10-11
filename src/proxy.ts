@@ -23,10 +23,10 @@ const STATIC_FILE = /\.(?:png|jpe?g|webp|avif|gif|svg|ico|css|js|mjs|map|txt|xml
 // βλ. src/app/api/webhooks/viva/route.ts, δικό του έλεγχο κάνει με verification key).
 // Token-gated δημόσιες σελίδες πελατών (magic links — κάνουν δικό τους έλεγχο token):
 // /portal & /go (portal/lead), /unsubscribe (newsletter), /r (αίτημα δικαιολογητικών),
-// /api/file-requests (public upload endpoint με token).
+// /api/file-requests (public upload endpoint με token), /b (βεβαίωση προμηθευτή — υπογραφή με token).
 const PUBLIC_PREFIXES = [
   '/legal/', '/api/webhooks/', ...(SITE_PUBLIC ? ['/programmata/', '/nea/', '/espa/'] : []),
-  '/portal/', '/go/', '/unsubscribe/', '/r/', '/api/file-requests/',
+  '/portal/', '/go/', '/unsubscribe/', '/r/', '/b/', '/api/file-requests/',
 ]
 
 export function proxy(req: NextRequest) {

@@ -10,9 +10,10 @@ import type { ExtractedDocument } from '@/lib/ocr/schema'
 import { ComposeEmailDialog } from '@/components/email/compose-email-dialog'
 import { ExpenseEligibilityPanel } from './expense-eligibility-panel'
 import { ExpenseDossierButton } from './expense-dossier-button'
+import { SupplierCertButton } from './supplier-cert-dialog'
 import { evaluateExpenseEligibility } from '@/lib/programs/expense-proposal'
 import {
-  listExpensePurchases, savePurchaseMeta, uploadPurchaseDoc, removePurchaseDoc, reconcileExpensePurchase, saveInvoiceOcr, draftDocRequestEmail,
+  listExpensePurchases, savePurchaseMeta, uploadPurchaseDoc, removePurchaseDoc, markSupplierCertInInvoice, reconcileExpensePurchase, saveInvoiceOcr, draftDocRequestEmail,
   type PurchaseItem, type PurchaseDocKind, type PurchaseVerdict, type DocRequestDraft,
 } from '@/lib/programs/expense-purchase'
 
@@ -98,6 +99,7 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
       await saveInvoiceOcr(it.expenseId, {
         amount: data.totals.gross ?? data.totals.net ?? null,
         supplier: data.issuer.name, docNumber: data.documentNumber, date: data.date,
+        lines: data.lines.map(l => ({ description: l.description, code: l.code, serial: l.serial, quantity: l.quantity })),
       })
       setOcrOpen(false)
       toast.success('Το παραστατικό διαβάστηκε.')
@@ -167,8 +169,10 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
       {/* Έγγραφα */}
       <div className="mt-2 flex flex-wrap gap-1.5">
         {DOC_LABELS.map(({ kind, label }) => (
-          <DocChip key={kind} expenseId={it.expenseId} kind={kind} label={label} doc={it.docs[kind]} onReload={onReload} />
+          <DocChip key={kind} expenseId={it.expenseId} kind={kind} label={label} doc={it.docs[kind]} invoiceHas={it.docs.invoice.has} onReload={onReload} />
         ))}
+        {/* Αυτόματη βεβαίωση προμηθευτή (καινούργιο/αμεταχείριστο) — αν δεν τη δίνει ο ίδιος ο προμηθευτής. */}
+        <SupplierCertButton expenseId={it.expenseId} status={it.certStatus} onChanged={onReload} />
       </div>
 
       {/* AI ανάγνωση παραστατικού (OCR) — σύνοψη τι διαβάστηκε */}
@@ -234,7 +238,7 @@ function PurchaseCard({ item: it, applicationId, onReload }: { item: PurchaseIte
   )
 }
 
-function DocChip({ expenseId, kind, label, doc, onReload }: { expenseId: string; kind: PurchaseDocKind; label: string; doc: { has: boolean; name: string | null }; onReload: () => void }) {
+function DocChip({ expenseId, kind, label, doc, invoiceHas, onReload }: { expenseId: string; kind: PurchaseDocKind; label: string; doc: { has: boolean; name: string | null }; invoiceHas: boolean; onReload: () => void }) {
   const fileRef = React.useRef<HTMLInputElement | null>(null)
   const [busy, setBusy] = React.useState(false)
 
@@ -264,6 +268,19 @@ function DocChip({ expenseId, kind, label, doc, onReload }: { expenseId: string;
       <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[length:var(--fs-10-5)] text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-60">
         {busy ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />} {label}
       </button>
+      {kind === 'supplierCert' && invoiceHas && (
+        <button
+          type="button"
+          title="Η βεβαίωση έχει ανέβει μέσα στο ίδιο αρχείο με το τιμολόγιο"
+          onClick={async () => {
+            const r = await markSupplierCertInInvoice(expenseId).catch(() => ({ ok: false, message: 'Απέτυχε.' }))
+            if (!r.ok) toast.error(r.message ?? 'Απέτυχε.'); else { toast.success('Η βεβαίωση καλύπτεται από το αρχείο του τιμολογίου.'); onReload() }
+          }}
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[length:var(--fs-10-5)] text-muted-foreground hover:border-primary hover:text-primary"
+        >
+          μέσα στο τιμολόγιο
+        </button>
+      )}
     </>
   )
 }

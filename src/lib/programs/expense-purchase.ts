@@ -42,6 +42,8 @@ export type PurchaseItem = {
   inRequest: { ordinal: number; status: string } | null
   /** Αναλυτικός έλεγχος επιλεξιμότητας (on demand, ίδιος με τον Προϋπολογισμό). */
   eligibilityDetail: ExpenseEligibilityDetail | null
+  /** Αυτόματη βεβαίωση προμηθευτή: NEW (καμία) | DRAFT | SENT | SIGNED. */
+  certStatus: 'NEW' | 'DRAFT' | 'SENT' | 'SIGNED'
 }
 
 function docsOf(p: { invoiceKey: string | null; invoiceName: string | null; bankExtraitKey: string | null; bankExtraitName: string | null; supplierCertKey: string | null; supplierCertName: string | null } | null): PurchaseItem['docs'] {
@@ -65,6 +67,7 @@ export async function listExpensePurchases(applicationId: string): Promise<Purch
       purchase: true,
       paymentRequest: { select: { ordinal: true, status: true } },
       eligibilityDetail: true,
+      supplierCertificate: { select: { status: true } },
     },
   })
   return rows.map(r => {
@@ -84,6 +87,7 @@ export async function listExpensePurchases(applicationId: string): Promise<Purch
       ocr: p?.ocrCheckedAt ? { amount: p.ocrAmount != null ? Number(p.ocrAmount) : null, supplier: p.ocrSupplier ?? null, number: p.ocrNumber ?? null } : null,
       inRequest: r.paymentRequest ? { ordinal: r.paymentRequest.ordinal, status: r.paymentRequest.status } : null,
       eligibilityDetail: (r.eligibilityDetail as unknown as ExpenseEligibilityDetail | null) ?? null,
+      certStatus: (r.supplierCertificate?.status ?? 'NEW') as PurchaseItem['certStatus'],
     }
   })
 }
@@ -92,7 +96,7 @@ export async function listExpensePurchases(applicationId: string): Promise<Purch
  * αρχείο) + auto-prefill πληρωμένου ποσού / αρ. παραστατικού αν είναι κενά. */
 export async function saveInvoiceOcr(
   expenseId: string,
-  input: { amount?: number | null; supplier?: string | null; docNumber?: string | null; date?: string | null },
+  input: { amount?: number | null; supplier?: string | null; docNumber?: string | null; date?: string | null; lines?: { description: string; code?: string | null; serial?: string | null; quantity?: number | null }[] },
 ): Promise<{ ok: boolean }> {
   await requirePermission('programs.manage')
   const existing = await prisma.expensePurchase.findUnique({ where: { expenseId }, select: { paidAmount: true, invoiceNumber: true } })
@@ -103,6 +107,8 @@ export async function saveInvoiceOcr(
     ocrNumber: input.docNumber?.trim() || null,
     ocrDate: d && !Number.isNaN(d.getTime()) ? d : null,
     ocrCheckedAt: new Date(),
+    // Γραμμές παραστατικού → γεμίζουν αυτόματα τη βεβαίωση προμηθευτή.
+    ...(input.lines?.length ? { invoiceLines: input.lines.filter(l => l.description?.trim()).slice(0, 100).map(l => ({ description: l.description.trim().slice(0, 400), code: l.code?.trim() || null, serial: l.serial?.trim() || null, quantity: l.quantity ?? null })) } : {}),
   }
   // prefill μόνο όταν ο χρήστης δεν έχει ήδη βάλει τιμή
   const prefill: Record<string, unknown> = {}
@@ -153,6 +159,16 @@ export async function uploadPurchaseDoc(
     create: { expenseId, [f.keyField]: key, [f.nameField]: input.name.trim() || f.label },
     update: { [f.keyField]: key, [f.nameField]: input.name.trim() || f.label },
   })
+  revalidatePath('/programs')
+  return { ok: true }
+}
+
+/** Η βεβαίωση προμηθευτή ανέβηκε μέσα στο ίδιο αρχείο με το τιμολόγιο → καλύπτεται από αυτό (ίδιο αρχείο). */
+export async function markSupplierCertInInvoice(expenseId: string): Promise<{ ok: boolean; message?: string }> {
+  await requirePermission('programs.manage')
+  const p = await prisma.expensePurchase.findUnique({ where: { expenseId }, select: { invoiceKey: true } })
+  if (!p?.invoiceKey) return { ok: false, message: 'Ανεβάστε πρώτα το τιμολόγιο.' }
+  await prisma.expensePurchase.update({ where: { expenseId }, data: { supplierCertKey: p.invoiceKey, supplierCertName: 'Βεβαίωση προμηθευτή (μέσα στο αρχείο του τιμολογίου)' } })
   revalidatePath('/programs')
   return { ok: true }
 }

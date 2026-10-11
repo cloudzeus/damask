@@ -28,6 +28,10 @@ export type OcrParty = z.infer<typeof ocrPartySchema>
 
 export const ocrLineSchema = z.object({
   description: z.string().default(''),
+  /** Κωδικός είδους όπως τυπώνεται στο παραστατικό (αν υπάρχει). */
+  code: z.string().nullable().optional(),
+  /** Σειριακός/οί αριθμός/οί αν αναγράφονται στη γραμμή. */
+  serial: z.string().nullable().optional(),
   quantity: z.number().nullable().default(null),
   unitPrice: z.number().nullable().default(null),
   vatPct: z.number().nullable().default(null),
@@ -127,6 +131,8 @@ function coerceLine(v: unknown): unknown {
   const o = isPlainObject(v) ? v : {}
   return {
     description: o.description == null ? '' : String(o.description),
+    code: o.code == null || String(o.code).trim() === '' ? null : String(o.code).trim(),
+    serial: o.serial == null || String(o.serial).trim() === '' ? null : String(o.serial).trim(),
     quantity: coerceOcrNumber(o.quantity),
     unitPrice: coerceOcrNumber(o.unitPrice ?? o.unit_price),
     vatPct: coerceOcrNumber(o.vatPct ?? o.vat_pct ?? o.vatRate),

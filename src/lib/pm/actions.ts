@@ -1148,7 +1148,7 @@ export async function listPaymentEligibleExpenses(applicationId: string, request
     const p = r.purchase
     const present = [p?.invoiceKey, p?.bankExtraitKey, p?.supplierCertKey].filter(Boolean).length
     const { eligible, reason } = expenseEligibleForPayment(
-      { status: r.status as 'ACTIVE' | 'REPLACED', confirmed: r.confirmed, verified: r.certification?.verified ?? false, purchaseComplete: present === 3, paymentRequestId: r.paymentRequestId },
+      { status: r.status as 'ACTIVE' | 'REPLACED', confirmed: r.confirmed, verified: r.certification?.verified ?? false, purchaseComplete: present === 3, missingSupplierCert: !p?.supplierCertKey, paymentRequestId: r.paymentRequestId },
       requestId ?? null,
     )
     return {
@@ -1169,7 +1169,7 @@ export async function addExpenseToRequest(requestId: string, expenseId: string):
   if (exp.applicationId !== req.applicationId) throw new Error('Η δαπάνη ανήκει σε άλλο έργο.')
   const present = [exp.purchase?.invoiceKey, exp.purchase?.bankExtraitKey, exp.purchase?.supplierCertKey].filter(Boolean).length
   const { eligible, reason } = expenseEligibleForPayment(
-    { status: exp.status as 'ACTIVE' | 'REPLACED', confirmed: exp.confirmed, verified: exp.certification?.verified ?? false, purchaseComplete: present === 3, paymentRequestId: exp.paymentRequestId },
+    { status: exp.status as 'ACTIVE' | 'REPLACED', confirmed: exp.confirmed, verified: exp.certification?.verified ?? false, purchaseComplete: present === 3, missingSupplierCert: !exp.purchase?.supplierCertKey, paymentRequestId: exp.paymentRequestId },
     requestId,
   )
   if (!eligible) throw new Error(`Μη επιλέξιμη δαπάνη: ${reason}.`)

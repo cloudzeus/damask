@@ -48,8 +48,15 @@ describe('coerceExtractedJson', () => {
     expect(out.docType).toBe('invoice')
     expect(out.notes).toBeNull()
     const lines = out.lines as Record<string, unknown>[]
-    expect(lines[0]).toEqual({ description: 'Ύφασμα λινό', quantity: 2, unitPrice: 29.1, vatPct: 24, total: 58.2 })
+    expect(lines[0]).toEqual({ description: 'Ύφασμα λινό', code: null, serial: null, quantity: 2, unitPrice: 29.1, vatPct: 24, total: 58.2 })
     expect(out.totals).toEqual({ net: 58.2, vat: 13.97, gross: 72.17 })
+  })
+
+  it('κρατά κωδικό είδους και σειριακό ανά γραμμή (για τη βεβαίωση προμηθευτή)', () => {
+    const out = coerceExtractedJson({ docType: 'invoice', issuer: {}, lines: [{ description: 'Εκτυπωτής', code: ' W1A53A ', serial: 'PHBQ1, PHBQ2', quantity: 2 }], totals: {} })
+    const l = ((out as { lines: Record<string, unknown>[] }).lines)[0]
+    expect(l.code).toBe('W1A53A')
+    expect(l.serial).toBe('PHBQ1, PHBQ2')
   })
 
   it('defaults docType to the hint when the model omits/mis-types it', () => {
