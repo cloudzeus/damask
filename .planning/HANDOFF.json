@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-11T11:02:08.906Z",
+  "timestamp": "2026-10-11T11:29:23.813Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,88 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "prisma/schema.prisma"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/tax-templates/[id]/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/tax/field-list.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/tax/scan-form-dialog.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/trdr/dossier-smart-upload.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/documents/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/documents/smart-classify-core.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/objects.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/permissions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/pm/portal-documents.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/tax/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/tax/field-prep.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/tax/greek-format.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/tax/template.ts"
+    },
+    {
+      "status": "??",
+      "path": "prisma/migrations/20261011111656_doc_training_targets/"
+    },
+    {
+      "status": "??",
+      "path": "scripts/tmp/"
+    },
+    {
+      "status": "??",
+      "path": "src/app/(app)/document-training/"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/documents/training.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/tax/field-targets.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/tax/template-auto.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\neb1a998 feat(programs): «Σειρά στο website» — drag & drop (ποντίκι/αφή/πληκτρολόγιο) της σειράς εμφάνισης των δημοσιευμένων προγραμμάτων στο site (Program.publicOrder)· «Αυτόματη σειρά» για επαναφορά· η αλλαγή σειράς δεν αγγίζει το updatedAt (όχι ψευδής «Ενημερώθηκε»/sitemap/IndexNow)\ndf14c5c fix(ui): πλαίσιο άμεσης απάντησης με ίσο αέρα πάνω/κάτω (64px, κλίμακα 8pt) αντί για 0 κάτω — δεν «κολλάει» πια σε σκούρα/γκρι ενότητα· με επόμενη λευκή ενότητα το κενό μοιράζεται (όχι διπλό)· Υπηρεσίες, Προγράμματα, σελίδα προγράμματος\nafc4b61 feat(programs): αυτόματοι επίσημοι επιλέξιμοι ΚΑΔ για καθεστώτα Αναπτυξιακού — ο συλλέκτης βρίσκει τον πίνακα ΚΑΔ του καθεστώτος στο «Υποστηρικτικό υλικό» του ependyseis.mindev.gov.gr (ταίριασμα ονόματος με ρίζες λέξεων, ≥60%), κρατά μόνο τους επιλέξιμους συμπτυγμένους σε ομάδες, κανόνας ONLY_LISTED + επίσημη πηγή· χωρίς πίνακα κρατιούνται οι ΚΑΔ της αποδελτίωσης\na4f0e42 fix(seo): περιγραφή «Έλεγχος ΚΑΔ» ≤160 χαρακτήρες\ndabb061 feat(geo): llms-full.txt — καθαρά ονόματα + πλαίσιο (ΕΣΠΑ/Αναπτυξιακός/ΚΑΠ-LEADER) ανά πρόγραμμα από την επίσημη πηγή, ενότητες Αναπτυξιακού/LEADER (στοιχεία, επεξήγηση, FAQ) και σύγκριση, επίσημες πηγές· FAQ: σύνδεσμοι προς κόμβους και σύγκριση"
+  "context_notes": "Recent commits:\n96ea99a fix(documents): η αναγνώριση τύπου δικαιολογητικού δεν απορρίπτει πια σωστές απαντήσεις — αριθμημένος κατάλογος (το AI απαντά με αριθμό) + ανεκτική αντιστοίχιση ονόματος· πριν: 9/15 παραδείγματα χωρίς πρόταση επειδή το AI αντέγραφε και τη σημείωση του τύπου· τώρα 15/15\n3affd3a chore: ενημέρωση HANDOFF\neb1a998 feat(programs): «Σειρά στο website» — drag & drop (ποντίκι/αφή/πληκτρολόγιο) της σειράς εμφάνισης των δημοσιευμένων προγραμμάτων στο site (Program.publicOrder)· «Αυτόματη σειρά» για επαναφορά· η αλλαγή σειράς δεν αγγίζει το updatedAt (όχι ψευδής «Ενημερώθηκε»/sitemap/IndexNow)\ndf14c5c fix(ui): πλαίσιο άμεσης απάντησης με ίσο αέρα πάνω/κάτω (64px, κλίμακα 8pt) αντί για 0 κάτω — δεν «κολλάει» πια σε σκούρα/γκρι ενότητα· με επόμενη λευκή ενότητα το κενό μοιράζεται (όχι διπλό)· Υπηρεσίες, Προγράμματα, σελίδα προγράμματος\nafc4b61 feat(programs): αυτόματοι επίσημοι επιλέξιμοι ΚΑΔ για καθεστώτα Αναπτυξιακού — ο συλλέκτης βρίσκει τον πίνακα ΚΑΔ του καθεστώτος στο «Υποστηρικτικό υλικό» του ependyseis.mindev.gov.gr (ταίριασμα ονόματος με ρίζες λέξεων, ≥60%), κρατά μόνο τους επιλέξιμους συμπτυγμένους σε ομάδες, κανόνας ONLY_LISTED + επίσημη πηγή· χωρίς πίνακα κρατιούνται οι ΚΑΔ της αποδελτίωσης"
 }
