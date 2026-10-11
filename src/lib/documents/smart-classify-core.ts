@@ -156,7 +156,7 @@ export async function classifyDocumentCore(input: {
   // ── 2. AI ────────────────────────────────────────────────────────────────
   try {
     const ai = await askAi({ types, examples: scored, apps, fileName: input.fileName, snippet })
-    const t = ai.typeName ? types.find(x => fold(x.name) === fold(ai.typeName!)) : null
+    const t = ai.typeName ? resolveTypeName(types, ai.typeName) : null
     return {
       ok: true,
       result: {
@@ -178,6 +178,31 @@ export async function classifyDocumentCore(input: {
   }
 }
 
+/**
+ * Ανεκτική αντιστοίχιση ονόματος τύπου από το AI στον κατάλογο: ακριβές (χωρίς τόνους/στίξη) → το όνομα του AI
+ * ΞΕΚΙΝΑ με όνομα του καταλόγου (πήρε και τη σημείωση) → μεγάλη επικάλυψη λέξεων. Προτιμά το μακρύτερο ταίριασμα.
+ */
+export function resolveTypeName(types: TypeRow[], raw: string): TypeRow | null {
+  const n = (x: string) => fold(x).replace(/[^a-zα-ω0-9]+/g, ' ').trim()
+  const r = n(raw)
+  if (!r || r === 'null') return null
+  const exact = types.find(t => n(t.name) === r)
+  if (exact) return exact
+  const prefix = types.filter(t => r.startsWith(n(t.name) + ' ') || r === n(t.name)).sort((a, b) => n(b.name).length - n(a.name).length)[0]
+  if (prefix) return prefix
+  const rw = new Set(r.split(' ').filter(w => w.length > 2))
+  let best: { t: TypeRow; s: number } | null = null
+  for (const t of types) {
+    const tw = new Set(n(t.name).split(' ').filter(w => w.length > 2))
+    if (!tw.size) continue
+    let hit = 0
+    for (const w of tw) if (rw.has(w)) hit++
+    const sc = hit / tw.size
+    if (sc >= 0.8 && (!best || sc > best.s)) best = { t, s: sc }
+  }
+  return best?.t ?? null
+}
+
 type AiOut = {
   typeName: string | null
   confidence: number
@@ -189,7 +214,7 @@ type AiOut = {
   expiryBasis: string | null
 }
 
-async function askAi(args: {
+export async function askAi(args: {
   types: TypeRow[]
   examples: { e: { documentTypeId: string; fileName: string; snippet: string; wasCorrect: boolean }; sim: number }[]
   apps: { programId: string; program: { title: string; referenceCode: string | null } }[]
@@ -205,7 +230,9 @@ async function askAi(args: {
   const shots = [...picked.values()].slice(0, 12).map(x =>
     `- «${x.e.fileName}» → ${typeById.get(x.e.documentTypeId)?.name}${x.e.wasCorrect ? '' : ' (διόρθωση χρήστη)'}: ${x.e.snippet.slice(0, 220).replace(/\s+/g, ' ')}`,
   )
-  const typeList = args.types.map(t => `- ${t.name}${t.expires ? (t.validityDays ? ` [λήγει· ισχύς ${t.validityDays} ημέρες από την έκδοση]` : ' [λήγει]') : ''}${t.notes ? ` — ${t.notes.slice(0, 120)}` : ''}`).join('\n')
+  // Αριθμημένος κατάλογος: το AI απαντά με ΑΡΙΘΜΟ (όχι αντιγραφή ονόματος — παλιότερα αντέγραφε και τη σημείωση,
+  // π.χ. «ΕΜΕ — … τιμές ανά έτος», και η σωστή απάντηση απορριπτόταν).
+  const typeList = args.types.map((t, i) => `${i + 1}. ${t.name}${t.expires ? (t.validityDays ? ` [λήγει· ισχύς ${t.validityDays} ημέρες από την έκδοση]` : ' [λήγει]') : ''}${t.notes ? ` (σημείωση: ${t.notes.slice(0, 120)})` : ''}`).join('\n')
   const programList = args.apps.length
     ? args.apps.map(a => `- id=${a.programId}: ${a.program.title}${a.program.referenceCode ? ` (${a.program.referenceCode})` : ''}`).join('\n')
     : '(ο πελάτης δεν έχει προγράμματα)'
@@ -215,7 +242,7 @@ async function askAi(args: {
     args.forcedType
       ? `Ο τύπος έχει ήδη αναγνωριστεί ως «${args.forcedType}». Βρες ΜΟΝΟ πρόγραμμα, επαναχρησιμοποίηση και ημερομηνίες.`
       : 'Αναγνώρισε τον τύπο του εγγράφου ΑΠΟΚΛΕΙΣΤΙΚΑ από τον κατάλογο.',
-    `Κατάλογος τύπων:\n${typeList}`,
+    `Κατάλογος τύπων (αριθμημένος):\n${typeList}`,
     shots.length ? `Παραδείγματα από προηγούμενες ταξινομήσεις χρηστών (ακολούθησέ τα):\n${shots.join('\n')}` : '',
     `Προγράμματα του πελάτη:\n${programList}`,
     'Πρόγραμμα: επίλεξε id ΜΟΝΟ αν το έγγραφο αναφέρεται ρητά σε συγκεκριμένο πρόγραμμα (τίτλος/κωδικός/δράση)· αλλιώς null.',
@@ -228,7 +255,7 @@ async function askAi(args: {
       '• «Ανακοίνωση» τροποποίησης καταστατικού / κωδικοποιημένο καταστατικό: τύπος καταστατικού («Καταστατικό και νομιμοποιητικά έγγραφα» αν υπάρχει), χωρίς λήξη.',
       '• Μια «Ανακοίνωση» ΔΕΝ είναι «Γενικό Πιστοποιητικό».',
     ].join('\n'),
-    'Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"type":"όνομα από τον κατάλογο ή null","confidence":0..1,"reason":"μία σύντομη πρόταση στα ελληνικά","programId":"id ή null","reusable":true|false,"issuedAt":"YYYY-MM-DD ή null","expiresAt":"YYYY-MM-DD ή null","expiryBasis":"κείμενο ή null"}',
+    'Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"typeNo":αριθμός τύπου από τον κατάλογο ή null,"type":"το όνομα του τύπου ΧΩΡΙΣ τη σημείωση ή null","confidence":0..1,"reason":"μία σύντομη πρόταση στα ελληνικά","programId":"id ή null","reusable":true|false,"issuedAt":"YYYY-MM-DD ή null","expiresAt":"YYYY-MM-DD ή null","expiryBasis":"κείμενο ή null"}',
   ].filter(Boolean).join('\n\n')
 
   const text = await deepseekChat(
@@ -241,10 +268,13 @@ async function askAi(args: {
   const p = (parseJsonLoose(text) ?? {}) as Record<string, unknown>
   const date = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.trim()) ? v.trim() : null)
   const rawType = typeof p.type === 'string' ? p.type.replace(/\s*\[[^\]]*\]\s*$/, '').trim() : ''
+  const no = Number(p.typeNo)
+  const byNo = Number.isInteger(no) && no >= 1 && no <= args.types.length ? args.types[no - 1] : null
+  const resolved = byNo ?? resolveTypeName(args.types, rawType)
   const programId = typeof p.programId === 'string' && args.apps.some(a => a.programId === p.programId) ? p.programId : null
   const conf = typeof p.confidence === 'number' ? p.confidence : Number(p.confidence)
   return {
-    typeName: rawType && rawType !== 'null' ? rawType : null,
+    typeName: resolved?.name ?? null,
     confidence: Number.isFinite(conf) ? Math.max(0, Math.min(1, conf)) : 0.5,
     reason: typeof p.reason === 'string' ? p.reason.slice(0, 240) : null,
     programId,
