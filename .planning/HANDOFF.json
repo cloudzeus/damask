@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-11T16:03:30.182Z",
+  "timestamp": "2026-10-11T16:31:55.501Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,88 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "package-lock.json"
-    },
-    {
-      "status": "M",
-      "path": "package.json"
-    },
-    {
-      "status": "M",
-      "path": "prisma/schema.prisma"
-    },
-    {
-      "status": "M",
-      "path": "src/components/programs/purchase-docs-panel.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/activity/registry.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ocr/extract.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/ocr/schema.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/payment.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/programs/expense-purchase.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/proxy.ts"
-    },
-    {
-      "status": "M",
-      "path": "tests/ocr-schema.test.ts"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261011154730_supplier_certificate/"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261011160500_expense_purchase_invoice_lines/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(app)/supplier-cert/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/b/"
-    },
-    {
-      "status": "??",
-      "path": "src/components/programs/supplier-cert-dialog.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/components/supplier-cert/"
-    },
-    {
-      "status": "??",
-      "path": "src/components/ui/signature-pad.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/supplier-cert/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nf4a9c75 feat(pm): «Έργο σε εξέλιξη» — εισαγωγή πελατών με ήδη εγκεκριμένη πρόταση\n7e38b24 fix(documents): οι χαρακτηριστικές λέξεις τύπου βγαίνουν μόνο από ≥3 διαφορετικές πηγές — σχεδόν ίδια δείγματα (π.χ. ΕΜΕ της ίδιας εταιρίας για 2 χρονιές) μετράνε ως μία, ώστε ονόματα εργαζομένων/επωνυμίες να μη γίνονται «υπογραφή» του τύπου\n06c0a24 chore: ενημέρωση HANDOFF\nbb964bb feat(documents): Εκπαίδευση αναγνώρισης + Οδηγός με «τι βρίσκει / τύπος / πού καταχωρείται»\n96ea99a fix(documents): η αναγνώριση τύπου δικαιολογητικού δεν απορρίπτει πια σωστές απαντήσεις — αριθμημένος κατάλογος (το AI απαντά με αριθμό) + ανεκτική αντιστοίχιση ονόματος· πριν: 9/15 παραδείγματα χωρίς πρόταση επειδή το AI αντέγραφε και τη σημείωση του τύπου· τώρα 15/15"
+  "context_notes": "Recent commits:\nff3f292 chore: ενημέρωση HANDOFF\nb160689 feat(expenses): αυτόματη «Βεβαίωση προμηθευτή» με υπογραφή στην οθόνη ή σφραγίδα\nf4a9c75 feat(pm): «Έργο σε εξέλιξη» — εισαγωγή πελατών με ήδη εγκεκριμένη πρόταση\n7e38b24 fix(documents): οι χαρακτηριστικές λέξεις τύπου βγαίνουν μόνο από ≥3 διαφορετικές πηγές — σχεδόν ίδια δείγματα (π.χ. ΕΜΕ της ίδιας εταιρίας για 2 χρονιές) μετράνε ως μία, ώστε ονόματα εργαζομένων/επωνυμίες να μη γίνονται «υπογραφή» του τύπου\n06c0a24 chore: ενημέρωση HANDOFF"
 }
