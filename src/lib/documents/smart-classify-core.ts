@@ -88,7 +88,8 @@ function withExpiryClues(text: string): string {
 const MEMORY_MIN_SIM = 0.5
 /** Μέγιστα παραδείγματα ανά τύπο στη μνήμη (τα πιο πρόσφατα) — ώστε κανένας τύπος να μη «χάνεται» από τους πολυπληθείς. */
 const PER_TYPE_CAP = 60
-const SIG_MIN_EXAMPLES = 3
+/** Ελάχιστες ΔΙΑΦΟΡΕΤΙΚΕΣ πηγές (όχι σχεδόν ίδια δείγματα) για υπογραφή τύπου. */
+const SIG_MIN_SOURCES = 3
 
 export type MemoryExample = { id: string; documentTypeId: string; fileName: string; snippet: string; wasCorrect: boolean; trdrId: string | null; tok: Set<string> }
 export type MemoryIndex = { key: string; examples: MemoryExample[]; signatures: Map<string, string[]> }
@@ -100,8 +101,8 @@ export function exampleTokens(fileName: string, snippet: string): Set<string> {
 
 /**
  * Μνήμη αναγνώρισης σε cache διεργασίας: ξαναχτίζεται μόνο όταν αλλάξει το πλήθος/τελευταίο παράδειγμα.
- * «Υπογραφή» τύπου = λέξεις που υπάρχουν στο ≥60% των δειγμάτων του τύπου και σε ≤15% των υπολοίπων —
- * από ΟΛΑ τα δείγματα (εκπαίδευση + uploads σε πολλούς πελάτες).
+ * «Υπογραφή» τύπου = λέξεις που υπάρχουν στο ≥60% των ΔΙΑΦΟΡΕΤΙΚΩΝ πηγών του τύπου (≥3) και σε ≤15% των
+ * υπολοίπων — από ΟΛΑ τα δείγματα (εκπαίδευση + uploads σε πολλούς πελάτες).
  */
 export async function getMemoryIndex(): Promise<MemoryIndex> {
   const agg = await prisma.documentClassificationExample.aggregate({ _count: { _all: true }, _max: { createdAt: true } })
@@ -119,19 +120,29 @@ export async function getMemoryIndex(): Promise<MemoryIndex> {
     perType.set(r.documentTypeId, n + 1)
     examples.push({ ...r, tok: exampleTokens(r.fileName, r.snippet) })
   }
-  const df = new Map<string, Map<string, number>>() // type → token → πλήθος δειγμάτων
-  const dfAll = new Map<string, number>()
+  // Πηγές: δείγματα που μοιάζουν πολύ (π.χ. ΕΜΕ της ίδιας εταιρίας για 2 χρονιές) μετράνε ως ΜΙΑ πηγή — αλλιώς
+  // ονόματα εργαζομένων/επωνυμία μιας εταιρίας θα γίνονταν «χαρακτηριστικές λέξεις» του τύπου.
+  const byType = new Map<string, Set<string>[]>() // τύπος → πηγές (ένωση λέξεων των μελών)
   for (const e of examples) {
-    const m = df.get(e.documentTypeId) ?? new Map<string, number>()
-    df.set(e.documentTypeId, m)
-    for (const t of e.tok) { m.set(t, (m.get(t) ?? 0) + 1); dfAll.set(t, (dfAll.get(t) ?? 0) + 1) }
+    const clusters = byType.get(e.documentTypeId) ?? []
+    byType.set(e.documentTypeId, clusters)
+    const near = clusters.find(c => jaccard(c, e.tok) >= 0.5)
+    if (near) for (const t of e.tok) near.add(t)
+    else clusters.push(new Set(e.tok))
   }
+  const dfAll = new Map<string, number>() // λέξη → σε πόσα δείγματα (όλων των τύπων)
+  for (const e of examples) for (const t of e.tok) dfAll.set(t, (dfAll.get(t) ?? 0) + 1)
   const signatures = new Map<string, string[]>()
-  for (const [typeId, m] of df) {
+  for (const [typeId, clusters] of byType) {
+    if (clusters.length < SIG_MIN_SOURCES) continue
     const n = perType.get(typeId) ?? 0
-    if (n < SIG_MIN_EXAMPLES) continue
     const others = examples.length - n
-    const sig = [...m].filter(([t, c]) => c / n >= 0.6 && (others === 0 || ((dfAll.get(t) ?? 0) - c) / others <= 0.15)).sort((a, b) => b[1] - a[1]).slice(0, 40).map(([t]) => t)
+    const df = new Map<string, number>()
+    for (const c of clusters) for (const t of c) df.set(t, (df.get(t) ?? 0) + 1)
+    const inType = (t: string) => examples.filter(e => e.documentTypeId === typeId && e.tok.has(t)).length
+    const sig = [...df]
+      .filter(([t, c]) => c / clusters.length >= 0.6 && (others === 0 || ((dfAll.get(t) ?? 0) - inType(t)) / others <= 0.15))
+      .sort((a, b) => b[1] - a[1]).slice(0, 40).map(([t]) => t)
     if (sig.length >= 4) signatures.set(typeId, sig)
   }
   memCache = { key, examples, signatures }
