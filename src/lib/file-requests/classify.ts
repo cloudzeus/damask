@@ -1,5 +1,6 @@
 'use server'
 
+import { loadSeriesTypes, matchSeriesType } from '@/lib/file-requests/series'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { hashToken } from '@/lib/pm/portal-token'
@@ -48,7 +49,7 @@ export async function recognizeFileForRequest(token: string, raw: z.input<typeof
 
   const fr = await prisma.fileRequest.findUnique({
     where: { tokenHash: hashToken(token) },
-    select: { status: true, expiresAt: true, trdrId: true, items: { orderBy: { order: 'asc' }, select: { id: true, label: true, description: true, fileKey: true, fileUrl: true } } },
+    select: { status: true, expiresAt: true, trdrId: true, items: { orderBy: { order: 'asc' }, select: { id: true, label: true, description: true, fileKey: true, fileUrl: true, parentItemId: true, documentTypeId: true } } },
   })
   if (!fr || fr.status === 'CANCELLED' || (fr.expiresAt.getTime() < Date.now() && fr.status !== 'COMPLETED')) {
     return { ok: false, message: 'Το αίτημα δεν είναι ενεργό.' }
@@ -74,8 +75,11 @@ export async function recognizeFileForRequest(token: string, raw: z.input<typeof
       : null
 
     // 3. Αντιστοίχιση σε ζητούμενο στοιχείο: πρώτα ομοιότητα λέξεων τύπου ↔ ετικέτας.
-    const pending = fr.items.filter(i => !i.fileKey && !i.fileUrl)
-    const pool = pending.length ? pending : fr.items
+    // Σειρές (π.χ. Φ2 ανά μήνα) μένουν πάντα διαθέσιμες — κάθε αρχείο προστίθεται· τα «παιδιά» τους δεν είναι επιλογές.
+    const seriesTypes = await loadSeriesTypes().catch(() => [])
+    const parents = fr.items.filter(i => !i.parentItemId)
+    const pending = parents.filter(i => (!i.fileKey && !i.fileUrl) || !!matchSeriesType(seriesTypes, i))
+    const pool = pending.length ? pending : parents
     if (typeName) {
       const t = words(typeName)
       const best = pool

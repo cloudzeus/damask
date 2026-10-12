@@ -1,5 +1,6 @@
 'use client'
 
+import { periodLabel } from '@/lib/documents/series'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from 'react'
 import {
   UploadCloud, FileText, CheckCircle2, AlertTriangle, Loader2, X, PartyPopper, CircleDashed, Sparkles,
@@ -29,6 +30,9 @@ type ItemState = {
   required: boolean
   uploaded: boolean
   fileName: string | null
+  /** Σειρά (π.χ. Φ2 ανά μήνα): πολλά αρχεία, το καθένα με την περίοδό του. */
+  series: boolean
+  files: { fileName: string | null; period: string | null }[]
 }
 
 type QueueStatus = 'idle' | 'uploading' | 'done' | 'error'
@@ -48,7 +52,7 @@ type QueuedFile = {
   foreign?: string | null
 }
 
-type UploadResult = { ok?: true; url: string; name: string; size: number }
+type UploadResult = { ok?: true; url: string; name: string; size: number; period?: string | null; series?: boolean }
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -65,6 +69,8 @@ export function CustomerUploader({ token, request }: { token: string; request: O
       required: i.required,
       uploaded: i.uploaded,
       fileName: i.fileName,
+      series: i.series,
+      files: i.files,
     })),
   )
   const [queue, setQueue] = useState<QueuedFile[]>([])
@@ -143,7 +149,9 @@ export function CustomerUploader({ token, request }: { token: string; request: O
         controller.signal,
       )
       updateQueued(id, { status: 'done', progress: 100 })
-      setItems(prev => prev.map(it => (it.id === row.itemId ? { ...it, uploaded: true, fileName: res?.name ?? file.name } : it)))
+      setItems(prev => prev.map(it => (it.id === row.itemId
+        ? { ...it, uploaded: true, fileName: res?.name ?? file.name, series: it.series || !!res?.series, files: [...it.files, { fileName: res?.name ?? file.name, period: res?.period ?? null }] }
+        : it)))
     } catch (err) {
       if (controller.signal.aborted) return
       updateQueued(id, { status: 'error', error: err instanceof Error ? err.message : 'Η μεταφόρτωση απέτυχε.' })
@@ -180,7 +188,10 @@ export function CustomerUploader({ token, request }: { token: string; request: O
       {allRequiredDone && (
         <div role="status" style={successBanner}>
           <PartyPopper size={20} aria-hidden style={{ flexShrink: 0 }} />
-          <span>Ολοκληρώθηκε — λάβαμε όλα τα δικαιολογητικά. Θα λάβεις επιβεβαίωση στο email σου.</span>
+          <span>
+            Ολοκληρώθηκε — λάβαμε όλα τα δικαιολογητικά. Θα λάβεις επιβεβαίωση στο email σου.
+            {items.some(i => i.series) && <> Για όσα ζητούνται <b>ανά περίοδο</b> ({items.filter(i => i.series).map(i => `«${i.label}»`).join(', ')}) μπορείτε να προσθέσετε και τις υπόλοιπες περιόδους εδώ — ο σύνδεσμος παραμένει ενεργός.</>}
+          </span>
         </div>
       )}
 
@@ -209,6 +220,20 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                 {!item.uploaded && documentHint(item.label, item.description) && (
                   <p style={{ margin: '0.2rem 0 0', fontSize: 'var(--fs-12-5)', lineHeight: 1.45, color: 'var(--muted-foreground, #64748b)' }}><b>Πού το βρίσκετε:</b> {documentHint(item.label, item.description)}</p>
                 )}
+                {item.series && (
+                  <p style={{ margin: '0.2rem 0 0', fontSize: 'var(--fs-12-5)', lineHeight: 1.45, color: 'var(--muted-foreground, #64748b)' }}>
+                    <b>Ένα αρχείο για κάθε περίοδο</b> — μπορείτε να τα επιλέξετε όλα μαζί· αναγνωρίζουμε αυτόματα τον μήνα/την περίοδο του καθενός.
+                  </p>
+                )}
+                {item.series && item.files.length > 0 ? (
+                  <ul style={{ margin: '0.35rem 0 0', padding: 0, listStyle: 'none', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }} aria-label={`Ανεβασμένα αρχεία — ${item.label}`}>
+                    {item.files.map((f, k) => (
+                      <li key={k} title={f.fileName ?? undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.15rem 0.5rem', borderRadius: 999, fontSize: 'var(--fs-12)', fontWeight: 600, color: 'var(--success, #059669)', background: 'color-mix(in srgb, var(--success, #059669) 12%, transparent)' }}>
+                        <CheckCircle2 size={12} aria-hidden /> {f.period ? periodLabel(f.period) : (f.fileName ?? 'αρχείο')}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
                 <p style={{ margin: '0.3rem 0 0', fontSize: 'var(--fs-12)', color: item.uploaded ? 'var(--success, #059669)' : 'var(--muted-foreground, #94a3b8)' }}>
                   {item.uploaded ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -217,6 +242,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                     </span>
                   ) : 'Εκκρεμεί'}
                 </p>
+                )}
               </div>
             </li>
           ))}
@@ -300,7 +326,7 @@ export function CustomerUploader({ token, request }: { token: string; request: O
                   >
                     {items.map(it => (
                       <option key={it.id} value={it.id}>
-                        {it.label}{it.uploaded ? ' (αντικατάσταση)' : ''}{it.required ? '' : ' — προαιρετικό'}
+                        {it.label}{it.uploaded ? (it.series ? ' (προσθήκη)' : ' (αντικατάσταση)') : ''}{it.required ? '' : ' — προαιρετικό'}
                       </option>
                     ))}
                   </select>

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { hashToken } from '@/lib/pm/portal-token'
 import { recomputeFileRequestStatus } from '@/lib/file-requests/service'
+import { loadSeriesTypes, matchSeriesType } from '@/lib/file-requests/series'
 
 /**
  * Public (token-only, ΧΩΡΙΣ permission gate) πρόσβαση σε αίτημα δικαιολογητικών.
@@ -17,6 +18,9 @@ export type PublicFileRequestItem = {
   fileName: string | null
   uploaded: boolean
   uploadedAt: string | null
+  /** Σειρά (π.χ. Φ2 ανά μήνα): ανεβαίνουν πολλά αρχεία — τα ανεβασμένα με την περίοδό τους. */
+  series: boolean
+  files: { fileName: string | null; period: string | null }[]
 }
 
 export type PublicFileRequest =
@@ -51,16 +55,23 @@ export async function resolveFileRequestByToken(rawToken: string): Promise<Publi
     status: fr.status,
     expiresAt: fr.expiresAt.toISOString(),
     completed: fr.status === 'COMPLETED',
-    items: fr.items.map(i => ({
-      id: i.id,
-      label: i.label,
-      description: i.description,
-      required: i.required,
-      status: i.status,
-      fileName: i.fileName,
-      uploaded: Boolean(i.fileKey || i.fileUrl),
-      uploadedAt: i.uploadedAt ? i.uploadedAt.toISOString() : null,
-    })),
+    // Τα «παιδιά» (επιπλέον αρχεία μιας σειράς) εμφανίζονται κάτω από το αρχικό ζητούμενο, όχι ως ξεχωριστά.
+    items: (await (async () => { const st = await loadSeriesTypes().catch(() => []); return fr.items.map(i => ({ ...i, __series: !!matchSeriesType(st, i) })) })()).filter(i => !i.parentItemId).map(i => {
+      const kids = fr.items.filter(k => k.parentItemId === i.id && (k.fileKey || k.fileUrl))
+      const own = i.fileKey || i.fileUrl ? [{ fileName: i.fileName, period: i.period }] : []
+      return {
+        id: i.id,
+        label: i.label,
+        description: i.description,
+        required: i.required,
+        status: i.status,
+        fileName: i.fileName,
+        uploaded: Boolean(i.fileKey || i.fileUrl),
+        uploadedAt: i.uploadedAt ? i.uploadedAt.toISOString() : null,
+        series: i.__series || kids.length > 0,
+        files: [...own, ...kids.map(k => ({ fileName: k.fileName, period: k.period }))],
+      }
+    }),
   }
 }
 

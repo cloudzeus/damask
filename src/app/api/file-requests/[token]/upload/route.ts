@@ -12,6 +12,7 @@ import { isMmeTypeName, extractMmeWithAi, applyMmeToTrdr } from '@/lib/tax/mme'
 import { verifyRequestedUpload } from '@/lib/file-requests/verify-upload'
 import { notifyRejectedUpload } from '@/lib/file-requests/rejection'
 import { documentHint } from '@/lib/file-requests/doc-hints'
+import { seriesTypeForItem } from '@/lib/file-requests/series'
 
 /**
  * Public upload endpoint (token-gated, ΧΩΡΙΣ session — βλ. proxy.ts /api/file-requests/).
@@ -80,13 +81,17 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
 
   // ΥΠΟΧΡΕΩΤΙΚΟΣ έλεγχος AI πριν την αποθήκευση: ό,τι δεν είναι το ζητούμενο έγγραφο (ή αφορά άλλη επιχείρηση) δεν ανεβαίνει.
   const [item, trdr] = await Promise.all([
-    prisma.fileRequestItem.findFirst({ where: { id: itemId, fileRequestId: fr.id }, select: { label: true, description: true } }),
+    prisma.fileRequestItem.findFirst({ where: { id: itemId, fileRequestId: fr.id }, select: { id: true, label: true, description: true, order: true, documentTypeId: true, parentItemId: true, fileKey: true, fileUrl: true } }),
     prisma.trdr.findUnique({ where: { id: fr.trdrId }, select: { NAME: true, AFM: true } }),
   ])
   if (!item) return NextResponse.json({ error: 'Το ζητούμενο έγγραφο δεν βρέθηκε.' }, { status: 400 })
+  // Σειρά (π.χ. Φ2 ανά μήνα): η ίδια κλήση AI διαβάζει και την περίοδο· κάθε επιπλέον αρχείο ΠΡΟΣΤΙΘΕΤΑΙ.
+  const docTypeRaw = formData.get('docType')
+  const series = await seriesTypeForItem(item, typeof docTypeRaw === 'string' ? docTypeRaw : null).catch(() => null)
   const verdict = await verifyRequestedUpload({
     bytes: Buffer.from(arrayBuffer), mimeType: file.type || '', fileName: file.name,
     expected: { label: item.label, description: item.description }, company: { name: trdr?.NAME ?? '', afm: trdr?.AFM },
+    periodKind: series && series.kind !== 'LIST' ? series.kind : null,
   })
   if (!verdict.ok) {
     // Ενημέρωση γραφείου + πελάτη (στο παρασκήνιο) και λίστα των ζητούμενων με εξήγηση για αυτόν που ανεβάζει.
@@ -101,16 +106,29 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
     return NextResponse.json({ error: 'Αποτυχία αποθήκευσης.', detail: err instanceof Error ? err.message : String(err) }, { status: 502 })
   }
 
+  // Σειρά: πρώτο αρχείο → στο ίδιο το ζητούμενο· επόμενα → νέα «παιδική» γραμμή (δεν αντικαθιστούν).
+  let targetId = item.id
+  if (series) {
+    const parentId = item.parentItemId ?? item.id
+    if (item.fileKey || item.fileUrl) {
+      const child = await prisma.fileRequestItem.create({
+        data: { fileRequestId: fr.id, label: item.label, required: false, order: item.order, parentItemId: parentId, documentTypeId: series.id },
+        select: { id: true },
+      })
+      targetId = child.id
+    }
+    await prisma.fileRequestItem.update({ where: { id: targetId }, data: { documentTypeId: series.id, period: verdict.period } })
+  }
   const res = await attachUploadedFileToItem({
     rawToken: token,
-    itemId,
+    itemId: targetId,
     fileName: file.name,
     fileKey: storageKey,
     mimeType: file.type || null,
     sizeBytes: file.size,
   })
   if (!res.ok) return NextResponse.json({ error: res.error ?? 'Αποτυχία συσχέτισης.' }, { status: 400 })
-  await prisma.fileRequestItem.update({ where: { id: itemId }, data: { note: verdict.note.slice(0, 500) } }).catch(() => null)
+  await prisma.fileRequestItem.update({ where: { id: targetId }, data: { note: verdict.note.slice(0, 500) } }).catch(() => null)
 
   void logApiUsage({ service: 'bunnycdn', operation: 'upload', units: file.size / 1e9, refType: 'fileRequest', refId: fr.id })
 
@@ -141,5 +159,5 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
       .then(data => (data ? applyMmeToTrdr({ trdrId: fr.trdrId, data, storageKey, name: file.name.replace(/\.[^.]+$/, ''), model: 'gemini' }) : null))
       .catch(err => console.error('[mme] file-request processing failed', err))
   }
-  return NextResponse.json({ ok: true, name: file.name, size: file.size })
+  return NextResponse.json({ ok: true, name: file.name, size: file.size, period: series ? verdict.period : null, series: !!series })
 }

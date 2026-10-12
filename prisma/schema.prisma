@@ -2770,10 +2770,16 @@ model FileRequestItem {
   reviewedById  String?
   reviewedAt    DateTime?
   reviewNote    String?
+  /// Σειρές (π.χ. Φ2 ανά μήνα): τύπος δικαιολογητικού, περίοδος του αρχείου και — για κάθε ΕΠΙΠΛΕΟΝ αρχείο της
+  /// ίδιας σειράς — το αρχικό ζητούμενο (εμφανίζεται κάτω από αυτό ως λίστα περιόδων).
+  documentTypeId String?
+  period        String?
+  parentItemId  String?
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
   @@index([fileRequestId])
+  @@index([parentItemId])
   @@index([status])
 }
 

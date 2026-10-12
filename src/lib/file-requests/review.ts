@@ -1,5 +1,6 @@
 'use server'
 
+import { periodLabel } from '@/lib/documents/series'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { revalidatePath } from 'next/cache'
@@ -85,7 +86,7 @@ export async function listMyPendingReviews(): Promise<PendingReviewRow[]> {
 
   return items.map(i => ({
     itemId: i.id,
-    label: i.label,
+    label: i.period ? `${i.label} — ${periodLabel(i.period)}` : i.label,
     fileName: i.fileName,
     downloadUrl: i.fileKey || i.fileUrl ? `/api/file-requests/items/${i.id}/download` : null,
     requestTitle: i.fileRequest.title,
@@ -132,7 +133,7 @@ export async function listApplicationFileRequests(applicationId: string): Promis
     expiresAt: f.expiresAt.toISOString(),
     items: f.items.map(i => ({
       id: i.id,
-      label: i.label,
+      label: i.period ? `${i.label} — ${periodLabel(i.period)}` : i.label,
       required: i.required,
       status: i.status,
       fileName: i.fileName,
@@ -165,6 +166,24 @@ export async function reviewFileRequestItem(itemId: string, decision: 'ACCEPTED'
 
   // Απόρριψη → σβήσε το λάθος αρχείο από το Bunny.
   if (decision === 'REJECTED') await purgeRejectedItemFile(item)
+  // Έγκριση αρχείου σειράς (π.χ. Φ2 με περίοδο) → στα δικαιολογητικά της εταιρίας + επανυπολογισμός κάλυψης στα έργα.
+  if (decision === 'ACCEPTED' && item.documentTypeId && item.fileKey) {
+    const exists = await prisma.trdrDossierDocument.findFirst({ where: { trdrId: item.fileRequest.trdrId, storageKey: item.fileKey }, select: { id: true } })
+    if (!exists) {
+      const doc = await prisma.trdrDossierDocument.create({
+        data: {
+          trdrId: item.fileRequest.trdrId, documentTypeId: item.documentTypeId, name: (item.fileName ?? item.label).slice(0, 200),
+          storageKey: item.fileKey, mimeType: item.mimeType, sizeBytes: item.sizeBytes, period: item.period,
+          programId: item.fileRequest.programId, uploadedById: session.user.id,
+        },
+        select: { id: true },
+      }).catch(() => null)
+      if (doc) {
+        const { coverObligationsFromDossierDoc } = await import('@/lib/pm/form-obligations')
+        await coverObligationsFromDossierDoc(doc.id).catch(() => null)
+      }
+    }
+  }
 
   await createNotification({
     type: 'GENERIC',
