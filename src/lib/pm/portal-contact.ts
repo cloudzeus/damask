@@ -22,6 +22,9 @@ export type PortalObligation = {
   dueDate: string | null
   hasDocument: boolean
   documentName: string | null
+  /** Σειρά (π.χ. Φ2 ανά μήνα): ανεβαίνουν πολλά αρχεία· progress = «5/12 — λείπουν …». */
+  seriesKind: string | null
+  progress: string | null
 }
 export type PortalPayment = { ordinal: number; title: string | null; status: string; statusLabel: string; amount: number | null; paidAt: string | null }
 export type PortalApp = {
@@ -69,11 +72,16 @@ export async function getContactPortalDashboard(previewContactId?: string): Prom
       obligations: {
         where: { kind: 'FORM' },
         orderBy: { order: 'asc' },
-        select: { id: true, name: true, status: true, dueDate: true, documents: { select: { name: true }, take: 1 } },
+        select: { id: true, name: true, status: true, dueDate: true, sourceId: true, notes: true, documents: { select: { name: true }, take: 1 } },
       },
       documentRequests: { where: { status: { in: ['PENDING', 'UPLOADED'] } }, select: { id: true } },
     },
   })
+  // Ποια ζητούμενα έντυπα είναι σειρές (π.χ. Φ2 ανά μήνα) — για ανέβασμα πολλών αρχείων στο portal.
+  const formIds = [...new Set(apps.flatMap(a => a.obligations.map(o => o.sourceId)).filter((x): x is string => !!x))]
+  const seriesByForm = new Map((formIds.length
+    ? await prisma.programRequiredForm.findMany({ where: { id: { in: formIds }, documentType: { seriesKind: { not: null } } }, select: { id: true, documentType: { select: { seriesKind: true } } } })
+    : []).map(f => [f.id, f.documentType?.seriesKind ?? null]))
 
   const applications: PortalApp[] = apps.map(a => {
     const expensesAmount = a.expenses.reduce((t, e) => t + Number(e.amount), 0)
@@ -100,6 +108,9 @@ export async function getContactPortalDashboard(previewContactId?: string): Prom
         dueDate: o.dueDate ? o.dueDate.toISOString() : null,
         hasDocument: o.documents.length > 0,
         documentName: o.documents[0]?.name ?? null,
+        seriesKind: (o.sourceId && seriesByForm.get(o.sourceId)) || null,
+        // Η πρώτη γραμμή των σημειώσεων είναι η κάλυψη της σειράς («5/12 — λείπουν …»).
+        progress: o.sourceId && seriesByForm.get(o.sourceId) ? (o.notes?.split('\n')[0] ?? null) : null,
       })),
       journey: buildJourney({
         lifecycle: a.lifecycle as LifecycleStr, stage: a.stage as StageStr, opskeSubmitted: !!a.opskeSubmittedAt,
@@ -132,7 +143,7 @@ export async function submitObligationUpload(
   file: { filename: string; base64: string; mimeType: string },
   /** Αποτέλεσμα του ελέγχου AI (checkPortalDocument) — σημείωση για τον σύμβουλο + αντίγραφο στην αποθήκη όταν ταιριάζει. */
   ai?: { verdict: string; message: string; detectedTypeId?: string | null; issuedAt?: string | null; expiresAt?: string | null },
-): Promise<{ ok: boolean; reason?: string }> {
+): Promise<{ ok: boolean; reason?: string; period?: string | null; progress?: string | null }> {
   const contact = await resolveContact()
   if (!contact || contact.preview) return { ok: false, reason: 'unauthorized' }
 
@@ -155,11 +166,39 @@ export async function submitObligationUpload(
   const body = Buffer.from(file.base64, 'base64')
   if (body.length === 0) return { ok: false, reason: 'empty' }
   if (body.length > MAX_UPLOAD_BYTES) return { ok: false, reason: 'too_large' }
+  // Σειρά (π.χ. Φ2 ανά μήνα): κάθε αρχείο ΠΡΟΣΤΙΘΕΤΑΙ με την περίοδό του — δεν αντικαθιστά το προηγούμενο.
+  const form = obl.sourceId ? await prisma.programRequiredForm.findUnique({ where: { id: obl.sourceId }, select: { documentTypeId: true, documentType: { select: { seriesKind: true } } } }) : null
+  const seriesKind = form?.documentType?.seriesKind ?? null
   // ΥΠΟΧΡΕΩΤΙΚΟΣ έλεγχος AI (server-side): μόνο το ζητούμενο έγγραφο της επιχείρησης γίνεται δεκτό.
   const { verifyRequestedUpload } = await import('@/lib/file-requests/verify-upload')
   const trdrRow = await prisma.trdr.findUnique({ where: { id: app.trdrId }, select: { NAME: true, AFM: true } })
-  const verdict = await verifyRequestedUpload({ bytes: body, mimeType: file.mimeType, fileName: file.filename, expected: { label: obl.name }, company: { name: trdrRow?.NAME ?? '', afm: trdrRow?.AFM } })
+  const verdict = await verifyRequestedUpload({
+    bytes: body, mimeType: file.mimeType, fileName: file.filename, expected: { label: obl.name }, company: { name: trdrRow?.NAME ?? '', afm: trdrRow?.AFM },
+    periodKind: seriesKind === 'MONTHLY' || seriesKind === 'QUARTERLY' || seriesKind === 'YEARLY' ? seriesKind : null,
+  })
   if (!verdict.ok) return { ok: false, reason: verdict.reason }
+
+  if (seriesKind && form?.documentTypeId) {
+    const ext0 = (file.filename.split('.').pop() ?? 'bin').replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'bin'
+    const skey = `portal/${app.id}/obl-${obl.id}-${crypto.randomUUID().slice(0, 8)}.${ext0}`
+    await bunnyUploadPrivate({ key: skey, body, contentType: file.mimeType })
+    await prisma.trdrDossierDocument.create({
+      data: {
+        trdrId: app.trdrId, documentTypeId: form.documentTypeId, name: file.filename.slice(0, 200), storageKey: skey,
+        mimeType: file.mimeType, sizeBytes: body.length, programId: app.programId, period: verdict.period,
+        uploadedById: null,
+      },
+    })
+    const { syncSeriesObligation } = await import('@/lib/pm/form-obligations')
+    const sync = await syncSeriesObligation(obl.id)
+    const aiLine = `[${new Date().toLocaleDateString('el-GR')}] ${verdict.note}`
+    const fresh = await prisma.applicationObligation.findUnique({ where: { id: obl.id }, select: { notes: true } })
+    await prisma.applicationObligation.update({ where: { id: obl.id }, data: { notes: [fresh?.notes, aiLine].filter(Boolean).join('\n').slice(0, 2000) } })
+    if (sync?.complete && obl.documentRequests[0]) {
+      await prisma.documentRequest.update({ where: { id: obl.documentRequests[0].id }, data: { status: 'UPLOADED', uploadedAt: new Date() } })
+    }
+    return { ok: true, period: verdict.period, progress: sync?.label ?? null }
+  }
   const ext = (file.filename.split('.').pop() ?? 'bin').replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'bin'
   const key = `portal/${app.id}/obl-${obl.id}.${ext}`
   await bunnyUploadPrivate({ key, body, contentType: file.mimeType })

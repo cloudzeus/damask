@@ -3,7 +3,7 @@ import { deepseekChat } from '@/lib/deepseek'
 import { parseJsonLoose } from '@/lib/ocr/extract'
 import { resolveExpiry } from './expiry-rule'
 import { matchCompany, type CompanyMatch } from './company-match'
-import { normalizePeriod, type SeriesKind } from './series'
+import { normalizePeriod, periodFromFileName, type SeriesKind } from './series'
 
 /**
  * (Plain module — ΟΧΙ server action.) Έξυπνη αναγνώριση δικαιολογητικού που «μαθαίνει» (Δικαιολογητικά πελάτη).
@@ -292,13 +292,7 @@ export function resolveTypeName(types: TypeRow[], raw: string): TypeRow | null {
 function periodOf(t: TypeRow, aiPeriod: string | null, fileName: string): string | null {
   const kind = t.seriesKind
   if (!kind || kind === 'LIST') return null
-  const norm = (v: string | null) => (v ? normalizePeriod(v, kind as SeriesKind) : null)
-  const fromAi = norm(aiPeriod)
-  if (fromAi) return fromAi
-  const base = fileName.replace(/\.[^.]+$/, '')
-  const m = /(\d{1,2})[-_. /](20\d{2})|(20\d{2})[-_. /](\d{1,2})/.exec(base)
-  if (m) return norm(m[1] ? `${m[1]}/${m[2]}` : `${m[3]}-${m[4]}`)
-  return kind === 'YEARLY' ? norm(/(20\d{2})/.exec(base)?.[1] ?? null) : null
+  return (aiPeriod ? normalizePeriod(aiPeriod, kind as SeriesKind) : null) ?? periodFromFileName(fileName, kind as SeriesKind)
 }
 
 type AiOut = {

@@ -1,5 +1,6 @@
 'use client'
 
+import { isSeriesKind, periodLabel, type SeriesKind } from '@/lib/documents/series'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -13,7 +14,9 @@ const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('el-
 const STATUS = { valid: ['ok', 'Σε ισχύ'], expiring: ['warn', 'Λήγει σύντομα'], expired: ['bad', 'Έληξε'] } as const
 
 /** Αποθήκη δικαιολογητικών της επιχείρησης: λίστα + ανέβασμα νέου με αναγνώριση τύπου από AI. */
-export function MyDocuments({ documents, types, preview }: { documents: MyDocument[]; types: { id: string; name: string }[]; preview: boolean }) {
+type DocType = { id: string; name: string; seriesKind?: string | null }
+
+export function MyDocuments({ documents, types, preview }: { documents: MyDocument[]; types: DocType[]; preview: boolean }) {
   const router = useRouter()
   const q = typeof window !== 'undefined' ? window.location.search : ''
   return (
@@ -30,7 +33,7 @@ export function MyDocuments({ documents, types, preview }: { documents: MyDocume
       ) : (
         <div className="p-table-wrap">
           <table className="p-table">
-            <thead><tr><th>Έγγραφο</th><th>Τύπος</th><th>Λήξη</th><th>Κατάσταση</th><th><span className="sr-only">Λήψη</span></th></tr></thead>
+            <thead><tr><th>Έγγραφο</th><th>Τύπος</th><th>Περίοδος</th><th>Λήξη</th><th>Κατάσταση</th><th><span className="sr-only">Λήψη</span></th></tr></thead>
             <tbody>
               {documents.map(d => {
                 const [cls, label] = STATUS[d.status]
@@ -38,6 +41,7 @@ export function MyDocuments({ documents, types, preview }: { documents: MyDocume
                   <tr key={d.id}>
                     <td><b style={{ fontWeight: 500 }}>{d.name}</b>{d.program && <div className="p-muted" style={{ fontSize: 12.5 }}>{d.program}</div>}</td>
                     <td>{d.typeName}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{d.period ? periodLabel(d.period) : '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{d.expiresAt ? day(d.expiresAt) : 'Δεν λήγει'}</td>
                     <td><span className={`p-badge ${cls}`}>{label}</span></td>
                     <td><a href={`/api/portal/dossier/${d.id}${q}`} target="_blank" rel="noopener" aria-label={`Λήψη ${d.name}`} style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', gap: 6 }}><LuDownload aria-hidden style={{ width: 16, height: 16 }} /> Άνοιγμα</a></td>
@@ -53,9 +57,12 @@ export function MyDocuments({ documents, types, preview }: { documents: MyDocume
 }
 
 /** Φόρμα νέου δικαιολογητικού (μέσα σε modal) με αναγνώριση τύπου από AI. */
-function UploadDocForm({ types, onDone }: { types: { id: string; name: string }[]; onDone: () => void }) {
+function UploadDocForm({ types, onDone }: { types: DocType[]; onDone: () => void }) {
   const [file, setFile] = React.useState<File | null>(null)
   const [typeId, setTypeId] = React.useState('')
+  const [period, setPeriod] = React.useState('')
+  const kind = types.find(t => t.id === typeId)?.seriesKind
+  const needsPeriod = isSeriesKind(kind) && kind !== 'LIST'
   const [check, setCheck] = React.useState<PortalDocCheck | null>(null)
   const [phase, setPhase] = React.useState<'idle' | 'checking' | 'ready' | 'uploading'>('idle')
 
@@ -67,13 +74,15 @@ function UploadDocForm({ types, onDone }: { types: { id: string; name: string }[
     const c = res?.ok ? res.check : null
     setCheck(c)
     if (c?.detectedTypeId && !typeId) setTypeId(c.detectedTypeId)
+    if (c?.period) setPeriod(c.period)
     setPhase('ready')
   }
 
   async function save() {
     if (!file || !typeId) { toast.error('Διαλέξτε τύπο εγγράφου.'); return }
+    if (needsPeriod && !period) { toast.error('Συμπληρώστε την περίοδο που αφορά το έγγραφο.'); return }
     setPhase('uploading')
-    const res = await uploadMyDocument({ documentTypeId: typeId, filename: file.name, base64: await fileToBase64(file), mimeType: file.type || 'application/octet-stream', issuedAt: check?.issuedAt ?? null, expiresAt: check?.expiresAt ?? null }).catch(() => null)
+    const res = await uploadMyDocument({ documentTypeId: typeId, filename: file.name, base64: await fileToBase64(file), mimeType: file.type || 'application/octet-stream', issuedAt: check?.issuedAt ?? null, expiresAt: check?.expiresAt ?? null, period: needsPeriod ? period : null }).catch(() => null)
     if (res?.ok) { toast.success(res.message); onDone() }
     else { toast.error(res?.message ?? 'Το ανέβασμα απέτυχε.'); setPhase('ready') }
   }
@@ -94,6 +103,20 @@ function UploadDocForm({ types, onDone }: { types: { id: string; name: string }[
             </select>
           </label>
         </div>
+        {needsPeriod && (
+          <label className="p-field">
+            <span>Περίοδος που αφορά {kind === 'MONTHLY' ? '(μήνας)' : kind === 'QUARTERLY' ? '(τρίμηνο)' : '(έτος)'}</span>
+            {kind === 'MONTHLY' ? (
+              <input type="month" value={period} onChange={e => setPeriod(e.target.value)} />
+            ) : (
+              <select value={period} onChange={e => setPeriod(e.target.value)}>
+                <option value="">— Επιλέξτε —</option>
+                {periodOptions(kind).map(o => <option key={o} value={o}>{periodLabel(o)}</option>)}
+              </select>
+            )}
+            {check?.period && <small className="p-muted">Αναγνωρίστηκε από το έγγραφο: {periodLabel(check.period)}</small>}
+          </label>
+        )}
         {phase === 'checking' && <div className="p-review checking" role="status"><LuLoaderCircle className="spin" aria-hidden /> Ο έλεγχος AI διαβάζει το «{file?.name}»…</div>}
         {check && phase !== 'checking' && (
           <div className={`p-review ${tone === 'ok' ? 'checking' : tone}`} role="status" style={tone === 'ok' ? { background: 'var(--p-success-bg)', color: 'var(--p-success)' } : undefined}>
@@ -101,10 +124,17 @@ function UploadDocForm({ types, onDone }: { types: { id: string; name: string }[
           </div>
         )}
         <div>
-          <button type="button" className="p-btn" disabled={!file || !typeId || phase === 'checking' || phase === 'uploading'} onClick={() => void save()}>
+          <button type="button" className="p-btn" disabled={!file || !typeId || (needsPeriod && !period) || phase === 'checking' || phase === 'uploading'} onClick={() => void save()}>
             {phase === 'uploading' ? <LuLoaderCircle className="spin" aria-hidden /> : phase === 'checking' ? <LuSparkles aria-hidden /> : <LuUpload aria-hidden />} Αποθήκευση στα δικαιολογητικά
           </button>
         </div>
       </div>
   )
+}
+
+/** Τρίμηνα/έτη των τελευταίων 8 ετών (νεότερα πρώτα). */
+function periodOptions(kind: SeriesKind): string[] {
+  const y = new Date().getFullYear()
+  const years = Array.from({ length: 8 }, (_, i) => y - i)
+  return kind === 'QUARTERLY' ? years.flatMap(yy => [4, 3, 2, 1].map(q => `${yy}-Q${q}`)) : years.map(String)
 }

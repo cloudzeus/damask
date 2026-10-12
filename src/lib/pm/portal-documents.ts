@@ -1,5 +1,6 @@
 'use server'
 
+import { isSeriesKind, normalizePeriod, periodFromFileName } from '@/lib/documents/series'
 import { after } from 'next/server'
 import { processTemplateIfApplicable } from '@/lib/tax/template-auto'
 import { z } from 'zod'
@@ -41,6 +42,8 @@ export type PortalDocCheck = {
   detectedName: string | null
   expiresAt: string | null
   issuedAt: string | null
+  /** Περίοδος αναφοράς για τύπους-σειρές (π.χ. Φ2 «2025-03»). */
+  period?: string | null
 }
 
 const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -75,7 +78,7 @@ export async function checkPortalDocument(raw: z.input<typeof checkSchema>): Pro
     const cls = await classifyDocumentCore({ trdrId: contact.trdrId, fileName: input.fileName, text })
     const r = cls.ok ? cls.result : null
     const detectedName = r?.typeId ? (await prisma.documentType.findUnique({ where: { id: r.typeId }, select: { name: true } }))?.name ?? null : null
-    const base = { expectedName, detectedTypeId: r?.typeId ?? null, detectedName, expiresAt: r?.expiresAt ?? null, issuedAt: r?.issuedAt ?? null }
+    const base = { expectedName, detectedTypeId: r?.typeId ?? null, detectedName, expiresAt: r?.expiresAt ?? null, issuedAt: r?.issuedAt ?? null, period: r?.period ?? null }
 
     if (r?.company.status === 'MISMATCH') {
       return { ok: true, check: { ...base, verdict: 'foreign', message: 'Το έγγραφο φαίνεται να αφορά άλλη επιχείρηση (διαφορετικό ΑΦΜ ή επωνυμία). Ελέγξτε ότι επιλέξατε το σωστό αρχείο.' } }
@@ -101,8 +104,8 @@ export async function checkPortalDocument(raw: z.input<typeof checkSchema>): Pro
 
 // ── 2. Τα δικαιολογητικά μου (αποθήκη πελάτη) ─────────────────────────────
 
-export type MyDocument = { id: string; name: string; typeName: string; issuedAt: string | null; expiresAt: string | null; status: 'valid' | 'expiring' | 'expired'; program: string | null; createdAt: string }
-export type MyDocumentsView = { ok: true; documents: MyDocument[]; types: { id: string; name: string }[]; preview: boolean } | { ok: false }
+export type MyDocument = { id: string; name: string; typeName: string; issuedAt: string | null; expiresAt: string | null; status: 'valid' | 'expiring' | 'expired'; program: string | null; createdAt: string; period: string | null }
+export type MyDocumentsView = { ok: true; documents: MyDocument[]; types: { id: string; name: string; seriesKind: string | null }[]; preview: boolean } | { ok: false }
 
 export async function listMyDocuments(previewContactId?: string): Promise<MyDocumentsView> {
   const contact = await resolvePortalContact(previewContactId)
@@ -110,15 +113,15 @@ export async function listMyDocuments(previewContactId?: string): Promise<MyDocu
   const [docs, types] = await Promise.all([
     prisma.trdrDossierDocument.findMany({
       where: { trdrId: contact.trdrId }, orderBy: [{ createdAt: 'desc' }],
-      select: { id: true, name: true, issuedAt: true, expiresAt: true, createdAt: true, documentType: { select: { name: true } }, program: { select: { title: true } } },
+      select: { id: true, name: true, issuedAt: true, expiresAt: true, createdAt: true, period: true, documentType: { select: { name: true } }, program: { select: { title: true } } },
     }),
-    prisma.documentType.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    prisma.documentType.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, seriesKind: true } }),
   ])
   const now = Date.now(), soon = now + 30 * 86_400_000
   return {
     ok: true, preview: contact.preview, types,
     documents: docs.map(d => ({
-      id: d.id, name: d.name, typeName: d.documentType.name, program: d.program?.title ?? null,
+      id: d.id, name: d.name, typeName: d.documentType.name, program: d.program?.title ?? null, period: d.period,
       issuedAt: d.issuedAt?.toISOString() ?? null, expiresAt: d.expiresAt?.toISOString() ?? null, createdAt: d.createdAt.toISOString(),
       status: d.expiresAt && d.expiresAt.getTime() < now ? 'expired' : d.expiresAt && d.expiresAt.getTime() < soon ? 'expiring' : 'valid',
     })),
@@ -132,6 +135,7 @@ const uploadSchema = z.object({
   mimeType: z.string().max(120),
   issuedAt: z.string().nullable().optional(),
   expiresAt: z.string().nullable().optional(),
+  period: z.string().max(20).nullable().optional(),
 })
 
 /** Νέο δικαιολογητικό στην αποθήκη της επιχείρησης (από το portal). */
@@ -141,7 +145,7 @@ export async function uploadMyDocument(raw: z.input<typeof uploadSchema>): Promi
   const parsed = uploadSchema.safeParse(raw)
   if (!parsed.success) return { ok: false, message: 'Μη έγκυρα στοιχεία.' }
   const f = parsed.data
-  const type = await prisma.documentType.findUnique({ where: { id: f.documentTypeId }, select: { id: true, name: true } })
+  const type = await prisma.documentType.findUnique({ where: { id: f.documentTypeId }, select: { id: true, name: true, seriesKind: true } })
   if (!type) return { ok: false, message: 'Διαλέξτε τύπο εγγράφου.' }
   const body = Buffer.from(f.base64, 'base64')
   if (!body.length) return { ok: false, message: 'Το αρχείο είναι κενό.' }
@@ -151,9 +155,16 @@ export async function uploadMyDocument(raw: z.input<typeof uploadSchema>): Promi
   await bunnyUploadPrivate({ key, body, contentType: f.mimeType || 'application/octet-stream' })
   const toDate = (s?: string | null) => (s && !Number.isNaN(Date.parse(s)) ? new Date(s) : null)
   const doc = await prisma.trdrDossierDocument.create({
-    data: { trdrId: contact.trdrId, documentTypeId: type.id, name: f.filename, storageKey: key, mimeType: f.mimeType, sizeBytes: body.length, issuedAt: toDate(f.issuedAt), expiresAt: toDate(f.expiresAt) },
+    data: {
+      trdrId: contact.trdrId, documentTypeId: type.id, name: f.filename, storageKey: key, mimeType: f.mimeType, sizeBytes: body.length,
+      issuedAt: toDate(f.issuedAt), expiresAt: toDate(f.expiresAt),
+      period: isSeriesKind(type.seriesKind) ? normalizePeriod(f.period, type.seriesKind) ?? periodFromFileName(f.filename, type.seriesKind) : null,
+    },
     select: { id: true },
   })
+  // Καλύπτει (ή, για σειρές, ενημερώνει την πρόοδο) εκκρεμοτήτων ίδιου τύπου στα έργα — όπως στο γραφείο.
+  const { coverObligationsFromDossierDoc } = await import('@/lib/pm/form-obligations')
+  await coverObligationsFromDossierDoc(doc.id).catch(() => null)
   // Οδηγός Εντύπου του τύπου (αν υπάρχει): ανάγνωση πεδίων μετά την απάντηση — ο πελάτης δεν περιμένει.
   after(() => processTemplateIfApplicable({ docId: doc.id, trdrId: contact.trdrId, documentTypeId: type.id, base64: f.base64, mimeType: f.mimeType, storageKey: key, name: f.filename, userId: null }).then(() => undefined))
   await createNotification({ title: `Νέο δικαιολογητικό από πελάτη: ${contact.trdr?.NAME ?? ''}`, body: `${contact.name} ανέβασε «${type.name}» στο portal.`, entityType: 'Trdr', entityId: contact.trdrId, meta: { kind: 'portal-dossier-upload' } })

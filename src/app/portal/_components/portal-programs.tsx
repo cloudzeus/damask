@@ -1,5 +1,6 @@
 'use client'
 
+import { periodLabel } from '@/lib/documents/series'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -11,7 +12,7 @@ import { submitObligationUpload, type PortalApp } from '@/lib/pm/portal-contact'
 import type { PortalDocCheck } from '@/lib/pm/portal-documents'
 
 /** Ανέβασμα σε δύο βήματα: η AI διαβάζει το αρχείο → αν δεν είναι σίγουρα το σωστό, ο πελάτης αποφασίζει. */
-export type UploadReview = { file: File; phase: 'checking' | 'review'; check: PortalDocCheck | null }
+export type UploadReview = { file: File; phase: 'checking' | 'review'; check: PortalDocCheck | null; note?: string }
 
 export const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
   const r = new FileReader()
@@ -57,6 +58,30 @@ export function PortalPrograms({ applications, preview = false }: { applications
     }
   }
 
+  /** Σειρά (π.χ. Φ2 ανά μήνα): πολλά αρχεία μαζί, ένα-ένα· κάθε αρχείο ελέγχεται και κρατά την περίοδό του. */
+  async function handlePickMany(obligationId: string, files: File[]) {
+    if (preview) { toast.info('Προεπισκόπηση — το ανέβασμα γίνεται μόνο από τον πελάτη.'); return }
+    setBusyId(obligationId)
+    const okPeriods: string[] = []
+    const failed: string[] = []
+    let progress: string | null = null
+    try {
+      for (const [i, file] of files.entries()) {
+        setReview(obligationId, { file, phase: 'checking', check: null, note: `Έλεγχος ${i + 1} από ${files.length}…` })
+        if (file.size > 8 * 1024 * 1024) { failed.push(`${file.name} (πάνω από 8MB)`); continue }
+        const res = await submitObligationUpload(obligationId, { filename: file.name, base64: await fileToBase64(file), mimeType: file.type || 'application/octet-stream' }).catch(() => null)
+        if (res?.ok) { okPeriods.push(res.period ? periodLabel(res.period) : `${file.name} (χωρίς περίοδο)`); progress = res.progress ?? progress }
+        else failed.push(`${file.name}${res?.reason && res.reason.includes(' ') ? ` — ${res.reason}` : ''}`)
+      }
+    } finally {
+      setReview(obligationId, null)
+      setBusyId(null)
+    }
+    if (okPeriods.length) toast.success(`Ανέβηκαν ${okPeriods.length}: ${okPeriods.join(', ')}`, { description: progress ?? undefined, duration: 9000 })
+    if (failed.length) toast.error(`Δεν έγιναν δεκτά ${failed.length}`, { description: failed.join(' · ').slice(0, 400), duration: 12000 })
+    router.refresh()
+  }
+
   if (applications.length === 0) {
     return <div className="p-empty"><p className="p-muted">Δεν υπάρχουν έργα διαθέσιμα για την επαφή σας ακόμη.</p></div>
   }
@@ -72,7 +97,7 @@ export function PortalPrograms({ applications, preview = false }: { applications
         </div>
       )}
       {applications.map(app => (
-        <ProgramGuide key={app.applicationId} app={app} busyId={busyId} reviews={reviews} onPick={handlePick} onCancel={id => setReview(id, null)} preview={preview} />
+        <ProgramGuide key={app.applicationId} app={app} busyId={busyId} reviews={reviews} onPick={handlePick} onPickMany={handlePickMany} onCancel={id => setReview(id, null)} preview={preview} />
       ))}
     </>
   )
@@ -80,9 +105,9 @@ export function PortalPrograms({ applications, preview = false }: { applications
 
 const isDone = (s: string) => s === 'APPROVED' || s === 'SUBMITTED' || s === 'WAIVED'
 
-function ProgramGuide({ app, busyId, reviews, onPick, onCancel, preview }: {
+function ProgramGuide({ app, busyId, reviews, onPick, onPickMany, onCancel, preview }: {
   app: PortalApp; busyId: string | null; reviews: Record<string, UploadReview>; preview: boolean
-  onPick: (id: string, f: File) => void; onCancel: (id: string) => void
+  onPick: (id: string, f: File) => void; onPickMany: (id: string, f: File[]) => void; onCancel: (id: string) => void
 }) {
   const { journey, money } = app
   const todo = app.obligations.filter(o => !isDone(o.status))
@@ -134,13 +159,23 @@ function ProgramGuide({ app, busyId, reviews, onPick, onCancel, preview }: {
                     <LuFileText className="ico" aria-hidden />
                     <div className="name">
                       {o.name}
-                      <div className={`sub${rejected ? ' bad' : ''}`}>{rejected ? 'Χρειάζεται ξανά — δείτε το email του συμβούλου σας' : o.dueDate ? `Έως ${day(o.dueDate)}` : 'Εκκρεμεί'}</div>
+                      <div className={`sub${rejected ? ' bad' : ''}`}>
+                        {rejected ? 'Χρειάζεται ξανά — δείτε το email του συμβούλου σας'
+                          : o.seriesKind ? (o.progress ?? 'Ένα αρχείο για κάθε περίοδο — μπορείτε να τα επιλέξετε όλα μαζί')
+                          : o.dueDate ? `Έως ${day(o.dueDate)}` : 'Εκκρεμεί'}
+                      </div>
+                      {busy && rv?.note && <div className="sub">{rv.note}</div>}
                     </div>
                     <label className={`p-btn${preview ? ' p-btn-outline' : ''}`} aria-disabled={preview || busy}>
                       {busy ? <LuLoaderCircle className="spin" aria-hidden /> : <LuUpload aria-hidden />}
-                      {rv?.phase === 'checking' ? 'Έλεγχος…' : rejected ? 'Ανεβάστε ξανά' : 'Ανεβάστε'}
-                      <input type="file" className="sr-only" disabled={busy || preview} aria-label={`Ανέβασμα: ${o.name}`}
-                        onChange={e => { const f = e.target.files?.[0]; if (f) onPick(o.id, f); e.target.value = '' }} />
+                      {rv?.phase === 'checking' ? 'Έλεγχος…' : rejected ? 'Ανεβάστε ξανά' : o.seriesKind ? 'Ανεβάστε (ένα ή πολλά)' : 'Ανεβάστε'}
+                      <input type="file" className="sr-only" multiple={!!o.seriesKind} disabled={busy || preview} aria-label={`Ανέβασμα: ${o.name}`}
+                        onChange={e => {
+                          const fs = Array.from(e.target.files ?? [])
+                          e.target.value = ''
+                          if (!fs.length) return
+                          if (o.seriesKind) onPickMany(o.id, fs); else onPick(o.id, fs[0])
+                        }} />
                     </label>
                     {rv && <ReviewBox review={rv} onCancel={() => onCancel(o.id)} />}
                   </li>

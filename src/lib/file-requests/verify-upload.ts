@@ -8,7 +8,7 @@ import { parseJsonLoose } from '@/lib/ocr/extract'
  * (Εξαίρεση εκτός αυτού του module: το αρχείο δικαιολογητικών του πελάτη στο portal — εκεί ανεβάζει ό,τι θέλει.)
  */
 
-export type UploadVerdict = { ok: true; detected: string; note: string } | { ok: false; reason: string }
+export type UploadVerdict = { ok: true; detected: string; note: string; period: string | null } | { ok: false; reason: string }
 
 const READABLE = /^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/i
 const MAX_VERIFY_BYTES = 18 * 1024 * 1024
@@ -19,6 +19,8 @@ export async function verifyRequestedUpload(input: {
   fileName: string
   expected: { label: string; description?: string | null }
   company: { name: string; afm?: string | null }
+  /** Σειρά (π.χ. Φ2 ανά μήνα): διάβασε και την ΠΕΡΙΟΔΟ ΑΝΑΦΟΡΑΣ του εγγράφου στην ίδια κλήση. */
+  periodKind?: 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | null
 }): Promise<UploadVerdict> {
   const mime = (input.mimeType || '').toLowerCase()
   if (!READABLE.test(mime)) {
@@ -31,7 +33,10 @@ export async function verifyRequestedUpload(input: {
     'Κρίνε ΑΥΣΤΗΡΑ αν το αρχείο είναι το ζητούμενο έγγραφο (ή ισοδύναμη επίσημη μορφή του — π.χ. ενημερότητα από myAADE/e-ΕΦΚΑ, πιστοποιητικό ΓΕΜΗ, έντυπο Ε3, ισολογισμός).',
     'Αν είναι άλλο έγγραφο, κενό/δυσανάγνωστο, άσχετη φωτογραφία ή μόνο μέρος που δεν αρκεί → match:false.',
     'company: "same" αν φαίνεται η επωνυμία ή ο ΑΦΜ της επιχείρησης, "other" αν φαίνεται ΑΛΛΗ επιχείρηση/ΑΦΜ, "unknown" αν δεν φαίνεται.',
-    'Απάντησε ΑΥΣΤΗΡΑ JSON: {"match":true|false,"company":"same|other|unknown","detected":"τι έγγραφο είναι (σύντομα, ελληνικά)","reason":"μία πρόταση για τον χρήστη, ευγενικά, στον πληθυντικό"}',
+    ...(input.periodKind
+      ? [`Το έγγραφο ζητείται ανά ${input.periodKind === 'MONTHLY' ? 'μήνα' : input.periodKind === 'QUARTERLY' ? 'τρίμηνο' : 'έτος'}: δώσε και "period" = η ΠΕΡΙΟΔΟΣ ΑΝΑΦΟΡΑΣ (όχι η ημ. υποβολής) σε μορφή ${input.periodKind === 'MONTHLY' ? 'YYYY-MM' : input.periodKind === 'QUARTERLY' ? 'YYYY-Qn' : 'YYYY'}, ή null.`]
+      : []),
+    `Απάντησε ΑΥΣΤΗΡΑ JSON: {"match":true|false,"company":"same|other|unknown","detected":"τι έγγραφο είναι (σύντομα, ελληνικά)","reason":"μία πρόταση για τον χρήστη, ευγενικά, στον πληθυντικό"${input.periodKind ? ',"period":"… ή null"' : ''}}`,
   ].join('\n')
   const ask = `Ζητούμενο έγγραφο: «${input.expected.label}»${input.expected.description ? ` — ${input.expected.description}` : ''}\nΕπιχείρηση: ${input.company.name}${input.company.afm ? ` (ΑΦΜ ${input.company.afm})` : ''}\nΌνομα αρχείου: ${input.fileName}`
 
@@ -41,12 +46,16 @@ export async function verifyRequestedUpload(input: {
         parts: [{ inlineData: { data: input.bytes.toString('base64'), mimeType: mime === 'image/heic' || mime === 'image/heif' ? 'image/jpeg' : mime } }, { text: ask }],
         systemInstruction: system, json: true, temperature: 0, maxOutputTokens: 400, fast: true, scope: 'OTHER', refType: 'upload-verify',
       })
-      const j = parseJsonLoose(res.text) as { match?: boolean; company?: string; detected?: string; reason?: string } | null
+      const j = parseJsonLoose(res.text) as { match?: boolean; company?: string; detected?: string; reason?: string; period?: string | null } | null
       if (!j || typeof j.match !== 'boolean') continue
       const detected = (j.detected ?? '').slice(0, 160)
       if (j.company === 'other') return { ok: false, reason: `Το έγγραφο φαίνεται να αφορά άλλη επιχείρηση${detected ? ` («${detected}»)` : ''}. Ανεβάστε το έγγραφο της ${input.company.name}.` }
       if (!j.match) return { ok: false, reason: `Αυτό δεν είναι το «${input.expected.label}»${detected ? ` — μοιάζει με «${detected}»` : ''}. Ελέγξτε ότι επιλέξατε το σωστό αρχείο.` }
-      return { ok: true, detected, note: `Έλεγχος AI ✓ ${detected || input.expected.label}${j.company === 'unknown' ? ' (δεν φαίνεται επωνυμία/ΑΦΜ)' : ''}` }
+      const { normalizePeriod, periodFromFileName, periodLabel } = await import('@/lib/documents/series')
+      const period = input.periodKind
+        ? (typeof j.period === 'string' ? normalizePeriod(j.period, input.periodKind) : null) ?? periodFromFileName(input.fileName, input.periodKind)
+        : null
+      return { ok: true, detected, period, note: `Έλεγχος AI ✓ ${detected || input.expected.label}${period ? ` — περίοδος ${periodLabel(period)}` : ''}${j.company === 'unknown' ? ' (δεν φαίνεται επωνυμία/ΑΦΜ)' : ''}` }
     } catch {
       /* δεύτερη προσπάθεια */
     }

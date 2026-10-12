@@ -144,3 +144,12 @@ export function coverageLabel(c: SeriesCoverage, kind: SeriesKind): string {
   const miss = c.missing.slice(0, 6).map(periodLabel).join(', ')
   return `${c.have}/${c.needed} — λείπουν ${miss}${c.missing.length > 6 ? ` κ.ά. (${c.missing.length})` : ''}`
 }
+
+/** Περίοδος από το όνομα αρχείου (π.χ. «Φ2_03-2025.pdf», «F2 2025-3», «Ισολογισμός 2024»). */
+export function periodFromFileName(fileName: string, kind: SeriesKind): string | null {
+  if (kind === 'LIST') return null
+  const base = fileName.replace(/\.[^.]+$/, '')
+  const m = /(\d{1,2})[-_. /](20\d{2})|(20\d{2})[-_. /](\d{1,2})/.exec(base)
+  if (m && kind !== 'YEARLY') return normalizePeriod(m[1] ? `${m[1]}/${m[2]}` : `${m[3]}-${m[4]}`, kind)
+  return kind === 'YEARLY' ? normalizePeriod(/(20\d{2})/.exec(base)?.[1] ?? null, kind) : null
+}
