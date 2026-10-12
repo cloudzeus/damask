@@ -99,7 +99,7 @@ export async function listPublicPrograms(): Promise<PublicProgramCard[]> {
   // Μόνο ανοιχτές προσκλήσεις: όσες έχουν περασμένη προθεσμία υποβολών δεν προβάλλονται ως «ενεργές».
   const today = new Date(new Date().toISOString().slice(0, 10))
   const rows = await prisma.program.findMany({
-    where: { status: 'ACTIVE', OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+    where: { status: 'ACTIVE', hiddenFromSite: false, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
     // Σειρά που όρισε το γραφείο (drag & drop)· όσα δεν έχουν σειρά ακολουθούν, νεότερα πρώτα.
     orderBy: [{ publicOrder: { sort: 'asc', nulls: 'last' } }, { updatedAt: 'desc' }],
     select: {
@@ -158,7 +158,7 @@ export type PublicProgramDetail = {
 
 export async function getPublicProgramBySlug(slug: string): Promise<PublicProgramDetail | null> {
   const p = await prisma.program.findFirst({
-    where: { publicSlug: slug, status: 'ACTIVE' },
+    where: { publicSlug: slug, status: 'ACTIVE', hiddenFromSite: false },
     select: {
       id: true, title: true, summary: true, publicSlug: true, imageUrl: true, cmsContent: true, updatedAt: true,
       totalBudget: true, fundingRate: true, durationMonths: true, submissionEnd: true,

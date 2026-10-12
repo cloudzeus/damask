@@ -317,7 +317,7 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
   const kadCount = await prisma.trdrKad.count({ where: { trdrId } })
   const noActivity = kadCount === 0
   const activePrograms = noActivity ? [] : await prisma.program.findMany({
-    where: { status: 'ACTIVE' },
+    where: { status: 'ACTIVE', hiddenFromSite: false },
     select: { id: true, title: true },
     take: 60,
   })

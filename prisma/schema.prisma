@@ -1267,6 +1267,8 @@ model Program {
   summary                String?
   imageUrl               String? // δημόσια εικόνα προγράμματος (front-end)
   publicOrder            Int? // σειρά εμφάνισης στο website (drag & drop στο admin)· null = αυτόματη (μετά τα ταξινομημένα)
+  /// Κρυφό από το δημόσιο site (ακόμη κι αν είναι ΕΝΕΡΓΟ — π.χ. εσωτερική διαχείριση ή εγκεκριμένο σε εξέλιξη).
+  hiddenFromSite         Boolean                      @default(false)
   referenceCode          String?
   sourceFileName         String?
   storageKey             String?                      @unique

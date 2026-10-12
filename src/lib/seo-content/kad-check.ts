@@ -43,7 +43,7 @@ export async function checkKad(raw: string): Promise<KadCheckResult> {
     prisma.kadCode.findFirst({ where: { OR: [{ code }, { codeWithoutDots: digits }] }, select: { code: true, title: true, description: true } }),
     listPublicPrograms(),
     prisma.program.findMany({
-      where: { status: 'ACTIVE', publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: new Date(new Date().toISOString().slice(0, 10)) } }] },
+      where: { status: 'ACTIVE', hiddenFromSite: false, publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: new Date(new Date().toISOString().slice(0, 10)) } }] },
       select: { publicSlug: true, extractedData: true, kads: { select: { code: true } } },
     }),
   ])

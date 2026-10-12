@@ -38,7 +38,7 @@ export async function pingChangedSince(): Promise<number> {
   const last = new Date((await getSetting<string>(LAST)) ?? Date.now() - 7 * 86_400_000)
   const [posts, programs] = await Promise.all([
     prisma.post.findMany({ where: { status: 'PUBLISHED', updatedAt: { gt: last } }, select: { slug: true } }),
-    prisma.program.findMany({ where: { status: 'ACTIVE', publicSlug: { not: null }, updatedAt: { gt: last } }, select: { publicSlug: true } }),
+    prisma.program.findMany({ where: { status: 'ACTIVE', hiddenFromSite: false, publicSlug: { not: null }, updatedAt: { gt: last } }, select: { publicSlug: true } }),
   ])
   const sentStatic = new Set((await getSetting<string[]>(STATIC_KEY)) ?? [])
   const newStatic = STATIC_PATHS.filter(p => !sentStatic.has(p))

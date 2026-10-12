@@ -9,7 +9,7 @@ export async function GET() {
   const today = new Date(new Date().toISOString().slice(0, 10))
   const [programs, posts] = await Promise.all([
     prisma.program.findMany({
-      where: { status: 'ACTIVE', publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+      where: { status: 'ACTIVE', hiddenFromSite: false, publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
       orderBy: { submissionEnd: 'asc' }, select: { title: true, publicSlug: true, fundingRate: true, submissionEnd: true }, take: 40,
     }),
     prisma.post.findMany({ where: { status: 'PUBLISHED' }, orderBy: { publishedAt: 'desc' }, take: 20, select: { slug: true, translations: { where: { locale: 'el' }, select: { title: true, excerpt: true } } } }),

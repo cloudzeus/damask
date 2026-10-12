@@ -57,6 +57,7 @@ export function Combobox({
           id={id}
           aria-label={ariaLabel}
           placeholder={placeholder}
+          title={selected?.label}
           className="h-full min-w-0 flex-1 bg-transparent text-[length:var(--fs-12)] font-semibold outline-none placeholder:font-medium placeholder:text-muted-foreground"
         />
         {selected && (
@@ -89,7 +90,7 @@ export function Combobox({
                   <span className="flex size-4 shrink-0 items-center justify-center">
                     <C.ItemIndicator><Check className="size-3.5 text-primary" aria-hidden /></C.ItemIndicator>
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{opt.label}</span>
+                  <span className="min-w-0 flex-1 truncate" title={opt.label}>{opt.label}</span>
                   {opt.hint && <span className="shrink-0 text-[length:var(--fs-10-5)] font-medium text-muted-foreground">{opt.hint}</span>}
                 </C.Item>
               )}

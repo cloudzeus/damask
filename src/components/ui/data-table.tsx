@@ -15,7 +15,12 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { Columns3, WrapText, ChevronRight, Search, X } from 'lucide-react'
+import { Columns3, WrapText, ChevronRight, Search, X, GripVertical } from 'lucide-react'
+import {
+  DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 export type DataTableColumn<T> = {
   /** Σταθερό key — χρησιμοποιείται για persistence ορατότητας/πλάτους. */
@@ -78,6 +83,7 @@ export function DataTable<T>({
   renderExpanded,
   searchable = true,
   searchPlaceholder = 'Αναζήτηση…',
+  reorder,
 }: {
   tableId: string
   columns: DataTableColumn<T>[]
@@ -108,6 +114,9 @@ export function DataTable<T>({
    * των στηλών). false όταν η σελίδα έχει ήδη δική της αναζήτηση. */
   searchable?: boolean
   searchPlaceholder?: string
+  /** Αναδιάταξη γραμμών με σύρσιμο (ποντίκι/αφή/πληκτρολόγιο) από λαβή — η σειρά των `rows` είναι η σειρά
+   * που βλέπει ο χρήστης· ταξινόμηση/αναζήτηση/σελιδοποίηση απενεργοποιούνται όσο ισχύει. */
+  reorder?: { onReorder: (orderedKeys: string[]) => void }
 }) {
   const [query, setQuery] = React.useState('')
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
@@ -156,7 +165,7 @@ export function DataTable<T>({
   const hideableColumns = columns.filter(c => c.enableHide !== false)
 
   const searchCols = columns.filter(c => c.searchValue || c.sortValue)
-  const showSearch = searchable && searchCols.length > 0
+  const showSearch = searchable && searchCols.length > 0 && !reorder
   const filteredRows = React.useMemo(() => {
     const q = fold(query.trim())
     if (!showSearch || !q) return rows
@@ -171,7 +180,7 @@ export function DataTable<T>({
 
   const sortedRows = React.useMemo(() => {
     const rows = filteredRows
-    if (!sort) return rows
+    if (!sort || reorder) return rows
     const col = columns.find(c => c.id === sort.columnId)
     if (!col?.sortValue) return rows
     const getv = col.sortValue
@@ -186,7 +195,7 @@ export function DataTable<T>({
       if (typeof va === 'boolean' && typeof vb === 'boolean') return (Number(va) - Number(vb)) * dir
       return String(va).localeCompare(String(vb), 'el') * dir
     })
-  }, [filteredRows, sort, columns])
+  }, [filteredRows, sort, columns, reorder])
 
   function toggleSort(col: DataTableColumn<T>) {
     if (!col.sortValue) return
@@ -269,7 +278,8 @@ export function DataTable<T>({
   // Κοινό colgroup για τον sticky πίνακα-επικεφαλίδα ΚΑΙ τον πίνακα-σώμα.
   const colgroup = (
     <colgroup>
-      {showExpand && <col style={{ width: EXPAND_COL }} />}
+      {reorder && <col style={{ width: EXPAND_COL }} />}
+      {showExpand && !reorder && <col style={{ width: EXPAND_COL }} />}
       {shownColumns.map(c => (
         <col key={c.id} style={{ width: widths[c.id] ?? c.width ?? DEFAULT_WIDTH }} />
       ))}
@@ -354,7 +364,8 @@ export function DataTable<T>({
           {colgroup}
           <thead>
             <tr>
-              {showExpand && <th className="ctr" aria-hidden />}
+              {reorder && <th className="ctr" aria-label="Σειρά" />}
+              {showExpand && !reorder && <th className="ctr" aria-hidden />}
               {shownColumns.map(c => {
                 const sortable = !!c.sortValue
                 const sortedHere = sort?.columnId === c.id
@@ -388,96 +399,105 @@ export function DataTable<T>({
         </table>
       </div>
 
+      {(() => {
+        const body = (
       <div className="table-wrap" ref={bodyWrapRef} onScroll={syncHeadScroll}>
-        <table className={cn('data-table dt-fixed', wrap && 'dt-wrap')}>
-          {colgroup}
-          <tbody>
-            {sortedRows.slice(0, visibleCount).map(row => {
-              const key = rowKey(row)
-              const isOpen = showExpand && expanded.has(key)
-              const toggle = () =>
-                setExpanded(prev => {
-                  const next = new Set(prev)
-                  if (next.has(key)) next.delete(key)
-                  else next.add(key)
-                  return next
-                })
-              // Χωρίς δικό του onRowClick, κλικ οπουδήποτε στη γραμμή ανοίγει τις λεπτομέρειες
-              // (εκτός από links/κουμπιά/inputs μέσα στα κελιά).
-              const rowClick = onRowClick
-                ? () => onRowClick(row)
-                : collapsedColumns.length > 0
-                  ? (e: React.MouseEvent) => {
-                      if ((e.target as HTMLElement).closest('a,button,input,select,textarea,label,[role="menuitem"]')) return
-                      toggle()
-                    }
-                  : undefined
-              return (
-                <React.Fragment key={key}>
-                  <tr
-                    className={cn('dotted-row-bottom', rowClick && 'cursor-pointer', isOpen && 'dt-row-open', rowClassName?.(row))}
-                    onClick={rowClick}
-                  >
-                    {showExpand && (
-                      <td className="ctr">
-                        <button
-                          type="button"
-                          aria-expanded={isOpen}
-                          aria-label={isOpen ? 'Απόκρυψη λεπτομερειών' : 'Εμφάνιση λεπτομερειών'}
-                          title={isOpen ? 'Απόκρυψη λεπτομερειών' : collapsedColumns.length > 0 ? `${collapsedColumns.length} ακόμη πεδία` : 'Λεπτομέρειες'}
-                          className={cn('dt-expand-btn', isOpen && 'open')}
-                          onClick={e => { e.stopPropagation(); toggle() }}
+          <table className={cn('data-table dt-fixed', wrap && 'dt-wrap')}>
+            {colgroup}
+            {reorder ? (
+              <ReorderBody rows={sortedRows} rowKey={rowKey} columns={shownColumns} rowClassName={rowClassName} onRowClick={onRowClick} />
+            ) : (
+            <tbody>
+              {sortedRows.slice(0, visibleCount).map(row => {
+                const key = rowKey(row)
+                const isOpen = showExpand && expanded.has(key)
+                const toggle = () =>
+                  setExpanded(prev => {
+                    const next = new Set(prev)
+                    if (next.has(key)) next.delete(key)
+                    else next.add(key)
+                    return next
+                  })
+                // Χωρίς δικό του onRowClick, κλικ οπουδήποτε στη γραμμή ανοίγει τις λεπτομέρειες
+                // (εκτός από links/κουμπιά/inputs μέσα στα κελιά).
+                const rowClick = onRowClick
+                  ? () => onRowClick(row)
+                  : collapsedColumns.length > 0
+                    ? (e: React.MouseEvent) => {
+                        if ((e.target as HTMLElement).closest('a,button,input,select,textarea,label,[role="menuitem"]')) return
+                        toggle()
+                      }
+                    : undefined
+                return (
+                  <React.Fragment key={key}>
+                    <tr
+                      className={cn('dotted-row-bottom', rowClick && 'cursor-pointer', isOpen && 'dt-row-open', rowClassName?.(row))}
+                      onClick={rowClick}
+                    >
+                      {showExpand && (
+                        <td className="ctr">
+                          <button
+                            type="button"
+                            aria-expanded={isOpen}
+                            aria-label={isOpen ? 'Απόκρυψη λεπτομερειών' : 'Εμφάνιση λεπτομερειών'}
+                            title={isOpen ? 'Απόκρυψη λεπτομερειών' : collapsedColumns.length > 0 ? `${collapsedColumns.length} ακόμη πεδία` : 'Λεπτομέρειες'}
+                            className={cn('dt-expand-btn', isOpen && 'open')}
+                            onClick={e => { e.stopPropagation(); toggle() }}
+                          >
+                            <ChevronRight className="size-3.5" strokeWidth={2.4} aria-hidden />
+                            {!renderExpanded && collapsedColumns.length > 0 && !isOpen && (
+                              <span className="dt-expand-count">+{collapsedColumns.length}</span>
+                            )}
+                          </button>
+                        </td>
+                      )}
+                      {shownColumns.map(c => (
+                        <td
+                          key={c.id}
+                          className={cn(c.align === 'center' && 'ctr', c.align === 'right' && 'num', c.nowrap && 'dt-nowrap')}
                         >
-                          <ChevronRight className="size-3.5" strokeWidth={2.4} aria-hidden />
-                          {!renderExpanded && collapsedColumns.length > 0 && !isOpen && (
-                            <span className="dt-expand-count">+{collapsedColumns.length}</span>
-                          )}
-                        </button>
-                      </td>
-                    )}
-                    {shownColumns.map(c => (
-                      <td
-                        key={c.id}
-                        className={cn(c.align === 'center' && 'ctr', c.align === 'right' && 'num', c.nowrap && 'dt-nowrap')}
-                      >
-                        {c.cell(row)}
-                      </td>
-                    ))}
-                  </tr>
-                  {isOpen && (
-                    <tr className="dt-expanded">
-                      <td colSpan={shownColumns.length + 1} className="p-0">
-                        {collapsedColumns.length > 0 && <OverflowDetails row={row} columns={collapsedColumns} labelFor={labelFor} />}
-                        {renderExpanded?.(row)}
-                      </td>
+                          {c.cell(row)}
+                        </td>
+                      ))}
                     </tr>
-                  )}
-                </React.Fragment>
-              )
-            })}
-            {sortedRows.length > visibleCount && (
-              <tr>
-                <td colSpan={shownColumns.length + (showExpand ? 1 : 0)} className="py-3 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setVisibleCount(c => c + pageSize)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-1.5 text-[length:var(--fs-12-5)] font-semibold text-foreground transition-colors hover:bg-muted"
-                  >
-                    Δείξε περισσότερα ({sortedRows.length - visibleCount})
-                  </button>
-                </td>
-              </tr>
+                    {isOpen && (
+                      <tr className="dt-expanded">
+                        <td colSpan={shownColumns.length + 1} className="p-0">
+                          {collapsedColumns.length > 0 && <OverflowDetails row={row} columns={collapsedColumns} labelFor={labelFor} />}
+                          {renderExpanded?.(row)}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                )
+              })}
+              {sortedRows.length > visibleCount && (
+                <tr>
+                  <td colSpan={shownColumns.length + (showExpand ? 1 : 0)} className="py-3 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleCount(c => c + pageSize)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-1.5 text-[length:var(--fs-12-5)] font-semibold text-foreground transition-colors hover:bg-muted"
+                    >
+                      Δείξε περισσότερα ({sortedRows.length - visibleCount})
+                    </button>
+                  </td>
+                </tr>
+              )}
+              {sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={shownColumns.length + (showExpand ? 1 : 0)} className="py-8 text-center text-muted-foreground">
+                    {query.trim() && rows.length > 0 ? `Κανένα αποτέλεσμα για «${query.trim()}».` : emptyMessage}
+                  </td>
+                </tr>
+              )}
+            </tbody>
             )}
-            {sortedRows.length === 0 && (
-              <tr>
-                <td colSpan={shownColumns.length + (showExpand ? 1 : 0)} className="py-8 text-center text-muted-foreground">
-                  {query.trim() && rows.length > 0 ? `Κανένα αποτέλεσμα για «${query.trim()}».` : emptyMessage}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          </table>
+        </div>
+        )
+        return reorder ? <ReorderDnd keys={sortedRows.map(rowKey)} onReorder={reorder.onReorder}>{body}</ReorderDnd> : body
+      })()}
 
       {footer && <div className="table-foot dotted-row-top">{footer}</div>}
     </div>
@@ -519,5 +539,72 @@ function OverflowDetails<T>({
         </p>
       )}
     </div>
+  )
+}
+
+/** Σώμα πίνακα σε λειτουργία αναδιάταξης: κάθε γραμμή είναι sortable (λαβή στην πρώτη στήλη). */
+function ReorderBody<T>({ rows, rowKey, columns, rowClassName, onRowClick }: {
+  rows: T[]
+  rowKey: (row: T) => string
+  columns: DataTableColumn<T>[]
+  rowClassName?: (row: T) => string
+  onRowClick?: (row: T) => void
+}) {
+  const keys = rows.map(rowKey)
+  return (
+    <SortableContext items={keys} strategy={verticalListSortingStrategy}>
+      <tbody>
+        {rows.map((row, i) => (
+          <SortableRow key={keys[i]} id={keys[i]} index={i} row={row} columns={columns} className={rowClassName?.(row)} onRowClick={onRowClick} />
+        ))}
+      </tbody>
+    </SortableContext>
+  )
+}
+
+/** Το DndContext ΕΞΩ από το <table>: αποδίδει κρυφά <div> προσβασιμότητας που δεν επιτρέπονται μέσα σε πίνακα. */
+function ReorderDnd({ keys, onReorder, children }: { keys: string[]; onReorder: (keys: string[]) => void; children: React.ReactNode }) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+  function onDragEnd(e: DragEndEvent) {
+    if (!e.over || e.active.id === e.over.id) return
+    const from = keys.indexOf(String(e.active.id))
+    const to = keys.indexOf(String(e.over.id))
+    if (from < 0 || to < 0) return
+    onReorder(arrayMove(keys, from, to))
+  }
+  return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>{children}</DndContext>
+}
+
+function SortableRow<T>({ id, index, row, columns, className, onRowClick }: { id: string; index: number; row: T; columns: DataTableColumn<T>[]; className?: string; onRowClick?: (row: T) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <tr
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, position: 'relative', zIndex: isDragging ? 2 : undefined }}
+      className={cn('dotted-row-bottom', isDragging && 'bg-card shadow-lg', onRowClick && 'cursor-pointer', className)}
+      onClick={onRowClick ? e => { if (!(e.target as HTMLElement).closest('a,button,input,select,textarea,label,[role="menuitem"]')) onRowClick(row) } : undefined}
+    >
+      <td className="ctr">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Μετακίνηση γραμμής ${index + 1} — σύρε ή χρησιμοποίησε Space και βελάκια`}
+          className="inline-flex size-8 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+          onClick={e => e.stopPropagation()}
+        >
+          <GripVertical className="size-4" aria-hidden />
+        </button>
+      </td>
+      {columns.map(c => (
+        <td key={c.id} className={cn(c.align === 'center' && 'ctr', c.align === 'right' && 'num', c.nowrap && 'dt-nowrap')}>
+          {c.cell(row)}
+        </td>
+      ))}
+    </tr>
   )
 }

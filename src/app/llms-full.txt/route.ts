@@ -17,7 +17,7 @@ export async function GET() {
   const today = new Date(new Date().toISOString().slice(0, 10))
   const [programs, posts] = await Promise.all([
     prisma.program.findMany({
-      where: { status: 'ACTIVE', publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+      where: { status: 'ACTIVE', hiddenFromSite: false, publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
       orderBy: { submissionEnd: 'asc' }, take: 40,
       select: { title: true, publicSlug: true, fundingRate: true, submissionEnd: true, durationMonths: true, totalBudget: true, cmsContent: true, updatedAt: true, regions: { select: { name: true } }, references: { where: { kind: 'URL', url: { not: null } }, select: { url: true }, orderBy: { createdAt: 'asc' } } },
     }),

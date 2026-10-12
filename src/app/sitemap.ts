@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!SITE_INDEXABLE) return []
   const now = new Date()
   const [programs, posts] = await Promise.all([
-    prisma.program.findMany({ where: { status: 'ACTIVE', publicSlug: { not: null } }, select: { publicSlug: true, updatedAt: true, imageUrl: true } }),
+    prisma.program.findMany({ where: { status: 'ACTIVE', hiddenFromSite: false, publicSlug: { not: null } }, select: { publicSlug: true, updatedAt: true, imageUrl: true } }),
     prisma.post.findMany({ where: { status: 'PUBLISHED' }, select: { slug: true, updatedAt: true, publishedAt: true, featuredImage: true } }),
   ])
   // Σελίδες περιφέρειας/κλάδου ΜΟΝΟ όταν έχουν ενεργό πρόγραμμα (οι άδειες είναι noindex).

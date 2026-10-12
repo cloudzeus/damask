@@ -19,7 +19,8 @@ import {
   createProgram, extractProgram, getProgramBasics, listFormProposals, addFormProposals,
   type ProgramBasics, type FormProposal,
 } from '@/lib/programs/actions'
-import { createDocumentType } from '@/lib/documents/actions'
+import { createDocumentType, listDocumentTypes } from '@/lib/documents/actions'
+import { Combobox } from '@/components/ui/combobox'
 import { extractPdfText, extractPdfLinks } from '@/lib/programs/pdf-text'
 import { importGuideLinks } from '@/lib/programs/reference-actions'
 
@@ -219,12 +220,19 @@ function StepBasics({ programId, onBack, onNext }: { programId: string; onBack: 
 function StepDocs({ programId, onBack, onNext }: { programId: string; onBack: () => void; onNext: () => void }) {
   const [proposals, setProposals] = React.useState<FormProposal[]>([])
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
+  // Τύπος ανά πρόταση (αλλάζει με αναζήτηση στους δικούς μας τύπους).
+  const [typeFor, setTypeFor] = React.useState<Record<string, string | null>>({})
+  const [docTypes, setDocTypes] = React.useState<{ value: string; label: string; hint?: string }[]>([])
   const [loading, setLoading] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
   const [creating, setCreating] = React.useState<string | null>(null)
 
   const reload = React.useCallback(() => {
-    listFormProposals(programId).then(p => { setProposals(p); setSelected(new Set(p.map(x => x.name))) }).catch(() => {}).finally(() => setLoading(false))
+    listFormProposals(programId).then(p => {
+      setProposals(p); setSelected(new Set(p.map(x => x.name)))
+      setTypeFor(Object.fromEntries(p.map(x => [x.name, x.suggestedDocumentTypeId])))
+    }).catch(() => {}).finally(() => setLoading(false))
+    listDocumentTypes().then(t => setDocTypes(t.map(d => ({ value: d.id, label: d.name, hint: d.expires ? 'λήγει' : undefined })))).catch(() => {})
   }, [programId])
   React.useEffect(() => { reload() }, [reload])
 
@@ -239,7 +247,7 @@ function StepDocs({ programId, onBack, onNext }: { programId: string; onBack: ()
   }
 
   async function addAndNext() {
-    const items = proposals.filter(p => selected.has(p.name)).map(p => ({ name: p.name, mandatory: p.mandatory, notes: p.notes, documentTypeId: p.suggestedDocumentTypeId }))
+    const items = proposals.filter(p => selected.has(p.name)).map(p => ({ name: p.name, mandatory: p.mandatory, notes: p.notes, documentTypeId: typeFor[p.name] ?? null }))
     setSaving(true)
     try {
       if (items.length) await addFormProposals(programId, items)
@@ -262,10 +270,21 @@ function StepDocs({ programId, onBack, onNext }: { programId: string; onBack: ()
           {proposals.map(p => (
             <div key={p.name} className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 last:border-0">
               <input type="checkbox" checked={selected.has(p.name)} onChange={() => toggle(p.name)} className="size-4 shrink-0 accent-[color:var(--primary)]" aria-label={p.name} />
-              <span className="flex-1 text-[length:var(--fs-13)] font-semibold">{p.name}</span>
+              <span className="min-w-0 flex-1 text-[length:var(--fs-13)] font-semibold" title={p.name}>{p.name}</span>
               {p.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>}
-              {p.suggestedDocumentTypeName
-                ? <span className={cn('badge-pill shrink-0', p.suggestionFuzzy ? 'warn' : 'ok')}>{p.suggestionFuzzy ? 'τύπος (πρόταση): ' : 'τύπος: '}{p.suggestedDocumentTypeName}</span>
+              {p.suggestionFuzzy && typeFor[p.name] === p.suggestedDocumentTypeId && <span className="badge-pill warn shrink-0" title="Πρόταση βάσει παρόμοιας διατύπωσης — επιβεβαίωσε">πρόταση</span>}
+              {(typeFor[p.name] || docTypes.length > 0) && (
+                <Combobox
+                  ariaLabel={`Τύπος για «${p.name}»`}
+                  options={docTypes}
+                  value={typeFor[p.name] ?? null}
+                  onChange={v => setTypeFor(prev => ({ ...prev, [p.name]: v }))}
+                  placeholder="Χωρίς τύπο — αναζήτηση…"
+                  className="w-full min-w-0 sm:w-[260px]"
+                />
+              )}
+              {typeFor[p.name]
+                ? null
                 : <button type="button" onClick={() => createTypeFor(p)} disabled={creating === p.name}
                     className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary">
                     {creating === p.name ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuPlus className="size-3" aria-hidden />} φτιάξε τύπο

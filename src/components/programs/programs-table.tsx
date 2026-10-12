@@ -4,8 +4,10 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  LuEllipsisVertical, LuLandmark, LuTrash2, LuClock3, LuLoaderCircle, LuCircleCheck, LuCircleX,
+  LuEllipsisVertical, LuLandmark, LuTrash2, LuClock3, LuLoaderCircle, LuCircleCheck, LuCircleX, LuArrowUpDown, LuCheck,
 } from 'react-icons/lu'
+import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
@@ -15,7 +17,7 @@ import {
   AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
-import { deleteProgram, type ProgramListItem } from '@/lib/programs/actions'
+import { deleteProgram, setProgramOnSite, savePublicOrder, type ProgramListItem } from '@/lib/programs/actions'
 import { ProgramWizard } from './program-wizard'
 
 const EXTRACT_META: Record<string, { label: string; badgeClass: string; style?: React.CSSProperties; icon: React.ComponentType<{ className?: string }> }> = {
@@ -50,8 +52,47 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('el-GR')
 }
 
+/** Διακόπτης «φαίνεται στο website» ανά πρόγραμμα (αισιόδοξη ενημέρωση). */
+function SiteSwitch({ row, onChanged }: { row: ProgramListItem; onChanged: () => void }) {
+  const [on, setOn] = useState(row.status === 'ACTIVE' && !row.hiddenFromSite)
+  const [busy, setBusy] = useState(false)
+  const disabled = row.status !== 'ACTIVE'
+  return (
+    <span className="inline-flex items-center gap-2" onClick={e => e.stopPropagation()} title={disabled ? 'Μόνο τα ενεργά προγράμματα εμφανίζονται στο website' : on ? (row.onSite ? 'Εμφανίζεται στο website' : 'Θα εμφανιστεί — η υποβολή όμως έχει λήξει') : 'Κρυφό από το website'}>
+      <Switch
+        checked={on && !disabled}
+        disabled={disabled || busy}
+        aria-label={`Εμφάνιση στο website: ${row.title}`}
+        onCheckedChange={async (v: boolean) => {
+          setOn(v); setBusy(true)
+          const r = await setProgramOnSite(row.id, v).catch(() => ({ ok: false, message: 'Η αλλαγή απέτυχε.' }))
+          setBusy(false)
+          if (!r.ok) { setOn(!v); toast.error(r.message ?? 'Η αλλαγή απέτυχε.'); return }
+          toast.success(v ? 'Εμφανίζεται στο website.' : 'Κρύφτηκε από το website.')
+          onChanged()
+        }}
+      />
+      <span className="text-[length:var(--fs-11-5)] text-muted-foreground">{disabled ? '—' : on ? 'Ναι' : 'Κρυφό'}</span>
+    </span>
+  )
+}
+
 export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
   const router = useRouter()
+  // Λειτουργία «Σειρά στο website»: μόνο όσα φαίνονται στο site, με τη σειρά τους, σύρσιμο από λαβή.
+  const [ordering, setOrdering] = useState(false)
+  const [order, setOrder] = useState<string[] | null>(null)
+  const siteRows = rows
+    .filter(r => r.onSite)
+    .sort((a, b) => (a.publicOrder ?? 1e9) - (b.publicOrder ?? 1e9))
+  const orderedSiteRows = order ? order.map(id => siteRows.find(r => r.id === id)).filter((r): r is ProgramListItem => !!r) : siteRows
+  async function reorder(keys: string[]) {
+    setOrder(keys)
+    const r = await savePublicOrder(keys).catch(() => ({ ok: false }))
+    if (!r.ok) { toast.error('Η αποθήκευση της σειράς απέτυχε.'); setOrder(null); return }
+    toast.success('Η σειρά στο website αποθηκεύτηκε.')
+    router.refresh()
+  }
 
   const columns: DataTableColumn<ProgramListItem>[] = [
     {
@@ -92,6 +133,14 @@ export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
       },
     },
     {
+      id: 'site',
+      header: 'Website',
+      width: 120,
+      sortValue: r => (r.onSite ? 2 : r.status === 'ACTIVE' ? 1 : 0),
+      cell: r => <SiteSwitch key={`${r.id}-${r.hiddenFromSite}-${r.status}`} row={r} onChanged={() => router.refresh()} />,
+    },
+    ...(ordering ? [{ id: 'pos', header: '#', width: 56, align: 'center' as const, cell: (r: ProgramListItem) => <span className="tabular-nums font-semibold">{orderedSiteRows.indexOf(r) + 1}</span> }] : []),
+    {
       id: 'extract',
       header: 'Αποδελτίωση',
       width: 160,
@@ -126,9 +175,15 @@ export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
     <DataTable
       tableId="programs"
       columns={columns}
-      rows={rows}
+      rows={ordering ? orderedSiteRows : rows}
       rowKey={r => r.id}
+      reorder={ordering ? { onReorder: keys => { void reorder(keys) } } : undefined}
       onRowClick={r => router.push(`/programs/${r.id}`)}
+      toolbarExtras={
+        <Button type="button" size="sm" variant={ordering ? 'default' : 'outline'} onClick={() => { setOrdering(o => !o); setOrder(null) }}>
+          {ordering ? <><LuCheck className="size-3.5" aria-hidden /> Τέλος σειράς</> : <><LuArrowUpDown className="size-3.5" aria-hidden /> Σειρά στο website</>}
+        </Button>
+      }
       emptyMessage={
         <div>
           <div className="mb-3 text-[length:var(--fs-13)] text-muted-foreground">
@@ -137,7 +192,9 @@ export function ProgramsTable({ rows }: { rows: ProgramListItem[] }) {
           <ProgramWizard />
         </div>
       }
-      footer={<span>{rows.length} {rows.length === 1 ? 'πρόγραμμα' : 'προγράμματα'}</span>}
+      footer={ordering
+        ? <span>Σύρετε από τη λαβή ⋮⋮ για να αλλάξει η σειρά στο website · {orderedSiteRows.length} προγράμματα στο site</span>
+        : <span>{rows.length} {rows.length === 1 ? 'πρόγραμμα' : 'προγράμματα'} · {rows.filter(r => r.onSite).length} στο website</span>}
     />
   )
 }

@@ -49,7 +49,7 @@ type ProgramFacets = { slug: string; regions: string[]; kads: string[] }
 async function facets(): Promise<ProgramFacets[]> {
   const today = new Date(new Date().toISOString().slice(0, 10))
   const rows = await prisma.program.findMany({
-    where: { status: 'ACTIVE', publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+    where: { status: 'ACTIVE', hiddenFromSite: false, publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
     select: { publicSlug: true, regions: { select: { name: true } }, kads: { select: { code: true } } },
   })
   return rows.map(r => ({ slug: r.publicSlug!, regions: r.regions.map(x => norm(x.name)), kads: r.kads.map(k => k.code.replace(/\D/g, '')) }))
@@ -76,7 +76,7 @@ export type Deadline = { slug: string; title: string; deadline: Date | null; day
 export async function listDeadlines(): Promise<Deadline[]> {
   const today = new Date(new Date().toISOString().slice(0, 10))
   const rows = await prisma.program.findMany({
-    where: { status: 'ACTIVE', publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+    where: { status: 'ACTIVE', hiddenFromSite: false, publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
     select: { publicSlug: true, title: true, submissionEnd: true, fundingRate: true, regions: { select: { name: true }, take: 3 } },
   })
   return rows

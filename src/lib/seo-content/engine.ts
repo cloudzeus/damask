@@ -142,7 +142,7 @@ export async function pickNextIdea() {
   const [ideas, posts, programs] = await Promise.all([
     prisma.contentIdea.findMany({ where: { status: 'NEW' }, orderBy: [{ score: 'desc' }, { createdAt: 'desc' }], take: 100, select: { id: true, source: true, title: true, targetKeyword: true } }),
     prisma.postTranslation.findMany({ where: { locale: 'el', post: { status: 'PUBLISHED' } }, select: { title: true } }),
-    prisma.program.findMany({ where: { status: 'ACTIVE' }, select: { title: true, cmsContent: true } }),
+    prisma.program.findMany({ where: { status: 'ACTIVE', hiddenFromSite: false }, select: { title: true, cmsContent: true } }),
   ])
   const covered = [...posts.map(p => p.title), ...programs.flatMap(p => [p.title, (p.cmsContent as { cardTitle?: string } | null)?.cardTitle ?? ''])].filter(Boolean)
   for (const i of ideas) {
@@ -230,7 +230,7 @@ async function sourceFor(idea: { source: string; sourceUrl: string | null; progr
 async function internalLinks(): Promise<string> {
   const today = new Date(new Date().toISOString().slice(0, 10))
   const ps = await prisma.program.findMany({
-    where: { status: 'ACTIVE', publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+    where: { status: 'ACTIVE', hiddenFromSite: false, publicSlug: { not: null }, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
     select: { title: true, publicSlug: true }, take: 25,
   })
   return [

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
@@ -152,6 +154,106 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
     }
   }
 
+  // Combobox με αναζήτηση για τους ΔΙΚΟΥΣ μας τύπους (πολλοί → η απλή λίστα δεν βόλευε).
+  const docTypeOptions = React.useMemo(() => docTypes.map(d => ({ value: d.id, label: d.name, hint: d.expires ? 'λήγει' : undefined })), [docTypes])
+  const formColumns: DataTableColumn<ProgramRequiredFormItem>[] = [
+    {
+      id: 'name', header: 'Όνομα', width: 280, enableHide: false, sortValue: f => f.name,
+      cell: form => (
+        <div className="flex items-center gap-1.5" title={form.name}>
+          <LuFileText className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <input
+            defaultValue={form.name}
+            title={form.name}
+            aria-label={`Όνομα εντύπου — ${form.name}`}
+            onBlur={e => handleNameBlur(form, e.target.value)}
+            className="w-full min-w-0 truncate rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[length:var(--fs-13)] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
+          />
+          {form.mandatory && !form.documentTypeId && (
+            <span className="badge-pill warn shrink-0" title="Δεν έχει αντιστοιχιστεί σε τύπο — δεν θα γίνεται αναγνώριση από την αποθήκη πελάτη">Χωρίς τύπο</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'phase', header: 'Φάση', width: 170, sortValue: f => f.phase ?? '',
+      cell: form => (
+        <Select value={form.phase ?? NONE_PHASE} onValueChange={v => handlePhaseChange(form, v)}>
+          <SelectTrigger aria-label={`Φάση — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
+            <SelectValue>{(v: string) => (v === NONE_PHASE ? '— (καμία) —' : deliverablePhaseLabel(v as DeliverablePhaseStr))}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE_PHASE}>— (καμία) —</SelectItem>
+            {DELIVERABLE_PHASE_ORDER.map(p => <SelectItem key={p} value={p}>{deliverablePhaseLabel(p)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      ),
+    },
+    {
+      id: 'mandatory', header: 'Υποχρεωτικό', width: 110, align: 'center', sortValue: f => f.mandatory,
+      cell: form => <Switch checked={form.mandatory} onCheckedChange={checked => handleMandatoryChange(form, checked)} aria-label={`Υποχρεωτικό — ${form.name}`} />,
+    },
+    {
+      id: 'reusable', header: 'Επαναχρ.', width: 90, align: 'center', sortValue: f => f.reusable,
+      cell: form => <Switch checked={form.reusable} onCheckedChange={checked => handleReusableChange(form, checked)} aria-label={`Επαναχρησιμοποιήσιμο — ${form.name}`} />,
+    },
+    {
+      id: 'doctype', header: 'Τύπος (αποθήκη)', width: 260,
+      sortValue: f => docTypes.find(d => d.id === f.documentTypeId)?.name ?? '',
+      cell: form => {
+        const current = docTypes.find(d => d.id === form.documentTypeId)?.name
+        return (
+          <div className="flex items-center gap-1.5" title={current ?? 'Χωρίς τύπο'}>
+            <Combobox
+              ariaLabel={`Τύπος δικαιολογητικού — ${form.name}`}
+              options={[...docTypeOptions, { value: NEW_DOCTYPE, label: `+ Δημιουργία «${form.name.slice(0, 40)}»` }]}
+              value={form.documentTypeId}
+              onChange={v => handleDocTypeChange(form, v ?? NONE_DOCTYPE)}
+              placeholder="Αναζήτηση τύπου…"
+              className="w-full min-w-0"
+            />
+          </div>
+        )
+      },
+    },
+    {
+      id: 'template', header: 'Οδηγός Εντύπου', width: 220,
+      sortValue: f => templates.find(t => t.id === f.templateId)?.name ?? '',
+      cell: form => (
+        <Select value={form.templateId ?? NONE_TEMPLATE} onValueChange={v => handleTemplateChange(form, v)}>
+          <SelectTrigger aria-label={`Οδηγός Εντύπου — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE_TEMPLATE}>— (κανένας) —</SelectItem>
+            {templates.map(t => <SelectItem key={t.id} value={t.id}>{t.code} {t.name}{t.year ? ` (${t.year})` : ''}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      ),
+    },
+    {
+      id: 'notes', header: 'Σημείωση', width: 200, sortValue: f => f.notes ?? '',
+      cell: form => (
+        <input
+          defaultValue={form.notes ?? ''}
+          title={form.notes ?? undefined}
+          aria-label={`Σημείωση — ${form.name}`}
+          onBlur={e => handleNotesBlur(form, e.target.value)}
+          placeholder="—"
+          className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[length:var(--fs-12-5)] text-muted-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+        />
+      ),
+    },
+    {
+      id: 'actions', header: '', headerLabel: 'Ενέργειες', width: 48, align: 'center', enableHide: false, enableResize: false,
+      cell: form => (
+        <button type="button" onClick={() => handleRemove(form)} className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive" aria-label={`Διαγραφή — ${form.name}`} title="Διαγραφή">
+          <LuTrash2 className="size-3.5" aria-hidden />
+        </button>
+      ),
+    },
+  ]
+
   return (
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -162,7 +264,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
       </div>
 
       {proposals.length > 0 && (
-        <ProposalsPanel programId={programId} proposals={proposals} onAdded={load} />
+        <ProposalsPanel programId={programId} proposals={proposals} docTypes={docTypes} onAdded={load} />
       )}
 
       {loading ? (
@@ -176,127 +278,14 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
           Δεν έχουν οριστεί απαιτούμενα έντυπα. Η αποδελτίωση τα προτείνει, ή πρόσθεσέ τα εδώ.
         </p>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Όνομα</th>
-                <th>Φάση</th>
-                <th className="ctr">Υποχρεωτικό</th>
-                <th className="ctr">Επαναχρ.</th>
-                <th>Τύπος (αποθήκη)</th>
-                <th>Οδηγός Εντύπου</th>
-                <th>Σημείωση</th>
-                <th aria-hidden />
-              </tr>
-            </thead>
-            <tbody>
-              {forms.map(form => (
-                <tr key={form.id} className="dotted-row-bottom">
-                  <td style={{ minWidth: 160 }}>
-                    <div className="flex items-center gap-1.5">
-                      <LuFileText className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                      <input
-                        defaultValue={form.name}
-                        onBlur={e => handleNameBlur(form, e.target.value)}
-                        className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[length:var(--fs-13)] font-semibold outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/30"
-                      />
-                      {form.mandatory && !form.documentTypeId && (
-                        <span className="badge-pill warn shrink-0" title="Δεν έχει αντιστοιχιστεί σε τύπο — δεν θα γίνεται αναγνώριση από την αποθήκη πελάτη">Χωρίς τύπο</span>
-                      )}
-                    </div>
-                  </td>
-                  <td style={{ minWidth: 170 }}>
-                    <Select
-                      value={form.phase ?? NONE_PHASE}
-                      onValueChange={v => handlePhaseChange(form, v)}
-                    >
-                      <SelectTrigger aria-label={`Φάση — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
-                        <SelectValue>
-                          {(v: string) => (v === NONE_PHASE ? '— (καμία) —' : deliverablePhaseLabel(v as DeliverablePhaseStr))}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE_PHASE}>— (καμία) —</SelectItem>
-                        {DELIVERABLE_PHASE_ORDER.map(p => (
-                          <SelectItem key={p} value={p}>{deliverablePhaseLabel(p)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="ctr">
-                    <Switch
-                      checked={form.mandatory}
-                      onCheckedChange={checked => handleMandatoryChange(form, checked)}
-                      aria-label={`Υποχρεωτικό — ${form.name}`}
-                    />
-                  </td>
-                  <td className="ctr">
-                    <Switch
-                      checked={form.reusable}
-                      onCheckedChange={checked => handleReusableChange(form, checked)}
-                      aria-label={`Επαναχρησιμοποιήσιμο — ${form.name}`}
-                    />
-                  </td>
-                  <td style={{ minWidth: 190 }}>
-                    <Select
-                      value={form.documentTypeId ?? NONE_DOCTYPE}
-                      onValueChange={v => handleDocTypeChange(form, v)}
-                    >
-                      <SelectTrigger aria-label={`Τύπος δικαιολογητικού — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE_DOCTYPE}>— (κανένας) —</SelectItem>
-                        {docTypes.map(d => (
-                          <SelectItem key={d.id} value={d.id}>{d.name}{d.expires ? ' · (λήγει)' : ''}</SelectItem>
-                        ))}
-                        <SelectItem value={NEW_DOCTYPE}>+ Δημιουργία «{form.name.slice(0, 30)}»</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td style={{ minWidth: 220 }}>
-                    <Select
-                      value={form.templateId ?? NONE_TEMPLATE}
-                      onValueChange={v => handleTemplateChange(form, v)}
-                    >
-                      <SelectTrigger aria-label={`Οδηγός Εντύπου — ${form.name}`} className="h-8 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE_TEMPLATE}>— (κανένας) —</SelectItem>
-                        {templates.map(t => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.code} {t.name}{t.year ? ` (${t.year})` : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td style={{ minWidth: 180 }}>
-                    <input
-                      defaultValue={form.notes ?? ''}
-                      onBlur={e => handleNotesBlur(form, e.target.value)}
-                      placeholder="—"
-                      className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[length:var(--fs-12-5)] text-muted-foreground outline-none transition-colors hover:border-border focus-visible:border-ring focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
-                    />
-                  </td>
-                  <td className="ctr">
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(form)}
-                      className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                      aria-label={`Διαγραφή — ${form.name}`}
-                      title="Διαγραφή"
-                    >
-                      <LuTrash2 className="size-3.5" aria-hidden />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          tableId="program-required-forms"
+          bare
+          columns={formColumns}
+          rows={forms}
+          rowKey={f => f.id}
+          searchPlaceholder="Αναζήτηση εντύπου…"
+        />
       )}
     </section>
   )
@@ -385,18 +374,14 @@ function AddRequiredFormDialog({
           {catalog.length > 0 && (
             <div className="field !mb-0 rounded-[14px] border border-border bg-muted/40 p-2.5">
               <label className="!text-[length:var(--fs-11)]">Από κατάλογο επαναχρησιμοποιήσιμων (άλλα προγράμματα)</label>
-              <Select value={''} onValueChange={v => { if (v) void handleAddFromCatalog(v) }} disabled={saving}>
-                <SelectTrigger className="h-10 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-13)]">
-                  <SelectValue placeholder="Επίλεξε έτοιμο έντυπο…">{() => 'Επίλεξε έτοιμο έντυπο…'}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {catalog.map(c => (
-                    <SelectItem key={c.sourceId} value={c.sourceId}>
-                      {c.name}{c.templateName ? ` · ${c.templateName}` : ''} — {c.programTitle}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                ariaLabel="Έτοιμο έντυπο από άλλο πρόγραμμα"
+                options={catalog.map(c => ({ value: c.sourceId, label: `${c.name}${c.templateName ? ` · ${c.templateName}` : ''}`, hint: c.programTitle }))}
+                value={null}
+                onChange={v => { if (v && !saving) void handleAddFromCatalog(v) }}
+                placeholder="Αναζήτηση έτοιμου εντύπου…"
+                className="h-10 w-full"
+              />
               <p className="mt-1 text-[length:var(--fs-10-5)] text-muted-foreground">…ή συμπλήρωσε νέο έντυπο παρακάτω.</p>
             </div>
           )}
@@ -437,16 +422,15 @@ function AddRequiredFormDialog({
 
           <div className="field !mb-0">
             <label htmlFor="rf-doctype">Τύπος δικαιολογητικού (αποθήκη πελάτη)</label>
-            <Select value={docTypeId} onValueChange={v => setDocTypeId(v ?? NONE_DOCTYPE)}>
-              <SelectTrigger id="rf-doctype" className="h-10 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-13)]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE_DOCTYPE}>— (κανένας) —</SelectItem>
-                {docTypes.map(d => <SelectItem key={d.id} value={d.id}>{d.name}{d.expires ? ' · (λήγει)' : ''}</SelectItem>)}
-                <SelectItem value={NEW_DOCTYPE}>+ Νέος τύπος…</SelectItem>
-              </SelectContent>
-            </Select>
+            <Combobox
+              id="rf-doctype"
+              ariaLabel="Τύπος δικαιολογητικού"
+              options={[...docTypes.map(d => ({ value: d.id, label: d.name, hint: d.expires ? 'λήγει' : undefined })), { value: NEW_DOCTYPE, label: '+ Νέος τύπος…' }]}
+              value={docTypeId === NONE_DOCTYPE ? null : docTypeId}
+              onChange={v => setDocTypeId(v ?? NONE_DOCTYPE)}
+              placeholder="Αναζήτηση τύπου…"
+              className="h-10 w-full"
+            />
             <p className="mt-1 text-[length:var(--fs-10-5)] text-muted-foreground">Αν η εταιρία το έχει ήδη σε ισχύ στην αποθήκη της, δεν θα ξαναζητηθεί.</p>
           </div>
 
@@ -489,13 +473,17 @@ function AddRequiredFormDialog({
  * προσθέσει (με προτεινόμενη αντιστοίχιση τύπου).
  */
 function ProposalsPanel({
-  programId, proposals, onAdded,
+  programId, proposals, docTypes, onAdded,
 }: {
   programId: string
   proposals: FormProposal[]
+  docTypes: DocumentTypeOption[]
   onAdded: () => void
 }) {
   const [selected, setSelected] = React.useState<Set<string>>(() => new Set(proposals.map(p => p.name)))
+  // Τύπος ανά πρόταση: ξεκινά από την πρόταση της αντιστοίχισης και αλλάζει με αναζήτηση στους δικούς μας τύπους.
+  const [typeFor, setTypeFor] = React.useState<Record<string, string | null>>(() => Object.fromEntries(proposals.map(p => [p.name, p.suggestedDocumentTypeId])))
+  const typeOptions = React.useMemo(() => docTypes.map(d => ({ value: d.id, label: d.name, hint: d.expires ? 'λήγει' : undefined })), [docTypes])
   const [saving, setSaving] = React.useState(false)
 
   function toggle(name: string) {
@@ -508,7 +496,7 @@ function ProposalsPanel({
 
   async function handleAdd() {
     const items = proposals.filter(p => selected.has(p.name)).map(p => ({
-      name: p.name, mandatory: p.mandatory, notes: p.notes, documentTypeId: p.suggestedDocumentTypeId,
+      name: p.name, mandatory: p.mandatory, notes: p.notes, documentTypeId: typeFor[p.name] ?? null,
     }))
     if (items.length === 0) { toast.error('Επίλεξε τουλάχιστον ένα δικαιολογητικό.'); return }
     setSaving(true)
@@ -537,16 +525,22 @@ function ProposalsPanel({
       </div>
       <div className="flex flex-col gap-1">
         {proposals.map(p => (
-          <label key={p.name} className="flex cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-[length:var(--fs-12-5)] hover:bg-muted">
-            <input type="checkbox" checked={selected.has(p.name)} onChange={() => toggle(p.name)} className="size-4 shrink-0 accent-[color:var(--primary)]" />
-            <span className="font-semibold">{p.name}</span>
+          <div key={p.name} className="flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-[length:var(--fs-12-5)] hover:bg-muted">
+            <input type="checkbox" checked={selected.has(p.name)} onChange={() => toggle(p.name)} aria-label={p.name} className="size-4 shrink-0 accent-[color:var(--primary)]" />
+            <span className="min-w-0 flex-1 font-semibold" title={p.name}>{p.name}</span>
             {p.mandatory && <span className="badge-pill warn shrink-0">Υποχρεωτικό</span>}
-            {p.suggestedDocumentTypeName
-              ? p.suggestionFuzzy
-                ? <span className="badge-pill warn shrink-0" title="Πρόταση βάσει παρόμοιας διατύπωσης — επιβεβαίωσε πριν την προσθήκη">τύπος (πρόταση): {p.suggestedDocumentTypeName}</span>
-                : <span className="badge-pill ok shrink-0">τύπος: {p.suggestedDocumentTypeName}</span>
-              : <span className="badge-pill muted shrink-0">χωρίς αντιστοίχιση τύπου</span>}
-          </label>
+            {p.suggestionFuzzy && typeFor[p.name] === p.suggestedDocumentTypeId && (
+              <span className="badge-pill warn shrink-0" title="Πρόταση βάσει παρόμοιας διατύπωσης — επιβεβαίωσε πριν την προσθήκη">πρόταση</span>
+            )}
+            <Combobox
+              ariaLabel={`Τύπος για «${p.name}»`}
+              options={typeOptions}
+              value={typeFor[p.name] ?? null}
+              onChange={v => setTypeFor(prev => ({ ...prev, [p.name]: v }))}
+              placeholder="Χωρίς τύπο — αναζήτηση…"
+              className="w-full min-w-0 sm:w-[280px]"
+            />
+          </div>
         ))}
       </div>
     </div>

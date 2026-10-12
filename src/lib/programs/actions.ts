@@ -39,6 +39,11 @@ export type ProgramListItem = {
   submissionEnd: string | null
   status: string
   extractStatus: string
+  /** Κρυφό από το website με επιλογή χρήστη. */
+  hiddenFromSite: boolean
+  /** Φαίνεται τώρα στο website (ΕΝΕΡΓΟ + όχι κρυφό + υποβολή ανοιχτή ή χωρίς λήξη). */
+  onSite: boolean
+  publicOrder: number | null
 }
 
 export async function listPrograms(): Promise<ProgramListItem[]> {
@@ -53,7 +58,24 @@ export async function listPrograms(): Promise<ProgramListItem[]> {
     submissionEnd: r.submissionEnd ? r.submissionEnd.toISOString() : null,
     status: r.status,
     extractStatus: r.extractStatus,
+    hiddenFromSite: r.hiddenFromSite,
+    onSite: r.status === 'ACTIVE' && !r.hiddenFromSite && (!r.submissionEnd || r.submissionEnd >= new Date(new Date().toISOString().slice(0, 10))),
+    publicOrder: r.publicOrder,
   }))
+}
+
+/** Εμφάνιση/απόκρυψη προγράμματος στο δημόσιο website (χωρίς αλλαγή κατάστασης — το ΕΝΕΡΓΟ μένει για τη διαχείριση). */
+export async function setProgramOnSite(id: string, visible: boolean): Promise<{ ok: boolean; message?: string }> {
+  const session = await requirePermission('programs.manage')
+  const p = await prisma.program.findUnique({ where: { id }, select: { status: true, title: true, publicSlug: true } })
+  if (!p) return { ok: false, message: 'Το πρόγραμμα δεν βρέθηκε.' }
+  if (visible && p.status !== 'ACTIVE') return { ok: false, message: 'Ενεργοποιήστε πρώτα το πρόγραμμα (κατάσταση «Ενεργό») από τη σελίδα του.' }
+  // Απευθείας SQL: η ορατότητα δεν είναι αλλαγή περιεχομένου (δεν αγγίζει updatedAt/sitemap lastmod).
+  await prisma.$executeRaw`UPDATE "Program" SET "hiddenFromSite" = ${!visible} WHERE "id" = ${id}`
+  await logActivity('program.public_order', { userId: session.user.id, entityType: 'program', entityId: id, summary: `${visible ? 'Εμφάνιση' : 'Απόκρυψη'} στο website: ${p.title.slice(0, 80)}` })
+  revalidatePath('/programs')
+  revalidatePath('/', 'layout')
+  return { ok: true }
 }
 
 export async function createProgram(input: {
@@ -860,25 +882,8 @@ export async function harvestEspaCallsNow(): Promise<{ ok: boolean; message: str
   }
 }
 
-export type PublicOrderItem = { id: string; title: string; image: string | null; deadline: string | null; ordered: boolean }
 
 /** Τα προγράμματα που εμφανίζονται στο website, στη σημερινή σειρά τους (για το drag & drop). */
-export async function listPublicOrder(): Promise<PublicOrderItem[]> {
-  await requirePermission('programs.manage')
-  const today = new Date(new Date().toISOString().slice(0, 10))
-  const rows = await prisma.program.findMany({
-    where: { status: 'ACTIVE', OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
-    orderBy: [{ publicOrder: { sort: 'asc', nulls: 'last' } }, { updatedAt: 'desc' }],
-    select: { id: true, title: true, imageUrl: true, submissionEnd: true, publicOrder: true, cmsContent: true },
-    take: 60,
-  })
-  return rows.map(r => ({
-    id: r.id, title: (r.cmsContent as { cardTitle?: string } | null)?.cardTitle || r.title, image: r.imageUrl,
-    deadline: r.submissionEnd ? r.submissionEnd.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null,
-    ordered: r.publicOrder != null,
-  }))
-}
-
 /** Αποθήκευση σειράς εμφάνισης στο website (ids με τη νέα σειρά)· `null` = επαναφορά στην αυτόματη σειρά. */
 export async function savePublicOrder(ids: string[] | null): Promise<{ ok: boolean }> {
   const session = await requirePermission('programs.manage')

@@ -9,6 +9,7 @@ import {
   type ProgramApplicationItem, type ExpenseCategoryOption,
 } from '@/lib/programs/actions'
 import { LinkApplicationDialog } from './link-application-dialog'
+import { OnboardDialog } from '@/components/pm/onboard-dialog'
 import { ExpenseList } from './expense-list'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -54,7 +55,11 @@ export function ApplicationsPanel({ programId }: { programId: string }) {
         <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
           Εφαρμογές &amp; Δαπάνες ({applications.length})
         </div>
-        <LinkApplicationDialog programId={programId} onCreated={handleCreated} />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Πελάτες με ΗΔΗ εγκεκριμένη πρόταση → συνεχίζουν από δικαιολογητικά/δαπάνες. */}
+          <OnboardDialog programId={programId} label="Ήδη εγκεκριμένοι πελάτες" />
+          <LinkApplicationDialog programId={programId} onCreated={handleCreated} />
+        </div>
       </div>
 
       {categories.length === 0 && !loading && (
