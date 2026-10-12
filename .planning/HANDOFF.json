@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-12T11:40:51.985Z",
+  "timestamp": "2026-10-12T12:34:02.484Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,33 +22,37 @@
     },
     {
       "status": "M",
-      "path": "src/app/portal/_components/my-documents.tsx"
+      "path": "prisma/schema.prisma"
     },
     {
       "status": "M",
-      "path": "src/app/portal/_components/portal-programs.tsx"
+      "path": "src/app/api/file-requests/[token]/upload/route.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/series.ts"
+      "path": "src/components/file-requests/customer-uploader.tsx"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/smart-classify-core.ts"
+      "path": "src/lib/file-requests/classify.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/file-requests/verify-upload.ts"
+      "path": "src/lib/file-requests/public.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/pm/portal-contact.ts"
+      "path": "src/lib/file-requests/review.ts"
     },
     {
-      "status": "M",
-      "path": "src/lib/pm/portal-documents.ts"
+      "status": "??",
+      "path": "prisma/migrations/20261012160000_file_request_item_series/"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/file-requests/series.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n6a4aba5 chore: ενημέρωση HANDOFF\n61eebac feat(documents): σειρές δικαιολογητικών (π.χ. Φ2 ανά μήνα) — γενικός μηχανισμός για κάθε τύπο\nb7a3083 chore: ενημέρωση HANDOFF\n5fff4e6 feat(programs): ορατότητα & σειρά website μέσα στον πίνακα, έργα σε εξέλιξη πιο ορατά, πίνακας εντύπων με resize/αναζήτηση τύπων\n63f7774 feat(files): ανέβασμα ολόκληρων φακέλων στους φακέλους πελάτη, χωρίς όριο μεγέθους, με πλήρη ένδειξη προόδου"
+  "context_notes": "Recent commits:\nf2c0495 chore: ενημέρωση HANDOFF\nbf1efb8 feat(portal): περίοδος στα ανεβάσματα του portal (σειρές δικαιολογητικών)\n6a4aba5 chore: ενημέρωση HANDOFF\n61eebac feat(documents): σειρές δικαιολογητικών (π.χ. Φ2 ανά μήνα) — γενικός μηχανισμός για κάθε τύπο\nb7a3083 chore: ενημέρωση HANDOFF"
 }
