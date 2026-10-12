@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-12T09:48:21.065Z",
+  "timestamp": "2026-10-12T11:03:06.242Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,88 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "prisma/schema.prisma"
+    },
+    {
+      "status": "M",
+      "path": "src/app/(app)/programs/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/app/llms-full.txt/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/app/llms.txt/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/app/sitemap.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/components/programs/applications-panel.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/programs/program-wizard.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/programs/programs-table.tsx"
+    },
+    {
+      "status": "D",
+      "path": "src/components/programs/public-order-dialog.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/programs/required-forms-tab.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/ui/combobox.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/ui/data-table.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/programs/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/programs/public.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/public-lead/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/seo-content/engine.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/seo-content/hubs.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/seo-content/indexnow.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/seo-content/kad-check.ts"
+    },
+    {
+      "status": "??",
+      "path": "prisma/migrations/20261012120000_program_hidden_from_site/"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ned53d89 fix(programs): μεγάλοι οδηγοί (400+ σελίδες / >10MB) ανεβαίνουν ξανά στο «Νέο πρόγραμμα» — το PDF στέλνεται multipart στο /api/programs/source (έως 60MB) αντί για base64 μέσα σε server action· το base64 (×1,37) ξεπερνούσε το όριο 12MB και ο οδηγός έβγαζε «Κάτι πήγε στραβά»· σαφές μήνυμα για μέγεθος/μη-PDF\nca3adeb chore: ενημέρωση HANDOFF\nff3f292 chore: ενημέρωση HANDOFF\nb160689 feat(expenses): αυτόματη «Βεβαίωση προμηθευτή» με υπογραφή στην οθόνη ή σφραγίδα\nf4a9c75 feat(pm): «Έργο σε εξέλιξη» — εισαγωγή πελατών με ήδη εγκεκριμένη πρόταση"
+  "context_notes": "Recent commits:\n63f7774 feat(files): ανέβασμα ολόκληρων φακέλων στους φακέλους πελάτη, χωρίς όριο μεγέθους, με πλήρη ένδειξη προόδου\n49711c0 chore: ενημέρωση HANDOFF\ned53d89 fix(programs): μεγάλοι οδηγοί (400+ σελίδες / >10MB) ανεβαίνουν ξανά στο «Νέο πρόγραμμα» — το PDF στέλνεται multipart στο /api/programs/source (έως 60MB) αντί για base64 μέσα σε server action· το base64 (×1,37) ξεπερνούσε το όριο 12MB και ο οδηγός έβγαζε «Κάτι πήγε στραβά»· σαφές μήνυμα για μέγεθος/μη-PDF\nca3adeb chore: ενημέρωση HANDOFF\nff3f292 chore: ενημέρωση HANDOFF"
 }
