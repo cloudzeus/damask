@@ -10,25 +10,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { createProgram, extractProgram } from '@/lib/programs/actions'
+import { uploadProgramSource } from '@/lib/programs/upload-source'
 import { extractPdfText } from '@/lib/programs/pdf-text'
 
 type Phase = 'form' | 'processing' | 'failed'
-
-/**
- * Μετατρέπει ArrayBuffer → base64 σε chunks (32KB) αντί για ένα
- * `String.fromCharCode(...bytes)` — spread ενός μεγάλου Uint8Array μπορεί
- * να ξεπεράσει το όριο ορισμάτων της μηχανής JS (π.χ. πολυσέλιδα PDF).
- */
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  const chunkSize = 0x8000
-  let binary = ''
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize)
-    binary += String.fromCharCode(...chunk)
-  }
-  return btoa(binary)
-}
 
 // Κατά τη διάρκεια του extractProgram (μία, αδιαίρετη server-action κλήση —
 // χωρίς ενδιάμεσα progress events) ο δείκτης «ερπύζει» αργά ως ένδειξη
@@ -122,14 +107,14 @@ function NewProgramDialogContent({ open, onOpenChange }: { open: boolean; onOpen
 
       setProgressLabel('Μεταφόρτωση αρχείου…')
       setProgress(15)
-      const buffer = await file!.arrayBuffer()
-      const pdfBase64 = arrayBufferToBase64(buffer)
+      // Multipart (όχι base64 σε server action) — οι οδηγοί ξεπερνούν συχνά τα 10MB.
+      const up = await uploadProgramSource(file!)
 
       const { id } = await createProgram({
         title: title.trim(),
         sourceFileName: file!.name,
-        pdfBase64,
-        mimeType: file!.type || 'application/pdf',
+        uploadedKey: up.key,
+        uploadedSize: up.size,
       })
       setCreatedId(id)
 

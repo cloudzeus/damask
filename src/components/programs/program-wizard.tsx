@@ -1,5 +1,6 @@
 'use client'
 
+import { uploadProgramSource } from '@/lib/programs/upload-source'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -40,13 +41,6 @@ const STEPS: { key: Step; label: string }[] = [
 
 const EUR = new Intl.NumberFormat('el-GR', { maximumFractionDigits: 0 })
 const DATE = new Intl.DateTimeFormat('el-GR', { day: 'numeric', month: 'long', year: 'numeric' })
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
-  return btoa(binary)
-}
 
 export function ProgramWizard() {
   const [open, setOpen] = React.useState(false)
@@ -132,8 +126,9 @@ function StepUpload({ onDone }: { onDone: (programId: string) => void }) {
       const text = await extractPdfText(file)
       if (!text.trim()) { setError('Αυτό το PDF δεν έχει κείμενο (μάλλον είναι σαρωμένη εικόνα). Δοκίμασε ένα PDF με κείμενο.'); setBusy(false); return }
       setLabel('Αποθηκεύω το αρχείο…'); setProgress(18)
-      const pdfBase64 = arrayBufferToBase64(await file.arrayBuffer())
-      const { id } = await createProgram({ title: title.trim(), sourceFileName: file.name, pdfBase64, mimeType: file.type || 'application/pdf' })
+      // Multipart (όχι base64 σε server action): οι οδηγοί φτάνουν τις 400+ σελίδες / >10MB.
+      const up = await uploadProgramSource(file)
+      const { id } = await createProgram({ title: title.trim(), sourceFileName: file.name, uploadedKey: up.key, uploadedSize: up.size })
       // Εξωτερικοί σύνδεσμοι του οδηγού → γνωσιακή μνήμη (στο παρασκήνιο· δεν καθυστερεί τον οδηγό).
       void file.arrayBuffer().then(extractPdfLinks).then(links => (links.length ? importGuideLinks(id, links) : null)).catch(() => {})
       setLabel('Το AI διαβάζει το πρόγραμμα και βρίσκει τα δικαιολογητικά… (ίσως πάρει λίγο)'); setProgress(30)
@@ -141,8 +136,9 @@ function StepUpload({ onDone }: { onDone: (programId: string) => void }) {
       if (!r.ok) { setError(r.error ?? 'Η ανάγνωση απέτυχε — δοκίμασε ξανά.'); setBusy(false); return }
       setProgress(100)
       onDone(id)
-    } catch {
-      setError('Κάτι πήγε στραβά. Δοκίμασε ξανά.')
+    } catch (err) {
+      // Σαφές μήνυμα όπου υπάρχει (π.χ. «Το PDF ξεπερνά τα 60MB»)· αλλιώς γενικό.
+      setError(err instanceof Error && /PDF|αρχεί|ανέβασμα/i.test(err.message) ? err.message : 'Κάτι πήγε στραβά. Δοκίμασε ξανά.')
       setBusy(false)
     }
   }

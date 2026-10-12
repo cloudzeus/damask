@@ -61,6 +61,9 @@ export async function createProgram(input: {
   sourceFileName?: string
   pdfBase64?: string
   mimeType?: string
+  /** Ήδη ανεβασμένο PDF (POST /api/programs/source) — για μεγάλους οδηγούς. */
+  uploadedKey?: string
+  uploadedSize?: number
 }): Promise<{ id: string }> {
   const session = await requirePermission('programs.manage')
   const id = crypto.randomUUID()
@@ -75,6 +78,11 @@ export async function createProgram(input: {
     storageKey = `programs/${id}/source.pdf`
     await bunnyUploadPrivate({ key: storageKey, body, contentType: mimeType })
     size = body.length
+  } else if (input.uploadedKey) {
+    if (!/^programs\/uploads\/[0-9a-f-]{36}\.pdf$/.test(input.uploadedKey)) throw new Error('Μη έγκυρο αρχείο.')
+    storageKey = input.uploadedKey
+    mimeType = 'application/pdf'
+    size = input.uploadedSize ?? null
   }
 
   await prisma.program.create({
