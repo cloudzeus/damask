@@ -211,6 +211,8 @@ export async function seedFormObligationsForApplication(applicationId: string, p
     }
     created++
   }
+  // Σειρές (π.χ. Φ2 ανά μήνα): η κάλυψη υπολογίζεται ανά περίοδο — όχι από ένα μόνο έγγραφο.
+  await syncSeriesForApplication(applicationId)
   return { created, recognized }
 }
 
@@ -242,6 +244,22 @@ export async function coverObligationsFromDossierDoc(
   if (forms.length === 0) return { covered: 0, programs: [] }
   const formById = new Map(forms.map(f => [f.id, f]))
 
+  // Τύπος-σειρά: κάθε νέο έγγραφο (περίοδος) ξαναϋπολογίζει την κάλυψη — καλύπτεται μόνο όταν είναι πλήρης.
+  const typeRow = await prisma.documentType.findUnique({ where: { id: opts.asTypeId ?? doc.documentTypeId }, select: { seriesKind: true } })
+  if (typeRow?.seriesKind) {
+    const obs = await prisma.applicationObligation.findMany({
+      where: { kind: 'FORM', sourceId: { in: forms.map(f => f.id) }, status: { in: ['PENDING', 'IN_PROGRESS', 'REJECTED', 'SUBMITTED'] }, application: { trdrId: doc.trdrId } },
+      select: { id: true, sourceId: true },
+    })
+    const programs = new Set<string>()
+    let covered = 0
+    for (const o of obs) {
+      const r = await syncSeriesObligation(o.id)
+      if (r?.complete) { covered++; const t = o.sourceId ? formById.get(o.sourceId)?.program.title : null; if (t) programs.add(t) }
+    }
+    return { covered, programs: [...programs] }
+  }
+
   const open = await prisma.applicationObligation.findMany({
     where: {
       kind: 'FORM',
@@ -271,4 +289,93 @@ export async function coverObligationsFromDossierDoc(
     if (title) programs.add(title)
   }
   return { covered: open.length, programs: [...programs] }
+}
+
+// ── Σειρές εγγράφων (π.χ. Φ2 ανά μήνα) ─────────────────────────────────────
+// Μια εκκρεμότητα εντύπου-σειράς καλύπτεται μόνο όταν υπάρχουν ΟΛΕΣ οι απαιτούμενες περίοδοι στα δικαιολογητικά
+// της εταιρίας (ή αρκετά αρχεία για LIST). Τα έγγραφα των περιόδων επισυνάπτονται ως αντίγραφα αναφοράς.
+
+/** Συγχρονισμός ΜΙΑΣ εκκρεμότητας-σειράς· null αν το έντυπο δεν είναι σειρά. */
+export async function syncSeriesObligation(obligationId: string): Promise<{ complete: boolean; label: string } | null> {
+  const { isSeriesKind, seriesCoverage, coverageLabel, normalizePeriod } = await import('@/lib/documents/series')
+  const o = await prisma.applicationObligation.findUnique({
+    where: { id: obligationId },
+    select: {
+      id: true, status: true, sourceId: true, kind: true,
+      application: { select: { id: true, trdrId: true, programId: true, opskeSubmittedAt: true } },
+      documents: { select: { storageKey: true } },
+    },
+  })
+  if (!o || o.kind !== 'FORM' || !o.sourceId) return null
+  const form = await prisma.programRequiredForm.findUnique({
+    where: { id: o.sourceId },
+    select: { documentTypeId: true, seriesCount: true, seriesFrom: true, seriesTo: true, documentType: { select: { seriesKind: true } } },
+  })
+  const kind = form?.documentType?.seriesKind
+  if (!form?.documentTypeId || !isSeriesKind(kind)) return null
+
+  const now = Date.now()
+  const docs = (await prisma.trdrDossierDocument.findMany({
+    where: {
+      trdrId: o.application.trdrId, documentTypeId: form.documentTypeId,
+      OR: [{ reusable: true }, { programId: null }, { programId: o.application.programId }],
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { name: true, storageKey: true, mimeType: true, sizeBytes: true, expiresAt: true, period: true },
+  })).filter(d => !d.expiresAt || d.expiresAt.getTime() > now)
+
+  const req = { kind, count: form.seriesCount, from: form.seriesFrom, to: form.seriesTo }
+  const ref = o.application.opskeSubmittedAt ?? new Date()
+  const cov = seriesCoverage(req, docs.map(d => d.period), ref)
+  const label = coverageLabel(cov, kind)
+
+  // Ένα έγγραφο ανά απαιτούμενη περίοδο (το νεότερο)· για LIST όλα.
+  const wanted = new Set(cov.required)
+  const perPeriod = new Map<string, (typeof docs)[number]>()
+  for (const d of docs) {
+    const p = normalizePeriod(d.period, kind)
+    if (kind === 'LIST') perPeriod.set(d.storageKey, d)
+    else if (p && wanted.has(p) && !perPeriod.has(p)) perPeriod.set(p, d)
+  }
+  const attached = new Set(o.documents.map(d => d.storageKey))
+  for (const [key, d] of perPeriod) {
+    if (attached.has(d.storageKey)) continue
+    await prisma.applicationDocument.create({
+      data: {
+        applicationId: o.application.id, obligationId: o.id, documentTypeId: form.documentTypeId,
+        name: d.name, storageKey: d.storageKey, mimeType: d.mimeType, size: d.sizeBytes, expiresAt: d.expiresAt,
+        period: kind === 'LIST' ? null : key,
+      },
+    })
+  }
+  if (o.status !== 'APPROVED' && o.status !== 'WAIVED') {
+    await prisma.applicationObligation.update({
+      where: { id: o.id },
+      data: cov.complete
+        ? { status: 'SUBMITTED', notes: `${label} από τα δικαιολογητικά της εταιρίας — έλεγξε & ενέκρινε.` }
+        : { status: cov.have > 0 ? 'IN_PROGRESS' : 'PENDING', notes: label },
+    })
+  }
+  return { complete: cov.complete, label }
+}
+
+/** Όλες οι εκκρεμότητες-σειρές ενός έργου. */
+export async function syncSeriesForApplication(applicationId: string): Promise<void> {
+  const obs = await prisma.applicationObligation.findMany({
+    where: { applicationId, kind: 'FORM', sourceId: { not: null } },
+    select: { id: true, sourceId: true },
+  })
+  if (!obs.length) return
+  const series = await prisma.programRequiredForm.findMany({
+    where: { id: { in: obs.map(o => o.sourceId!) }, documentType: { seriesKind: { not: null } } },
+    select: { id: true },
+  })
+  const ids = new Set(series.map(s => s.id))
+  for (const o of obs) if (ids.has(o.sourceId!)) await syncSeriesObligation(o.id).catch(err => console.error('[series] sync failed', err))
+}
+
+/** Όλες οι εκκρεμότητες ενός εντύπου (μετά από αλλαγή απαίτησης/τύπου). */
+export async function syncSeriesForForm(formId: string): Promise<void> {
+  const obs = await prisma.applicationObligation.findMany({ where: { kind: 'FORM', sourceId: formId }, select: { id: true } })
+  for (const o of obs) await syncSeriesObligation(o.id).catch(err => console.error('[series] sync failed', err))
 }

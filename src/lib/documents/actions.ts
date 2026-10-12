@@ -20,14 +20,14 @@ import { isMmeTypeName, extractMmeWithAi, applyMmeToTrdr, govgrCodeFromText, typ
 
 // ── Τύποι δικαιολογητικών ────────────────────────────────────────────────────
 
-export type DocumentTypeOption = { id: string; name: string; expires: boolean; validityDays?: number | null }
+export type DocumentTypeOption = { id: string; name: string; expires: boolean; validityDays?: number | null; seriesKind?: string | null }
 
 export async function listDocumentTypes(): Promise<DocumentTypeOption[]> {
   await requirePermission('customer.view')
   const rows = await prisma.documentType.findMany({
     where: { active: true },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, expires: true, validityDays: true },
+    select: { id: true, name: true, expires: true, validityDays: true, seriesKind: true },
   })
   return rows
 }
@@ -61,6 +61,9 @@ export type DossierDocItem = {
   programId: string | null
   programTitle: string | null
   reusable: boolean
+  /** Σειρά: τύπος σειράς + περίοδος του εγγράφου (π.χ. «2025-03»). */
+  seriesKind: string | null
+  period: string | null
 }
 
 export async function listTrdrDossier(trdrId: string): Promise<DossierDocItem[]> {
@@ -68,7 +71,7 @@ export async function listTrdrDossier(trdrId: string): Promise<DossierDocItem[]>
   const rows = await prisma.trdrDossierDocument.findMany({
     where: { trdrId },
     orderBy: { createdAt: 'desc' },
-    include: { documentType: { select: { name: true, expires: true } }, program: { select: { title: true } } },
+    include: { documentType: { select: { name: true, expires: true, seriesKind: true } }, program: { select: { title: true } } },
   })
   const now = Date.now()
   return rows.map(r => ({
@@ -86,6 +89,8 @@ export async function listTrdrDossier(trdrId: string): Promise<DossierDocItem[]>
     programId: r.programId,
     programTitle: r.program?.title ?? null,
     reusable: r.reusable,
+    seriesKind: r.documentType.seriesKind,
+    period: r.period,
   }))
 }
 
@@ -102,6 +107,8 @@ export async function uploadTrdrDossierDoc(
     replaceDocId?: string | null
     /** Πλήρες ψηφιακό κείμενο (αν υπάρχει) — για ειδικούς τύπους όπως το ΕΜΕ. */
     fullText?: string | null
+    /** Περίοδος για τύπους-σειρές (π.χ. Φ2 «2025-03»). */
+    period?: string | null
   },
 ): Promise<{ id: string; covered: number; coveredPrograms: string[]; eme?: EmeApplied | null; e3?: E3Applied | null; mme?: MmeApplied | null; template?: TemplateApplied | null }> {
   const session = await requirePermission('customer.edit')
@@ -128,6 +135,7 @@ export async function uploadTrdrDossierDoc(
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
       programId: input.programId || null,
       reusable: input.reusable ?? true,
+      period: await periodFor(input.documentTypeId, input.period),
       uploadedById: session.user.id,
     },
   })
@@ -167,10 +175,13 @@ export async function uploadTrdrDossierDoc(
 
 export async function updateTrdrDossierDoc(
   id: string,
-  input: { documentTypeId?: string; name?: string; issuedAt?: string | null; expiresAt?: string | null; programId?: string | null; reusable?: boolean },
+  input: { documentTypeId?: string; name?: string; issuedAt?: string | null; expiresAt?: string | null; programId?: string | null; reusable?: boolean; period?: string | null },
 ): Promise<void> {
   await requirePermission('customer.edit')
-  const row = await prisma.trdrDossierDocument.findUniqueOrThrow({ where: { id }, select: { trdrId: true } })
+  const row = await prisma.trdrDossierDocument.findUniqueOrThrow({ where: { id }, select: { trdrId: true, documentTypeId: true } })
+  const periodPatch = input.period !== undefined || input.documentTypeId !== undefined
+    ? { period: await periodFor(input.documentTypeId ?? row.documentTypeId, input.period) }
+    : {}
   await prisma.trdrDossierDocument.update({
     where: { id },
     data: {
@@ -180,9 +191,20 @@ export async function updateTrdrDossierDoc(
       ...(input.expiresAt !== undefined ? { expiresAt: input.expiresAt ? new Date(input.expiresAt) : null } : {}),
       ...(input.programId !== undefined ? { programId: input.programId || null } : {}),
       ...(input.reusable !== undefined ? { reusable: input.reusable } : {}),
+      ...periodPatch,
     },
   })
+  // Αλλαγή περιόδου/τύπου σε σειρά → επανυπολογισμός κάλυψης των εκκρεμοτήτων.
+  if (Object.keys(periodPatch).length) await coverObligationsFromDossierDoc(id).catch(() => null)
   revalidatePath(`/partners/${row.trdrId}`)
+}
+
+/** Περίοδος κανονικοποιημένη στη μορφή του τύπου (null αν ο τύπος δεν είναι σειρά ή δεν δόθηκε). */
+async function periodFor(documentTypeId: string, raw: string | null | undefined): Promise<string | null> {
+  if (!raw) return null
+  const t = await prisma.documentType.findUnique({ where: { id: documentTypeId }, select: { seriesKind: true } })
+  const { isSeriesKind, normalizePeriod } = await import('./series')
+  return isSeriesKind(t?.seriesKind) ? normalizePeriod(raw, t.seriesKind) : null
 }
 
 export async function removeTrdrDossierDoc(id: string): Promise<void> {
@@ -225,7 +247,7 @@ export type DossierDuplicateCheck = {
 /** Για κάθε αρχείο της παρτίδας: υπάρχει ήδη ίδιο αρχείο ή ίδιος τύπος στον πελάτη; */
 export async function checkDossierDuplicates(
   trdrId: string,
-  items: { key: string; hash: string; typeId: string | null }[],
+  items: { key: string; hash: string; typeId: string | null; period?: string | null }[],
 ): Promise<DossierDuplicateCheck[]> {
   await requirePermission('customer.view')
   const hashes = [...new Set(items.map(i => i.hash).filter(Boolean))]
@@ -240,7 +262,7 @@ export async function checkDossierDuplicates(
       ],
     },
     orderBy: { createdAt: 'desc' },
-    select: { id: true, name: true, contentHash: true, documentTypeId: true, createdAt: true, expiresAt: true, documentType: { select: { name: true } } },
+    select: { id: true, name: true, contentHash: true, documentTypeId: true, createdAt: true, expiresAt: true, period: true, documentType: { select: { name: true, seriesKind: true } } },
   })
   const now = Date.now()
   const hit = (r: (typeof rows)[number]): DossierDuplicateHit => ({
@@ -254,7 +276,10 @@ export async function checkDossierDuplicates(
   return items.map(i => {
     const exact = rows.filter(r => i.hash && r.contentHash === i.hash)
     const exactIds = new Set(exact.map(r => r.id))
-    const sameType = i.typeId ? rows.filter(r => r.documentTypeId === i.typeId && !exactIds.has(r.id)) : []
+    // Σειρές: «ίδιος τύπος» σημαίνει ίδια ΠΕΡΙΟΔΟΣ (12 Φ2 διαφορετικών μηνών δεν είναι διπλότυπα)· LIST ποτέ.
+    const sameType = i.typeId
+      ? rows.filter(r => r.documentTypeId === i.typeId && !exactIds.has(r.id) && (!r.documentType.seriesKind || (r.documentType.seriesKind !== 'LIST' && !!i.period && r.period === i.period)))
+      : []
     return { key: i.key, exact: exact.map(hit), sameType: sameType.map(hit) }
   })
 }

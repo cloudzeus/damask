@@ -3,6 +3,7 @@ import { deepseekChat } from '@/lib/deepseek'
 import { parseJsonLoose } from '@/lib/ocr/extract'
 import { resolveExpiry } from './expiry-rule'
 import { matchCompany, type CompanyMatch } from './company-match'
+import { normalizePeriod, type SeriesKind } from './series'
 
 /**
  * (Plain module — ΟΧΙ server action.) Έξυπνη αναγνώριση δικαιολογητικού που «μαθαίνει» (Δικαιολογητικά πελάτη).
@@ -34,9 +35,11 @@ export type SmartClassifyResult = {
   expiryBasis: string | null
   /** Αφορά την επιλεγμένη επιχείρηση; (ΑΦΜ/επωνυμία μέσα στο έγγραφο) */
   company: CompanyMatch
+  /** Περίοδος αναφοράς για τύπους-σειρές (π.χ. Φ2 «2025-03»), κανονικοποιημένη στον τύπο. */
+  period: string | null
 }
 
-type TypeRow = { id: string; name: string; expires: boolean; validityDays: number | null; notes: string | null }
+type TypeRow = { id: string; name: string; expires: boolean; validityDays: number | null; notes: string | null; seriesKind?: string | null }
 
 const STOP = new Set([
   'και', 'του', 'της', 'των', 'την', 'τον', 'για', 'από', 'στο', 'στη', 'στην', 'στον', 'με', 'σε', 'που', 'ως', 'προς',
@@ -187,7 +190,7 @@ export async function classifyDocumentCore(input: {
   const probe = exampleTokens(input.fileName, snippet)
 
   const [types, memory, apps, trdr] = await Promise.all([
-    prisma.documentType.findMany({ where: { active: true }, select: { id: true, name: true, expires: true, validityDays: true, notes: true }, orderBy: { name: 'asc' } }),
+    prisma.documentType.findMany({ where: { active: true }, select: { id: true, name: true, expires: true, validityDays: true, notes: true, seriesKind: true }, orderBy: { name: 'asc' } }),
     getMemoryIndex(),
     prisma.programApplication.findMany({
       where: { trdrId: input.trdrId },
@@ -210,7 +213,7 @@ export async function classifyDocumentCore(input: {
     if (hit) {
       const t = typeById.get(hit.typeId)!
       // AI μόνο για τα συμπληρωματικά (λήξη/πρόγραμμα) — αν δεν χρειάζονται, καμία κλήση.
-      const needAi = t.expires || apps.length > 0
+      const needAi = t.expires || apps.length > 0 || !!t.seriesKind
       const ai = needAi
         ? await askAi({ types, examples: scored, apps, fileName: input.fileName, snippet, forcedType: t.name }).catch(() => null)
         : null
@@ -228,6 +231,7 @@ export async function classifyDocumentCore(input: {
           statedExpiresAt: ai?.expiresAt ?? null,
           expiryBasis: ai?.expiryBasis ?? null,
           company,
+          period: periodOf(t, ai?.period ?? null, input.fileName),
         },
       }
     }
@@ -251,6 +255,7 @@ export async function classifyDocumentCore(input: {
         statedExpiresAt: ai.expiresAt,
         expiryBasis: ai.expiryBasis,
         company,
+        period: t ? periodOf(t, ai.period, input.fileName) : null,
       },
     }
   } catch (err) {
@@ -283,6 +288,19 @@ export function resolveTypeName(types: TypeRow[], raw: string): TypeRow | null {
   return best?.t ?? null
 }
 
+/** Περίοδος για τύπο-σειρά: από την AI, αλλιώς από το όνομα αρχείου (π.χ. «Φ2_03-2025.pdf»). */
+function periodOf(t: TypeRow, aiPeriod: string | null, fileName: string): string | null {
+  const kind = t.seriesKind
+  if (!kind || kind === 'LIST') return null
+  const norm = (v: string | null) => (v ? normalizePeriod(v, kind as SeriesKind) : null)
+  const fromAi = norm(aiPeriod)
+  if (fromAi) return fromAi
+  const base = fileName.replace(/\.[^.]+$/, '')
+  const m = /(\d{1,2})[-_. /](20\d{2})|(20\d{2})[-_. /](\d{1,2})/.exec(base)
+  if (m) return norm(m[1] ? `${m[1]}/${m[2]}` : `${m[3]}-${m[4]}`)
+  return kind === 'YEARLY' ? norm(/(20\d{2})/.exec(base)?.[1] ?? null) : null
+}
+
 type AiOut = {
   typeName: string | null
   confidence: number
@@ -292,6 +310,7 @@ type AiOut = {
   issuedAt: string | null
   expiresAt: string | null
   expiryBasis: string | null
+  period: string | null
 }
 
 export async function askAi(args: {
@@ -312,7 +331,8 @@ export async function askAi(args: {
   )
   // Αριθμημένος κατάλογος: το AI απαντά με ΑΡΙΘΜΟ (όχι αντιγραφή ονόματος — παλιότερα αντέγραφε και τη σημείωση,
   // π.χ. «ΕΜΕ — … τιμές ανά έτος», και η σωστή απάντηση απορριπτόταν).
-  const typeList = args.types.map((t, i) => `${i + 1}. ${t.name}${t.expires ? (t.validityDays ? ` [λήγει· ισχύς ${t.validityDays} ημέρες από την έκδοση]` : ' [λήγει]') : ''}${t.notes ? ` (σημείωση: ${t.notes.slice(0, 120)})` : ''}`).join('\n')
+  const SERIES_HINT: Record<string, string> = { MONTHLY: ' [σειρά: ένα ανά μήνα]', QUARTERLY: ' [σειρά: ένα ανά τρίμηνο]', YEARLY: ' [σειρά: ένα ανά έτος]', LIST: ' [πολλά αρχεία]' }
+  const typeList = args.types.map((t, i) => `${i + 1}. ${t.name}${t.seriesKind ? SERIES_HINT[t.seriesKind] ?? '' : ''}${t.expires ? (t.validityDays ? ` [λήγει· ισχύς ${t.validityDays} ημέρες από την έκδοση]` : ' [λήγει]') : ''}${t.notes ? ` (σημείωση: ${t.notes.slice(0, 120)})` : ''}`).join('\n')
   const programList = args.apps.length
     ? args.apps.map(a => `- id=${a.programId}: ${a.program.title}${a.program.referenceCode ? ` (${a.program.referenceCode})` : ''}`).join('\n')
     : '(ο πελάτης δεν έχει προγράμματα)'
@@ -320,7 +340,7 @@ export async function askAi(args: {
   const system = [
     'Είσαι ειδικός στα ελληνικά επιχειρηματικά δικαιολογητικά (ΕΣΠΑ, φορολογικά, ασφαλιστικά, ΓΕΜΗ, άδειες).',
     args.forcedType
-      ? `Ο τύπος έχει ήδη αναγνωριστεί ως «${args.forcedType}». Βρες ΜΟΝΟ πρόγραμμα, επαναχρησιμοποίηση και ημερομηνίες.`
+      ? `Ο τύπος έχει ήδη αναγνωριστεί ως «${args.forcedType}». Βρες ΜΟΝΟ πρόγραμμα, επαναχρησιμοποίηση, ημερομηνίες και περίοδο αναφοράς.`
       : 'Αναγνώρισε τον τύπο του εγγράφου ΑΠΟΚΛΕΙΣΤΙΚΑ από τον κατάλογο.',
     `Κατάλογος τύπων (αριθμημένος):\n${typeList}`,
     shots.length ? `Παραδείγματα από προηγούμενες ταξινομήσεις χρηστών (ακολούθησέ τα):\n${shots.join('\n')}` : '',
@@ -335,7 +355,8 @@ export async function askAi(args: {
       '• «Ανακοίνωση» τροποποίησης καταστατικού / κωδικοποιημένο καταστατικό: τύπος καταστατικού («Καταστατικό και νομιμοποιητικά έγγραφα» αν υπάρχει), χωρίς λήξη.',
       '• Μια «Ανακοίνωση» ΔΕΝ είναι «Γενικό Πιστοποιητικό».',
     ].join('\n'),
-    'Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"typeNo":αριθμός τύπου από τον κατάλογο ή null,"type":"το όνομα του τύπου ΧΩΡΙΣ τη σημείωση ή null","confidence":0..1,"reason":"μία σύντομη πρόταση στα ελληνικά","programId":"id ή null","reusable":true|false,"issuedAt":"YYYY-MM-DD ή null","expiresAt":"YYYY-MM-DD ή null","expiryBasis":"κείμενο ή null"}',
+    'Περίοδος (period): για έγγραφα που αφορούν συγκεκριμένη περίοδο (π.χ. περιοδική δήλωση ΦΠΑ Φ2, ΑΠΔ, μισθοδοσία, τριμηνιαία/ετήσια κατάσταση) η ΠΕΡΙΟΔΟΣ ΑΝΑΦΟΡΑΣ (όχι η ημ. υποβολής): YYYY-MM για μήνα, YYYY-Qn για τρίμηνο, YYYY για χρήση/έτος· αλλιώς null.',
+    'Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"typeNo":αριθμός τύπου από τον κατάλογο ή null,"type":"το όνομα του τύπου ΧΩΡΙΣ τη σημείωση ή null","confidence":0..1,"reason":"μία σύντομη πρόταση στα ελληνικά","programId":"id ή null","reusable":true|false,"issuedAt":"YYYY-MM-DD ή null","expiresAt":"YYYY-MM-DD ή null","expiryBasis":"κείμενο ή null","period":"YYYY-MM | YYYY-Qn | YYYY ή null"}',
   ].filter(Boolean).join('\n\n')
 
   const text = await deepseekChat(
@@ -362,5 +383,6 @@ export async function askAi(args: {
     issuedAt: date(p.issuedAt),
     expiresAt: date(p.expiresAt),
     expiryBasis: typeof p.expiryBasis === 'string' && p.expiryBasis !== 'null' ? p.expiryBasis.slice(0, 80) : null,
+    period: typeof p.period === 'string' && p.period !== 'null' ? p.period.slice(0, 20) : null,
   }
 }

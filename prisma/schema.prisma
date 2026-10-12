@@ -1441,6 +1441,11 @@ model ProgramRequiredForm {
   notes          String?
   order          Int               @default(0)
   phase          DeliverablePhase? // ανάθεση εντύπου σε φάση του προγράμματος
+  /// Σειρές (όταν ο τύπος είναι σειρά): πόσες περίοδοι (τελευταίες πριν την υποβολή) ή — για LIST — ελάχιστα αρχεία.
+  seriesCount    Int?
+  /// Σταθερό διάστημα (υπερισχύει του seriesCount): «2024-01» … «2024-12» / «2024-Q1» … / «2022» … «2024».
+  seriesFrom     String?
+  seriesTo       String?
   reusable       Boolean           @default(false) // επαναχρησιμοποιήσιμο και σε άλλα έργα/προγράμματα
   templateId     String? // optional link to a «Οδηγός Εντύπου» (TaxFormTemplate)
   template       TaxFormTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -1974,6 +1979,8 @@ model ApplicationDocument {
   mimeType       String?
   size           Int?
   expiresAt      DateTime? // ημ. λήξης δικαιολογητικού (π.χ. φορολογική/ασφαλιστική ενημερότητα)
+  /// Περίοδος αναφοράς (σειρές, π.χ. Φ2 «2025-03»).
+  period         String?
   uploadedById   String?
   uploadedAt     DateTime               @default(now())
   requestUpload  DocumentRequest?       @relation("RequestUpload")
@@ -2256,6 +2263,8 @@ model DocumentType {
   expires         Boolean                         @default(false)
   /// Ισχύς σε ημέρες από την ημ. έκδοσης — όταν το έγγραφο δεν αναγράφει λήξη (π.χ. ΓΕΜΗ: 90).
   validityDays    Int?
+  /// Σειρά εγγράφων: null (ένα έγγραφο) | MONTHLY (π.χ. Φ2, ΑΠΔ) | QUARTERLY | YEARLY | LIST (πολλά αρχεία χωρίς περίοδο).
+  seriesKind      String?
   active          Boolean                         @default(true)
   notes           String?
   createdAt       DateTime                        @default(now())
@@ -2311,6 +2320,8 @@ model TrdrDossierDocument {
   sizeBytes      Int?
   issuedAt       DateTime?
   expiresAt      DateTime? // null = δεν λήγει· διαφορετικά «αναφορά λήξης»
+  /// Περίοδος αναφοράς για τύπους-σειρές: «2025-03» (μήνας) | «2025-Q1» (τρίμηνο) | «2025» (έτος).
+  period         String?
   /// Πρόγραμμα στο οποίο αναφέρεται (null = γενικό/εταιρικό).
   programId      String?
   program        Program?     @relation(fields: [programId], references: [id], onDelete: SetNull)
@@ -2323,6 +2334,7 @@ model TrdrDossierDocument {
   @@index([documentTypeId])
   @@index([programId])
   @@index([trdrId, contentHash])
+  @@index([trdrId, documentTypeId, period])
 }
 
 // ============================================================

@@ -12,6 +12,8 @@ import {
 import { ScanFormDialog } from '@/components/tax/scan-form-dialog'
 import { DocumentPreviewButton } from '@/components/ui/document-preview'
 import { DossierSmartUpload } from './dossier-smart-upload'
+import { DossierSeriesGroup } from './dossier-series'
+import type { SeriesKind } from '@/lib/documents/series'
 
 /**
  * Αποθήκη δικαιολογητικών ανά πελάτη — ό,τι έχει ήδη η εταιρία (τύπος + αρχείο +
@@ -28,7 +30,13 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
   const [error, setError] = React.useState<string | null>(null)
   const [scanOpen, setScanOpen] = React.useState(false)
   const [q, setQ] = React.useState('')
-  const shown = docs.filter(d => matchesFilter(q, d.documentTypeName, d.name, d.programTitle, d.expired ? 'έληξε ληγμένο' : ''))
+  const filtered = docs.filter(d => matchesFilter(q, d.documentTypeName, d.name, d.programTitle, d.expired ? 'έληξε ληγμένο' : '', d.period ?? ''))
+  // Τύποι-σειρές (π.χ. Φ2 ανά μήνα) → μία κάρτα ανά τύπο με πλέγμα περιόδων· τα υπόλοιπα όπως πριν.
+  const shown = filtered.filter(d => !d.seriesKind)
+  const seriesGroups = [...filtered.filter(d => d.seriesKind).reduce((m, d) => {
+    const g = m.get(d.documentTypeId) ?? { kind: d.seriesKind as SeriesKind, typeName: d.documentTypeName, docs: [] as DossierDocItem[] }
+    g.docs.push(d); m.set(d.documentTypeId, g); return m
+  }, new Map<string, { kind: SeriesKind; typeName: string; docs: DossierDocItem[] }>())]
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -113,7 +121,10 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
         </p>
       ) : (
         <div className="flex flex-col gap-2">
-          {shown.length === 0 && <p className="py-4 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Κανένα δικαιολογητικό δεν ταιριάζει με «{q}».</p>}
+          {filtered.length === 0 && <p className="py-4 text-center text-[length:var(--fs-12-5)] text-muted-foreground">Κανένα δικαιολογητικό δεν ταιριάζει με «{q}».</p>}
+          {seriesGroups.map(([typeId, g]) => (
+            <DossierSeriesGroup key={typeId} trdrId={trdrId} kind={g.kind} typeName={g.typeName} docs={g.docs} canEdit={canEdit} onChanged={load} />
+          ))}
           {shown.map(doc => (
             <div key={doc.id} className="rounded-2xl border border-border bg-card/60 p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">

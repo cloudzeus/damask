@@ -1,5 +1,7 @@
 'use client'
 
+import { isSeriesKind, seriesMeta, requirementLabel, type SeriesKind } from '@/lib/documents/series'
+import { PeriodInput } from '@/components/trdr/dossier-smart-upload'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { LuPlus, LuTrash2, LuLoaderCircle, LuFileText } from 'react-icons/lu'
@@ -68,7 +70,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
     setForms(prev => prev.map(f => (f.id === id ? { ...f, ...patch } : f)))
   }
 
-  async function persist(id: string, patch: { name?: string; notes?: string | null; mandatory?: boolean; templateId?: string | null; phase?: string | null; reusable?: boolean; documentTypeId?: string | null }) {
+  async function persist(id: string, patch: { name?: string; notes?: string | null; mandatory?: boolean; templateId?: string | null; phase?: string | null; reusable?: boolean; documentTypeId?: string | null; seriesCount?: number | null; seriesFrom?: string | null; seriesTo?: string | null }) {
     try {
       await updateRequiredForm(id, patch)
     } catch {
@@ -123,7 +125,7 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
     if (value === NEW_DOCTYPE) { void handleCreateTypeFromForm(form); return }
     const documentTypeId = !value || value === NONE_DOCTYPE ? null : value
     const dt = docTypes.find(d => d.id === documentTypeId)
-    patchLocal(form.id, { documentTypeId, documentTypeName: dt?.name ?? null })
+    patchLocal(form.id, { documentTypeId, documentTypeName: dt?.name ?? null, seriesKind: dt?.seriesKind ?? null })
     void persist(form.id, { documentTypeId })
   }
 
@@ -215,6 +217,13 @@ export function RequiredFormsTab({ programId }: { programId: string }) {
           </div>
         )
       },
+    },
+    {
+      id: 'series', header: 'Πολλά έγγραφα', headerLabel: 'Πολλά έγγραφα (σειρά)', width: 230,
+      sortValue: f => f.seriesKind ?? '',
+      cell: form => isSeriesKind(form.seriesKind)
+        ? <SeriesRequirementEditor form={form} onChange={patch => { patchLocal(form.id, patch); void persist(form.id, patch) }} />
+        : <span className="text-[length:var(--fs-11-5)] text-muted-foreground" title="Ορίστε «Πολλά έγγραφα (σειρά)» στον τύπο δικαιολογητικού (Τύποι Δικαιολογητικών)">ένα έγγραφο</span>,
     },
     {
       id: 'template', header: 'Οδηγός Εντύπου', width: 220,
@@ -543,6 +552,49 @@ function ProposalsPanel({
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** Απαίτηση σειράς: «τελευταίες Ν περίοδοι» ή σταθερό διάστημα από–έως (LIST: ελάχιστα αρχεία). */
+function SeriesRequirementEditor({ form, onChange }: {
+  form: ProgramRequiredFormItem
+  onChange: (patch: { seriesCount?: number | null; seriesFrom?: string | null; seriesTo?: string | null }) => void
+}) {
+  const kind = form.seriesKind as SeriesKind
+  const meta = seriesMeta(kind)
+  const [range, setRange] = React.useState(!!(form.seriesFrom && form.seriesTo))
+  const req = { kind, count: form.seriesCount, from: form.seriesFrom, to: form.seriesTo }
+  return (
+    <div className="flex flex-col gap-1.5" title={requirementLabel(req)}>
+      {!range || kind === 'LIST' ? (
+        <label className="flex items-center gap-1.5 text-[length:var(--fs-12)]">
+          {kind === 'LIST' ? 'τουλάχιστον' : 'τελευταίοι'}
+          <input
+            type="number" min={1} max={240} inputMode="numeric"
+            defaultValue={form.seriesCount ?? meta.defaultCount}
+            aria-label={`Πλήθος — ${form.name}`}
+            onBlur={e => { const n = Number(e.target.value); onChange({ seriesCount: Number.isFinite(n) && n > 0 ? n : null }) }}
+            className="h-8 w-16 rounded-md border border-border bg-card px-2 text-[length:var(--fs-12-5)] tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+          />
+          {meta.unit}
+        </label>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1">
+          <PeriodInput kind={kind} value={form.seriesFrom ?? ''} onChange={v => onChange({ seriesFrom: v || null })} />
+          <span className="text-muted-foreground">–</span>
+          <PeriodInput kind={kind} value={form.seriesTo ?? ''} onChange={v => onChange({ seriesTo: v || null })} />
+        </div>
+      )}
+      {kind !== 'LIST' && (
+        <button
+          type="button"
+          className="self-start text-[length:var(--fs-11)] font-semibold text-primary hover:underline"
+          onClick={() => { if (range) onChange({ seriesFrom: null, seriesTo: null }); setRange(r => !r) }}
+        >
+          {range ? '← τελευταίοι Ν' : 'ή σταθερό διάστημα →'}
+        </button>
+      )}
     </div>
   )
 }

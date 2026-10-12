@@ -591,6 +591,11 @@ export type ProgramRequiredFormItem = {
   templateName: string | null
   documentTypeId: string | null
   documentTypeName: string | null
+  /** Σειρά: τύπος σειράς του δικαιολογητικού (null = ένα έγγραφο) + απαίτηση του προγράμματος. */
+  seriesKind: string | null
+  seriesCount: number | null
+  seriesFrom: string | null
+  seriesTo: string | null
 }
 
 export async function listProgramRequiredForms(programId: string): Promise<ProgramRequiredFormItem[]> {
@@ -598,7 +603,7 @@ export async function listProgramRequiredForms(programId: string): Promise<Progr
   const rows = await prisma.programRequiredForm.findMany({
     where: { programId },
     orderBy: { order: 'asc' },
-    include: { template: { select: { name: true, code: true } }, documentType: { select: { name: true } } },
+    include: { template: { select: { name: true, code: true } }, documentType: { select: { name: true, seriesKind: true } } },
   })
   return rows.map(r => ({
     id: r.id,
@@ -611,6 +616,10 @@ export async function listProgramRequiredForms(programId: string): Promise<Progr
     templateName: r.template ? `${r.template.name} (${r.template.code})` : null,
     documentTypeId: r.documentTypeId,
     documentTypeName: r.documentType?.name ?? null,
+    seriesKind: r.documentType?.seriesKind ?? null,
+    seriesCount: r.seriesCount,
+    seriesFrom: r.seriesFrom,
+    seriesTo: r.seriesTo,
   }))
 }
 
@@ -788,7 +797,7 @@ export async function addReusableFormToProgram(programId: string, sourceFormId: 
 
 export async function updateRequiredForm(
   id: string,
-  input: { name?: string; mandatory?: boolean; notes?: string | null; templateId?: string | null; phase?: string | null; reusable?: boolean; documentTypeId?: string | null },
+  input: { name?: string; mandatory?: boolean; notes?: string | null; templateId?: string | null; phase?: string | null; reusable?: boolean; documentTypeId?: string | null; seriesCount?: number | null; seriesFrom?: string | null; seriesTo?: string | null },
 ): Promise<void> {
   await requirePermission('programs.manage')
   const row = await prisma.programRequiredForm.update({
@@ -801,10 +810,18 @@ export async function updateRequiredForm(
       ...(input.phase !== undefined ? { phase: (input.phase as DeliverablePhase | null) } : {}),
       ...(input.reusable !== undefined ? { reusable: input.reusable } : {}),
       ...(input.documentTypeId !== undefined ? { documentTypeId: input.documentTypeId } : {}),
+      ...(input.seriesCount !== undefined ? { seriesCount: input.seriesCount == null ? null : Math.max(1, Math.min(240, Math.round(input.seriesCount))) } : {}),
+      ...(input.seriesFrom !== undefined ? { seriesFrom: input.seriesFrom?.trim() || null } : {}),
+      ...(input.seriesTo !== undefined ? { seriesTo: input.seriesTo?.trim() || null } : {}),
     },
   })
   // Συγχρόνισε τις εκκρεμότητες (mandatory toggle → δημιουργία/αφαίρεση· rename → ενημέρωση).
   await propagateRequiredFormObligation(row.id)
+  // Σειρά: νέα απαίτηση/τύπος → επανυπολογισμός κάλυψης σε όλα τα έργα του εντύπου.
+  if (input.documentTypeId !== undefined || input.seriesCount !== undefined || input.seriesFrom !== undefined || input.seriesTo !== undefined) {
+    const { syncSeriesForForm } = await import('@/lib/pm/form-obligations')
+    await syncSeriesForForm(row.id)
+  }
   revalidatePath(`/programs/${row.programId}`)
 }
 

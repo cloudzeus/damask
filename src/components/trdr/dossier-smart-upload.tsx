@@ -1,5 +1,7 @@
 'use client'
 
+import { Combobox } from '@/components/ui/combobox'
+import { isSeriesKind, periodLabel, type SeriesKind } from '@/lib/documents/series'
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
@@ -55,6 +57,8 @@ type Row = {
   needs: ProgramNeed[] | null
   /** Μετά την αποθήκευση: προγράμματα όπου καλύφθηκε εκκρεμότητα. */
   covered: string[]
+  /** Περίοδος για τύπους-σειρές (π.χ. Φ2 «2025-03») — από την αναγνώριση, διορθώσιμη. */
+  period: string
 }
 
 const GENERAL = '__general__'
@@ -148,7 +152,7 @@ export function DossierSmartUpload({
       const s = res.result
       const t = typesRef.current.find(x => x.id === s.typeId)
       const [[dup], needs] = await Promise.all([
-        checkDossierDuplicates(trdrId, [{ key: id, hash, typeId: s.typeId }]).catch(() => [null]),
+        checkDossierDuplicates(trdrId, [{ key: id, hash, typeId: s.typeId, period: s.period }]).catch(() => [null]),
         s.typeId ? listProgramNeedsForTypes(trdrId, [s.typeId]).catch(() => ({} as Record<string, ProgramNeed[]>)) : Promise.resolve({} as Record<string, ProgramNeed[]>),
       ])
       // Έγγραφο άλλης επιχείρησης (άλλο ΑΦΜ) → απορρίπτεται από προεπιλογή.
@@ -165,6 +169,7 @@ export function DossierSmartUpload({
         hasExpiry: !!(t?.expires || s.expiresAt),
         expiresAt: s.expiresAt ?? '',
         expiryNote: s.expiryNote ?? null,
+        period: s.period ?? '',
       })
     } catch (err) {
       patch(id, { phase: 'ready', error: err instanceof Error ? err.message : 'Η αναγνώριση απέτυχε.' })
@@ -187,7 +192,7 @@ export function DossierSmartUpload({
       files.current.set(id, file)
       return {
         id, file, phase: 'reading', error: null, snippet: '', suggestion: null,
-        typeId: '', programId: fallbackProgram, reusable: true, hasExpiry: false, expiresAt: '', expiryNote: null,
+        typeId: '', programId: fallbackProgram, reusable: true, hasExpiry: false, expiresAt: '', expiryNote: null, period: '',
         hash: '', dup: null, decision: 'keep', needs: null, covered: [],
       }
     })
@@ -220,10 +225,10 @@ export function DossierSmartUpload({
   }, [rows])
 
   /** Αλλαγή τύπου → ξαναέλεγχος «ίδιου τύπου» για αυτό το αρχείο. */
-  async function recheck(row: Row, typeId: string) {
+  async function recheck(row: Row, typeId: string, period: string = row.period) {
     const t = types.find(x => x.id === typeId)
     const [[dup], needs] = await Promise.all([
-      checkDossierDuplicates(trdrId, [{ key: row.id, hash: row.hash, typeId }]).catch(() => [null]),
+      checkDossierDuplicates(trdrId, [{ key: row.id, hash: row.hash, typeId, period: period || null }]).catch(() => [null]),
       listProgramNeedsForTypes(trdrId, [typeId]).catch(() => ({} as Record<string, ProgramNeed[]>)),
     ])
     patch(row.id, { dup: dup ?? null, decision: defaultDecision(dup ?? null, !!t?.expires), needs: needs[typeId] ?? [] })
@@ -257,6 +262,7 @@ export function DossierSmartUpload({
           learn: { predictedTypeId: r.suggestion?.typeId ?? null, snippet: r.snippet, fileName: r.file.name },
           replaceDocId,
           fullText: r.snippet || null,
+          period: r.period || null,
         })
         patch(r.id, { phase: 'saved', covered: res.coveredPrograms })
         if (res.mme) {
@@ -359,7 +365,7 @@ export function DossierSmartUpload({
                   programs={programs}
                   batchDupOf={batchDupOf.get(r.id) ?? null}
                   onChange={p => patch(r.id, p)}
-                  onTypeChange={typeId => void recheck(r, typeId)}
+                  onTypeChange={(typeId, period) => void recheck(r, typeId, period)}
                   onRemove={() => { setRows(prev => prev.filter(x => x.id !== r.id)); files.current.delete(r.id) }}
                 />
               ))}
@@ -405,7 +411,7 @@ function RowCard({
   programs: { id: string; title: string }[]
   batchDupOf: Row | null
   onChange: (p: Partial<Row>) => void
-  onTypeChange: (typeId: string) => void
+  onTypeChange: (typeId: string, period?: string) => void
   onRemove: () => void
 }) {
   const skipped = row.decision === 'skip' || !!batchDupOf
@@ -474,9 +480,14 @@ function RowCard({
         <div className="mt-3 grid gap-x-3 gap-y-2.5 sm:grid-cols-2">
           <div className="field !mb-0">
             <label>Τύπος δικαιολογητικού</label>
-            <Select
-              value={row.typeId}
-              onValueChange={v => {
+            <Combobox
+              ariaLabel="Τύπος δικαιολογητικού"
+              options={types.map(t => ({ value: t.id, label: t.name, hint: t.seriesKind ? 'σειρά' : t.expires ? 'λήγει' : undefined }))}
+              value={row.typeId || null}
+              placeholder="Αναζήτηση τύπου…"
+              className={cn('h-9 w-full', !row.typeId && 'border-[color:var(--warning)]')}
+              onChange={v => {
+                if (locked) return
                 const t = types.find(x => x.id === v)
                 // Λήξη από κανόνα τύπου (π.χ. ΓΕΜΗ: έκδοση + 90 ημ.) — αν δεν την όρισε ο χρήστης με το χέρι.
                 const auto = !row.expiresAt || row.expiryNote != null
@@ -489,16 +500,19 @@ function RowCard({
                 })
                 if (v) onTypeChange(v)
               }}
-              disabled={locked}
-            >
-              <SelectTrigger className={cn('h-9 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]', !row.typeId && 'border-[color:var(--warning)]')}>
-                <SelectValue placeholder="Επίλεξε τύπο…" />
-              </SelectTrigger>
-              <SelectContent>
-                {types.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            />
           </div>
+
+          {(() => {
+            const kind = types.find(x => x.id === row.typeId)?.seriesKind
+            if (!isSeriesKind(kind) || kind === 'LIST') return null
+            return (
+              <div className="field !mb-0 sm:col-span-2">
+                <label>Περίοδος αναφοράς <span className="font-normal text-muted-foreground">— {kind === 'MONTHLY' ? 'μήνας' : kind === 'QUARTERLY' ? 'τρίμηνο' : 'έτος'} που αφορά το έγγραφο</span></label>
+                <PeriodInput kind={kind} value={row.period} disabled={locked} onChange={v => { onChange({ period: v }); onTypeChange(row.typeId, v) }} />
+              </div>
+            )
+          })()}
 
           <div className="field !mb-0">
             <label>Πρόγραμμα στο οποίο αναφέρεται</label>
@@ -672,5 +686,28 @@ function ProgramNeeds({ needs, covered, saved }: { needs: ProgramNeed[]; covered
         </div>
       )}
     </div>
+  )
+}
+
+/** Επιλογή περιόδου ανά τύπο σειράς: μήνας (input month) · τρίμηνο / έτος (λίστα των τελευταίων ετών). */
+export function PeriodInput({ kind, value, disabled, onChange }: { kind: SeriesKind; value: string; disabled?: boolean; onChange: (v: string) => void }) {
+  const y = new Date().getFullYear()
+  const years = Array.from({ length: 12 }, (_, i) => y - i)
+  if (kind === 'MONTHLY') {
+    return (
+      <Input type="month" value={value} disabled={disabled} onChange={e => onChange(e.target.value)} aria-label="Μήνας αναφοράς"
+        className={cn('h-9 w-auto rounded-full text-[length:var(--fs-12-5)]', !value && 'border-[color:var(--warning)]')} />
+    )
+  }
+  const options = kind === 'QUARTERLY'
+    ? years.flatMap(yy => [4, 3, 2, 1].map(q => `${yy}-Q${q}`))
+    : years.map(String)
+  return (
+    <Select value={value || undefined} onValueChange={v => onChange(v ?? '')} disabled={disabled}>
+      <SelectTrigger aria-label="Περίοδος αναφοράς" className={cn('h-9 w-auto min-w-44 rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]', !value && 'border-[color:var(--warning)]')}>
+        <SelectValue placeholder="Επίλεξε…">{(v: string) => periodLabel(v)}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>{options.map(o => <SelectItem key={o} value={o}>{periodLabel(o)}</SelectItem>)}</SelectContent>
+    </Select>
   )
 }

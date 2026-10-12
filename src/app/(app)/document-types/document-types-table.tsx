@@ -1,5 +1,6 @@
 'use client'
 
+import { SERIES_KINDS } from '@/lib/documents/series'
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -68,6 +69,12 @@ export function DocumentTypesTable({ rows, guides }: { rows: DocumentTypeAdminRo
         ? r.validityDays
           ? <span className="badge-pill warn" title={`Λήξη = ημ. έκδοσης + ${r.validityDays} ημέρες, όταν το έγγραφο δεν αναγράφει λήξη`}><CalendarClock className="size-3" aria-hidden /> {r.validityDays} ημ. από έκδοση</span>
           : <span className="badge-pill warn" title="Ο χρήστης ορίζει ημ. λήξης κατά τη μεταφόρτωση"><CalendarClock className="size-3" aria-hidden /> Έχει λήξη</span>
+        : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      id: 'series', header: 'Σειρά', width: 140, sortValue: r => r.seriesKind ?? '',
+      cell: r => r.seriesKind
+        ? <span className="badge-pill info" title="Ζητείται ως σύνολο εγγράφων — κάθε έγγραφο έχει περίοδο">{SERIES_KINDS.find(k => k.value === r.seriesKind)?.label.replace(/ \(.*\)$/, '') ?? r.seriesKind}</span>
         : <span className="text-muted-foreground">—</span>,
     },
     {
@@ -225,13 +232,14 @@ function TypeFormDialog({
   const [expires, setExpires] = React.useState(editing?.expires ?? false)
   const [validityDays, setValidityDays] = React.useState(editing?.validityDays != null ? String(editing.validityDays) : '')
   const [active, setActive] = React.useState(editing?.active ?? true)
+  const [seriesKind, setSeriesKind] = React.useState<string>(editing?.seriesKind ?? 'NONE')
   const [notes, setNotes] = React.useState(editing?.notes ?? '')
   const [saving, setSaving] = React.useState(false)
 
   async function handleSave() {
     if (!name.trim()) { toast.error('Το όνομα είναι υποχρεωτικό.'); return }
     setSaving(true)
-    const input: DocumentTypeInput = { name, expires, validityDays: validityDays.trim() ? Number(validityDays) : null, active, notes: notes || null }
+    const input: DocumentTypeInput = { name, expires, validityDays: validityDays.trim() ? Number(validityDays) : null, active, notes: notes || null, seriesKind: seriesKind === 'NONE' ? null : seriesKind }
     try {
       if (editing) await updateDocumentTypeAdmin(editing.id, input)
       else await createDocumentTypeAdmin(input)
@@ -273,6 +281,20 @@ function TypeFormDialog({
               <span className="mt-1 block text-[length:var(--fs-11-5)] text-muted-foreground">Για έγγραφα που δεν γράφουν λήξη (π.χ. Γενικό Πιστοποιητικό ΓΕΜΗ = 90). Η AI διαβάζει την ημ. έκδοσης και η λήξη υπολογίζεται αυτόματα. Κενό = μόνο ό,τι αναγράφει το έγγραφο.</span>
             </div>
           )}
+
+          <div className="field !mb-0">
+            <label htmlFor="dt-series">Πολλά έγγραφα (σειρά)</label>
+            <Select value={seriesKind} onValueChange={v => setSeriesKind(v ?? 'NONE')}>
+              <SelectTrigger id="dt-series" className="h-10 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-13)]">
+                <SelectValue>{(v: string) => (v === 'NONE' ? 'Όχι — ένα έγγραφο' : SERIES_KINDS.find(k => k.value === v)?.label ?? v)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">Όχι — ένα έγγραφο</SelectItem>
+                {SERIES_KINDS.map(k => <SelectItem key={k.value} value={k.value}>{k.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <span className="mt-1 block text-[length:var(--fs-11-5)] text-muted-foreground">Για δικαιολογητικά που ζητούνται ως σύνολο — π.χ. Φ2 για κάθε μήνα. Κάθε έγγραφο κρατά την περίοδό του και το πρόγραμμα ορίζει πόσες περιόδους θέλει.</span>
+          </div>
 
           <div className="field !mb-0">
             <label htmlFor="dt-notes">Σημειώσεις</label>

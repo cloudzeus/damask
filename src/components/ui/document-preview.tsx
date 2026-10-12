@@ -216,15 +216,27 @@ function SheetView({ sheets }: { sheets: { name: string; html: string }[] }) {
 
 /** Μικρό κουμπί «μάτι» που ανοίγει το preview — drop-in σε κάθε λίστα εγγράφων. */
 export function DocumentPreviewButton({
-  url, name, mimeType, className, label,
+  url, name, mimeType, className, label, trigger,
 }: {
   url: string
   name: string
   mimeType?: string | null
   className?: string
   label?: string
+  /** Δικό του περιεχόμενο κουμπιού (π.χ. κελί πλέγματος) αντί για το εικονίδιο. */
+  trigger?: React.ReactNode
 }) {
   const [open, setOpen] = React.useState(false)
+  if (trigger) {
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)} className={cn('block w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/40', className)} aria-label={`Προεπισκόπηση — ${name}`}>
+          {trigger}
+        </button>
+        {open && <DocumentPreviewDialog url={url} name={name} mimeType={mimeType} open={open} onOpenChange={setOpen} />}
+      </>
+    )
+  }
   return (
     <>
       <button
