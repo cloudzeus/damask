@@ -80,6 +80,36 @@ export async function bunnyUploadPrivate({
   return { key }
 }
 
+/**
+ * Upload από αρχείο στον δίσκο ως ΡΟΗ (χωρίς να μπει ολόκληρο στη μνήμη) — για αρχεία οποιουδήποτε μεγέθους
+ * (τμηματικό ανέβασμα φακέλων/αρχείων πελάτη). Timeout ανάλογο του μεγέθους (≥ 2 λεπτά, +1 λεπτό ανά 100MB).
+ */
+export async function bunnyUploadPrivateFile({
+  key, filePath, size, contentType = 'application/octet-stream',
+}: {
+  key: string
+  filePath: string
+  size: number
+  contentType?: string
+}): Promise<{ key: string }> {
+  const { createReadStream } = await import('node:fs')
+  const { Readable } = await import('node:stream')
+  const cfg = await resolveConfig()
+  const res = await fetch(objectUrl(cfg, key), {
+    method: 'PUT',
+    headers: { AccessKey: cfg.storagePassword, 'Content-Type': contentType, 'Content-Length': String(size) },
+    body: Readable.toWeb(createReadStream(filePath)) as unknown as BodyInit,
+    // @ts-expect-error — απαιτείται από το undici για streaming request body
+    duplex: 'half',
+    signal: AbortSignal.timeout(120_000 + Math.ceil(size / (100 * 1024 * 1024)) * 60_000),
+  })
+  if (res.status !== 201) {
+    throw new Error(`Το BunnyCDN απέρριψε το upload (HTTP ${res.status})${await errorDetail(res)}`)
+  }
+  void import('@/lib/search/live-index').then(m => m.notifyStorageChange({ key, size, op: 'put' })).catch(() => {})
+  return { key }
+}
+
 /** Ακατέργαστο fetch Response πάνω στο αντικείμενο — για TRUE streaming (π.χ. download route),
  * χωρίς να μπει ολόκληρο το αρχείο στη μνήμη Node. Χρησιμοποίησε bunnyDownload() αν χρειάζεσαι
  * Buffer (π.χ. restoreBackup, που έτσι κι αλλιώς πρέπει να γράψει σε tmp file για pg_restore). */

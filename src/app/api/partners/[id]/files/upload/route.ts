@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { logApiUsage } from '@/lib/api-usage'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { buildTrdrFolderPath } from '@/lib/trdr/cdn-folder'
+import { safeRelativeDir, safeSegment } from '@/lib/trdr/safe-name'
 
 /**
  * Staff upload αρχείου στον φάκελο πελάτη (private), σε συγκεκριμένο υποφάκελο
@@ -18,10 +19,6 @@ export const maxDuration = 60
 const MAX_SIZE = 50 * 1024 * 1024
 const SAFE_SEG = /^[A-Za-z0-9._-]+$/
 
-function slugify(input: string): string {
-  const slug = input.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
-  return slug || 'file'
-}
 
 function safeSub(sub: string): string {
   const s = sub.replace(/^\/+|\/+$/g, '')
@@ -47,6 +44,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
   const file = formData.get('file')
   const subPathRaw = formData.get('subPath')
+  // Ανέβασμα ΦΑΚΕΛΟΥ: η σχετική διαδρομή του αρχείου μέσα στον φάκελο που επιλέχθηκε (π.χ. «Τιμολόγια/2024»)
+  // → ίδια δομή υποφακέλων στον φάκελο του πελάτη (ονόματα μεταγραμμένα σε λατινικά).
+  const relDirRaw = formData.get('relDir')
   if (!(file instanceof File)) return NextResponse.json({ error: 'Δεν βρέθηκε αρχείο.' }, { status: 400 })
   if (file.size > MAX_SIZE) return NextResponse.json({ error: 'Το αρχείο ξεπερνά τα 50MB.' }, { status: 400 })
 
@@ -60,8 +60,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const extMatch = /\.[a-z0-9]+$/i.exec(file.name)
   const ext = extMatch ? extMatch[0].toLowerCase() : ''
   const baseName = file.name.replace(/\.[a-z0-9]+$/i, '')
-  const objectName = `${Date.now()}-${randomUUID().slice(0, 8)}-${slugify(baseName)}${ext}`
-  const key = `${root}${rel}${objectName}`
+  const objectName = `${Date.now()}-${randomUUID().slice(0, 8)}-${safeSegment(baseName, 'file')}${ext}`
+  const relDir = typeof relDirRaw === 'string' ? safeRelativeDir(relDirRaw) : ''
+  const key = `${root}${rel}${relDir}${objectName}`
 
   let arrayBuffer: ArrayBuffer
   try {

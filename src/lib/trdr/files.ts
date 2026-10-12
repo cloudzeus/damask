@@ -1,5 +1,6 @@
 'use server'
 
+import { safeSegment } from '@/lib/trdr/safe-name'
 import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/rbac-server'
@@ -113,8 +114,9 @@ export async function renameTrdrFile(trdrId: string, key: string, newName: strin
 
 export async function createTrdrSubfolder(trdrId: string, subPath: string, name: string): Promise<{ ok: boolean; error?: string }> {
   await requirePermission('customer.edit')
-  const clean = name.trim()
-  if (!SAFE_SEG.test(clean)) return { ok: false, error: 'Το όνομα φακέλου επιτρέπει μόνο γράμματα/αριθμούς/._-' }
+  // Ελληνικά/κενά επιτρέπονται: μεταγράφονται σε λατινικά («Τιμολόγια 2024» → «Timologia-2024»).
+  const clean = safeSegment(name, '')
+  if (!clean || !SAFE_SEG.test(clean)) return { ok: false, error: 'Δώστε ένα όνομα φακέλου.' }
   const root = await rootFor(trdrId)
   const rel = safeSub(subPath)
   await bunnyUploadPrivate({ key: `${root}${rel}${clean}/.keep`, body: Buffer.from(''), contentType: 'text/plain' })

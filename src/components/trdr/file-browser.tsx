@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import { DocumentPreviewDialog } from '@/components/ui/document-preview'
-import { FileDropzone, xhrUpload } from '@/components/ui/file-dropzone'
+import { FileDropzone, chunkedUpload, relativeDirOf } from '@/components/ui/file-dropzone'
 import { DossierSmartUpload } from '@/components/trdr/dossier-smart-upload'
 import {
   listTrdrTree, deleteTrdrFile, createTrdrSubfolder, renameTrdrFile, type TrdrTreeListing, type BrowserFile,
@@ -108,10 +108,8 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
   const uploadSubPath = listing?.uploadSubPath ?? null
   const uploadFn = useCallback(
     (file: File, onProgress: (pct: number) => void, signal: AbortSignal) => {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('subPath', uploadSubPath ?? '')
-      return xhrUpload(`/api/partners/${trdrId}/files/upload`, fd, onProgress, signal)
+      // Τμηματικό ανέβασμα (χωρίς όριο μεγέθους) + διαδρομή φακέλου όταν ανεβαίνει ολόκληρος φάκελος.
+      return chunkedUpload(`/api/partners/${trdrId}/files/upload-chunk`, file, { subPath: uploadSubPath ?? '', relDir: relativeDirOf(file) }, onProgress, signal)
     },
     [trdrId, uploadSubPath],
   )
@@ -343,6 +341,8 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
               <FileDropzone
                 key={currentPath}
                 uploadFn={uploadFn}
+                allowFolders
+                helperText="Χωρίς όριο μεγέθους · οι φάκελοι ανεβαίνουν με όλους τους υποφακέλους τους."
                 onUploaded={() => { void reload() }}
               />
             </div>
@@ -355,7 +355,7 @@ export function FileBrowser({ trdrId, canEdit }: { trdrId: string; canEdit: bool
           <DialogHeader>
             <DialogTitle>Νέος φάκελος</DialogTitle>
             <DialogDescription>
-              Δημιουργία υποφακέλου στον τρέχοντα φάκελο. Επιτρέπονται γράμματα, αριθμοί και . _ -
+              Δημιουργία υποφακέλου στον τρέχοντα φάκελο. Τα ελληνικά ονόματα αποθηκεύονται με λατινικούς χαρακτήρες.
             </DialogDescription>
           </DialogHeader>
           <Input
