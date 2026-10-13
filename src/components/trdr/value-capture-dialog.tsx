@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { cn } from '@/lib/utils'
 import { scanCandidateValues, saveValueTemplate, type ValueCandidate } from '@/lib/documents/value-capture'
 import { SERIES_KINDS, type SeriesKind } from '@/lib/documents/series'
+import { officeKind, readOfficeText } from '@/lib/documents/office-text'
 
 /**
  * «Σάρωση τιμών»: το AI προτείνει τις τιμές του εγγράφου → ο χρήστης επιλέγει ποιες κρατάμε → γίνονται πεδία
@@ -53,7 +54,10 @@ export function ValueCaptureDialog({
     started.current = true
     void (async () => {
       try {
-        const res = await scanCandidateValues({ base64: await readBase64(file), mimeType: file.type || 'application/pdf', fileName: file.name, typeId: type?.id ?? null })
+        const office = officeKind(file)
+        const res = await scanCandidateValues(office
+          ? { text: await readOfficeText(file, 120_000), mimeType: 'text/plain', fileName: file.name, typeId: type?.id ?? null }
+          : { base64: await readBase64(file), mimeType: file.type || 'application/pdf', fileName: file.name, typeId: type?.id ?? null })
         if (!res.ok) { setError(res.message); setPhase('error'); return }
         setRows(res.scan.candidates.map(c => ({ ...c, pick: c.existing })))
         setTypeName(res.scan.suggestedTypeName ?? '')

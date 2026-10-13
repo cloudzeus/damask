@@ -51,9 +51,13 @@ function buildPrompt(typeName: string, fields: FieldLite[], seriesKind?: string 
 }
 
 /** Μόνο η ανάγνωση (χωρίς καταχώριση): τιμή ανά fieldKey + `_afm`. */
-export async function extractTemplateValues(input: { base64: string; mimeType: string; typeName: string; fields: FieldLite[]; refId?: string | null; userId?: string | null; seriesKind?: string | null }) {
+export async function extractTemplateValues(input: { base64: string; mimeType: string; typeName: string; fields: FieldLite[]; refId?: string | null; userId?: string | null; seriesKind?: string | null; text?: string | null }) {
+  const binary = /pdf|image\//.test(input.mimeType)
   const res = await geminiGenerate({
-    parts: [{ inlineData: { data: input.base64, mimeType: input.mimeType } }, { text: 'Βρες τα πεδία σύμφωνα με τις οδηγίες.' }],
+    // PDF/εικόνα ως αρχείο· Word/Excel ως κείμενο (το Gemini δεν δέχεται docx/xlsx ως inlineData).
+    parts: binary
+      ? [{ inlineData: { data: input.base64, mimeType: input.mimeType } }, { text: 'Βρες τα πεδία σύμφωνα με τις οδηγίες.' }]
+      : [{ text: `Βρες τα πεδία σύμφωνα με τις οδηγίες.\n\nΠεριεχόμενο εγγράφου:\n${(input.text ?? '').slice(0, 120_000)}` }],
     systemInstruction: buildPrompt(input.typeName, input.fields, input.seriesKind),
     json: true, scope: 'OCR_VISION', refType: 'template-auto', refId: input.refId ?? null, userId: input.userId ?? null,
   })
@@ -76,8 +80,10 @@ export async function processTemplateIfApplicable(input: {
   userId: string | null
   /** Περίοδος εγγράφου-σειράς (π.χ. Φ2 «2025-03») — οι τιμές αποθηκεύονται ανά περίοδο. */
   period?: string | null
+  /** Κείμενο εγγράφου (Word/Excel) όταν δεν είναι PDF/εικόνα. */
+  text?: string | null
 }): Promise<TemplateApplied | null> {
-  if (!/pdf|image\//.test(input.mimeType)) return null
+  if (!/pdf|image\//.test(input.mimeType) && !input.text?.trim()) return null
   const template = await prisma.taxFormTemplate.findFirst({
     where: { documentTypeId: input.documentTypeId, status: 'READY', fields: { some: { kind: { not: 'TABLE' } } } },
     orderBy: [{ year: 'desc' }, { updatedAt: 'desc' }],
@@ -91,7 +97,7 @@ export async function processTemplateIfApplicable(input: {
 
   try {
     const kind = template.documentType?.seriesKind && template.documentType.seriesKind !== 'LIST' ? template.documentType.seriesKind : null
-    const res = await extractTemplateValues({ base64: input.base64, mimeType: input.mimeType, typeName: template.documentType?.name ?? template.name, fields, refId: input.docId, userId: input.userId, seriesKind: kind })
+    const res = await extractTemplateValues({ base64: input.base64, mimeType: input.mimeType, typeName: template.documentType?.name ?? template.name, fields, refId: input.docId, userId: input.userId, seriesKind: kind, text: input.text })
     const trdr = await prisma.trdr.findUnique({ where: { id: input.trdrId }, select: { AFM: true, appEmployeesYear: true, appRevenueYear: true } })
     const docAfm = res.afm
     const afmMismatch = !!(docAfm && docAfm.length === 9 && trdr?.AFM && trdr.AFM.replace(/\D/g, '') !== docAfm)

@@ -3,12 +3,13 @@
 import { Combobox } from '@/components/ui/combobox'
 import { DocumentPreviewDialog } from '@/components/ui/document-preview'
 import { ValueCaptureDialog } from './value-capture-dialog'
+import { officeKind, readOfficeText } from '@/lib/documents/office-text'
 import { isSeriesKind, periodLabel, type SeriesKind } from '@/lib/documents/series'
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
   LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload, LuCopy, LuInfo, LuFolderKanban,
-  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuStamp, LuEye, LuScanText,
+  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuStamp, LuEye, LuScanText, LuTrash2,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,7 +39,7 @@ import { runOcrExtraction } from '@/lib/ocr/actions'
 
 type Phase = 'reading' | 'classifying' | 'ready' | 'saving' | 'saved' | 'error'
 /** Πού πάει το αρχείο: δικαιολογητικό πελάτη · προσφορά/παραστατικό → «Προς καταχώριση» του έργου · αρχεία πελάτη (με τη δομή φακέλων). */
-type Dest = 'dossier' | 'approval' | 'quote' | 'invoice' | 'files'
+type Dest = 'dossier' | 'approval' | 'quote' | 'invoice' | 'files' | 'junk'
 type AppOption = { id: string; programId: string; title: string }
 
 type Row = {
@@ -74,6 +75,8 @@ type Row = {
   appId: string
   /** Μετά την αποθήκευση: πού μπήκε. */
   savedNote: string | null
+  /** Γιατί προτείνεται ως άχρηστο (προσωρινό/κενό/συντόμευση…). */
+  junkReason: string | null
 }
 
 const GENERAL = '__general__'
@@ -97,12 +100,25 @@ const CONCURRENCY = 3
 const INLINE_MAX = 11 * 1024 * 1024
 /** Αρχεία που δεν είναι έγγραφα (βίντεο/ήχος/αρχειοθήκες) → κατευθείαν στα αρχεία πελάτη, χωρίς αναγνώριση. */
 const NOT_A_DOC = /\.(mp4|mov|avi|mkv|webm|mp3|wav|m4a|zip|rar|7z|gz|tar|dmg|exe|iso|psd|ai|indd)$/i
+/** Ξεκαθάρισμα: αρχεία που δεν χρειάζεται να ανέβουν. */
+function junkOf(file: File): string | null {
+  const n = file.name
+  if (file.size === 0) return 'Κενό αρχείο (0 bytes).'
+  if (/^~\$/.test(n) || /^\.~lock\./.test(n)) return 'Προσωρινό αρχείο Office (ανοιχτό έγγραφο).'
+  if (/^\./.test(n)) return 'Κρυφό αρχείο συστήματος.'
+  if (/\.(lnk|url|webloc|alias)$/i.test(n)) return 'Συντόμευση — όχι πραγματικό αρχείο.'
+  if (/\.(tmp|temp|bak|old|crdownload|part|partial|download)$/i.test(n)) return 'Προσωρινό ή μισοκατεβασμένο αρχείο.'
+  if (/\.(ini|db|log|ds_store|sys|dll|exe|msi|bat|cmd)$/i.test(n)) return 'Αρχείο συστήματος/εφαρμογής.'
+  return null
+}
+
 const DEST_META: Record<Dest, { label: string; short: string }> = {
   dossier: { label: 'Δικαιολογητικό', short: 'δικαιολογητικά' },
   approval: { label: 'Εγκριτική', short: 'εγκριτικά' },
   quote: { label: 'Προσφορά', short: 'προσφορές' },
   invoice: { label: 'Παραστατικό', short: 'παραστατικά' },
   files: { label: 'Αρχεία πελάτη', short: 'στα αρχεία' },
+  junk: { label: 'Άχρηστο', short: 'άχρηστα' },
 }
 
 function readFileBase64(file: File): Promise<{ base64: string; ext: string }> {
@@ -130,7 +146,8 @@ async function extractText(file: File): Promise<string> {
     const ocr = await runOcrExtraction({ images: [{ base64: page.base64, mimeType: page.mimeType }], docType: 'auto' })
     return ocr.ok ? JSON.stringify(ocr.data).slice(0, 3000) : ''
   }
-  return '' // docx/xlsx κ.λπ.: αναγνώριση μόνο από το όνομα αρχείου
+  // Word/Excel/κείμενο: το περιεχόμενό τους (αλλιώς αναγνώριση μόνο από το όνομα αρχείου).
+  return readOfficeText(file).catch(() => '')
 }
 
 export function DossierSmartUpload({
@@ -204,7 +221,8 @@ export function DossierSmartUpload({
       patch(id, {
         dup: dup ?? null,
         needs: s.typeId ? (needs[s.typeId] ?? []) : null,
-        decision: foreign ? 'skip' : defaultDecision(dup ?? null, !!t?.expires),
+        // Ο έλεγχος επιχείρησης αφορά μόνο δικαιολογητικά (π.χ. ένα Excel δαπανών έχει ΑΦΜ προμηθευτών).
+        decision: foreign && s.typeId ? 'skip' : defaultDecision(dup ?? null, !!t?.expires),
         phase: 'ready',
         suggestion: s,
         dest: s.typeId ? 'dossier' : 'files',
@@ -239,11 +257,15 @@ export function DossierSmartUpload({
         id, file, phase: 'reading', error: null, snippet: '', suggestion: null,
         typeId: '', programId: fallbackProgram, reusable: true, hasExpiry: false, expiresAt: '', expiryNote: null, period: '',
         hash: '', dup: null, decision: 'keep', needs: null, covered: [],
-        relPath: relativePathOf(file), dest: 'dossier', appId: '', savedNote: null,
+        relPath: relativePathOf(file), dest: 'dossier', appId: '', savedNote: null, junkReason: null,
       }
     })
+    for (const r of newRows) {
+      const why = junkOf(r.file)
+      if (why) Object.assign(r, { phase: 'ready', dest: 'junk', junkReason: why })
+    }
     setRows(prev => [...prev, ...newRows])
-    queue.current.push(...newRows.map(r => r.id))
+    queue.current.push(...newRows.filter(r => r.dest !== 'junk').map(r => r.id))
     pump()
   }
 
@@ -260,7 +282,7 @@ export function DossierSmartUpload({
   }
 
   const busy = rows.some(r => r.phase === 'reading' || r.phase === 'classifying' || r.phase === 'saving')
-  const pending = rows.filter(r => r.phase !== 'saved' && r.decision !== 'skip')
+  const pending = rows.filter(r => r.phase !== 'saved' && r.decision !== 'skip' && r.dest !== 'junk')
   const missingType = pending.some(r => r.phase === 'ready' && r.dest === 'dossier' && !r.typeId)
   const missingApp = pending.some(r => r.phase === 'ready' && (r.dest === 'quote' || r.dest === 'invoice' || r.dest === 'approval') && !r.appId)
 
@@ -299,7 +321,7 @@ export function DossierSmartUpload({
     let staged = 0
     let filed = 0
     for (const r of rows) {
-      if (r.phase !== 'ready' || r.decision === 'skip' || batchDupOf.has(r.id)) continue
+      if (r.phase !== 'ready' || r.decision === 'skip' || r.dest === 'junk' || batchDupOf.has(r.id)) continue
       // Προσφορές/παραστατικά → «Προς καταχώριση» του έργου· άλλα/μεγάλα → αρχεία πελάτη.
       const tooBig = r.file.size > INLINE_MAX
       if (r.dest === 'files' || (tooBig && r.dest !== 'dossier') || (tooBig && r.dest === 'dossier')) {
@@ -413,13 +435,15 @@ export function DossierSmartUpload({
     }
   }
 
-  const allSaved = rows.length > 0 && rows.every(r => r.phase === 'saved' || r.decision === 'skip' || batchDupOf.has(r.id))
+  const allSaved = rows.length > 0 && rows.every(r => r.phase === 'saved' || r.decision === 'skip' || r.dest === 'junk' || batchDupOf.has(r.id))
   const toSave = pending.filter(r => r.phase === 'ready' && !batchDupOf.has(r.id)).length
   const counts = rows.reduce((acc, r) => {
     if (r.phase === 'reading' || r.phase === 'classifying') acc.working += 1
-    else if (r.decision !== 'skip' && !batchDupOf.has(r.id)) acc[r.dest] += 1
+    else if (r.phase === 'saved') acc.done += 1
+    else if (r.decision === 'skip' || batchDupOf.has(r.id)) acc.junk += 1
+    else acc[r.dest] += 1
     return acc
-  }, { working: 0, dossier: 0, approval: 0, quote: 0, invoice: 0, files: 0 } as Record<Dest | 'working', number>)
+  }, { working: 0, done: 0, dossier: 0, approval: 0, quote: 0, invoice: 0, files: 0, junk: 0 } as Record<Dest | 'working' | 'done', number>)
 
   return (
     <>
@@ -474,6 +498,24 @@ export function DossierSmartUpload({
               {(['dossier', 'approval', 'quote', 'invoice', 'files'] as Dest[]).filter(d => counts[d] > 0).map(d => (
                 <span key={d} className={cn('badge-pill', d === 'files' ? 'muted' : d === 'dossier' ? 'ok' : 'info')} style={{ textTransform: 'none' }}>{counts[d]} {DEST_META[d].short}</span>
               ))}
+              {counts.done > 0 && <span className="badge-pill ok" style={{ textTransform: 'none' }}>{counts.done} αποθηκεύτηκαν</span>}
+              {counts.junk > 0 && (
+                <>
+                  <span className="badge-pill warn" style={{ textTransform: 'none' }} title="Προσωρινά, κενά, συντομεύσεις, διπλά ή άλλης επιχείρησης — δεν ανεβαίνουν">{counts.junk} άχρηστα / διπλά — δεν ανεβαίνουν</span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setRows(prev => {
+                      const drop = prev.filter(r => r.phase !== 'saved' && (r.dest === 'junk' || r.decision === 'skip' || batchDupOf.has(r.id)))
+                      drop.forEach(r => files.current.delete(r.id))
+                      return prev.filter(r => !drop.includes(r))
+                    })}
+                    className="font-semibold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Καθάρισμα λίστας
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -541,7 +583,7 @@ function RowCard({
   onTypeCreated: (t: DocumentTypeOption) => void
 }) {
   const [captureOpen, setCaptureOpen] = React.useState(false)
-  const scannable = row.file.type === 'application/pdf' || row.file.type.startsWith('image/')
+  const scannable = row.file.type === 'application/pdf' || row.file.type.startsWith('image/') || !!officeKind(row.file)
   const curType = types.find(t => t.id === row.typeId) ?? null
   const skipped = row.decision === 'skip' || !!batchDupOf
   const working = row.phase === 'reading' || row.phase === 'classifying'
@@ -597,8 +639,8 @@ function RowCard({
 
       {!working && row.phase !== 'saved' && !skipped && (
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label={`Πού πάει το ${row.file.name}`}>
-          {(['dossier', 'approval', 'quote', 'invoice', 'files'] as Dest[]).map(d => {
-            const Icon = d === 'dossier' ? LuFileBadge : d === 'approval' ? LuStamp : d === 'quote' ? LuFileText : d === 'invoice' ? LuReceipt : LuHardDrive
+          {(['dossier', 'approval', 'quote', 'invoice', 'files', 'junk'] as Dest[]).map(d => {
+            const Icon = d === 'junk' ? LuTrash2 : d === 'dossier' ? LuFileBadge : d === 'approval' ? LuStamp : d === 'quote' ? LuFileText : d === 'invoice' ? LuReceipt : LuHardDrive
             const off = (d === 'quote' || d === 'invoice' || d === 'approval') && apps.length === 0
             return (
               <button
@@ -632,6 +674,12 @@ function RowCard({
             <SelectContent>{apps.map(a => <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>)}</SelectContent>
           </Select>
         </div>
+      )}
+
+      {!working && row.phase !== 'saved' && row.dest === 'junk' && (
+        <p className="mt-2 flex items-center gap-1.5 text-[length:var(--fs-11-5)] text-[color:var(--warning)]">
+          <LuTrash2 className="size-3.5" aria-hidden /> Δεν θα ανέβει{row.junkReason ? ` — ${row.junkReason}` : '.'}
+        </p>
       )}
 
       {!working && row.phase !== 'saved' && !skipped && row.dest === 'files' && (

@@ -168,7 +168,7 @@ export async function uploadTrdrDossierDoc(
   if (mme?.coveredExtra) { cover.covered += mme.coveredExtra.covered; cover.programs.push(...mme.coveredExtra.programs) }
   // Οποιοσδήποτε άλλος τύπος με έτοιμο Οδηγό Εντύπου: βρίσκει τα δηλωμένα πεδία και τα καταχωρεί στον προορισμό τους.
   const template = !eme && !e3 && !mme
-    ? await processTemplateIfApplicable({ docId: id, trdrId, documentTypeId: input.documentTypeId, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id, period: docPeriod })
+    ? await processTemplateIfApplicable({ docId: id, trdrId, documentTypeId: input.documentTypeId, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id, period: docPeriod, text: input.fullText ?? null })
     : null
   revalidatePath(`/partners/${trdrId}`)
   return { id, covered: cover.covered, coveredPrograms: [...new Set(cover.programs)], eme, e3: e3?.applied ?? null, mme: mme?.applied ?? null, template }

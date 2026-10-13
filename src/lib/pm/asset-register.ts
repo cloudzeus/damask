@@ -2,7 +2,6 @@
 
 import crypto from 'node:crypto'
 import type { Prisma } from '@prisma/client'
-import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
@@ -67,7 +66,6 @@ export async function uploadAssetRegister(applicationId: string, file: { name: s
     if (!items.length) return { ok: false, message: 'Δεν βρέθηκαν πάγια στο αρχείο — είναι μητρώο παγίων;' }
     const year = num(p.year) != null ? Math.round(num(p.year)!) : null
     await prisma.fixedAssetRegister.create({ data: { trdrId: app.trdrId, year, items: items as unknown as Prisma.InputJsonValue, docKey, docName: file.name.slice(0, 250), createdById: session.user.id } })
-    revalidatePath('/programs')
     return { ok: true, items: items.length, year }
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Η ανάγνωση απέτυχε.' }

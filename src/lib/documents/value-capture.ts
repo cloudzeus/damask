@@ -41,15 +41,18 @@ async function templateOf(typeId: string) {
   })
 }
 
-export async function scanCandidateValues(input: { base64: string; mimeType: string; fileName: string; typeId?: string | null }): Promise<{ ok: true; scan: ValueScan } | { ok: false; message: string }> {
+export async function scanCandidateValues(input: { base64?: string | null; text?: string | null; mimeType: string; fileName: string; typeId?: string | null }): Promise<{ ok: true; scan: ValueScan } | { ok: false; message: string }> {
   const session = await requirePermission('customer.edit')
-  if (input.mimeType !== 'application/pdf' && !input.mimeType.startsWith('image/')) return { ok: false, message: 'Η σάρωση τιμών γίνεται σε PDF ή εικόνες.' }
+  const binary = !!input.base64 && (input.mimeType === 'application/pdf' || input.mimeType.startsWith('image/'))
+  if (!binary && !input.text?.trim()) return { ok: false, message: 'Το αρχείο δεν έχει αναγνώσιμο περιεχόμενο (PDF, εικόνα, Word ή Excel).' }
   const tpl = input.typeId ? await templateOf(input.typeId) : null
   const known = tpl?.fields ?? []
   try {
     const { geminiGenerate } = await import('@/lib/gemini')
     const res = await geminiGenerate({
-      parts: [{ inlineData: { data: input.base64, mimeType: input.mimeType } }, { text: `Όνομα αρχείου: ${input.fileName}` }],
+      parts: binary
+        ? [{ inlineData: { data: input.base64!, mimeType: input.mimeType } }, { text: `Όνομα αρχείου: ${input.fileName}` }]
+        : [{ text: `Όνομα αρχείου: ${input.fileName}\n\nΠεριεχόμενο:\n${input.text!.slice(0, 120_000)}` }],
       systemInstruction: [
         'Διαβάζεις ελληνικό επιχειρηματικό/φορολογικό έγγραφο. Κατάγραψε ΟΛΕΣ τις ουσιώδεις τιμές που θα ήθελε να κρατήσει ένας σύμβουλος ΕΣΠΑ',
         '(ποσά, σύνολα, ποσοστά, αριθμοί εργαζομένων, ημερομηνίες, περίοδος, ΑΦΜ, κωδικοί) — ΟΧΙ διευθύνσεις/τηλέφωνα/κείμενα νόμων.',

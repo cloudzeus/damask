@@ -35,10 +35,13 @@ function readFile(file: File): Promise<string> {
 
 export function AssetRegisterPanel({ applicationId }: { applicationId: string }) {
   const [report, setReport] = React.useState<AssetReport | null>(null)
+  const [failed, setFailed] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
   const [showExtra, setShowExtra] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
-  const load = React.useCallback(() => { getAssetReport(applicationId).then(setReport).catch(() => setReport(null)) }, [applicationId])
+  const load = React.useCallback(() => {
+    getAssetReport(applicationId).then(r => { setReport(r); setFailed(false) }).catch(() => setFailed(true))
+  }, [applicationId])
   React.useEffect(() => { load() }, [load])
 
   async function upload(f: File) {
@@ -101,7 +104,9 @@ export function AssetRegisterPanel({ applicationId }: { applicationId: string })
         Κάθε δαπάνη εξοπλισμού διασταυρώνεται με το μητρώο παγίων (αρ. παραστατικού, ημερομηνία κτήσης, αξία, περιγραφή, S/N). Ανεβάστε το μητρώο του λογιστή (PDF ή Excel)· για πολλές χρήσεις ανεβάστε ένα ανά χρήση.
       </p>
 
-      {!report ? (
+      {failed && !report ? (
+        <p className="text-[length:var(--fs-12)] text-destructive">Η φόρτωση της αναφοράς απέτυχε — ανανεώστε τη σελίδα.</p>
+      ) : !report ? (
         <p className="flex items-center gap-2 text-[length:var(--fs-12)] text-muted-foreground"><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Φόρτωση…</p>
       ) : report.registers.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-[length:var(--fs-12)] text-muted-foreground">Δεν έχει ανέβει μητρώο παγίων για τον πελάτη.</p>
