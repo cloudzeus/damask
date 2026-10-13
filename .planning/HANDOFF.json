@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-12T12:34:02.484Z",
+  "timestamp": "2026-10-13T05:21:35.165Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,40 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "prisma/schema.prisma"
-    },
-    {
-      "status": "M",
-      "path": "src/app/api/file-requests/[token]/upload/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/components/file-requests/customer-uploader.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/file-requests/classify.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/file-requests/public.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/file-requests/review.ts"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261012160000_file_request_item_series/"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/file-requests/series.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nf2c0495 chore: ενημέρωση HANDOFF\nbf1efb8 feat(portal): περίοδος στα ανεβάσματα του portal (σειρές δικαιολογητικών)\n6a4aba5 chore: ενημέρωση HANDOFF\n61eebac feat(documents): σειρές δικαιολογητικών (π.χ. Φ2 ανά μήνα) — γενικός μηχανισμός για κάθε τύπο\nb7a3083 chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\n26ba011 feat(trdr): μαζική εισαγωγή φακέλων στον πελάτη με αυτόματη τακτοποίηση — προσφορές/παραστατικά «Προς καταχώριση» στο έργο\n63ae565 feat(pm): στο έργο — «Ανέβασμα με AI» μέσα στη λίστα δικαιολογητικών + πίνακας περιόδων για σειρές (Φ2)\ndfb5922 chore: ενημέρωση HANDOFF\n6c1632b feat(file-requests): περίοδος και πολλά αρχεία ανά ζητούμενο-σειρά στον σύνδεσμο αιτήματος /r/\nf2c0495 chore: ενημέρωση HANDOFF"
 }
