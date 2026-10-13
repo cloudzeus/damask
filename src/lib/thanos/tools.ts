@@ -280,7 +280,7 @@ const officeMemory: ToolDef = {
     const hits = [...mem, ...files]
     const full = new Map((await prisma.documentSearch.findMany({ where: { key: { in: hits.map(h => h.key) } }, select: { key: true, content: true } })).map(r => [r.key, r.content]))
     return {
-      results: hits.map(h => ({ kind: h.category.startsWith('memory-') ? h.category.replace('memory-', '') : 'αρχείο', title: h.title, customer: h.trdrName, program: h.programTitle, text: (full.get(h.key) ?? h.snippet).slice(0, 1800) })),
+      results: hits.map(h => ({ kind: h.category.startsWith('memory-') ? h.category.replace('memory-', '') : 'αρχείο', title: h.title, customer: h.trdrName, program: h.programTitle, text: (full.get(h.key) ?? h.snippet).slice(0, h.category === 'memory-values' ? 12_000 : 2500) })),
     }
   },
 }
