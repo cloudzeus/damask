@@ -21,6 +21,10 @@ describe('commercialHint — προσφορά/παραστατικό από όν
     expect(commercialHint('Αποτελέσματα Αξιολόγησης.pdf')).toBe('APPROVAL')
     expect(commercialHint('Εγκριτική απόφαση ένταξης.pdf')).toBe('APPROVAL')
     expect(commercialHint('Έγκριση δόμησης.pdf')).toBeNull()
+    // Ο φάκελος «ΕΓΚΡΙΣΗ» δεν κάνει κάθε αρχείο του εγκριτικό· ΥΔ μέσα σε «Προσφορές» δεν είναι προσφορά.
+    expect(commercialHint('3 = EFCC ΙΚΕ/ΕΓΚΡΙΣΗ/Υπ.Δ. - Αποδοχής Τεχν. Παραρτήματος.docx')).toBeNull()
+    expect(commercialHint('Προσφορές/Υπεύθυνη δήλωση προμηθευτή.pdf')).toBeNull()
+    expect(commercialHint('Προσφορές/Μηχανήματα/abc.pdf')).toBe('QUOTE')
   })
   it('δεν πιάνει δικαιολογητικά', () => {
     expect(commercialHint('Φ2_03-2025.pdf')).toBeNull()

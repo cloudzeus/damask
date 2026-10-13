@@ -70,6 +70,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   // Τελευταίο τμήμα → προορισμός + ροή προς BunnyCDN.
   try {
+    // Μαζική εισαγωγή: το αρχείο πάει στο προσωρινό αντίγραφο της παρτίδας και μπαίνει στην ουρά αναγνώρισης.
+    const importItemId = String(fd.get('importItemId') ?? '')
+    if (importItemId) {
+      const item = await prisma.importItem.findFirst({ where: { id: importItemId, trdrId: id }, select: { id: true, batchId: true, fileName: true } })
+      if (!item) return NextResponse.json({ error: 'Άγνωστο αρχείο παρτίδας.' }, { status: 404 })
+      const ext = (/\.[a-z0-9]{1,10}$/i.exec(item.fileName)?.[0] ?? '').toLowerCase()
+      const key = `imports/${item.batchId}/${item.id}${ext}`
+      await bunnyUploadPrivateFile({ key, filePath: part, size: received, contentType: String(fd.get('type') ?? '') || 'application/octet-stream' })
+      await prisma.importItem.update({ where: { id: item.id }, data: { storageKey: key, phase: 'QUEUED' } })
+      const { kickImportSweep } = await import('@/lib/import/recognize')
+      kickImportSweep()
+      void logApiUsage({ service: 'bunnycdn', operation: 'upload', units: received / 1e9, userId: session?.user?.id, refType: 'import', refId: item.id })
+      return NextResponse.json({ ok: true, done: true, key, size: received })
+    }
     const trdr = await prisma.trdr.findUnique({ where: { id }, select: { id: true, SODTYPE: true, AFM: true, cdnFolder: true } })
     if (!trdr) return NextResponse.json({ error: 'Ο συναλλασσόμενος δεν βρέθηκε.' }, { status: 404 })
     const root = trdr.cdnFolder ?? buildTrdrFolderPath({ sodtype: trdr.SODTYPE, afm: trdr.AFM, id: trdr.id })

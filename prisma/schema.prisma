@@ -3227,3 +3227,55 @@ model DocumentTextCache {
   createdAt DateTime @default(now())
   usedAt    DateTime @default(now())
 }
+
+/// Μαζική εισαγωγή αρχείων πελάτη ως ΠΑΡΤΙΔΑ στον server: τα αρχεία ανεβαίνουν πρώτα (προσωρινά), η αναγνώριση τρέχει
+/// στο παρασκήνιο (worker, με «μνήμη ορίων» AI και επαναλήψεις) και η κατάσταση επιβιώνει από κλείσιμο/διακοπή.
+model ImportBatch {
+  id          String       @id @default(cuid())
+  trdrId      String
+  createdById String
+  /// ACTIVE | DONE | CANCELLED
+  status      String       @default("ACTIVE")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  items       ImportItem[]
+
+  @@index([trdrId, status])
+}
+
+model ImportItem {
+  id             String      @id @default(cuid())
+  batchId        String
+  batch          ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  trdrId         String
+  fileName       String
+  relPath        String?
+  size           Int         @default(0)
+  mimeType       String      @default("application/octet-stream")
+  /// SHA-256 περιεχομένου (από τον browser) — εντοπισμός ίδιου αρχείου / επαναχρησιμοποίηση ανεβάσματος.
+  hash           String?
+  /// Προσωρινό αντίγραφο: imports/<batchId>/<itemId>.<ext>
+  storageKey     String?
+  /// UPLOADING | QUEUED | RECOGNIZING | WAITING | REVIEW | SAVING | SAVED | SKIPPED | FAILED
+  phase          String      @default("UPLOADING")
+  /// dossier | approval | quote | invoice | files | junk
+  dest           String?
+  /// Πρόταση αναγνώρισης (SmartClassifyResult) + έργο-προορισμός για προσφορές/παραστατικά.
+  suggestion     Json?
+  appId          String?
+  junkReason     String?
+  error          String?
+  attempts       Int         @default(0)
+  nextAttemptAt  DateTime?
+  waitReason     String?
+  autoSaved      Boolean     @default(false)
+  resultNote     String?
+  resultRef      String?
+  catalogVersion Int?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([batchId])
+  @@index([trdrId, hash])
+  @@index([phase, nextAttemptAt])
+}

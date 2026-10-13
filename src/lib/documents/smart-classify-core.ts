@@ -46,10 +46,21 @@ export type CommercialKind = 'QUOTE' | 'INVOICE' | 'APPROVAL'
 
 /** Προσφορά/παραστατικό από το όνομα αρχείου ή τον φάκελο (π.χ. «Προσφορές/…», «Τιμολόγιο_123.pdf»). */
 export function commercialHint(pathOrName: string): CommercialKind | null {
-  const f = fold(pathOrName)
-  if (/εγκρισ|εγκριτικ|egkrisi|egkritik|approval|αποτελεσματα αξιολογησ|ενταξη πραξ|αποφαση ενταξ/.test(f) && !/δομησ|αδει|πολεοδομ/.test(f)) return 'APPROVAL'
-  if (/προσφορ|prosfor|quotation|\bquote|\boffer|προτιμολογ|proforma/.test(f)) return 'QUOTE'
-  if (/τιμολογ|timolog|invoice|παραστατικ|parastatik|αποδειξ/.test(f) || /(^|[^α-ωa-z])(τπυ|τδα|tpy|tda)([^α-ωa-z]|$)/.test(f)) return 'INVOICE'
+  const slash = pathOrName.lastIndexOf('/')
+  const name = fold(slash >= 0 ? pathOrName.slice(slash + 1) : pathOrName)
+  const dir = slash >= 0 ? fold(pathOrName.slice(0, slash)) : ''
+  const approval = (f: string) => /εγκρισ|εγκριτικ|egkrisi|egkritik|approval|αποτελεσματα αξιολογησ|ενταξη πραξ|αποφαση ενταξ/.test(f) && !/δομησ|αδει|πολεοδομ/.test(f)
+  const quote = (f: string) => /προσφορ|prosfor|quotation|\bquote|\boffer|προτιμολογ|proforma/.test(f)
+  const invoice = (f: string) => /τιμολογ|timolog|invoice|παραστατικ|parastatik|αποδειξ/.test(f) || /(^|[^α-ωa-z])(τπυ|τδα|tpy|tda)([^α-ωa-z]|$)/.test(f)
+  // 1. Το ΟΝΟΜΑ του αρχείου.
+  if (approval(name)) return 'APPROVAL'
+  if (quote(name)) return 'QUOTE'
+  if (invoice(name)) return 'INVOICE'
+  // 2. Ο φάκελος — μόνο για προσφορές/παραστατικά, και ποτέ όταν το όνομα δείχνει δικαιολογητικό
+  //    (π.χ. «ΕΓΚΡΙΣΗ/Υπ.Δ. - Αποδοχής…» είναι υπεύθυνη δήλωση, όχι εγκριτικό).
+  if (/υπ\.?\s*δ|υπευθυν|δηλωσ|βεβαιωσ|πιστοποιητ|ενημεροτητ|καταστατικ|ισολογισ|συμβασ/.test(name)) return null
+  if (quote(dir)) return 'QUOTE'
+  if (invoice(dir)) return 'INVOICE'
   return null
 }
 

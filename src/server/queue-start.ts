@@ -165,6 +165,19 @@ export async function startQueue(): Promise<void> {
     await reindexDocuments()
   })
 
+  // Μαζική εισαγωγή αρχείων: αναγνώριση στο παρασκήνιο (σειριακά, με «μνήμη ορίων» AI). Κάθε λεπτό + «σκούντημα» μετά
+  // από κάθε ανέβασμα· αν μείνουν αρχεία μετά το χρονικό όριο του γύρου, ο γύρος ξαναστέλνεται αμέσως.
+  const { QUEUE_IMPORT_RECOGNIZE, runImportSweep, kickImportSweep } = await import('@/lib/import/recognize')
+  await boss.createQueue(QUEUE_IMPORT_RECOGNIZE)
+  await boss.work(QUEUE_IMPORT_RECOGNIZE, async () => {
+    try {
+      if (await runImportSweep(50_000)) kickImportSweep()
+    } catch (err) {
+      console.error('[pg-boss] import-recognize απέτυχε', err) // never rethrow — επόμενος γύρος σε 1′
+    }
+  })
+  await boss.schedule(QUEUE_IMPORT_RECOGNIZE, '* * * * *', null, { tz: 'Europe/Athens' })
+
   await boss.createQueue(QUEUE_THANOS_DISTILL)
   await boss.work(QUEUE_THANOS_DISTILL, async () => {
     try {
