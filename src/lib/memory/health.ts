@@ -88,6 +88,10 @@ export async function relinkRequirement(formId: string, typeId: string): Promise
 /** Συγχώνευση τύπων: ΟΛΑ τα συνδεδεμένα (δικαιολογητικά, απαιτήσεις, Οδηγοί, παραδείγματα, έγγραφα έργων, αιτήματα) → keep· οι άλλοι απενεργοποιούνται. */
 export async function mergeDocumentTypes(keepId: string, mergeIds: string[]): Promise<{ ok: boolean; message: string }> {
   const session = await requirePermission('doctype.manage')
+  // Τύποι με ειδικό αναγνώστη (Ε3/ΕΜΕ/Δήλωση ΜΜΕ) εντοπίζονται με το όνομά τους — αν συμμετέχουν, κρατιούνται αυτοί.
+  const [{ MME_DOC_TYPE_NAME }, { E3_DOC_TYPE_NAME }, { EME_DOC_TYPE_NAME }] = await Promise.all([import('@/lib/tax/mme'), import('@/lib/tax/e3'), import('@/lib/tax/eme')])
+  const system = await prisma.documentType.findFirst({ where: { id: { in: [keepId, ...mergeIds] }, name: { in: [MME_DOC_TYPE_NAME, E3_DOC_TYPE_NAME, EME_DOC_TYPE_NAME] } }, select: { id: true } })
+  if (system && system.id !== keepId) { mergeIds = [keepId, ...mergeIds]; keepId = system.id }
   const ids = mergeIds.filter(id => id !== keepId)
   if (!ids.length) return { ok: false, message: 'Τίποτα για συγχώνευση.' }
   const keep = await prisma.documentType.findUnique({ where: { id: keepId }, select: { name: true, seriesKind: true, expires: true } })
