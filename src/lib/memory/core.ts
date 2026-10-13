@@ -91,6 +91,9 @@ export async function programReadiness(trdrId: string, programId: string): Promi
     }),
     prisma.trdrDossierDocument.findMany({ where: { trdrId }, orderBy: { createdAt: 'desc' }, select: { documentTypeId: true, name: true, expiresAt: true, period: true, reusable: true, programId: true, program: { select: { title: true } } } }),
   ])
+  // Σειρές: οι περίοδοι μετρούν από την υποβολή του έργου (όπως οι υποχρεώσεις του) — αλλιώς από σήμερα.
+  const app = await prisma.programApplication.findUnique({ where: { trdrId_programId: { trdrId, programId } }, select: { opskeSubmittedAt: true } })
+  const ref = app?.opskeSubmittedAt ?? new Date()
   const byType = new Map<string, (DossierRow & { program: { title: string } | null })[]>()
   for (const d of docs) byType.set(d.documentTypeId, [...(byType.get(d.documentTypeId) ?? []), d])
   const items: ReadinessItem[] = []
@@ -101,7 +104,7 @@ export async function programReadiness(trdrId: string, programId: string): Promi
       continue
     }
     const usable = (byType.get(f.documentType.id) ?? []).filter(d => d.reusable || !d.programId || d.programId === programId)
-    const s = stateOf(f.documentType, usable, f)
+    const s = stateOf(f.documentType, usable, f, ref)
     const fromOther = s.doc && 'program' in s.doc && s.doc.programId && s.doc.programId !== programId ? (s.doc as { program: { title: string } | null }).program?.title : null
     // Λείπει με αυτόν τον τύπο → μήπως υπάρχει με άλλο όνομα/τύπο; (σημασιολογικά, στα αρχεία του πελάτη)
     const candidates = s.state === 'MISSING'
