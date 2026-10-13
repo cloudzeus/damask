@@ -11,6 +11,7 @@ import { BudgetProposalPanel } from '@/components/programs/budget-proposal'
 import { PurchaseDocsPanel } from '@/components/programs/purchase-docs-panel'
 import { InspectionExportPanel } from '@/components/programs/inspection-export-panel'
 import { ReplaceExpenseDialog } from './replace-expense-dialog'
+import { ExpenseInboxPanel } from './expense-inbox-panel'
 
 function formatEUR(v: number): string {
   return `${v.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
@@ -61,7 +62,7 @@ const PHASE_BANNER: Record<Phase, { icon: React.ComponentType<{ className?: stri
  * τιμολογίου → processProgramInvoice, src/lib/invoice-flows/program.ts) ίδιο
  * refreshKey pattern με το replace flow παρακάτω.
  */
-export function ExpensesTab({ applicationId, programId, stage }: { applicationId: string; programId: string; stage: StageStr }) {
+export function ExpensesTab({ applicationId, programId, stage, trdrId }: { applicationId: string; programId: string; stage: StageStr; trdrId: string }) {
   void programId
   const router = useRouter()
   const phase = phaseOf(stage)
@@ -105,6 +106,9 @@ export function ExpensesTab({ applicationId, programId, stage }: { applicationId
           </div>
         )}
       </div>
+
+      {/* Προσφορές/παραστατικά από τη μαζική εισαγωγή αρχείων του πελάτη — ήδη διαβασμένα. */}
+      <ExpenseInboxPanel key={`i-${refreshKey}`} applicationId={applicationId} trdrId={trdrId} onChanged={refreshExpenses} />
 
       {/* Σχέδιο δαπανών — expandable κατηγορίες, δαπάνες μία-μία + όρια + PDF. */}
       <BudgetProposalPanel key={refreshKey} applicationId={applicationId} />

@@ -160,7 +160,7 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
 
       {activeTab === 'assessment' && <AssessmentTab applicationId={app.id} canManage={app.canManage} />}
       {activeTab === 'obligations' && <ObligationsTab applicationId={app.id} canManage={app.canManage} programId={app.programId} />}
-      {activeTab === 'expenses' && <ExpensesTab applicationId={app.id} programId={app.programId} stage={app.stage} />}
+      {activeTab === 'expenses' && <ExpensesTab applicationId={app.id} programId={app.programId} stage={app.stage} trdrId={app.trdrId} />}
       {activeTab === 'deliverables' && (
         <ObligationsTab
           applicationId={app.id}

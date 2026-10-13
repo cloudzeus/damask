@@ -473,6 +473,8 @@ export async function createExpensesFromQuote(
     groupBy: 'line' | 'category'
     lines: QuoteLine[]
     quote: { name: string; base64: string; mimeType: string; ext: string } | null
+    /** Αρχείο ήδη αποθηκευμένο (π.χ. από «Προς καταχώριση») — χωρίς νέο upload. */
+    storedQuote?: { key: string; name: string; mimeType: string } | null
   },
 ): Promise<{ ok: true; created: number; supplier: SupplierOption | null; supplierCreated: boolean } | { ok: false; message: string }> {
   await requirePermission('programs.manage')
@@ -519,8 +521,9 @@ export async function createExpensesFromQuote(
   }
 
   // 3. Ένα upload προσφοράς — κοινό σε όλες τις δαπάνες.
-  let quoteKey: string | null = null
-  if (input.quote) {
+  let quoteKey: string | null = input.storedQuote?.key ?? null
+  const quoteMeta = input.storedQuote ?? (input.quote ? { name: input.quote.name, mimeType: input.quote.mimeType } : null)
+  if (!quoteKey && input.quote) {
     const ext = (input.quote.ext || 'pdf').replace(/[^a-z0-9]/gi, '').toLowerCase() || 'pdf'
     quoteKey = `expense-quotes/app-${applicationId}/${crypto.randomUUID()}.${ext}`
     await bunnyUploadPrivate({ key: quoteKey, body: Buffer.from(input.quote.base64, 'base64'), contentType: input.quote.mimeType })
@@ -540,8 +543,8 @@ export async function createExpensesFromQuote(
       categoryId: g.categoryId,
       supplierTrdrId: supplier?.id ?? null,
     })
-    if (quoteKey && input.quote) {
-      await prisma.programExpense.update({ where: { id }, data: { quoteStorageKey: quoteKey, quoteName: input.quote.name.trim() || 'Προσφορά', quoteMimeType: input.quote.mimeType } })
+    if (quoteKey && quoteMeta) {
+      await prisma.programExpense.update({ where: { id }, data: { quoteStorageKey: quoteKey, quoteName: quoteMeta.name.trim() || 'Προσφορά', quoteMimeType: quoteMeta.mimeType } })
       await syncQuoteObligation(id)
     }
     created++

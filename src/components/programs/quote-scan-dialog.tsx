@@ -15,6 +15,7 @@ import {
   scanQuoteForApplication, createExpensesFromQuote,
   type ProposalCategory, type QuoteScan, type QuoteLine,
 } from '@/lib/programs/expense-proposal'
+import { createExpensesFromInbox } from '@/lib/pm/expense-inbox'
 
 /**
  * C4 — Κύκλωμα προσφορών: σάρωση προσφοράς → προμηθευτής (ΑΦΜ → ΑΑΔΕ) → ΟΛΕΣ οι γραμμές
@@ -40,18 +41,21 @@ function readFileBase64(file: File): Promise<{ base64: string; ext: string }> {
 }
 
 export function QuoteScanDialog({
-  applicationId, categories, open, onOpenChange, onSaved,
+  applicationId, categories, open, onOpenChange, onSaved, preset = null,
 }: {
   applicationId: string
   categories: ProposalCategory[]
   open: boolean
   onOpenChange: (o: boolean) => void
   onSaved: () => void
+  /** Ήδη διαβασμένη προσφορά από το «Προς καταχώριση» — ανοίγει κατευθείαν στον έλεγχο, χωρίς νέο ανέβασμα. */
+  preset?: { inboxId: string; scan: QuoteScan; fileName: string } | null
 }) {
   const [file, setFile] = React.useState<File | null>(null)
-  const [phase, setPhase] = React.useState<'pick' | 'reading' | 'review' | 'saving'>('pick')
-  const [scan, setScan] = React.useState<QuoteScan | null>(null)
-  const [rows, setRows] = React.useState<Row[]>([])
+  // Με preset ο διάλογος συνήθως γίνεται mount ήδη ανοιχτός — το αρχικό state έρχεται από αυτό.
+  const [phase, setPhase] = React.useState<'pick' | 'reading' | 'review' | 'saving'>(open && preset ? 'review' : 'pick')
+  const [scan, setScan] = React.useState<QuoteScan | null>(open && preset ? preset.scan : null)
+  const [rows, setRows] = React.useState<Row[]>(() => (open && preset ? preset.scan.lines.map((l, i) => ({ ...l, key: `l${i}`, include: true })) : []))
   const [groupBy, setGroupBy] = React.useState<'line' | 'category'>('line')
   const [dragOver, setDragOver] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -59,8 +63,12 @@ export function QuoteScanDialog({
   const [prevOpen, setPrevOpen] = React.useState(open)
   if (open !== prevOpen) {
     setPrevOpen(open)
-    if (open) { setFile(null); setPhase('pick'); setScan(null); setRows([]); setGroupBy('line') }
+    if (open && preset) {
+      setFile(null); setPhase('review'); setScan(preset.scan); setGroupBy('line')
+      setRows(preset.scan.lines.map((l, i) => ({ ...l, key: `l${i}`, include: true })))
+    } else if (open) { setFile(null); setPhase('pick'); setScan(null); setRows([]); setGroupBy('line') }
   }
+  const fileName = preset?.fileName ?? file?.name ?? ''
 
   async function read(f: File) {
     if (!/pdf|image\//.test(f.type)) { toast.error('Ανέβασε PDF ή εικόνα της προσφοράς.'); return }
@@ -93,26 +101,35 @@ export function QuoteScanDialog({
   })
 
   async function save() {
-    if (!scan || !file) return
+    if (!scan || (!file && !preset)) return
     if (chosen.length === 0) { toast.error('Επίλεξε τουλάχιστον μία γραμμή.'); return }
     setPhase('saving')
     try {
-      const { base64, ext } = await readFileBase64(file)
-      const res = await createExpensesFromQuote(applicationId, {
+      const common = {
         supplierAfm: scan.supplier.afm,
         supplierTrdrId: scan.supplier.existing?.id ?? null,
         docNumber: scan.docNumber,
         date: scan.date,
         groupBy,
         lines: chosen.map(r => ({ product: r.product, description: r.description, quantity: r.quantity, unit: r.unit ?? null, unitPrice: r.unitPrice, vatPct: r.vatPct, total: r.total, categoryId: r.categoryId, categoryReason: r.categoryReason })),
-        quote: { name: file.name.replace(/\.[^.]+$/, ''), base64, mimeType: file.type, ext },
-      })
-      if (!res.ok) { toast.error(res.message); setPhase('review'); return }
-      toast.success(`Δημιουργήθηκαν ${res.created} δαπάνες από την προσφορά.`, {
-        description: res.supplier
+      }
+      let created: number
+      let supplierText: string
+      if (preset) {
+        const res = await createExpensesFromInbox(preset.inboxId, common)
+        if (!res.ok) { toast.error(res.message); setPhase('review'); return }
+        created = res.created
+        supplierText = res.supplierName ? `${res.supplierCreated ? 'Νέος προμηθευτής από ΑΑΔΕ' : 'Προμηθευτής'}: ${res.supplierName}. Η προσφορά επισυνάφθηκε σε όλες.` : 'Χωρίς προμηθευτή (δεν βρέθηκε ΑΦΜ) — όρισέ τον στις δαπάνες.'
+      } else {
+        const { base64, ext } = await readFileBase64(file!)
+        const res = await createExpensesFromQuote(applicationId, { ...common, quote: { name: file!.name.replace(/\.[^.]+$/, ''), base64, mimeType: file!.type, ext } })
+        if (!res.ok) { toast.error(res.message); setPhase('review'); return }
+        created = res.created
+        supplierText = res.supplier
           ? `${res.supplierCreated ? 'Νέος προμηθευτής από ΑΑΔΕ' : 'Προμηθευτής'}: ${res.supplier.name}${res.supplier.afm ? ` (ΑΦΜ ${res.supplier.afm})` : ''} — συνδέθηκε με τον πελάτη. Η προσφορά επισυνάφθηκε σε όλες.`
-          : 'Χωρίς προμηθευτή (δεν βρέθηκε ΑΦΜ) — όρισέ τον στις δαπάνες.',
-      })
+          : 'Χωρίς προμηθευτή (δεν βρέθηκε ΑΦΜ) — όρισέ τον στις δαπάνες.'
+      }
+      toast.success(`Δημιουργήθηκαν ${created} δαπάνες από την προσφορά.`, { description: supplierText })
       onSaved()
       onOpenChange(false)
     } catch {
@@ -179,7 +196,7 @@ export function QuoteScanDialog({
               <div className="text-[length:var(--fs-11-5)] text-muted-foreground">
                 {scan.docNumber && <>Αρ. <b className="text-foreground">{scan.docNumber}</b> · </>}
                 {scan.date && <>{new Date(scan.date).toLocaleDateString('el-GR')} · </>}
-                <span className="inline-flex items-center gap-1"><LuFileText className="size-3.5" aria-hidden />{file?.name}</span>
+                <span className="inline-flex items-center gap-1"><LuFileText className="size-3.5" aria-hidden />{fileName}</span>
               </div>
             </div>
 
@@ -290,7 +307,7 @@ export function QuoteScanDialog({
 
         {(phase === 'review' || phase === 'saving') && (
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => { setPhase('pick'); setScan(null); setRows([]) }} disabled={phase === 'saving'}>Άλλη προσφορά</Button>
+            {!preset && <Button type="button" variant="outline" onClick={() => { setPhase('pick'); setScan(null); setRows([]) }} disabled={phase === 'saving'}>Άλλη προσφορά</Button>}
             <Button type="button" onClick={save} disabled={phase === 'saving' || chosen.length === 0}>
               {phase === 'saving' ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuCircleCheck className="size-3.5" aria-hidden />}
               Δημιουργία {groupBy === 'line' ? chosen.length : perCat.length} δαπανών

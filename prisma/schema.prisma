@@ -1585,6 +1585,7 @@ model ProgramApplication {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   expenses            ProgramExpense[]
+  inboxDocs           ApplicationInboxDoc[]
 
   stage               ApplicationStage            @default(ASSESSMENT)
   managerId           String?
@@ -3126,4 +3127,34 @@ model SupplierCertificate {
   updatedAt      DateTime       @updatedAt
 
   @@index([status])
+}
+
+/// «Προς καταχώριση»: προσφορές/παραστατικά που ήρθαν από μαζική εισαγωγή αρχείων στον πελάτη και
+/// αντιστοιχίστηκαν σε έργο. Ήδη διαβασμένα (extracted)· ο χρήστης τα κάνει δαπάνες ή τα συνδέει με
+/// υπάρχουσα δαπάνη με ένα κλικ — τίποτα δεν αλλάζει τον προϋπολογισμό χωρίς έλεγχο.
+model ApplicationInboxDoc {
+  id            String             @id @default(cuid())
+  applicationId String
+  application   ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  trdrId        String
+  /// QUOTE | INVOICE
+  kind          String
+  fileName      String
+  storageKey    String
+  mimeType      String
+  size          Int                @default(0)
+  /// Διαδρομή μέσα στον φάκελο που ανέβηκε (π.χ. «Προσφορές/Μηχανήματα/x.pdf»).
+  relPath       String?
+  /// QuoteScan (QUOTE) ή ExtractedDocument (INVOICE).
+  extracted     Json?
+  readError     String?
+  /// PENDING | DONE | DISMISSED
+  status        String             @default("PENDING")
+  resultNote    String?
+  createdById   String?
+  createdAt     DateTime           @default(now())
+  processedAt   DateTime?
+
+  @@index([applicationId, status])
+  @@index([trdrId])
 }

@@ -133,6 +133,21 @@ async function walkEntry(entry: FileSystemEntry, out: File[]): Promise<void> {
   }
 }
 
+/** Αρχεία από σύρσιμο — με διάσχιση φακέλων/υποφακέλων (σχετική διαδρομή στο relativePathOf).
+ * Καλείται ΣΥΓΧΡΟΝΑ μέσα στο drop event (οι entries λαμβάνονται πριν το πρώτο await). */
+export function filesFromDrop(dt: DataTransfer): Promise<File[]> {
+  const entries = Array.from(dt.items ?? [])
+    .map(i => i.webkitGetAsEntry?.() ?? null)
+    .filter((x): x is FileSystemEntry => !!x)
+  if (!entries.some(en => en.isDirectory)) return Promise.resolve(Array.from(dt.files ?? []).filter(f => !JUNK.test(f.name)))
+  const out: File[] = []
+  return Promise.all(entries.map(en => walkEntry(en, out))).then(() => out.filter(f => !JUNK.test(f.name)))
+}
+/** Αρχεία από <input webkitdirectory> (χωρίς αρχεία συστήματος). */
+export function filesFromPicker(list: FileList): File[] {
+  return Array.from(list).filter(f => !JUNK.test(f.name))
+}
+
 // ── Τμηματικό ανέβασμα (χωρίς όριο μεγέθους) ───────────────────────────────
 const CHUNK_SIZE = 8 * 1024 * 1024
 

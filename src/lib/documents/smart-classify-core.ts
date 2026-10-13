@@ -37,6 +37,18 @@ export type SmartClassifyResult = {
   company: CompanyMatch
   /** Περίοδος αναφοράς για τύπους-σειρές (π.χ. Φ2 «2025-03»), κανονικοποιημένη στον τύπο. */
   period: string | null
+  /** Εμπορικό έγγραφο αγοράς (όχι δικαιολογητικό): προσφορά ή παραστατικό προμηθευτή → πάει στις δαπάνες έργου. */
+  commercial: CommercialKind | null
+}
+
+export type CommercialKind = 'QUOTE' | 'INVOICE'
+
+/** Προσφορά/παραστατικό από το όνομα αρχείου ή τον φάκελο (π.χ. «Προσφορές/…», «Τιμολόγιο_123.pdf»). */
+export function commercialHint(pathOrName: string): CommercialKind | null {
+  const f = fold(pathOrName)
+  if (/προσφορ|prosfor|quotation|\bquote|\boffer|προτιμολογ|proforma/.test(f)) return 'QUOTE'
+  if (/τιμολογ|timolog|invoice|παραστατικ|parastatik|αποδειξ/.test(f) || /(^|[^α-ωa-z])(τπυ|τδα|tpy|tda)([^α-ωa-z]|$)/.test(f)) return 'INVOICE'
+  return null
 }
 
 type TypeRow = { id: string; name: string; expires: boolean; validityDays: number | null; notes: string | null; seriesKind?: string | null }
@@ -200,6 +212,23 @@ export async function classifyDocumentCore(input: {
   ])
   const company = matchCompany(input.text, { afm: trdr?.AFM ?? null, name: trdr?.NAME ?? '' })
   if (types.length === 0) return { ok: false, message: 'Δεν υπάρχουν τύποι δικαιολογητικών.' }
+
+  // ── 0. Προσφορά/παραστατικό από όνομα αρχείου ή φάκελο → δαπάνες έργου (όχι δικαιολογητικό).
+  const hint = commercialHint(input.fileName)
+  if (hint) {
+    // Το έργο: αν ο πελάτης έχει ένα πρόγραμμα, αυτό· αλλιώς ό,τι αναφέρει ρητά το έγγραφο.
+    const ai = apps.length > 1 ? await askAi({ types, examples: [], apps, fileName: input.fileName, snippet, forcedType: hint === 'QUOTE' ? 'Προσφορά προμηθευτή' : 'Παραστατικό αγοράς' }).catch(() => null) : null
+    return {
+      ok: true,
+      result: {
+        typeId: null, confidence: 0.9, source: 'ai',
+        reason: hint === 'QUOTE' ? 'Προσφορά (από το όνομα αρχείου/φακέλου).' : 'Παραστατικό αγοράς (από το όνομα αρχείου/φακέλου).',
+        programId: ai?.programId ?? (apps.length === 1 ? apps[0].programId : null),
+        reusable: false, issuedAt: ai?.issuedAt ?? null, expiresAt: null, expiryNote: null, statedExpiresAt: null, expiryBasis: null,
+        company, period: null, commercial: hint,
+      },
+    }
+  }
   const activeIds = new Set(types.map(t => t.id))
   const typeById = new Map(types.map(t => [t.id, t]))
 
@@ -232,6 +261,7 @@ export async function classifyDocumentCore(input: {
           expiryBasis: ai?.expiryBasis ?? null,
           company,
           period: periodOf(t, ai?.period ?? null, input.fileName),
+          commercial: null,
         },
       }
     }
@@ -240,7 +270,18 @@ export async function classifyDocumentCore(input: {
   // ── 2. AI ────────────────────────────────────────────────────────────────
   try {
     const ai = await askAi({ types, examples: scored, apps, fileName: input.fileName, snippet })
-    const t = ai.typeName ? resolveTypeName(types, ai.typeName) : null
+    const t = !ai.commercial && ai.typeName ? resolveTypeName(types, ai.typeName) : null
+    if (ai.commercial) {
+      return {
+        ok: true,
+        result: {
+          typeId: null, confidence: ai.confidence, source: 'ai', reason: ai.reason,
+          programId: ai.programId ?? (apps.length === 1 ? apps[0].programId : null),
+          reusable: false, issuedAt: ai.issuedAt, expiresAt: null, expiryNote: null, statedExpiresAt: null, expiryBasis: null,
+          company, period: null, commercial: ai.commercial,
+        },
+      }
+    }
     return {
       ok: true,
       result: {
@@ -256,6 +297,7 @@ export async function classifyDocumentCore(input: {
         expiryBasis: ai.expiryBasis,
         company,
         period: t ? periodOf(t, ai.period, input.fileName) : null,
+        commercial: null,
       },
     }
   } catch (err) {
@@ -305,6 +347,7 @@ type AiOut = {
   expiresAt: string | null
   expiryBasis: string | null
   period: string | null
+  commercial: CommercialKind | null
 }
 
 export async function askAi(args: {
@@ -349,8 +392,9 @@ export async function askAi(args: {
       '• «Ανακοίνωση» τροποποίησης καταστατικού / κωδικοποιημένο καταστατικό: τύπος καταστατικού («Καταστατικό και νομιμοποιητικά έγγραφα» αν υπάρχει), χωρίς λήξη.',
       '• Μια «Ανακοίνωση» ΔΕΝ είναι «Γενικό Πιστοποιητικό».',
     ].join('\n'),
+    args.forcedType ? '' : 'ΕΜΠΟΡΙΚΑ ΕΓΓΡΑΦΑ ΑΓΟΡΑΣ: αν το έγγραφο ΔΕΝ είναι δικαιολογητικό του καταλόγου αλλά προσφορά προμηθευτή (οικονομική προσφορά, προτιμολόγιο) → commercial "QUOTE"· τιμολόγιο/απόδειξη αγοράς/δελτίο από προμηθευτή → commercial "INVOICE" — και τότε typeNo null. Αλλιώς commercial null.',
     'Περίοδος (period): για έγγραφα που αφορούν συγκεκριμένη περίοδο (π.χ. περιοδική δήλωση ΦΠΑ Φ2, ΑΠΔ, μισθοδοσία, τριμηνιαία/ετήσια κατάσταση) η ΠΕΡΙΟΔΟΣ ΑΝΑΦΟΡΑΣ (όχι η ημ. υποβολής): YYYY-MM για μήνα, YYYY-Qn για τρίμηνο, YYYY για χρήση/έτος· αλλιώς null.',
-    'Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"typeNo":αριθμός τύπου από τον κατάλογο ή null,"type":"το όνομα του τύπου ΧΩΡΙΣ τη σημείωση ή null","confidence":0..1,"reason":"μία σύντομη πρόταση στα ελληνικά","programId":"id ή null","reusable":true|false,"issuedAt":"YYYY-MM-DD ή null","expiresAt":"YYYY-MM-DD ή null","expiryBasis":"κείμενο ή null","period":"YYYY-MM | YYYY-Qn | YYYY ή null"}',
+    'Απάντησε ΑΥΣΤΗΡΑ σε JSON: {"typeNo":αριθμός τύπου από τον κατάλογο ή null,"type":"το όνομα του τύπου ΧΩΡΙΣ τη σημείωση ή null","confidence":0..1,"reason":"μία σύντομη πρόταση στα ελληνικά","programId":"id ή null","reusable":true|false,"issuedAt":"YYYY-MM-DD ή null","expiresAt":"YYYY-MM-DD ή null","expiryBasis":"κείμενο ή null","period":"YYYY-MM | YYYY-Qn | YYYY ή null","commercial":"QUOTE"|"INVOICE"|null}',
   ].filter(Boolean).join('\n\n')
 
   const text = await deepseekChat(
@@ -378,5 +422,6 @@ export async function askAi(args: {
     expiresAt: date(p.expiresAt),
     expiryBasis: typeof p.expiryBasis === 'string' && p.expiryBasis !== 'null' ? p.expiryBasis.slice(0, 80) : null,
     period: typeof p.period === 'string' && p.period !== 'null' ? p.period.slice(0, 20) : null,
+    commercial: !args.forcedType && (p.commercial === 'QUOTE' || p.commercial === 'INVOICE') ? p.commercial : null,
   }
 }
