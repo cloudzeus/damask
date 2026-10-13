@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { geminiEmbed } from '@/lib/gemini'
 import { CATEGORY_LABELS } from '@/lib/nas/backup'
+import { buildKnowledgeDocs, MEMORY_CATEGORY_LABELS } from '@/lib/memory/knowledge-docs'
 
 /**
  * Έξυπνη αναζήτηση εγγράφων. (Plain module.)
@@ -146,7 +147,7 @@ async function buildDocs(): Promise<Doc[]> {
   const trdrs = await prisma.trdr.findMany({ where: { id: { in: [...trdrIds] } }, select: { id: true, NAME: true, AFM: true, CITY: true } })
   const tById = new Map(trdrs.map(t => [t.id, t]))
 
-  return files.map(f => {
+  const fileDocs = files.map(f => {
     const mt = meta.get(f.key)
     const trdrId = mt?.trdrId ?? f.trdrId
     const t = trdrId ? tById.get(trdrId) : undefined
@@ -171,6 +172,21 @@ async function buildDocs(): Promise<Doc[]> {
       contentHash: crypto.createHash('sha1').update(content).digest('hex'),
     }
   })
+  // «Μνήμη γραφείου»: εγγραφές γνώσης (προγράμματα, τύποι, εταιρίες/τιμές, εγκριτικά, δαπάνες) — όχι αρχεία.
+  const knowledge = await buildKnowledgeDocs().catch(err => { console.error('[search] knowledge docs failed', err); return [] })
+  const missing = [...new Set(knowledge.map(k => k.trdrId).filter((x): x is string => !!x && !tById.has(x)))]
+  if (missing.length) for (const t of await prisma.trdr.findMany({ where: { id: { in: missing } }, select: { id: true, NAME: true, AFM: true, CITY: true } })) tById.set(t.id, t)
+  const kDocs: Doc[] = knowledge.map(k => {
+    const t = k.trdrId ? tById.get(k.trdrId) : undefined
+    const tags = [...new Set([MEMORY_CATEGORY_LABELS[k.category], ...k.tags].filter((x): x is string => !!x && x.length <= 80))]
+    const content = [k.title, ...k.lines].join('\n')
+    return {
+      key: k.key, title: k.title, tags, content, searchText: fold(`${content}\n${tags.join(' ')}`),
+      category: k.category, trdrId: k.trdrId, trdrName: t?.NAME ?? null, docType: k.docType, programTitle: k.programTitle, year: k.year,
+      contentHash: crypto.createHash('sha1').update(content).digest('hex'),
+    }
+  })
+  return [...fileDocs, ...kDocs]
 }
 
 const toVector = (v: number[]) => `[${v.map(x => (Number.isFinite(x) ? x.toFixed(6) : '0')).join(',')}]`
@@ -222,7 +238,7 @@ export type DocumentHit = {
 }
 
 /** Υβριδική αναζήτηση: σημασιολογική + κειμένου (χωρίς τόνους) + ετικέτες, με φίλτρα. */
-export async function searchDocuments(query: string, filters: { trdrId?: string | null; category?: string | null; tag?: string | null; limit?: number } = {}): Promise<DocumentHit[]> {
+export async function searchDocuments(query: string, filters: { trdrId?: string | null; category?: string | null; tag?: string | null; limit?: number; memory?: 'exclude' | 'include' | 'only' } = {}): Promise<DocumentHit[]> {
   const q = query.trim()
   const fq = fold(q)
   const terms = fq.split(' ').filter(t => t.length >= 2).slice(0, 8)
@@ -231,6 +247,10 @@ export async function searchDocuments(query: string, filters: { trdrId?: string 
   if (filters.trdrId) where.push(Prisma.sql`"trdrId" = ${filters.trdrId}`)
   if (filters.category) where.push(Prisma.sql`"category" = ${filters.category}`)
   if (filters.tag) where.push(Prisma.sql`${filters.tag} = ANY("tags")`)
+  // Εγγραφές γνώσης («Μνήμη γραφείου») μόνο όταν ζητηθούν — η αναζήτηση αρχείων δείχνει μόνο αρχεία.
+  const mem = filters.memory ?? 'exclude'
+  if (mem === 'exclude') where.push(Prisma.sql`"category" NOT LIKE 'memory-%'`)
+  if (mem === 'only') where.push(Prisma.sql`"category" LIKE 'memory-%'`)
   const whereSql = Prisma.join(where, ' AND ')
 
   if (!q) {
@@ -274,6 +294,6 @@ export async function searchDocuments(query: string, filters: { trdrId?: string 
 /** Οι πιο συχνές ετικέτες (για chips φίλτρων). */
 export async function topTags(limit = 30): Promise<{ tag: string; n: number }[]> {
   const rows = await prisma.$queryRaw<{ tag: string; n: bigint }[]>`
-    SELECT t AS tag, COUNT(*) AS n FROM "DocumentSearch", unnest("tags") t GROUP BY t ORDER BY n DESC LIMIT ${limit}`
+    SELECT t AS tag, COUNT(*) AS n FROM "DocumentSearch", unnest("tags") t WHERE "category" NOT LIKE 'memory-%' GROUP BY t ORDER BY n DESC LIMIT ${limit}`
   return rows.map(r => ({ tag: r.tag, n: Number(r.n) }))
 }

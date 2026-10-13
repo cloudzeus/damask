@@ -21,7 +21,7 @@ const toVector = (v: number[]) => `[${v.map(x => (Number.isFinite(x) ? x.toFixed
 const MIN_SIMILARITY = 0.62
 const DUPLICATE_SIMILARITY = 0.93
 /** Εργαλεία που «γειώνουν» την απάντηση στον οδηγό/εγχειρίδιο — ασφαλή για αυτόματη ενεργοποίηση. */
-const GROUNDED = new Set(['program_question', 'check_expense', 'app_help'])
+const GROUNDED = new Set(['program_question', 'check_expense', 'app_help', 'office_memory'])
 
 const isGeneric = (tools: string[]) => tools.every(t => CACHEABLE_TOOLS.has(t))
 

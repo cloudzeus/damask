@@ -262,6 +262,55 @@ const applicationDetails: ToolDef = {
   },
 }
 
+// ── Μνήμη γραφείου: γνώση από ΟΛΑ τα προγράμματα, δικαιολογητικά, έντυπα/τιμές, εγκριτικά, δαπάνες και αρχεία ──
+
+const officeMemory: ToolDef = {
+  tool: fn('office_memory', 'Αναζήτηση στη «μνήμη του γραφείου»: ΟΛΑ τα προγράμματα (τι ζητούν, κατηγορίες/όρια), τύποι δικαιολογητικών (ποια προγράμματα τους ζητούν), εταιρίες με τις αποθηκευμένες τιμές τους (Ε3, ΕΜΕ, Φ2 ανά μήνα κ.λπ.), εγκριτικά, δαπάνες έργων και τα αρχεία (δικαιολογητικά, υπεύθυνες δηλώσεις, προσφορές). Χρησιμοποίησέ το για ερωτήσεις που χρειάζονται γνώση πέρα από ένα έργο ή σύγκριση προγραμμάτων.', {
+    query: { type: 'string', description: 'Τι ψάχνουμε, με φυσική γλώσσα' },
+    trdrId: { type: 'string', description: 'Προαιρετικά: περιορισμός σε πελάτη' },
+  }, ['query']),
+  async run(ctx, a) {
+    if (!can(ctx, 'customer.view')) return { error: 'Δεν έχεις δικαίωμα.' }
+    const { searchDocuments } = await import('@/lib/search/documents')
+    const trdrId = str(a.trdrId) || null
+    const [mem, files] = await Promise.all([
+      searchDocuments(str(a.query), { memory: 'only', trdrId, limit: 8 }),
+      searchDocuments(str(a.query), { trdrId, limit: 5 }),
+    ])
+    const hits = [...mem, ...files]
+    const full = new Map((await prisma.documentSearch.findMany({ where: { key: { in: hits.map(h => h.key) } }, select: { key: true, content: true } })).map(r => [r.key, r.content]))
+    return {
+      results: hits.map(h => ({ kind: h.category.startsWith('memory-') ? h.category.replace('memory-', '') : 'αρχείο', title: h.title, customer: h.trdrName, program: h.programTitle, text: (full.get(h.key) ?? h.snippet).slice(0, 1800) })),
+    }
+  },
+}
+
+const programReadinessTool: ToolDef = {
+  tool: fn('program_readiness', 'Ετοιμότητα πελάτη για πρόγραμμα (και πριν ανοίξει έργο): για κάθε απαιτούμενο έγγραφο αν υπάρχει ήδη σε ισχύ στην αποθήκη του (από οποιοδήποτε πρόγραμμα), αν λήγει/έληξε ή λείπει.', {
+    trdrId: { type: 'string' }, programId: { type: 'string' },
+  }, ['trdrId', 'programId']),
+  async run(ctx, a) {
+    if (!can(ctx, 'customer.view')) return { error: 'Δεν έχεις δικαίωμα.' }
+    const { programReadiness } = await import('@/lib/memory/core')
+    const r = await programReadiness(str(a.trdrId), str(a.programId))
+    return { program: r.programTitle, readyPercent: r.score, ready: r.ready, mandatoryTotal: r.total, items: r.items.map(i => ({ name: i.name, mandatory: i.mandatory, state: i.state, detail: i.detail, source: i.source, candidates: i.candidates.map(c => c.title) })) }
+  },
+}
+
+const coreDocuments: ToolDef = {
+  tool: fn('core_documents', 'Τα «βασικά» δικαιολογητικά που ζητούν τα περισσότερα προγράμματα και — αν δοθεί πελάτης — ποια έχει σε ισχύ, ποια λήγουν/έληξαν και ποια λείπουν.', { trdrId: { type: 'string', description: 'Προαιρετικά: πελάτης' } }),
+  async run(ctx, a) {
+    if (!can(ctx, 'customer.view')) return { error: 'Δεν έχεις δικαίωμα.' }
+    const m = await import('@/lib/memory/core')
+    if (str(a.trdrId)) {
+      const s = await m.customerCoreStatus(str(a.trdrId))
+      return { documents: s.slice(0, 30).map(d => ({ name: d.name, programs: d.programs.length, state: d.state, detail: d.detail })) }
+    }
+    const c = await m.coreDocumentTypes()
+    return { documents: c.slice(0, 30).map(d => ({ name: d.name, programs: d.programs.map(p => p.title) })) }
+  },
+}
+
 export function toolsFor(ctx: ThanosContext): ToolDef[] {
   if (ctx.mode === 'CUSTOMER') return [myPrograms, listOpenPrograms, programQuestion, expenseCheck, prepareAccountantLink]
   const ops: ToolDef[] = operationTools(ctx).map(({ tool, op }) => ({
@@ -271,5 +320,5 @@ export function toolsFor(ctx: ThanosContext): ToolDef[] {
       return 'error' in r ? { error: r.error } : createOperation(c, r)
     },
   }))
-  return [appHelp, findCustomer, customerOverview, applicationDetails, programGaps, listOpenPrograms, programQuestion, expenseCheck, prepareDocRequest, ...ops]
+  return [appHelp, findCustomer, customerOverview, applicationDetails, programGaps, listOpenPrograms, programQuestion, expenseCheck, officeMemory, programReadinessTool, coreDocuments, prepareDocRequest, ...ops]
 }

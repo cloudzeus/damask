@@ -70,6 +70,8 @@ export const ACTIONS = {
   'supplier_cert.sign': { category: 'APPLICATION', label: 'Υπογραφή βεβαίωσης προμηθευτή (γραφείο)', weight: 1 },
   'application.onboard': { category: 'APPLICATION', label: 'Εισαγωγή έργου σε εξέλιξη (εγκεκριμένο)', weight: 3 },
   'application.approval': { category: 'APPLICATION', label: 'Καταχώριση εγκριτικής απόφασης', weight: 3 },
+  'memory.relink': { category: 'APPLICATION', label: 'Μνήμη: σύνδεση απαίτησης με τύπο', weight: 1 },
+  'memory.merge_types': { category: 'APPLICATION', label: 'Μνήμη: συγχώνευση τύπων εγγράφων', weight: 1 },
   'application.stage': { category: 'APPLICATION', label: 'Αλλαγή σταδίου PM', weight: 1 },
   'opportunity.create': { category: 'APPLICATION', label: 'Δημιουργία ευκαιρίας', weight: 2 },
   'proposal.submit': { category: 'APPLICATION', label: 'Υποβολή πρότασης', weight: 3 },

@@ -12,6 +12,7 @@ import {
 import { ScanFormDialog } from '@/components/tax/scan-form-dialog'
 import { DocumentPreviewButton } from '@/components/ui/document-preview'
 import { DossierSmartUpload } from './dossier-smart-upload'
+import { CustomerMemoryPanel } from './customer-memory-panel'
 import { DossierSeriesGroup } from './dossier-series'
 import type { SeriesKind } from '@/lib/documents/series'
 
@@ -107,6 +108,7 @@ export function TrdrDossier({ trdrId, trdrName, canEdit }: { trdrId: string; trd
       <p className="mb-3 text-[length:var(--fs-11-5)] text-muted-foreground">
         Ό,τι δικαιολογητικά έχει ήδη η εταιρία (με ημ. λήξης όπου ισχύει). Στην ένταξη σε πρόγραμμα, όσα υπάρχουν <strong>σε ισχύ</strong> δεν ξαναζητούνται.
       </p>
+      <div className="mb-3"><CustomerMemoryPanel trdrId={trdrId} /></div>
       {docs.length > 3 && <ListFilter value={q} onChange={setQ} placeholder="Αναζήτηση δικαιολογητικού, τύπου, προγράμματος…" className="mb-3 sm:max-w-md" />}
 
       {loading ? (
