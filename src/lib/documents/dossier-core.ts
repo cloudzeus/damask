@@ -91,6 +91,8 @@ export async function createDossierDocCore(trdrId: string, userId: string, input
   const template = !eme && !e3 && !mme
     ? await processTemplateIfApplicable({ docId: id, trdrId, documentTypeId: input.documentTypeId, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: userId, period: docPeriod, text: input.fullText ?? null })
     : null
+  // Οι τιμές του Οδηγού διαβάστηκαν τώρα → η ξαναεξέταση καταλόγου δεν θα τις ξαναδιαβάσει (βλ. import/catalog.ts).
+  if (template) await prisma.trdrDossierDocument.update({ where: { id }, data: { valuesReadAt: new Date() } }).catch(() => {})
   return { id, covered: cover.covered, coveredPrograms: [...new Set(cover.programs)], eme, e3: e3?.applied ?? null, mme: mme?.applied ?? null, template }
 }
 

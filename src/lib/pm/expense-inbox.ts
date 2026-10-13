@@ -96,6 +96,8 @@ export async function stageInboxDoc(input: {
     },
   })
   await logActivity('expense_inbox.stage', { entityType: 'application', entityId: input.applicationId, userId: session.user.id, meta: { kind: input.kind, file: input.name } })
+  const { recordFileHash } = await import('@/lib/import/existing')
+  await recordFileHash({ key, body, trdrId: app.trdrId, kind: 'inbox', label: input.name, ref: row.id })
   return { ok: true, id: row.id, read: !!extracted, programTitle: app.program.title }
 }
 
@@ -188,7 +190,8 @@ export async function createExpensesFromInbox(id: string, input: {
   return { ok: true, created: res.created, supplierName: res.supplier?.name ?? null, supplierCreated: res.supplierCreated }
 }
 
-async function attachInvoice(row: { storageKey: string; fileName: string; extracted: Prisma.JsonValue }, expenseId: string) {
+async function attachInvoice(row: { storageKey: string; fileName: string; extracted: Prisma.JsonValue; trdrId?: string }, expenseId: string) {
+  await prisma.storedFileHash.updateMany({ where: { key: row.storageKey }, data: { kind: 'purchase', ref: expenseId } })
   await prisma.expensePurchase.upsert({
     where: { expenseId },
     create: { expenseId, invoiceKey: row.storageKey, invoiceName: row.fileName.replace(/\.[^.]+$/, '') },

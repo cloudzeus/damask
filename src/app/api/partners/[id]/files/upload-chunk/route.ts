@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, createHash } from 'node:crypto'
+import { createReadStream } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mkdir, appendFile, stat, unlink, readdir } from 'node:fs/promises'
@@ -94,8 +95,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const ext = (/\.[a-z0-9]{1,10}$/i.exec(name)?.[0] ?? '').toLowerCase()
     const base = name.replace(/\.[a-z0-9]{1,10}$/i, '')
     const key = `${root}${rel}${relDir}${Date.now()}-${randomUUID().slice(0, 8)}-${safeSegment(base, 'file')}${ext}`
+    // Hash περιεχομένου (ροή, χωρίς φόρτωση στη μνήμη) — για το «Υπάρχει ήδη» της μαζικής εισαγωγής.
+    const hash = await new Promise<string | null>(resolve => {
+      const h = createHash('sha256')
+      createReadStream(part).on('data', c => h.update(c)).on('end', () => resolve(h.digest('hex'))).on('error', () => resolve(null))
+    })
     await bunnyUploadPrivateFile({ key, filePath: part, size: received, contentType: String(fd.get('type') ?? '') || 'application/octet-stream' })
     void logApiUsage({ service: 'bunnycdn', operation: 'upload', units: received / 1e9, userId: session?.user?.id, refType: 'trdr-file', refId: id })
+    if (hash) {
+      const { recordFileHash } = await import('@/lib/import/existing')
+      await recordFileHash({ key, hash, trdrId: id, kind: 'customer-file', label: `${rel}${relDir}${name}` })
+    }
     return NextResponse.json({ ok: true, done: true, name, key, size: received })
   } catch (err) {
     console.error('[trdr upload-chunk] finalize failed', err)

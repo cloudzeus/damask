@@ -99,7 +99,9 @@ async function loadItem(id: string) {
 
 /** Αναγνώριση ενός αρχείου + αυτόματη αποθήκευση αν είναι βέβαιο. */
 export async function recognizeItem(id: string): Promise<void> {
-  const claimed = await prisma.importItem.updateMany({ where: { id, phase: { in: ['QUEUED', 'WAITING'] } }, data: { phase: 'RECOGNIZING' } })
+  // Η έκδοση καταλόγου με την οποία αναγνωρίζεται (αλλαγή τύπων/Οδηγών ⇒ ξαναεξέταση — βλ. catalog.ts).
+  const { catalogVersion } = await import('./catalog')
+  const claimed = await prisma.importItem.updateMany({ where: { id, phase: { in: ['QUEUED', 'WAITING'] } }, data: { phase: 'RECOGNIZING', catalogVersion: await catalogVersion() } })
   if (!claimed.count) return
   const item = (await loadItem(id))!
   try {
@@ -107,13 +109,12 @@ export async function recognizeItem(id: string): Promise<void> {
       await prisma.importItem.update({ where: { id }, data: { phase: 'REVIEW', dest: 'files' } })
       return
     }
-    // Ίδιο αρχείο ήδη στα δικαιολογητικά του πελάτη → δεν χρειάζεται τίποτα.
-    if (item.hash) {
-      const dup = await prisma.trdrDossierDocument.findFirst({ where: { trdrId: item.trdrId, contentHash: item.hash }, select: { name: true, documentType: { select: { name: true } } } })
-      if (dup) {
-        await prisma.importItem.update({ where: { id }, data: { phase: 'SKIPPED', dest: 'dossier', resultNote: `Υπάρχει ήδη στα δικαιολογητικά ως «${dup.name}» (${dup.documentType.name}).` } })
-        return
-      }
+    // Ίδιο αρχείο ήδη σε δικαιολογητικά/αρχεία/έργα του πελάτη (π.χ. αποθηκεύτηκε στο μεταξύ) → δεν χρειάζεται τίποτα.
+    const { findExisting } = await import('./existing')
+    const existing = await findExisting(item.trdrId, item.hash)
+    if (existing) {
+      await prisma.importItem.update({ where: { id }, data: { phase: 'SKIPPED', dest: existing.where === 'dossier' ? 'dossier' : 'files', resultNote: existing.note } })
+      return
     }
     if (!item.storageKey) throw new Error('Το αρχείο δεν έχει ανέβει.')
     const buf = await bunnyDownload(item.storageKey)

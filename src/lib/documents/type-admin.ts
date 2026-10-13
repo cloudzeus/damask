@@ -91,6 +91,8 @@ function cleanInput(input: DocumentTypeInput): DocumentTypeInput {
 
 export async function createDocumentTypeAdmin(input: DocumentTypeInput): Promise<{ id: string }> {
   await requirePermission('doctype.manage')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   const data = cleanInput(input)
   const existing = await prisma.documentType.findUnique({ where: { name: data.name }, select: { id: true } })
   if (existing) throw new Error('Υπάρχει ήδη τύπος με αυτό το όνομα.')
@@ -101,6 +103,8 @@ export async function createDocumentTypeAdmin(input: DocumentTypeInput): Promise
 
 export async function updateDocumentTypeAdmin(id: string, input: DocumentTypeInput): Promise<void> {
   await requirePermission('doctype.manage')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   const data = cleanInput(input)
   // Μοναδικότητα ονόματος — μην συγκρουστείς με άλλον τύπο.
   const clash = await prisma.documentType.findFirst({ where: { name: data.name, id: { not: id } }, select: { id: true } })
@@ -128,6 +132,8 @@ export async function deleteDocumentTypeAdmin(id: string): Promise<void> {
 /** Σύνδεση/αποσύνδεση ενός Οδηγού Εντύπων με τύπο (θέτει TaxFormTemplate.documentTypeId). */
 export async function setFormGuideDocumentType(templateId: string, documentTypeId: string | null): Promise<void> {
   await requirePermission('doctype.manage')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   await prisma.taxFormTemplate.update({ where: { id: templateId }, data: { documentTypeId } })
   revalidatePath('/document-types')
 }

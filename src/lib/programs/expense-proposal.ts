@@ -224,12 +224,15 @@ export async function uploadExpenseQuote(
   input: { name: string; base64: string; mimeType: string; ext: string },
 ): Promise<{ ok: boolean }> {
   await requirePermission('programs.manage')
-  const exp = await prisma.programExpense.findUnique({ where: { id: expenseId }, select: { applicationId: true } })
+  const exp = await prisma.programExpense.findUnique({ where: { id: expenseId }, select: { applicationId: true, application: { select: { trdrId: true } } } })
   if (!exp) return { ok: false }
   const id = crypto.randomUUID()
   const ext = (input.ext || 'bin').replace(/[^a-z0-9]/gi, '').toLowerCase() || 'bin'
   const key = `expense-quotes/${expenseId}/${id}.${ext}`
-  await bunnyUploadPrivate({ key, body: Buffer.from(input.base64, 'base64'), contentType: input.mimeType })
+  const body = Buffer.from(input.base64, 'base64')
+  await bunnyUploadPrivate({ key, body, contentType: input.mimeType })
+  const { recordFileHash } = await import('@/lib/import/existing')
+  await recordFileHash({ key, body, trdrId: exp.application.trdrId, kind: 'quote', label: input.name, ref: expenseId })
   await prisma.programExpense.update({ where: { id: expenseId }, data: { quoteStorageKey: key, quoteName: input.name.trim() || 'Προσφορά', quoteMimeType: input.mimeType } })
   await syncQuoteObligation(expenseId)
   revalidatePath(`/programs`)
@@ -532,6 +535,7 @@ export async function createExpensesFromQuote(
   // 4. Δαπάνες
   const { createExpense } = await import('@/lib/programs/actions')
   let created = 0
+  let firstExpenseId: string | null = null
   for (const g of groups) {
     const { id } = await createExpense(applicationId, {
       description: g.description,
@@ -543,11 +547,18 @@ export async function createExpensesFromQuote(
       categoryId: g.categoryId,
       supplierTrdrId: supplier?.id ?? null,
     })
+    firstExpenseId ??= id
     if (quoteKey && quoteMeta) {
       await prisma.programExpense.update({ where: { id }, data: { quoteStorageKey: quoteKey, quoteName: quoteMeta.name.trim() || 'Προσφορά', quoteMimeType: quoteMeta.mimeType } })
       await syncQuoteObligation(id)
     }
     created++
+  }
+  if (quoteKey && quoteMeta && firstExpenseId) {
+    const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { trdrId: true } })
+    const { recordFileHash } = await import('@/lib/import/existing')
+    const stored = input.storedQuote ? await prisma.storedFileHash.findUnique({ where: { key: quoteKey }, select: { hash: true } }) : null
+    await recordFileHash({ key: quoteKey, hash: stored?.hash, body: input.quote ? Buffer.from(input.quote.base64, 'base64') : undefined, trdrId: app?.trdrId ?? null, kind: 'quote', label: quoteMeta.name, ref: firstExpenseId })
   }
   revalidatePath('/programs')
   return { ok: true, created, supplier, supplierCreated }

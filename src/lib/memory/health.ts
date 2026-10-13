@@ -77,6 +77,8 @@ export async function checkMemoryHealth(): Promise<{ ok: true; health: MemoryHea
 /** Σύνδεση απαίτησης προγράμματος με τον σωστό τύπο (ξαναελέγχονται οι υποχρεώσεις των έργων του προγράμματος). */
 export async function relinkRequirement(formId: string, typeId: string): Promise<{ ok: boolean; message?: string }> {
   const session = await requirePermission('programs.manage')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   const form = await prisma.programRequiredForm.update({ where: { id: formId }, data: { documentTypeId: typeId }, select: { programId: true, name: true } })
   const { syncSeriesForForm } = await import('@/lib/pm/form-obligations')
   await syncSeriesForForm(formId).catch(() => {})
@@ -88,6 +90,8 @@ export async function relinkRequirement(formId: string, typeId: string): Promise
 /** Συγχώνευση τύπων: ΟΛΑ τα συνδεδεμένα (δικαιολογητικά, απαιτήσεις, Οδηγοί, παραδείγματα, έγγραφα έργων, αιτήματα) → keep· οι άλλοι απενεργοποιούνται. */
 export async function mergeDocumentTypes(keepId: string, mergeIds: string[]): Promise<{ ok: boolean; message: string }> {
   const session = await requirePermission('doctype.manage')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   // Τύποι με ειδικό αναγνώστη (Ε3/ΕΜΕ/Δήλωση ΜΜΕ) εντοπίζονται με το όνομά τους — αν συμμετέχουν, κρατιούνται αυτοί.
   const [{ MME_DOC_TYPE_NAME }, { E3_DOC_TYPE_NAME }, { EME_DOC_TYPE_NAME }] = await Promise.all([import('@/lib/tax/mme'), import('@/lib/tax/e3'), import('@/lib/tax/eme')])
   const system = await prisma.documentType.findFirst({ where: { id: { in: [keepId, ...mergeIds] }, name: { in: [MME_DOC_TYPE_NAME, E3_DOC_TYPE_NAME, EME_DOC_TYPE_NAME] } }, select: { id: true } })

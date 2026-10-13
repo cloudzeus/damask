@@ -7,6 +7,7 @@ import { requirePermission } from '@/lib/rbac-server'
 import { bunnyDownload, bunnyUploadPrivate, bunnyDeleteOne } from '@/lib/bunny-storage'
 import type { SmartClassifyResult } from '@/lib/documents/smart-classify-core'
 import { junkOf } from './rules'
+import { findExisting } from './existing'
 import { kickImportSweep } from './recognize'
 
 /**
@@ -74,15 +75,19 @@ export async function registerImportFiles(trdrId: string, files: { clientId: str
     const junk = junkOf(f.name, f.size)
     const same = f.hash ? inBatch.find(s => s.hash === f.hash) : undefined
     if (same) { out.push({ clientId: f.clientId, itemId: same.id, needsUpload: !same.storageKey && same.phase === 'UPLOADING' }); continue }
-    const prev = f.hash ? staged.find(s => s.hash === f.hash) : undefined
+    // «Υπάρχει ήδη» σε δικαιολογητικά/αρχεία/έργα του πελάτη → δεν ανεβαίνει καν.
+    const existing = !junk ? await findExisting(trdrId, f.hash) : null
+    const prev = !existing && f.hash ? staged.find(s => s.hash === f.hash) : undefined
     const item = await prisma.importItem.create({
       data: {
         batchId: batch.id, trdrId, fileName: f.name.slice(0, 250), relPath: f.relPath?.slice(0, 500) || null, size: f.size, mimeType: f.mimeType || 'application/octet-stream', hash: f.hash,
-        ...(junk ? { phase: 'SKIPPED', dest: 'junk', junkReason: junk } : prev ? { phase: 'QUEUED', storageKey: prev.storageKey } : {}),
+        ...(junk ? { phase: 'SKIPPED', dest: 'junk', junkReason: junk }
+          : existing ? { phase: 'SKIPPED', dest: existing.where === 'dossier' ? 'dossier' : existing.where === 'customer-file' ? 'files' : existing.where === 'inbox' ? 'invoice' : 'quote', resultNote: existing.note }
+          : prev ? { phase: 'QUEUED', storageKey: prev.storageKey } : {}),
       },
       select: { id: true },
     })
-    out.push({ clientId: f.clientId, itemId: item.id, needsUpload: !junk && !prev })
+    out.push({ clientId: f.clientId, itemId: item.id, needsUpload: !junk && !existing && !prev })
   }
   if (out.some(o => !o.needsUpload)) kickImportSweep()
   return { batchId: batch.id, items: out }
@@ -144,6 +149,8 @@ export async function saveImportItem(itemId: string, d: SaveDecision): Promise<{
       const extDot = (/\.[a-z0-9]{1,10}$/i.exec(item.fileName)?.[0] ?? '').toLowerCase()
       const key = `${root}${safeRelativeDir(dir)}${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safeSegment(item.fileName.replace(/\.[a-z0-9]{1,10}$/i, ''), 'file')}${extDot}`
       await bunnyUploadPrivate({ key, body: buf, contentType: item.mimeType })
+      const { recordFileHash } = await import('./existing')
+      await recordFileHash({ key, hash: item.hash, body: item.hash ? undefined : buf, trdrId: item.trdrId, kind: 'customer-file', label: dir ? `${dir}/${item.fileName}` : item.fileName })
       ref = key
       note = `στα αρχεία πελάτη${dir ? ` › ${dir}` : ''}`
     } else {

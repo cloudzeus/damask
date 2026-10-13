@@ -87,6 +87,8 @@ export type TrainingSampleResult =
 /** Νέο δείγμα εκπαίδευσης: ο χρήστης έχει ήδη διαλέξει τον τύπο. Επιστρέφει και τι θα πρότεινε το σύστημα πριν. */
 export async function addTrainingSample(input: { documentTypeId: string; fileName: string; base64: string; mimeType: string; text: string }): Promise<TrainingSampleResult> {
   const session = await requirePermission('doctraining.upload')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   const type = await prisma.documentType.findUnique({ where: { id: input.documentTypeId }, select: { id: true, name: true } })
   if (!type) return { ok: false, message: 'Διαλέξτε τύπο εγγράφου.' }
   const body = Buffer.from(input.base64, 'base64')
@@ -166,6 +168,8 @@ export async function listTypeSamples(documentTypeId: string): Promise<TrainingS
 /** Αφαίρεση λάθος δείγματος από τη μνήμη (π.χ. ανέβηκε σε λάθος τύπο). */
 export async function deleteTrainingSample(id: string): Promise<void> {
   await requirePermission('doctraining.upload')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   await prisma.documentClassificationExample.delete({ where: { id } })
   revalidatePath('/document-training')
 }
@@ -239,6 +243,8 @@ export async function diagnoseType(documentTypeId: string): Promise<TypeDiagnosi
 /** Εφαρμογή διάγνωσης: σημείωση τύπου (προαιρετικά) + προσθήκη πεδίων στον Οδηγό Εντύπου του τύπου (δημιουργείται αν λείπει). */
 export async function applyDiagnosis(documentTypeId: string, input: { notes?: string | null; fields: Omit<ProposedField, 'exists'>[] }): Promise<{ templateId: string | null; added: number }> {
   const session = await requirePermission('doctype.manage')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   const type = await prisma.documentType.findUniqueOrThrow({ where: { id: documentTypeId }, select: { name: true } })
   if (input.notes?.trim()) await prisma.documentType.update({ where: { id: documentTypeId }, data: { notes: input.notes.trim().slice(0, 500) } })
   if (!input.fields.length) { revalidatePath('/document-training'); return { templateId: null, added: 0 } }

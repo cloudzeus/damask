@@ -2276,6 +2276,8 @@ model DocumentType {
   active          Boolean                         @default(true)
   notes           String?
   createdAt       DateTime                        @default(now())
+  /// Αλλαγές τύπου (σειρά/λήξη/σημειώσεις) — μέρος της «έκδοσης καταλόγου» της μαζικής εισαγωγής.
+  updatedAt       DateTime                        @default(now()) @updatedAt
   dossierDocs     TrdrDossierDocument[]
   requiredForms   ProgramRequiredForm[]
   templates       TaxFormTemplate[]
@@ -2330,6 +2332,8 @@ model TrdrDossierDocument {
   expiresAt      DateTime? // null = δεν λήγει· διαφορετικά «αναφορά λήξης»
   /// Περίοδος αναφοράς για τύπους-σειρές: «2025-03» (μήνας) | «2025-Q1» (τρίμηνο) | «2025» (έτος).
   period         String?
+  /// Πότε διαβάστηκαν τελευταία οι τιμές του Οδηγού του τύπου (για ανάγνωση όταν ο τύπος αποκτά/αλλάζει Οδηγό).
+  valuesReadAt   DateTime?
   /// Πρόγραμμα στο οποίο αναφέρεται (null = γενικό/εταιρικό).
   programId      String?
   program        Program?     @relation(fields: [programId], references: [id], onDelete: SetNull)
@@ -3271,11 +3275,29 @@ model ImportItem {
   autoSaved      Boolean     @default(false)
   resultNote     String?
   resultRef      String?
-  catalogVersion Int?
+  /// Έκδοση καταλόγου (τύποι/Οδηγοί/εκπαίδευση) με την οποία αναγνωρίστηκε — αλλαγή ⇒ ξαναεξέταση.
+  catalogVersion String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
   @@index([batchId])
   @@index([trdrId, hash])
   @@index([phase, nextAttemptAt])
+}
+
+/// Μητρώο hash περιεχομένου για αρχεία που δεν έχουν δικό τους hash (αρχεία πελάτη, «Προς καταχώριση», προσφορές,
+/// έγγραφα αγορών) — για το «Υπάρχει ήδη» της μαζικής εισαγωγής. Τα δικαιολογητικά έχουν ήδη contentHash.
+model StoredFileHash {
+  key       String   @id
+  hash      String
+  trdrId    String?
+  /// customer-file | inbox | quote | purchase
+  kind      String
+  label     String
+  /// id οντότητας (inbox doc / expense) για επαλήθευση ότι υπάρχει ακόμη
+  ref       String?
+  createdAt DateTime @default(now())
+
+  @@index([trdrId, hash])
+  @@index([hash])
 }

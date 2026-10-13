@@ -255,6 +255,8 @@ export async function updateTemplateMeta(
   input: { name?: string; year?: number | null; description?: string | null; status?: 'DRAFT' | 'READY'; documentTypeId?: string | null },
 ): Promise<void> {
   await requirePermission('taxform.manage')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   await prisma.taxFormTemplate.update({
     where: { id },
     data: {
@@ -296,6 +298,8 @@ export async function uploadSample(
  */
 export async function saveFields(templateId: string, fields: unknown[]): Promise<void> {
   await requirePermission('taxform.manage')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   const writes = prepareFieldWrites(fields as Partial<TemplateField>[])
   await prisma.$transaction([
     prisma.taxFormTemplateField.deleteMany({ where: { templateId } }),

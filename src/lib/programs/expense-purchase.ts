@@ -153,7 +153,11 @@ export async function uploadPurchaseDoc(
   const id = crypto.randomUUID()
   const ext = (input.ext || 'bin').replace(/[^a-z0-9]/gi, '').toLowerCase() || 'bin'
   const key = `expense-purchases/${expenseId}/${kind}-${id}.${ext}`
-  await bunnyUploadPrivate({ key, body: Buffer.from(input.base64, 'base64'), contentType: input.mimeType })
+  const body = Buffer.from(input.base64, 'base64')
+  await bunnyUploadPrivate({ key, body, contentType: input.mimeType })
+  const exp = await prisma.programExpense.findUnique({ where: { id: expenseId }, select: { application: { select: { trdrId: true } } } })
+  const { recordFileHash } = await import('@/lib/import/existing')
+  await recordFileHash({ key, body, trdrId: exp?.application.trdrId ?? null, kind: 'purchase', label: `${f.label}: ${input.name}`, ref: expenseId })
   await prisma.expensePurchase.upsert({
     where: { expenseId },
     create: { expenseId, [f.keyField]: key, [f.nameField]: input.name.trim() || f.label },

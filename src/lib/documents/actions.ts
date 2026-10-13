@@ -31,6 +31,8 @@ export async function listDocumentTypes(): Promise<DocumentTypeOption[]> {
 /** Δημιουργία τύπου (inline modal). Idempotent στο όνομα — αν υπάρχει, επιστρέφει τον υπάρχοντα. */
 export async function createDocumentType(name: string, expires: boolean): Promise<DocumentTypeOption> {
   await requirePermission('customer.edit')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   const clean = name.trim()
   if (!clean) throw new Error('Το όνομα του τύπου είναι υποχρεωτικό.')
   const existing = await prisma.documentType.findUnique({ where: { name: clean }, select: { id: true, name: true, expires: true } })

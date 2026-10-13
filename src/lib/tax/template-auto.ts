@@ -82,6 +82,8 @@ export async function processTemplateIfApplicable(input: {
   period?: string | null
   /** Κείμενο εγγράφου (Word/Excel) όταν δεν είναι PDF/εικόνα. */
   text?: string | null
+  /** Σφάλματα της υπηρεσίας AI προς τα πάνω (π.χ. ξαναεξέταση: να μη σημειωθεί «διαβασμένο» σε 429/403). */
+  throwOnAiError?: boolean
 }): Promise<TemplateApplied | null> {
   if (!/pdf|image\//.test(input.mimeType) && !input.text?.trim()) return null
   const template = await prisma.taxFormTemplate.findFirst({
@@ -186,6 +188,7 @@ export async function processTemplateIfApplicable(input: {
     }
     return out
   } catch (err) {
+    if (input.throwOnAiError) throw err
     console.error('[template-auto] failed', err)
     return null
   }

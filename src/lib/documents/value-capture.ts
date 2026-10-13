@@ -106,6 +106,8 @@ export async function saveValueTemplate(input: {
   fields: { label: string; valueType: FinancialValueTypeStr; hint: string | null }[]
 }): Promise<{ ok: true; type: { id: string; name: string; expires: boolean; seriesKind: string | null }; added: number } | { ok: false; message: string }> {
   const session = await requirePermission('customer.edit')
+  // Αλλαγή καταλόγου → ξαναεξέταση αναγνώριστων/ανάγνωση τιμών σε ~2′ (βλ. src/lib/import/catalog.ts).
+  void import('@/lib/import/catalog').then(m => m.kickCatalogRecheck())
   const fields = input.fields.filter(f => f.label.trim())
   if (!fields.length) return { ok: false, message: 'Επιλέξτε τουλάχιστον μία τιμή.' }
   let type = input.typeId ? await prisma.documentType.findUnique({ where: { id: input.typeId }, select: { id: true, name: true, expires: true, seriesKind: true } }) : null

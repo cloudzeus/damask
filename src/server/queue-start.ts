@@ -178,6 +178,20 @@ export async function startQueue(): Promise<void> {
   })
   await boss.schedule(QUEUE_IMPORT_RECOGNIZE, '* * * * *', null, { tz: 'Europe/Athens' })
 
+  // Αλλαγές καταλόγου (τύποι/Οδηγοί/εκπαίδευση) → ξαναεξέταση αναγνώριστων + ανάγνωση τιμών αποθηκευμένων. Κάθε 15′
+  // (φθηνός έλεγχος έκδοσης) και ~2′ μετά από κάθε αλλαγή (kickCatalogRecheck).
+  const { QUEUE_CATALOG_RECHECK, runCatalogRecheck } = await import('@/lib/import/catalog')
+  await boss.createQueue(QUEUE_CATALOG_RECHECK)
+  await boss.work(QUEUE_CATALOG_RECHECK, async () => {
+    try {
+      const r = await runCatalogRecheck()
+      if (r.requeued || r.valuesRead) console.log(`[pg-boss] catalog-recheck: ${r.requeued} ξανά στην ουρά, ${r.valuesRead} δικαιολογητικά με νέες τιμές (${r.valuesPending} εκκρεμούν)`)
+    } catch (err) {
+      console.error('[pg-boss] catalog-recheck απέτυχε', err) // never rethrow — επόμενος γύρος σε 15′
+    }
+  })
+  await boss.schedule(QUEUE_CATALOG_RECHECK, '*/15 * * * *', null, { tz: 'Europe/Athens' })
+
   await boss.createQueue(QUEUE_THANOS_DISTILL)
   await boss.work(QUEUE_THANOS_DISTILL, async () => {
     try {
