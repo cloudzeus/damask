@@ -1,5 +1,8 @@
 'use client'
 
+import { SeriesPeriods } from './series-periods'
+import { DossierSmartUpload } from '@/components/trdr/dossier-smart-upload'
+import type { SeriesDetail } from '@/lib/pm/form-obligations'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -13,7 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog'
 import {
-  listObligations, listInternalUsers, addObligation, updateObligation, removeObligation, waiveObligation,
+  listObligations, listSeriesDetails, listInternalUsers, addObligation, updateObligation, removeObligation, waiveObligation,
   generateObligations, listApplicationBoardObligations,
   type ObligationItem, type InternalUserOption, type BoardObligation,
 } from '@/lib/pm/actions'
@@ -52,7 +55,7 @@ const STATUSES: ObligationStatusStr[] = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 
  */
 export function ObligationsTab({
   applicationId, canManage, programId, filterKind, title = 'Εργασίες & Υποχρεώσεις', emptyMessage = 'Δεν υπάρχουν υποχρεώσεις για αυτή την αίτηση.',
-  showBoardToggle = true,
+  showBoardToggle = true, smartUploadTrdrId,
 }: {
   applicationId: string
   canManage: boolean
@@ -61,6 +64,8 @@ export function ObligationsTab({
   title?: string
   emptyMessage?: string
   showBoardToggle?: boolean
+  /** Δικαιολογητικά: «Ανέβασμα με AI» στην κεφαλίδα (αναγνώριση τύπου/περιόδου → κάλυψη ελλείψεων). */
+  smartUploadTrdrId?: string
 }) {
   const router = useRouter()
   const [obligations, setObligations] = React.useState<ObligationItem[]>([])
@@ -74,14 +79,18 @@ export function ObligationsTab({
   const [boardLoading, setBoardLoading] = React.useState(false)
   const [boardLoaded, setBoardLoaded] = React.useState(false)
 
+  // Σειρές (π.χ. Φ2 ανά μήνα): πίνακας περιόδων κάτω από το αντίστοιχο δικαιολογητικό.
+  const [series, setSeries] = React.useState<{ trdrId: string; details: Record<string, SeriesDetail> } | null>(null)
+
   const load = React.useCallback(() => {
     setLoading(true)
     setError(null)
+    if (filterKind === 'FORM') listSeriesDetails(applicationId).then(setSeries).catch(() => setSeries(null))
     Promise.all([listObligations(applicationId), canManage ? listInternalUsers() : Promise.resolve<InternalUserOption[]>([])])
       .then(([o, u]) => { setObligations(o); setUsers(u) })
       .catch(() => setError('Η φόρτωση των υποχρεώσεων απέτυχε.'))
       .finally(() => setLoading(false))
-  }, [applicationId, canManage])
+  }, [applicationId, canManage, filterKind])
 
   React.useEffect(() => { load() }, [load])
 
@@ -207,6 +216,9 @@ export function ObligationsTab({
           {title} ({visibleObligations.length})
         </div>
         <div className="flex items-center gap-1.5">
+          {smartUploadTrdrId && (
+            <DossierSmartUpload trdrId={smartUploadTrdrId} defaultProgramId={programId} onDone={() => { load(); router.refresh() }} label="Ανέβασμα με AI" variant="default" />
+          )}
           {showBoardToggle && <ListBoardToggle active={viewMode} onChange={handleViewChange} />}
           {canManage && (
             <>
@@ -248,8 +260,8 @@ export function ObligationsTab({
               </div>
               <div className="flex flex-col gap-2">
                 {g.items.map(o => (
+                  <React.Fragment key={o.id}>
                   <ObligationRow
-                    key={o.id}
                     obligation={o}
                     users={users}
                     canManage={canManage}
@@ -263,6 +275,8 @@ export function ObligationsTab({
                     onRemove={() => handleRemove(o)}
                     onReload={load}
                   />
+                  {series?.details[o.id] && <SeriesPeriods trdrId={series.trdrId} detail={series.details[o.id]} />}
+                  </React.Fragment>
                 ))}
               </div>
             </div>

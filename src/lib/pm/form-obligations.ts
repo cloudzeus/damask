@@ -379,3 +379,58 @@ export async function syncSeriesForForm(formId: string): Promise<void> {
   const obs = await prisma.applicationObligation.findMany({ where: { kind: 'FORM', sourceId: formId }, select: { id: true } })
   for (const o of obs) await syncSeriesObligation(o.id).catch(err => console.error('[series] sync failed', err))
 }
+
+export type SeriesDetail = {
+  kind: string
+  requirement: string
+  coverage: string
+  complete: boolean
+  /** Απαιτούμενες περίοδοι (παλαιότερη πρώτη) με το έγγραφο που καλύπτει την καθεμία (ή null). */
+  periods: { period: string; doc: { id: string; name: string; mimeType: string | null } | null }[]
+  /** Αρχεία της σειράς χωρίς περίοδο (δεν μετρούν μέχρι να οριστεί). */
+  withoutPeriod: number
+  /** LIST: πόσα αρχεία υπάρχουν / χρειάζονται. */
+  have: number
+  needed: number
+}
+
+/** Πίνακας περιόδων για κάθε εκκρεμότητα-σειρά ενός έργου (π.χ. Φ2: 12 μήνες ✓/κενό). */
+export async function seriesDetailsForApplication(applicationId: string): Promise<Record<string, SeriesDetail>> {
+  const { isSeriesKind, seriesCoverage, coverageLabel, requirementLabel, normalizePeriod } = await import('@/lib/documents/series')
+  const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { trdrId: true, programId: true, opskeSubmittedAt: true } })
+  if (!app) return {}
+  const obs = await prisma.applicationObligation.findMany({ where: { applicationId, kind: 'FORM', sourceId: { not: null } }, select: { id: true, sourceId: true } })
+  if (!obs.length) return {}
+  const forms = await prisma.programRequiredForm.findMany({
+    where: { id: { in: obs.map(o => o.sourceId!) }, documentType: { seriesKind: { not: null } } },
+    select: { id: true, documentTypeId: true, seriesCount: true, seriesFrom: true, seriesTo: true, documentType: { select: { seriesKind: true } } },
+  })
+  if (!forms.length) return {}
+  const now = Date.now()
+  const docs = await prisma.trdrDossierDocument.findMany({
+    where: {
+      trdrId: app.trdrId, documentTypeId: { in: forms.map(f => f.documentTypeId!).filter(Boolean) },
+      OR: [{ reusable: true }, { programId: null }, { programId: app.programId }],
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, name: true, mimeType: true, documentTypeId: true, period: true, expiresAt: true },
+  })
+  const out: Record<string, SeriesDetail> = {}
+  for (const o of obs) {
+    const f = forms.find(x => x.id === o.sourceId)
+    const kind = f?.documentType?.seriesKind
+    if (!f || !isSeriesKind(kind)) continue
+    const mine = docs.filter(d => d.documentTypeId === f.documentTypeId && (!d.expiresAt || d.expiresAt.getTime() > now))
+    const req = { kind, count: f.seriesCount, from: f.seriesFrom, to: f.seriesTo }
+    const cov = seriesCoverage(req, mine.map(d => d.period), app.opskeSubmittedAt ?? new Date())
+    const byPeriod = new Map<string, (typeof mine)[number]>()
+    for (const d of mine) { const p = normalizePeriod(d.period, kind); if (p && !byPeriod.has(p)) byPeriod.set(p, d) }
+    out[o.id] = {
+      kind, requirement: requirementLabel(req), coverage: coverageLabel(cov, kind), complete: cov.complete,
+      periods: cov.required.map(p => { const d = byPeriod.get(p); return { period: p, doc: d ? { id: d.id, name: d.name, mimeType: d.mimeType } : null } }),
+      withoutPeriod: kind === 'LIST' ? 0 : mine.filter(d => !normalizePeriod(d.period, kind)).length,
+      have: cov.have, needed: cov.needed,
+    }
+  }
+  return out
+}

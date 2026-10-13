@@ -14,7 +14,6 @@ import { setApplicationStage, type ApplicationDetail } from '@/lib/pm/actions'
 import { STAGE_ORDER, stageLabel, nextStage, verdictLabel, type StageStr, type VerdictStr } from '@/lib/pm/types'
 import { AssignApplicationDialog } from './assign-application-dialog'
 import { AssessmentTab } from './assessment-tab'
-import { DossierSmartUpload } from '@/components/trdr/dossier-smart-upload'
 import { ObligationsTab } from './obligations-tab'
 import { ExpensesTab } from './expenses-tab'
 import { OpskeTab } from './opske-tab'
@@ -60,7 +59,6 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
   const [changingStage, setChangingStage] = React.useState(false)
 
   const next = nextStage(app.stage)
-  const [docsKey, setDocsKey] = React.useState(0)
   const prevIdx = STAGE_ORDER.indexOf(app.stage) - 1
   const prev = prevIdx >= 0 ? STAGE_ORDER[prevIdx] : null
 
@@ -190,20 +188,10 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
         <div className="flex flex-col gap-4">
           {/* Ρύθμιση συχνότητας υπενθύμισης επανεπικοινωνίας (default εβδομαδιαία). */}
           <DocFollowupControl applicationId={app.id} initialDays={app.docFollowupDays} canManage={app.canManage} />
-          {/* Μαζικό ανέβασμα με AI: αναγνώριση τύπου → αποθήκη πελάτη (με το πρόγραμμα του έργου) →
-              κάλυψη αυτόματα των δικαιολογητικών του έργου που ζητούν αυτόν τον τύπο. */}
-          <div className="glass flex flex-wrap items-center justify-between gap-3 rounded-[22px] p-4">
-            <div className="min-w-0 text-[length:var(--fs-12-5)]">
-              <div className="font-semibold">Ανέβασμα πολλών δικαιολογητικών με αναγνώριση AI</div>
-              <div className="text-muted-foreground">Σύρε όλα τα αρχεία μαζί — αναγνωρίζεται ο τύπος, η λήξη και αν αφορούν τον πελάτη, και καλύπτονται αυτόματα όσα ζητά το έργο.</div>
-            </div>
-            <DossierSmartUpload trdrId={app.trdrId} defaultProgramId={app.programId} onDone={() => { setDocsKey(k => k + 1); router.refresh() }} label="Ανέβασμα με AI" variant="default" />
-          </div>
           {/* Αυτόνομη λίστα: ΟΛΑ τα δικαιολογητικά (FORM) όλου του προγράμματος —
               συμπληρώνονται κατά την πορεία, εγκρίνονται από τον διαχειριστή, και
               μπλοκάρουν τη μετάβαση σταδίου μέχρι να εγκριθούν. */}
           <ObligationsTab
-            key={docsKey}
             applicationId={app.id}
             canManage={app.canManage}
             programId={app.programId}
@@ -211,6 +199,9 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
             title="Δικαιολογητικά προγράμματος"
             emptyMessage="Δεν έχουν οριστεί δικαιολογητικά για αυτό το πρόγραμμα."
             showBoardToggle={false}
+            /* Μαζικό ανέβασμα με AI στην κεφαλίδα της λίστας: αναγνώριση τύπου/λήξης/περιόδου → αποθήκη πελάτη (με το
+               πρόγραμμα του έργου) → κάλυψη αυτόματα των δικαιολογητικών του έργου· σειρές (Φ2) με πίνακα περιόδων. */
+            smartUploadTrdrId={app.trdrId}
           />
           {/* Ενσωματωμένος έλεγχος αιτημάτων αρχείων (υποβολές πελάτη → έγκριση/απόρριψη). */}
           <FileRequestsReviewTab applicationId={app.id} />

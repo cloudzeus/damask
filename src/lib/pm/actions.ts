@@ -431,6 +431,13 @@ export type ObligationItem = {
   templateId: string | null
 }
 
+/** Πίνακες περιόδων για τα δικαιολογητικά-σειρές του έργου (π.χ. Φ2 ανά μήνα). */
+export async function listSeriesDetails(applicationId: string): Promise<{ trdrId: string; details: Record<string, import('@/lib/pm/form-obligations').SeriesDetail> }> {
+  const { app } = await requireVisibleApplication(applicationId)
+  const { seriesDetailsForApplication } = await import('@/lib/pm/form-obligations')
+  return { trdrId: app.trdrId, details: await seriesDetailsForApplication(applicationId) }
+}
+
 export async function listObligations(applicationId: string): Promise<ObligationItem[]> {
   await requireVisibleApplication(applicationId)
   const rows = await prisma.applicationObligation.findMany({
