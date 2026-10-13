@@ -62,10 +62,11 @@ const PHASE_BANNER: Record<Phase, { icon: React.ComponentType<{ className?: stri
  * τιμολογίου → processProgramInvoice, src/lib/invoice-flows/program.ts) ίδιο
  * refreshKey pattern με το replace flow παρακάτω.
  */
-export function ExpensesTab({ applicationId, programId, stage, trdrId }: { applicationId: string; programId: string; stage: StageStr; trdrId: string }) {
+export function ExpensesTab({ applicationId, programId, stage, trdrId, approved = false }: { applicationId: string; programId: string; stage: StageStr; trdrId: string; approved?: boolean }) {
   void programId
   const router = useRouter()
-  const phase = phaseOf(stage)
+  // Εγκεκριμένο έργο (εγκριτικό / «σε εξέλιξη»): οι δαπάνες είναι ήδη σε υλοποίηση, ακόμη κι αν εκκρεμούν δικαιολογητικά.
+  const phase = approved ? 'IMPLEMENTATION' : phaseOf(stage)
   const isImplementation = phase === 'IMPLEMENTATION'
   const [categories, setCategories] = React.useState<ExpenseCategoryOption[]>([])
   const [loading, setLoading] = React.useState(true)

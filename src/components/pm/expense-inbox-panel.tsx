@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
-  LuInbox, LuLoaderCircle, LuFileText, LuReceipt, LuLink2, LuPlus, LuEllipsisVertical, LuSparkles, LuTriangleAlert, LuRefreshCw, LuArrowRightLeft, LuTrash2, LuFolder,
+  LuInbox, LuLoaderCircle, LuFileText, LuReceipt, LuLink2, LuPlus, LuEllipsisVertical, LuSparkles, LuTriangleAlert, LuRefreshCw, LuArrowRightLeft, LuTrash2, LuFolder, LuStamp,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -11,11 +11,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import {
-  listInboxDocs, linkInboxInvoice, createExpenseFromInboxInvoice, rereadInboxDoc, moveInboxDoc, dismissInboxDoc, listTrdrApplicationsForInbox,
+  reviewInboxApproval, listInboxDocs, linkInboxInvoice, createExpenseFromInboxInvoice, rereadInboxDoc, moveInboxDoc, dismissInboxDoc, listTrdrApplicationsForInbox,
   type InboxItem, type InboxExpenseOption,
 } from '@/lib/pm/expense-inbox'
 import { getBudgetProposal, type ProposalCategory } from '@/lib/programs/expense-proposal'
 import { QuoteScanDialog } from '@/components/programs/quote-scan-dialog'
+import { ApprovalDialog } from './approval-dialog'
+import type { ApprovalReview } from '@/lib/pm/approval'
 
 /**
  * «Προς καταχώριση» — προσφορές & παραστατικά που ήρθαν από τη μαζική εισαγωγή αρχείων του πελάτη,
@@ -30,6 +32,7 @@ export function ExpenseInboxPanel({ applicationId, trdrId, onChanged }: { applic
   const [data, setData] = React.useState<{ items: InboxItem[]; expenses: InboxExpenseOption[] } | null>(null)
   const [categories, setCategories] = React.useState<ProposalCategory[] | null>(null)
   const [quote, setQuote] = React.useState<InboxItem | null>(null)
+  const [approval, setApproval] = React.useState<{ review: ApprovalReview; inboxId: string } | null>(null)
   const load = React.useCallback(() => {
     listInboxDocs(applicationId).then(setData).catch(() => setData({ items: [], expenses: [] }))
   }, [applicationId])
@@ -46,6 +49,11 @@ export function ExpenseInboxPanel({ applicationId, trdrId, onChanged }: { applic
     setQuote(it)
   }
   const done = () => { load(); onChanged() }
+  async function openApproval(it: InboxItem) {
+    const r = await reviewInboxApproval(it.id).catch(() => null)
+    if (!r || !r.ok) { toast.error(r && !r.ok ? r.message : 'Απέτυχε.'); return }
+    setApproval({ review: r.review, inboxId: it.id })
+  }
 
   return (
     <section className="glass rounded-[22px] p-4" aria-labelledby="inbox-title">
@@ -55,11 +63,11 @@ export function ExpenseInboxPanel({ applicationId, trdrId, onChanged }: { applic
         <span className="badge-pill info">{data.items.length}</span>
       </div>
       <p className="mb-3 text-[length:var(--fs-11-5)] text-muted-foreground">
-        Προσφορές και παραστατικά από τη μαζική εισαγωγή αρχείων του πελάτη — ήδη διαβασμένα. Έλεγξε και καταχώρισε με ένα κλικ.
+        Εγκριτικά, προσφορές και παραστατικά από τη μαζική εισαγωγή αρχείων του πελάτη — ήδη διαβασμένα. Έλεγξε και καταχώρισε με ένα κλικ.
       </p>
       <ul className="flex flex-col gap-2">
         {data.items.map(it => (
-          <InboxRow key={it.id} item={it} expenses={data.expenses} trdrId={trdrId} applicationId={applicationId} onOpenQuote={() => void openQuote(it)} onDone={done} onReload={load} />
+          <InboxRow key={it.id} item={it} expenses={data.expenses} trdrId={trdrId} applicationId={applicationId} onOpenQuote={() => void (it.kind === 'APPROVAL' ? openApproval(it) : openQuote(it))} onDone={done} onReload={load} />
         ))}
       </ul>
       {quote?.quote && (
@@ -71,6 +79,9 @@ export function ExpenseInboxPanel({ applicationId, trdrId, onChanged }: { applic
           onSaved={done}
           preset={{ inboxId: quote.id, scan: quote.quote, fileName: quote.fileName }}
         />
+      )}
+      {approval && (
+        <ApprovalDialog applicationId={applicationId} open={!!approval} onOpenChange={o => { if (!o) setApproval(null) }} onApplied={() => { done(); window.location.reload() }} preset={approval} />
       )}
     </section>
   )
@@ -91,6 +102,7 @@ function InboxRow({
   const [target, setTarget] = React.useState<string>(it.suggestedExpenseId ?? NEW)
   const [moveOpen, setMoveOpen] = React.useState(false)
   const isQuote = it.kind === 'QUOTE'
+  const isApproval = it.kind === 'APPROVAL'
   const freeExpenses = expenses.filter(e => !e.hasInvoice || e.id === it.suggestedExpenseId)
 
   async function run(key: string, fn: () => Promise<{ ok: boolean; message?: string } | void>, okMsg: string, done = true) {
@@ -107,6 +119,7 @@ function InboxRow({
 
   const q = it.quote
   const inv = it.invoice
+  const ap = it.approval
   const supplier = isQuote ? (q?.supplier.existing?.name ?? q?.supplier.name) : inv?.issuer.name
   const afm = isQuote ? q?.supplier.afm : inv?.issuer.afm
   const amount = isQuote ? (q?.totals.net ?? q?.lines.reduce((a, l) => a + l.total, 0)) : (inv?.totals.gross ?? inv?.totals.net)
@@ -115,18 +128,21 @@ function InboxRow({
   return (
     <li className="rounded-2xl border border-border bg-card p-3">
       <div className="flex items-start gap-2.5">
-        <span className={cn('mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg', isQuote ? 'bg-primary/10 text-primary' : 'bg-[color:var(--success)]/10 text-[color:var(--success)]')}>
-          {isQuote ? <LuFileText className="size-4.5" aria-hidden /> : <LuReceipt className="size-4.5" aria-hidden />}
+        <span className={cn('mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg', isQuote || isApproval ? 'bg-primary/10 text-primary' : 'bg-[color:var(--success)]/10 text-[color:var(--success)]')}>
+          {isApproval ? <LuStamp className="size-4.5" aria-hidden /> : isQuote ? <LuFileText className="size-4.5" aria-hidden /> : <LuReceipt className="size-4.5" aria-hidden />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className={cn('badge-pill', isQuote ? 'info' : 'ok')}>{isQuote ? 'Προσφορά' : 'Παραστατικό'}</span>
+            <span className={cn('badge-pill', isQuote || isApproval ? 'info' : 'ok')}>{isApproval ? 'Εγκριτική' : isQuote ? 'Προσφορά' : 'Παραστατικό'}</span>
             <a href={`/expense-inbox/${it.id}`} target="_blank" rel="noreferrer" className="min-w-0 truncate text-[length:var(--fs-13)] font-semibold hover:text-primary hover:underline">{it.fileName}</a>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[length:var(--fs-11-5)] text-muted-foreground">
-            {supplier && <b className="text-foreground">{supplier}</b>}
+            {ap && <b className="text-foreground">{ap.decisionRef ?? ap.applicationCode ?? 'Εγκριτική απόφαση'}</b>}
+            {ap?.totalBudget != null && <span className="tabular-nums">Π/Υ {EUR.format(ap.totalBudget)}</span>}
+            {ap && <span>{ap.expenses.length} εγκεκριμένες δαπάνες</span>}
+            {!isApproval && supplier && <b className="text-foreground">{supplier}</b>}
             {afm && <span>ΑΦΜ {afm}</span>}
-            {amount != null && amount > 0 && <span className="tabular-nums">{EUR.format(amount)}{isQuote ? ' χωρίς ΦΠΑ' : ''}</span>}
+            {!isApproval && amount != null && amount > 0 && <span className="tabular-nums">{EUR.format(amount)}{isQuote ? ' χωρίς ΦΠΑ' : ''}</span>}
             {isQuote && q && <span>{q.lines.length} {q.lines.length === 1 ? 'είδος' : 'είδη'}</span>}
             {!isQuote && inv?.documentNumber && <span>αρ. {inv.documentNumber}</span>}
             {dir && <span className="inline-flex items-center gap-1"><LuFolder className="size-3" aria-hidden />{dir}</span>}
@@ -150,9 +166,11 @@ function InboxRow({
             <DropdownMenuItem onClick={() => void run('reread', () => rereadInboxDoc(it.id), 'Διαβάστηκε ξανά.', false)}>
               <LuRefreshCw className="size-3.5" aria-hidden /> Νέα ανάγνωση
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void run('reread', () => rereadInboxDoc(it.id, isQuote ? 'INVOICE' : 'QUOTE'), isQuote ? 'Ορίστηκε ως παραστατικό.' : 'Ορίστηκε ως προσφορά.', false)}>
-              {isQuote ? <LuReceipt className="size-3.5" aria-hidden /> : <LuFileText className="size-3.5" aria-hidden />} Είναι {isQuote ? 'παραστατικό' : 'προσφορά'}
-            </DropdownMenuItem>
+            {!isApproval && (
+              <DropdownMenuItem onClick={() => void run('reread', () => rereadInboxDoc(it.id, isQuote ? 'INVOICE' : 'QUOTE'), isQuote ? 'Ορίστηκε ως παραστατικό.' : 'Ορίστηκε ως προσφορά.', false)}>
+                {isQuote ? <LuReceipt className="size-3.5" aria-hidden /> : <LuFileText className="size-3.5" aria-hidden />} Είναι {isQuote ? 'παραστατικό' : 'προσφορά'}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => setMoveOpen(true)}>
               <LuArrowRightLeft className="size-3.5" aria-hidden /> Μεταφορά σε άλλο έργο
             </DropdownMenuItem>
@@ -166,7 +184,11 @@ function InboxRow({
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2 pl-11.5">
         {busy === 'reread' && <span className="inline-flex items-center gap-1.5 text-[length:var(--fs-11-5)] text-muted-foreground"><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Ανάγνωση…</span>}
-        {isQuote ? (
+        {isApproval ? (
+          <Button type="button" size="sm" onClick={onOpenQuote} disabled={!ap || !!busy}>
+            <LuStamp className="size-3.5" aria-hidden /> Καταχώριση εγκριτικής
+          </Button>
+        ) : isQuote ? (
           <Button type="button" size="sm" onClick={onOpenQuote} disabled={!q || !!busy}>
             <LuPlus className="size-3.5" aria-hidden /> Δημιουργία δαπανών
           </Button>

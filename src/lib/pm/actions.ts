@@ -99,6 +99,8 @@ export type ApplicationDetail = {
   opskeSubmittedAt: string | null
   docFollowupDays: number
   canManage: boolean
+  /** Εγκεκριμένο έργο (εισαγωγή «σε εξέλιξη» ή καταχωρισμένο εγκριτικό) — οι δαπάνες είναι σε υλοποίηση ανεξαρτήτως σταδίου. */
+  approved: boolean
 }
 
 export async function getApplication(applicationId: string): Promise<ApplicationDetail> {
@@ -131,6 +133,7 @@ export async function getApplication(applicationId: string): Promise<Application
     opskeSubmittedAt: app.opskeSubmittedAt ? app.opskeSubmittedAt.toISOString() : null,
     docFollowupDays: app.docFollowupDays,
     canManage: (session.user.permissions ?? []).includes('pm.manage'),
+    approved: !!app.onboardedAt,
   }
 }
 

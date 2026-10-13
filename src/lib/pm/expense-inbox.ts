@@ -11,6 +11,7 @@ import { extractDocument } from '@/lib/ocr/extract'
 import type { ExtractedDocument } from '@/lib/ocr/schema'
 import { scanQuoteForApplication, createExpensesFromQuote, type QuoteScan, type QuoteLine } from '@/lib/programs/expense-proposal'
 import { saveInvoiceOcr } from '@/lib/programs/expense-purchase'
+import { extractApprovalDoc, prepareApprovalReview, type ApprovalReview, type ApprovalExtract } from '@/lib/pm/approval'
 
 /**
  * «Προς καταχώριση» (ApplicationInboxDoc): προσφορές και παραστατικά που ήρθαν από τη μαζική εισαγωγή
@@ -19,7 +20,7 @@ import { saveInvoiceOcr } from '@/lib/programs/expense-purchase'
  * ένα κλικ. Τίποτα δεν αλλάζει τον προϋπολογισμό χωρίς τον έλεγχό του.
  */
 
-export type InboxKind = 'QUOTE' | 'INVOICE'
+export type InboxKind = 'QUOTE' | 'INVOICE' | 'APPROVAL'
 export type InboxExpenseOption = { id: string; description: string; amount: number; supplierName: string | null; supplierAfm: string | null; hasInvoice: boolean }
 export type InboxItem = {
   id: string
@@ -36,6 +37,7 @@ export type InboxItem = {
   suggestReason: string | null
   /** Παραστατικό που εξέδωσε ο ίδιος ο πελάτης (πώληση) — μάλλον δεν αφορά δαπάνη. */
   ownInvoice: boolean
+  approval: ApprovalExtract | null
 }
 
 const MAX_BYTES = 11 * 1024 * 1024
@@ -47,6 +49,10 @@ function canRead(mime: string) {
 async function readFile(applicationId: string, kind: InboxKind, file: { base64: string; mimeType: string }, userId: string): Promise<{ extracted: Prisma.InputJsonValue | null; readError: string | null }> {
   if (!canRead(file.mimeType)) return { extracted: null, readError: 'Μόνο PDF ή εικόνες διαβάζονται αυτόματα.' }
   try {
+    if (kind === 'APPROVAL') {
+      const x = await extractApprovalDoc(applicationId, file)
+      return { extracted: x as unknown as Prisma.InputJsonValue, readError: null }
+    }
     if (kind === 'QUOTE') {
       const r = await scanQuoteForApplication(applicationId, file)
       return r.ok ? { extracted: r.scan as unknown as Prisma.InputJsonValue, readError: null } : { extracted: null, readError: r.message }
@@ -144,6 +150,7 @@ export async function listInboxDocs(applicationId: string): Promise<{ items: Inb
       invoice,
       suggestedExpenseId: sug?.id ?? null, suggestReason: sug?.reason ?? null,
       ownInvoice: !!invoice && !!ownAfm && norm(invoice.issuer.afm) === ownAfm,
+      approval: kind === 'APPROVAL' && r.extracted ? (r.extracted as unknown as ApprovalExtract) : null,
     }
   })
   return { items, expenses: expenses.map(({ docNumber: _d, ...e }) => { void _d; return e }) }
@@ -251,6 +258,14 @@ export async function dismissInboxDoc(id: string): Promise<void> {
   const session = await requirePermission('programs.manage')
   const row = await getPending(id)
   await finish(id, 'DISMISSED', 'Απορρίφθηκε', session.user.id, row.applicationId)
+}
+
+/** Εγκριτικό από το «Προς καταχώριση» → πρόταση για έλεγχο (κατηγορίες κ.λπ.). */
+export async function reviewInboxApproval(id: string): Promise<{ ok: true; review: ApprovalReview } | { ok: false; message: string }> {
+  await requirePermission('programs.manage')
+  const row = await getPending(id)
+  if (row.kind !== 'APPROVAL' || !row.extracted) return { ok: false, message: 'Το εγκριτικό δεν διαβάστηκε — δοκιμάστε «Νέα ανάγνωση».' }
+  return { ok: true, review: await prepareApprovalReview(row.applicationId, { storageKey: row.storageKey, fileName: row.fileName, extract: row.extracted as unknown as ApprovalExtract }) }
 }
 
 /** Έργα του πελάτη (για την επιλογή προορισμού στη μαζική εισαγωγή). */

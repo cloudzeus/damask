@@ -1,12 +1,13 @@
 'use client'
 
 import { Combobox } from '@/components/ui/combobox'
+import { DocumentPreviewDialog } from '@/components/ui/document-preview'
 import { isSeriesKind, periodLabel, type SeriesKind } from '@/lib/documents/series'
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
   LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload, LuCopy, LuInfo, LuFolderKanban,
-  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive,
+  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuStamp, LuEye,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,7 +37,7 @@ import { runOcrExtraction } from '@/lib/ocr/actions'
 
 type Phase = 'reading' | 'classifying' | 'ready' | 'saving' | 'saved' | 'error'
 /** Πού πάει το αρχείο: δικαιολογητικό πελάτη · προσφορά/παραστατικό → «Προς καταχώριση» του έργου · αρχεία πελάτη (με τη δομή φακέλων). */
-type Dest = 'dossier' | 'quote' | 'invoice' | 'files'
+type Dest = 'dossier' | 'approval' | 'quote' | 'invoice' | 'files'
 type AppOption = { id: string; programId: string; title: string }
 
 type Row = {
@@ -97,6 +98,7 @@ const INLINE_MAX = 11 * 1024 * 1024
 const NOT_A_DOC = /\.(mp4|mov|avi|mkv|webm|mp3|wav|m4a|zip|rar|7z|gz|tar|dmg|exe|iso|psd|ai|indd)$/i
 const DEST_META: Record<Dest, { label: string; short: string }> = {
   dossier: { label: 'Δικαιολογητικό', short: 'δικαιολογητικά' },
+  approval: { label: 'Εγκριτική', short: 'εγκριτικά' },
   quote: { label: 'Προσφορά', short: 'προσφορές' },
   invoice: { label: 'Παραστατικό', short: 'παραστατικά' },
   files: { label: 'Αρχεία πελάτη', short: 'στα αρχεία' },
@@ -183,7 +185,7 @@ export function DossierSmartUpload({
         const app = list.find(a => a.programId === s.programId) ?? (list.length === 1 ? list[0] : null)
         patch(id, {
           phase: 'ready', suggestion: s,
-          dest: list.length ? (s.commercial === 'QUOTE' ? 'quote' : 'invoice') : 'files',
+          dest: list.length ? (s.commercial === 'QUOTE' ? 'quote' : s.commercial === 'APPROVAL' ? 'approval' : 'invoice') : 'files',
           appId: app?.id ?? '',
           error: list.length ? null : 'Ο πελάτης δεν είναι ενταγμένος σε έργο — θα μπει στα αρχεία του.',
         })
@@ -257,7 +259,7 @@ export function DossierSmartUpload({
   const busy = rows.some(r => r.phase === 'reading' || r.phase === 'classifying' || r.phase === 'saving')
   const pending = rows.filter(r => r.phase !== 'saved' && r.decision !== 'skip')
   const missingType = pending.some(r => r.phase === 'ready' && r.dest === 'dossier' && !r.typeId)
-  const missingApp = pending.some(r => r.phase === 'ready' && (r.dest === 'quote' || r.dest === 'invoice') && !r.appId)
+  const missingApp = pending.some(r => r.phase === 'ready' && (r.dest === 'quote' || r.dest === 'invoice' || r.dest === 'approval') && !r.appId)
 
   // Ίδιο αρχείο δύο φορές στην ίδια παρτίδα: το δεύτερο δείχνει στο πρώτο.
   const batchDupOf = React.useMemo(() => {
@@ -309,17 +311,17 @@ export function DossierSmartUpload({
         }
         continue
       }
-      if (r.dest === 'quote' || r.dest === 'invoice') {
+      if (r.dest === 'quote' || r.dest === 'invoice' || r.dest === 'approval') {
         if (!r.appId) continue
         patch(r.id, { phase: 'saving' })
         try {
           const { base64, ext } = await readFileBase64(r.file)
           const res = await stageInboxDoc({
-            applicationId: r.appId, kind: r.dest === 'quote' ? 'QUOTE' : 'INVOICE',
+            applicationId: r.appId, kind: r.dest === 'quote' ? 'QUOTE' : r.dest === 'approval' ? 'APPROVAL' : 'INVOICE',
             name: r.file.name, base64, mimeType: r.file.type || 'application/octet-stream', ext, relPath: r.relPath || null,
           })
           if (!res.ok) { patch(r.id, { phase: 'error', error: res.message }); continue }
-          patch(r.id, { phase: 'saved', savedNote: `«Προς καταχώριση» στις δαπάνες του έργου ${res.programTitle}${res.read ? '' : ' (χωρίς ανάγνωση)'}` })
+          patch(r.id, { phase: 'saved', savedNote: `«Προς καταχώριση» στο έργο ${res.programTitle}${res.read ? '' : ' (χωρίς ανάγνωση)'}` })
           staged += 1
         } catch {
           patch(r.id, { phase: 'error', error: 'Η αποθήκευση απέτυχε.' })
@@ -414,7 +416,7 @@ export function DossierSmartUpload({
     if (r.phase === 'reading' || r.phase === 'classifying') acc.working += 1
     else if (r.decision !== 'skip' && !batchDupOf.has(r.id)) acc[r.dest] += 1
     return acc
-  }, { working: 0, dossier: 0, quote: 0, invoice: 0, files: 0 } as Record<Dest | 'working', number>)
+  }, { working: 0, dossier: 0, approval: 0, quote: 0, invoice: 0, files: 0 } as Record<Dest | 'working', number>)
 
   return (
     <>
@@ -466,7 +468,7 @@ export function DossierSmartUpload({
             <div className="flex flex-wrap items-center gap-1.5 text-[length:var(--fs-11-5)]" aria-live="polite">
               <span className="font-semibold">{rows.length} αρχεία:</span>
               {counts.working > 0 && <span className="badge-pill muted"><LuLoaderCircle className="size-3 animate-spin" aria-hidden /> {counts.working} σε αναγνώριση</span>}
-              {(['dossier', 'quote', 'invoice', 'files'] as Dest[]).filter(d => counts[d] > 0).map(d => (
+              {(['dossier', 'approval', 'quote', 'invoice', 'files'] as Dest[]).filter(d => counts[d] > 0).map(d => (
                 <span key={d} className={cn('badge-pill', d === 'files' ? 'muted' : d === 'dossier' ? 'ok' : 'info')} style={{ textTransform: 'none' }}>{counts[d]} {DEST_META[d].short}</span>
               ))}
             </div>
@@ -567,6 +569,7 @@ function RowCard({
             {row.error && <span className="text-destructive">{row.error}</span>}
           </div>
         </div>
+        <LocalPreview file={row.file} />
         {!locked && (
           <button type="button" onClick={onRemove} aria-label={`Αφαίρεση ${row.file.name}`} className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
             <LuX className="size-4" aria-hidden />
@@ -576,9 +579,9 @@ function RowCard({
 
       {!working && row.phase !== 'saved' && !skipped && (
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label={`Πού πάει το ${row.file.name}`}>
-          {(['dossier', 'quote', 'invoice', 'files'] as Dest[]).map(d => {
-            const Icon = d === 'dossier' ? LuFileBadge : d === 'quote' ? LuFileText : d === 'invoice' ? LuReceipt : LuHardDrive
-            const off = (d === 'quote' || d === 'invoice') && apps.length === 0
+          {(['dossier', 'approval', 'quote', 'invoice', 'files'] as Dest[]).map(d => {
+            const Icon = d === 'dossier' ? LuFileBadge : d === 'approval' ? LuStamp : d === 'quote' ? LuFileText : d === 'invoice' ? LuReceipt : LuHardDrive
+            const off = (d === 'quote' || d === 'invoice' || d === 'approval') && apps.length === 0
             return (
               <button
                 key={d}
@@ -600,9 +603,9 @@ function RowCard({
         </div>
       )}
 
-      {!working && row.phase !== 'saved' && !skipped && (row.dest === 'quote' || row.dest === 'invoice') && (
+      {!working && row.phase !== 'saved' && !skipped && (row.dest === 'quote' || row.dest === 'invoice' || row.dest === 'approval') && (
         <div className="mt-2.5 field !mb-0">
-          <label>Έργο στο οποίο αφορά <span className="font-normal text-muted-foreground">— μπαίνει στις δαπάνες του ως «Προς καταχώριση», ήδη διαβασμένο</span></label>
+          <label>Έργο στο οποίο αφορά <span className="font-normal text-muted-foreground">— μπαίνει στο έργο (Δαπάνες & Πλάνο) ως «Προς καταχώριση», ήδη διαβασμένο</span></label>
           <Select value={row.appId || undefined} onValueChange={v => onChange({ appId: v ?? '' })} disabled={locked}>
             <SelectTrigger aria-label="Έργο" className={cn('h-9 w-full rounded-full border-border bg-card px-3 text-[length:var(--fs-12-5)]', !row.appId && 'border-[color:var(--warning)]')}>
               <SelectValue placeholder="Επίλεξε έργο…">{(v: string) => apps.find(a => a.id === v)?.title ?? ''}</SelectValue>
@@ -877,5 +880,25 @@ export function PeriodInput({ kind, value, disabled, onChange }: { kind: SeriesK
       </SelectTrigger>
       <SelectContent>{options.map(o => <SelectItem key={o} value={o}>{periodLabel(o)}</SelectItem>)}</SelectContent>
     </Select>
+  )
+}
+
+/** Προβολή του τοπικού αρχείου (πριν ανέβει) — για όσα δεν θυμόμαστε τι είναι πριν τα κατατάξουμε. */
+function LocalPreview({ file }: { file: File }) {
+  const [url, setUrl] = React.useState<string | null>(null)
+  React.useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setUrl(URL.createObjectURL(file))}
+        aria-label={`Προβολή ${file.name}`}
+        title="Προβολή αρχείου"
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-primary"
+      >
+        <LuEye className="size-4" aria-hidden />
+      </button>
+      {url && <DocumentPreviewDialog url={url} name={file.name} mimeType={file.type} open onOpenChange={o => { if (!o) setUrl(null) }} />}
+    </>
   )
 }

@@ -27,6 +27,7 @@ import { ApplicationContactsTab } from './application-contacts-tab'
 import { PortalAccessDialog } from './portal-access-dialog'
 import { FolderStatusDialog } from './folder-status-dialog'
 import { EmailHistory } from '@/components/email/email-history'
+import { ApprovalStrip } from './approval-dialog'
 
 /**
  * Το «Έργο hub» (Task 10) — κεντρική οθόνη PM για μία αίτηση προγράμματος:
@@ -126,6 +127,7 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
             )}
           </div>
         </div>
+        {app.canManage && <ApprovalStrip applicationId={app.id} />}
       </div>
 
       {/* Stage stepper */}
@@ -160,7 +162,7 @@ export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetai
 
       {activeTab === 'assessment' && <AssessmentTab applicationId={app.id} canManage={app.canManage} />}
       {activeTab === 'obligations' && <ObligationsTab applicationId={app.id} canManage={app.canManage} programId={app.programId} />}
-      {activeTab === 'expenses' && <ExpensesTab applicationId={app.id} programId={app.programId} stage={app.stage} trdrId={app.trdrId} />}
+      {activeTab === 'expenses' && <ExpensesTab applicationId={app.id} programId={app.programId} stage={app.stage} trdrId={app.trdrId} approved={app.approved} />}
       {activeTab === 'deliverables' && (
         <ObligationsTab
           applicationId={app.id}

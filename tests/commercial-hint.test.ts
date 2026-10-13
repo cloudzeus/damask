@@ -16,6 +16,12 @@ describe('commercialHint — προσφορά/παραστατικό από όν
     expect(commercialHint('ΤΠΥ 00045.pdf')).toBe('INVOICE')
     expect(commercialHint('invoice_445.pdf')).toBe('INVOICE')
   })
+  it('αναγνωρίζει εγκριτικά', () => {
+    expect(commercialHint('3 = EFCC ΙΚΕ/ΕΓΚΡΙΣΗ/Proposal_CR-4309043 (Έγκριση).pdf')).toBe('APPROVAL')
+    expect(commercialHint('Αποτελέσματα Αξιολόγησης.pdf')).toBe('APPROVAL')
+    expect(commercialHint('Εγκριτική απόφαση ένταξης.pdf')).toBe('APPROVAL')
+    expect(commercialHint('Έγκριση δόμησης.pdf')).toBeNull()
+  })
   it('δεν πιάνει δικαιολογητικά', () => {
     expect(commercialHint('Φ2_03-2025.pdf')).toBeNull()
     expect(commercialHint('Δικαιολογητικά/Ενημερότητα ΕΦΚΑ.pdf')).toBeNull()

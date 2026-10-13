@@ -69,6 +69,7 @@ export const ACTIONS = {
   'supplier_cert.send': { category: 'APPLICATION', label: 'Αποστολή βεβαίωσης προμηθευτή για υπογραφή', weight: 2 },
   'supplier_cert.sign': { category: 'APPLICATION', label: 'Υπογραφή βεβαίωσης προμηθευτή (γραφείο)', weight: 1 },
   'application.onboard': { category: 'APPLICATION', label: 'Εισαγωγή έργου σε εξέλιξη (εγκεκριμένο)', weight: 3 },
+  'application.approval': { category: 'APPLICATION', label: 'Καταχώριση εγκριτικής απόφασης', weight: 3 },
   'application.stage': { category: 'APPLICATION', label: 'Αλλαγή σταδίου PM', weight: 1 },
   'opportunity.create': { category: 'APPLICATION', label: 'Δημιουργία ευκαιρίας', weight: 2 },
   'proposal.submit': { category: 'APPLICATION', label: 'Υποβολή πρότασης', weight: 3 },

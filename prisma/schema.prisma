@@ -1586,6 +1586,7 @@ model ProgramApplication {
   updatedAt           DateTime             @updatedAt
   expenses            ProgramExpense[]
   inboxDocs           ApplicationInboxDoc[]
+  approval            ApplicationApproval?
 
   stage               ApplicationStage            @default(ASSESSMENT)
   managerId           String?
@@ -3157,4 +3158,38 @@ model ApplicationInboxDoc {
 
   @@index([applicationId, status])
   @@index([trdrId])
+}
+
+/// Στοιχεία ΕΓΚΡΙΤΙΚΗΣ απόφασης / «Αποτελεσμάτων Αξιολόγησης» (ΟΠΣΚΕ) ενός έργου — από ανάγνωση του PDF.
+/// Βάση για το project management εγκεκριμένων έργων: κωδικός αίτησης, απόφαση/ΑΔΑ, διάρκεια, προϋπολογισμός,
+/// εγκεκριμένες δαπάνες (expenses JSON — από αυτές δημιουργούνται οι δαπάνες του έργου) και δείκτες.
+model ApplicationApproval {
+  id              String             @id @default(cuid())
+  applicationId   String             @unique
+  application     ProgramApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationCode String?
+  beneficiaryCode String?
+  submittedAt     DateTime?
+  decisionRef     String?
+  ada             String?
+  decisionDate    DateTime?
+  resultStatus    String?
+  projectTitle    String?
+  durationMonths  Int?
+  /// Λήξη υλοποίησης (απόφαση + διάρκεια, διορθώσιμη).
+  endsAt          DateTime?
+  regionCategory  String?
+  score           Float?
+  totalBudget     Decimal?           @db.Decimal(18, 2)
+  publicAmount    Decimal?           @db.Decimal(18, 2)
+  privateAmount   Decimal?           @db.Decimal(18, 2)
+  aidPct          Float?
+  expenses        Json?
+  indicators      Json?
+  extra           Json?
+  docKey          String?
+  docName         String?
+  createdById     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 }
