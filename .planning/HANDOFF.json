@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-13T06:50:51.768Z",
+  "timestamp": "2026-10-13T21:41:03.408Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,64 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "prisma/schema.prisma"
+    },
+    {
+      "status": "M",
+      "path": "src/app/api/partners/[id]/files/upload-chunk/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/components/trdr/dossier-smart-upload.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/documents/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/documents/smart-classify-core.ts"
+    },
+    {
+      "status": "D",
+      "path": "src/lib/documents/text-cache.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/server/queue-start.ts"
+    },
+    {
+      "status": "M",
+      "path": "tests/commercial-hint.test.ts"
+    },
+    {
+      "status": "??",
+      "path": "prisma/migrations/20261014120000_import_batch/"
+    },
+    {
+      "status": "??",
+      "path": "src/app/api/imports/"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/documents/dossier-core.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/import/actions.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/import/recognize.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/import/rules.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nff89f05 fix(memory): η συγχώνευση τύπων κρατά πάντα τον τύπο με ειδικό αναγνώστη (Δήλωση ΜΜΕ / Ε3 / ΕΜΕ)\ncfbeb79 chore: ενημέρωση HANDOFF\n811ede9 fix(memory): η ετοιμότητα μετρά τις σειρές από την υποβολή του έργου (όπως οι υποχρεώσεις), όχι από σήμερα\n1dcf2b9 chore: ενημέρωση HANDOFF\n41a3698 fix(thanos): office_memory δίνει ολόκληρες τις τιμές ανά έτος (όχι κομμένες στον Μάιο)"
+  "context_notes": "Recent commits:\nc8fdb28 feat(import): μαζική εισαγωγή ανθεκτική σε όρια AI — φάση 1 (μνήμη ορίων Gemini, επαναλήψεις, κρυφή μνήμη κειμένου)\n44de71e docs: σχεδιασμός μαζικής εισαγωγής που δεν χάνεται (παρτίδα στον server, ρυθμιστής ρυθμού, «υπάρχει ήδη», ξαναεξέταση με αλλαγές καταλόγου)\n27ccc4c chore: ενημέρωση HANDOFF\nff89f05 fix(memory): η συγχώνευση τύπων κρατά πάντα τον τύπο με ειδικό αναγνώστη (Δήλωση ΜΜΕ / Ε3 / ΕΜΕ)\ncfbeb79 chore: ενημέρωση HANDOFF"
 }
