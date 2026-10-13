@@ -116,6 +116,7 @@ export async function uploadTrdrDossierDoc(
   if (!trdr) throw new Error('Ο συναλλασσόμενος δεν βρέθηκε.')
 
   const id = crypto.randomUUID()
+  const docPeriod = await periodFor(input.documentTypeId, input.period)
   const ext = (input.ext || 'bin').replace(/[^a-z0-9]/gi, '').toLowerCase() || 'bin'
   const key = `dossier/${trdrId}/${id}.${ext}`
   const body = Buffer.from(input.base64, 'base64')
@@ -135,7 +136,7 @@ export async function uploadTrdrDossierDoc(
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
       programId: input.programId || null,
       reusable: input.reusable ?? true,
-      period: await periodFor(input.documentTypeId, input.period),
+      period: docPeriod,
       uploadedById: session.user.id,
     },
   })
@@ -167,7 +168,7 @@ export async function uploadTrdrDossierDoc(
   if (mme?.coveredExtra) { cover.covered += mme.coveredExtra.covered; cover.programs.push(...mme.coveredExtra.programs) }
   // Οποιοσδήποτε άλλος τύπος με έτοιμο Οδηγό Εντύπου: βρίσκει τα δηλωμένα πεδία και τα καταχωρεί στον προορισμό τους.
   const template = !eme && !e3 && !mme
-    ? await processTemplateIfApplicable({ docId: id, trdrId, documentTypeId: input.documentTypeId, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id })
+    ? await processTemplateIfApplicable({ docId: id, trdrId, documentTypeId: input.documentTypeId, base64: input.base64, mimeType: input.mimeType, storageKey: key, name: input.name, userId: session.user.id, period: docPeriod })
     : null
   revalidatePath(`/partners/${trdrId}`)
   return { id, covered: cover.covered, coveredPrograms: [...new Set(cover.programs)], eme, e3: e3?.applied ?? null, mme: mme?.applied ?? null, template }

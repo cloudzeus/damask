@@ -2,12 +2,13 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { LuLayers, LuCheck, LuChevronDown, LuTrash2, LuTriangleAlert } from 'react-icons/lu'
+import { LuLayers, LuCheck, LuChevronDown, LuTrash2, LuTriangleAlert, LuTable2, LuLoaderCircle, LuScanText } from 'react-icons/lu'
 import { cn } from '@/lib/utils'
 import { DocumentPreviewButton } from '@/components/ui/document-preview'
 import { updateTrdrDossierDoc, removeTrdrDossierDoc, type DossierDocItem } from '@/lib/documents/actions'
 import { lastPeriods, rangePeriods, normalizePeriod, periodLabel, seriesMeta, type SeriesKind } from '@/lib/documents/series'
 import { PeriodInput } from './dossier-smart-upload'
+import { listSeriesValues, readTypeValues, type SeriesValues } from '@/lib/documents/value-capture'
 
 /**
  * Ένας τύπος-σειρά στα δικαιολογητικά του πελάτη (π.χ. Φ2 ανά μήνα): πλέγμα περιόδων ✓/κενό (με ένα βλέμμα τι υπάρχει
@@ -24,6 +25,7 @@ export function DossierSeriesGroup({ trdrId, kind, typeName, docs, canEdit, onCh
   onChanged: () => void
 }) {
   const [open, setOpen] = React.useState(false)
+  const [showValues, setShowValues] = React.useState(false)
   const [today] = React.useState(() => new Date())
   const byPeriod = new Map<string, DossierDocItem>()
   const noPeriod: DossierDocItem[] = []
@@ -63,7 +65,12 @@ export function DossierSeriesGroup({ trdrId, kind, typeName, docs, canEdit, onCh
             <LuTriangleAlert className="size-3" aria-hidden /> {noPeriod.length} χωρίς περίοδο
           </span>
         )}
-        <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="ml-auto inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 text-[length:var(--fs-12)] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+        {kind !== 'LIST' && docs.length > 0 && (
+          <button type="button" onClick={() => setShowValues(v => !v)} aria-expanded={showValues} className="ml-auto inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 text-[length:var(--fs-12)] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+            <LuTable2 className="size-3.5" aria-hidden /> Πίνακας τιμών
+          </button>
+        )}
+        <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className={cn(kind === 'LIST' || !docs.length ? 'ml-auto' : '', 'inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 text-[length:var(--fs-12)] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground')}>
           {open ? 'Λιγότερα' : 'Έγγραφα'} <LuChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} aria-hidden />
         </button>
       </div>
@@ -99,6 +106,8 @@ export function DossierSeriesGroup({ trdrId, kind, typeName, docs, canEdit, onCh
         </>
       )}
 
+      {showValues && docs[0] && <SeriesValuesTable trdrId={trdrId} typeId={docs[0].documentTypeId} canEdit={canEdit} />}
+
       {open && (
         <ul className="mt-3 flex flex-col divide-y divide-border rounded-xl border border-border">
           {[...docs].sort((a, b) => (b.period ?? '').localeCompare(a.period ?? '')).map(d => (
@@ -119,6 +128,63 @@ export function DossierSeriesGroup({ trdrId, kind, typeName, docs, canEdit, onCh
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+/** Πίνακας τιμών ανά περίοδο (από τον Οδηγό του τύπου) — αποθηκευμένες στην εταιρία, διαθέσιμες σε κάθε πρόγραμμα. */
+function SeriesValuesTable({ trdrId, typeId, canEdit }: { trdrId: string; typeId: string; canEdit: boolean }) {
+  const [data, setData] = React.useState<SeriesValues | null | 'none'>(null)
+  const [reading, setReading] = React.useState(false)
+  const load = React.useCallback(() => { listSeriesValues(trdrId, typeId).then(d => setData(d ?? 'none')).catch(() => setData('none')) }, [trdrId, typeId])
+  React.useEffect(() => { load() }, [load])
+
+  async function readAll() {
+    setReading(true)
+    try {
+      const r = await readTypeValues(trdrId, typeId)
+      toast.success(`Διαβάστηκαν ${r.read} έγγραφα${r.failed ? ` · ${r.failed} χωρίς τιμές` : ''}.`)
+      load()
+    } catch { toast.error('Η ανάγνωση απέτυχε.') } finally { setReading(false) }
+  }
+
+  if (data === null) return <p className="mt-3 flex items-center gap-2 text-[length:var(--fs-12)] text-muted-foreground"><LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> Φόρτωση τιμών…</p>
+  if (data === 'none') {
+    return (
+      <p className="mt-3 rounded-xl border border-dashed border-border px-3 py-2.5 text-[length:var(--fs-12)] text-muted-foreground">
+        Δεν έχουν οριστεί τιμές για αυτόν τον τύπο. Στο «Ανέβασμα με AI» πατήστε <b>Σάρωση τιμών</b> σε ένα έγγραφο και επιλέξτε τι κρατάμε — από εκεί και πέρα διαβάζονται αυτόματα.
+      </p>
+    )
+  }
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      {data.unread > 0 && canEdit && (
+        <div className="flex flex-wrap items-center gap-2 text-[length:var(--fs-12)]">
+          <span className="text-muted-foreground">{data.unread} έγγραφα δεν έχουν διαβαστεί ακόμη.</span>
+          <button type="button" onClick={() => void readAll()} disabled={reading} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 font-semibold hover:border-primary hover:text-primary disabled:opacity-60">
+            {reading ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuScanText className="size-3.5" aria-hidden />} Ανάγνωση τιμών
+          </button>
+        </div>
+      )}
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="w-full text-[length:var(--fs-12)]">
+          <thead className="bg-muted/50 text-left text-[length:var(--fs-10-5)] font-bold tracking-wide text-muted-foreground uppercase">
+            <tr>
+              <th className="sticky left-0 bg-muted/90 px-2 py-2">Περίοδος</th>
+              {data.fields.map(f => <th key={f.key} className="px-2 py-2 text-right whitespace-nowrap" title={f.label}>{f.label}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {data.rows.map(r => (
+              <tr key={r.period} className="border-t border-border">
+                <td className="sticky left-0 bg-card px-2 py-1.5 font-semibold whitespace-nowrap">{periodLabel(r.period)}</td>
+                {data.fields.map(f => <td key={f.key} className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">{r.values[f.key] ?? '—'}</td>)}
+              </tr>
+            ))}
+            {data.rows.length === 0 && <tr><td colSpan={data.fields.length + 1} className="px-3 py-5 text-center text-muted-foreground">Καμία τιμή ακόμη — πατήστε «Ανάγνωση τιμών».</td></tr>}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

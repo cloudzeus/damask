@@ -29,3 +29,12 @@ describe('commercialHint — προσφορά/παραστατικό από όν
     expect(commercialHint('Βεβαίωση εργοδότη.pdf')).toBeNull()
   })
 })
+
+import { periodFromFileName } from '@/lib/documents/series'
+describe('periodFromFileName — συνεχόμενος μήνας+έτος', () => {
+  it('«Φ2 012022» → 2022-01', () => {
+    expect(periodFromFileName('Φ2 012022.pdf', 'MONTHLY')).toBe('2022-01')
+    expect(periodFromFileName('F2_202211.pdf', 'MONTHLY')).toBe('2022-11')
+    expect(periodFromFileName('Φ2 122022.pdf', 'QUARTERLY')).toBe('2022-Q4')
+  })
+})

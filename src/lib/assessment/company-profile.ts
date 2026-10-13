@@ -56,7 +56,7 @@ export async function buildCompanyProfile(trdrId: string, now = new Date()): Pro
       },
     }),
     prisma.trdrFinancialValue.findMany({
-      where: { trdrId, kind: 'SINGLE' },
+      where: { trdrId, kind: 'SINGLE', period: '' },
       select: { fieldKey: true, year: true, value: true, valueText: true, source: true, verified: true },
       orderBy: [{ fieldKey: 'asc' }, { year: 'asc' }],
     }),

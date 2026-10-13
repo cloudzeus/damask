@@ -149,6 +149,9 @@ export function coverageLabel(c: SeriesCoverage, kind: SeriesKind): string {
 export function periodFromFileName(fileName: string, kind: SeriesKind): string | null {
   if (kind === 'LIST') return null
   const base = fileName.replace(/\.[^.]+$/, '')
+  // «Φ2 012022» / «F2_202201»: μήνας+έτος χωρίς διαχωριστικό.
+  const c = /(?:^|\D)(0[1-9]|1[0-2])(20\d{2})(?:\D|$)|(?:^|\D)(20\d{2})(0[1-9]|1[0-2])(?:\D|$)/.exec(base)
+  if (c && kind !== 'YEARLY') return normalizePeriod(c[1] ? `${c[2]}-${c[1]}` : `${c[3]}-${c[4]}`, kind)
   const m = /(\d{1,2})[-_. /](20\d{2})|(20\d{2})[-_. /](\d{1,2})/.exec(base)
   if (m && kind !== 'YEARLY') return normalizePeriod(m[1] ? `${m[1]}/${m[2]}` : `${m[3]}-${m[4]}`, kind)
   return kind === 'YEARLY' ? normalizePeriod(/(20\d{2})/.exec(base)?.[1] ?? null, kind) : null

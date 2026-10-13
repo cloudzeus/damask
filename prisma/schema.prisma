@@ -1167,6 +1167,10 @@ model TrdrFormRecord {
   templateId    String
   template      TaxFormTemplate      @relation(fields: [templateId], references: [id], onDelete: Restrict)
   year          Int
+  /// Περίοδος για έγγραφα-σειρές (π.χ. Φ2 «2025-03»).
+  period        String?
+  /// Το δικαιολογητικό από το οποίο προήλθε (για επανάγνωση).
+  dossierDocId  String?
   storageKey    String
   pageCount     Int?
   status        String               @default("PENDING")
@@ -1202,10 +1206,12 @@ model TrdrFinancialValue {
   verified       Boolean              @default(false)
   verifiedById   String?
   note           String?
+  /// Περίοδος για έγγραφα-σειρές (π.χ. Φ2 «2025-03»)· '' = ετήσια τιμή.
+  period         String               @default("")
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
-  @@unique([trdrId, fieldKey, year])
+  @@unique([trdrId, fieldKey, year, period])
   @@index([trdrId])
   @@index([fieldKey, year])
 }
@@ -3192,4 +3198,21 @@ model ApplicationApproval {
   createdById     String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
+}
+
+/// Μητρώο παγίων της εταιρίας (ανά χρήση) — διαβασμένο από PDF/Excel του λογιστή. Χρησιμοποιείται για διασταύρωση
+/// των δαπανών εξοπλισμού (παραστατικό/ημ./ποσό/S/N) ότι καταχωρίστηκαν ως πάγια.
+model FixedAssetRegister {
+  id          String   @id @default(cuid())
+  trdrId      String
+  year        Int?
+  /// [{code, description, date, qty, value, docNo, serial}]
+  items       Json
+  docKey      String?
+  docName     String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([trdrId])
 }

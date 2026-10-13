@@ -2,12 +2,13 @@
 
 import { Combobox } from '@/components/ui/combobox'
 import { DocumentPreviewDialog } from '@/components/ui/document-preview'
+import { ValueCaptureDialog } from './value-capture-dialog'
 import { isSeriesKind, periodLabel, type SeriesKind } from '@/lib/documents/series'
 import * as React from 'react'
 import { toast } from 'sonner'
 import {
   LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload, LuCopy, LuInfo, LuFolderKanban,
-  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuStamp, LuEye,
+  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuStamp, LuEye, LuScanText,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -145,7 +146,9 @@ export function DossierSmartUpload({
   variant?: 'outline' | 'default'
 }) {
   const [loadedTypes, setLoadedTypes] = React.useState<DocumentTypeOption[]>([])
-  const types = typesProp ?? loadedTypes
+  const [extraTypes, setExtraTypes] = React.useState<DocumentTypeOption[]>([])
+  const baseTypes = typesProp ?? loadedTypes
+  const types = React.useMemo(() => [...baseTypes, ...extraTypes.filter(t => !baseTypes.some(b => b.id === t.id))], [baseTypes, extraTypes])
   const fallbackProgram = defaultProgramId ?? GENERAL
   const [open, setOpen] = React.useState(false)
   const [rows, setRows] = React.useState<Row[]>([])
@@ -487,6 +490,7 @@ export function DossierSmartUpload({
                   onChange={p => patch(r.id, p)}
                   onTypeChange={(typeId, period) => void recheck(r, typeId, period)}
                   onRemove={() => { setRows(prev => prev.filter(x => x.id !== r.id)); files.current.delete(r.id) }}
+                  onTypeCreated={t => setExtraTypes(prev => (prev.some(x => x.id === t.id) ? prev : [...prev, t]))}
                 />
               ))}
             </ul>
@@ -524,7 +528,7 @@ function ConfidenceChip({ s }: { s: SmartClassifyResult | null }) {
 }
 
 function RowCard({
-  row, types, programs, apps, batchDupOf, onChange, onTypeChange, onRemove,
+  row, types, programs, apps, batchDupOf, onChange, onTypeChange, onRemove, onTypeCreated,
 }: {
   row: Row
   types: DocumentTypeOption[]
@@ -534,7 +538,11 @@ function RowCard({
   onChange: (p: Partial<Row>) => void
   onTypeChange: (typeId: string, period?: string) => void
   onRemove: () => void
+  onTypeCreated: (t: DocumentTypeOption) => void
 }) {
+  const [captureOpen, setCaptureOpen] = React.useState(false)
+  const scannable = row.file.type === 'application/pdf' || row.file.type.startsWith('image/')
+  const curType = types.find(t => t.id === row.typeId) ?? null
   const skipped = row.decision === 'skip' || !!batchDupOf
   const working = row.phase === 'reading' || row.phase === 'classifying'
   const locked = working || row.phase === 'saving' || row.phase === 'saved'
@@ -569,6 +577,16 @@ function RowCard({
             {row.error && <span className="text-destructive">{row.error}</span>}
           </div>
         </div>
+        {scannable && !working && (row.dest === 'dossier' || row.dest === 'files') && (
+          <button
+            type="button"
+            onClick={() => setCaptureOpen(true)}
+            title={curType ? `Σάρωση τιμών — ποιες τιμές κρατάμε από «${curType.name}»` : 'Σάρωση τιμών — νέος τύπος με τις τιμές που θέλουμε να κρατάμε'}
+            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-dashed border-primary/60 px-2.5 text-[length:var(--fs-11-5)] font-semibold text-primary hover:bg-primary/5"
+          >
+            <LuScanText className="size-3.5" aria-hidden /> <span className="hidden sm:inline">Σάρωση τιμών</span>
+          </button>
+        )}
         <LocalPreview file={row.file} />
         {!locked && (
           <button type="button" onClick={onRemove} aria-label={`Αφαίρεση ${row.file.name}`} className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -600,6 +618,7 @@ function RowCard({
               </button>
             )
           })}
+
         </div>
       )}
 
@@ -729,6 +748,20 @@ function RowCard({
             )}
           </div>
         </div>
+      )}
+      {captureOpen && (
+        <ValueCaptureDialog
+          file={row.file}
+          type={curType ? { id: curType.id, name: curType.name } : null}
+          open={captureOpen}
+          onOpenChange={setCaptureOpen}
+          onSaved={(t, period) => {
+            onTypeCreated({ id: t.id, name: t.name, expires: t.expires, seriesKind: t.seriesKind })
+            const p = period ?? row.period
+            onChange({ typeId: t.id, dest: 'dossier', period: p, error: null })
+            onTypeChange(t.id, p)
+          }}
+        />
       )}
     </li>
   )

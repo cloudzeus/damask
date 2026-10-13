@@ -215,7 +215,7 @@ export async function applyE3ToTrdr(input: {
   for (const [fieldKey, value] of Object.entries(values)) {
     if (value == null) continue
     await prisma.trdrFinancialValue.upsert({
-      where: { trdrId_fieldKey_year: { trdrId: input.trdrId, fieldKey, year } },
+      where: { trdrId_fieldKey_year_period: { trdrId: input.trdrId, fieldKey, year, period: '' } },
       create: { trdrId: input.trdrId, fieldKey, templateId, year, value, kind: 'SINGLE', valueType: typeOf(fieldKey), source: 'OCR', sourceRecordId: record.id },
       update: { templateId, value, valueType: typeOf(fieldKey), source: 'OCR', sourceRecordId: record.id, verified: false },
     })
@@ -226,7 +226,7 @@ export async function applyE3ToTrdr(input: {
     const pairs: [string, number | null][] = [['e3_kyklos_ergasion', c.turnover], ['e3_synolo_energitikou', c.totalAssets], ['e3_mesos_oros_prosopikou', c.avgStaff]]
     for (const [fieldKey, value] of pairs) {
       if (value == null) continue
-      const exists = await prisma.trdrFinancialValue.findUnique({ where: { trdrId_fieldKey_year: { trdrId: input.trdrId, fieldKey, year: c.year } }, select: { id: true } })
+      const exists = await prisma.trdrFinancialValue.findUnique({ where: { trdrId_fieldKey_year_period: { trdrId: input.trdrId, fieldKey, year: c.year, period: '' } }, select: { id: true } })
       if (exists) continue
       await prisma.trdrFinancialValue.create({
         data: { trdrId: input.trdrId, fieldKey, templateId, year: c.year, value, kind: 'SINGLE', valueType: typeOf(fieldKey), source: 'OCR', sourceRecordId: record.id, note: `Από τα κριτήρια μεγέθους του Ε3 ${year}` },

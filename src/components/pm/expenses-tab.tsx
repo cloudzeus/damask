@@ -12,6 +12,7 @@ import { PurchaseDocsPanel } from '@/components/programs/purchase-docs-panel'
 import { InspectionExportPanel } from '@/components/programs/inspection-export-panel'
 import { ReplaceExpenseDialog } from './replace-expense-dialog'
 import { ExpenseInboxPanel } from './expense-inbox-panel'
+import { AssetRegisterPanel } from './asset-register-panel'
 
 function formatEUR(v: number): string {
   return `${v.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
@@ -116,6 +117,9 @@ export function ExpensesTab({ applicationId, programId, stage, trdrId, approved 
 
       {/* Στοιχεία αγορών & τεκμηρίωση — μόνο post-approval (φάση υλοποίησης). */}
       {isImplementation && <PurchaseDocsPanel key={`p-${refreshKey}`} applicationId={applicationId} />}
+
+      {/* Μητρώο παγίων ↔ δαπάνες (αρ. παραστατικού/ημ./ποσό/S/N) — αναφορά για φάκελο/ελεγκτή. */}
+      {isImplementation && <AssetRegisterPanel key={`a-${refreshKey}`} applicationId={applicationId} />}
 
       {/* Επιτόπιος έλεγχος — εξαγωγές Excel/Word για τον ελεγκτή. */}
       {isImplementation && <InspectionExportPanel applicationId={applicationId} />}

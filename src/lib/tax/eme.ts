@@ -219,7 +219,7 @@ export async function applyEmeToTrdr(input: {
 
   const upsertValue = (fieldKey: string, v: { value?: number | null; valueJson?: Prisma.InputJsonValue; kind?: 'SINGLE' | 'TABLE'; valueType: 'NUMBER' | 'INTEGER' }) =>
     prisma.trdrFinancialValue.upsert({
-      where: { trdrId_fieldKey_year: { trdrId: input.trdrId, fieldKey, year } },
+      where: { trdrId_fieldKey_year_period: { trdrId: input.trdrId, fieldKey, year, period: '' } },
       create: { trdrId: input.trdrId, fieldKey, templateId, year, value: v.value ?? null, valueJson: v.valueJson, kind: v.kind ?? 'SINGLE', valueType: v.valueType, source: 'OCR', sourceRecordId: record.id },
       update: { templateId, value: v.value ?? null, valueJson: v.valueJson, kind: v.kind ?? 'SINGLE', valueType: v.valueType, source: 'OCR', sourceRecordId: record.id, verified: false },
     })

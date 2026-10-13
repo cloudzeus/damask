@@ -38,7 +38,7 @@ export async function getApplicationValueChecks(trdrId: string, programId: strin
 
   const allFieldKeys = [...new Set(PAIRS.flatMap(p => p.fieldKeys))]
   const values = await prisma.trdrFinancialValue.findMany({
-    where: { trdrId, fieldKey: { in: allFieldKeys } },
+    where: { trdrId, fieldKey: { in: allFieldKeys }, period: '' },
     orderBy: { year: 'desc' },
     select: { fieldKey: true, value: true, year: true },
   })

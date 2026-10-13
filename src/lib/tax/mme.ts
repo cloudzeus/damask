@@ -189,7 +189,7 @@ export async function applyMmeToTrdr(input: {
     if (value == null) continue
     // Επίσημη τιμή του έτους: υπερισχύει (π.χ. το eme της μισθοδοσίας ίδιου έτους) και σημειώνεται επαληθευμένη.
     await prisma.trdrFinancialValue.upsert({
-      where: { trdrId_fieldKey_year: { trdrId: input.trdrId, fieldKey, year } },
+      where: { trdrId_fieldKey_year_period: { trdrId: input.trdrId, fieldKey, year, period: '' } },
       create: { trdrId: input.trdrId, fieldKey, templateId, year, value, valueText, kind: 'SINGLE', valueType, source: 'OCR', sourceRecordId: record.id, verified: official, note },
       update: { templateId, value, valueText, valueType, source: 'OCR', sourceRecordId: record.id, verified: official, note },
     })

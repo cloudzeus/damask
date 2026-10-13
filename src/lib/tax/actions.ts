@@ -100,7 +100,7 @@ export async function listTrdrFinancials(trdrId: string): Promise<{
       include: { template: { select: { name: true } } },
     }),
     prisma.trdrFinancialValue.findMany({
-      where: { trdrId },
+      where: { trdrId, period: '' },
       orderBy: [{ fieldKey: 'asc' }, { year: 'desc' }],
     }),
   ])
@@ -191,7 +191,7 @@ export async function addManualFinancialValue(input: {
   const vt = (VALUE_TYPES.includes(input.valueType as ValueTypeStr) ? input.valueType : 'CURRENCY') as ValueTypeStr
   const isText = vt === 'DATE'
   await prisma.trdrFinancialValue.upsert({
-    where: { trdrId_fieldKey_year: { trdrId: input.trdrId, fieldKey, year: input.year } },
+    where: { trdrId_fieldKey_year_period: { trdrId: input.trdrId, fieldKey, year: input.year, period: '' } },
     create: {
       trdrId: input.trdrId, fieldKey, year: input.year, valueType: vt, kind: 'SINGLE',
       valueText: input.raw.trim() || null, value: isText ? null : coerceFinancialValue(input.raw, vt),
@@ -477,7 +477,7 @@ export async function saveFinancialValues(input: {
   await requirePermission('taxform.scan')
   const writes = prepareValueWrites(input)
   await prisma.$transaction(writes.map(w => prisma.trdrFinancialValue.upsert({
-    where: { trdrId_fieldKey_year: { trdrId: w.trdrId, fieldKey: w.fieldKey, year: w.year } },
+    where: { trdrId_fieldKey_year_period: { trdrId: w.trdrId, fieldKey: w.fieldKey, year: w.year, period: '' } },
     create: {
       trdrId: w.trdrId,
       fieldKey: w.fieldKey,
