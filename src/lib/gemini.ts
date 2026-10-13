@@ -2,6 +2,7 @@ import { getIntegration } from '@/lib/settings'
 import { buildModelChain, tryModels } from '@/lib/ocr/model-fallback'
 import { fetchWithRetry } from '@/lib/ocr/fetch-retry'
 import { logAiUsage, type AiScope } from '@/lib/ai/usage'
+import { AiQuotaError, parseQuotaError, waitForModel, noteMinuteLimit, noteDailyLimit, isExhausted, exhaustedUntilOf } from '@/lib/ai/quota'
 
 /**
  * Καθαρό interface πάνω από το Google Gemini `generateContent` REST API
@@ -97,10 +98,19 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
     throw new Error('Gemini: δεν δόθηκε περιεχόμενο (parts/text).')
   }
 
-  const chain = buildModelChain(model, fallbackModels)
+  const fullChain = buildModelChain(model, fallbackModels)
+  // Μοντέλα με εξαντλημένη ημερήσια ποσόστωση παρακάμπτονται ως την επαναφορά.
+  const chain = fullChain.filter(m => !isExhausted(m))
+  if (!chain.length) {
+    const at = exhaustedUntilOf(fullChain)
+    throw new AiQuotaError(`Εξαντλήθηκε το ημερήσιο όριο του Gemini — συνεχίζει αυτόματα μετά τις ${at ? at.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Athens' }) : '10:00'}.`, 'day', at)
+  }
   const startedAt = Date.now()
 
   return tryModels(chain, async (m) => {
+    // Όριο ανά λεπτό: περιμένουμε (όσο είπε το Gemini) και ξαναδοκιμάζουμε το ΙΔΙΟ μοντέλο έως 3 φορές.
+    for (let quotaTry = 0; ; quotaTry++) {
+    if (!(await waitForModel(m))) return { ok: false as const, error: new AiQuotaError('Το Gemini έφτασε το όριο ανά λεπτό — νέα προσπάθεια σε λίγο.', 'minute', null) }
     try {
       const res = await fetchWithRetry(
         `${GEMINI_API_BASE}/${encodeURIComponent(m)}:generateContent`,
@@ -118,8 +128,20 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
             },
           }),
         },
-        { label: `gemini:${m}` },
+        { label: `gemini:${m}`, skipStatuses: [429] },
       )
+      if (res.status === 429) {
+        const q = parseQuotaError(await res.text().catch(() => ''))
+        if (q.kind === 'day') {
+          const until = noteDailyLimit(m)
+          console.warn(`[gemini] ${m}: εξαντλήθηκε η ημερήσια ποσόστωση (${q.quotaId}) ως ${until.toISOString()}`)
+          return { ok: false as const, error: new AiQuotaError(`Εξαντλήθηκε το ημερήσιο όριο του Gemini — συνεχίζει αυτόματα μετά τις ${until.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Athens' })}.`, 'day', until) }
+        }
+        const waitMs = noteMinuteLimit(m, q.retryMs)
+        console.warn(`[gemini] ${m}: όριο ανά λεπτό (${q.quotaId ?? '429'}) — αναμονή ${Math.round(waitMs / 1000)}″ (προσπάθεια ${quotaTry + 1})`)
+        if (quotaTry < 3) continue
+        return { ok: false as const, error: new AiQuotaError('Το Gemini έφτασε το όριο ανά λεπτό — νέα προσπάθεια σε λίγο.', 'minute', new Date(Date.now() + waitMs)) }
+      }
       if (!res.ok) {
         const detail = await res.text().catch(() => '')
         return { ok: false as const, error: new Error(`Gemini HTTP ${res.status}: ${detail.slice(0, 300)}`) }
@@ -155,6 +177,7 @@ export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult>
       return { ok: true as const, value: { text, model: m, tokensUsed } }
     } catch (err) {
       return { ok: false as const, error: err instanceof Error ? err : new Error(String(err)) }
+    }
     }
   })
 }

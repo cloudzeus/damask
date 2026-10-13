@@ -3216,3 +3216,14 @@ model FixedAssetRegister {
 
   @@index([trdrId])
 }
+
+/// Κρυφή μνήμη κειμένου εγγράφου ανά SHA-256 περιεχομένου: ένα αρχείο δεν περνά OCR/ανάγνωση δεύτερη φορά
+/// (επανάληψη, νέο ανέβασμα, άλλος πελάτης). Μόνο κείμενο/JSON ανάγνωσης — όχι τα ίδια τα bytes.
+model DocumentTextCache {
+  hash      String   @id
+  /// pdf-text | ocr | office
+  source    String
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  usedAt    DateTime @default(now())
+}

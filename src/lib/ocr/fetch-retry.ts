@@ -32,6 +32,8 @@ export interface RetryOpts {
   fetchImpl?: typeof fetch
   sleep?: (ms: number) => Promise<void>
   rand?: () => number
+  /** Statuses που ΔΕΝ ξαναδοκιμάζονται εδώ (τα χειρίζεται ο καλών — π.χ. 429 με τη «μνήμη ορίων»). */
+  skipStatuses?: number[]
 }
 
 /**
@@ -62,8 +64,8 @@ export async function fetchWithRetry(
       await sleep(delay)
       continue
     }
-    if (!isRetryableStatus(res.status) || isLast) {
-      if (isRetryableStatus(res.status)) console.error(`${tag} exhausted after ${attempts} attempts; last upstream status ${res.status}`)
+    if (!isRetryableStatus(res.status) || isLast || opts.skipStatuses?.includes(res.status)) {
+      if (isRetryableStatus(res.status) && isLast && !opts.skipStatuses?.includes(res.status)) console.error(`${tag} exhausted after ${attempts} attempts; last upstream status ${res.status}`)
       return res
     }
     lastRes = res

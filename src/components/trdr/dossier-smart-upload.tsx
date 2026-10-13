@@ -9,7 +9,7 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import {
   LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload, LuCopy, LuInfo, LuFolderKanban,
-  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuStamp, LuEye, LuScanText, LuTrash2,
+  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuStamp, LuEye, LuScanText, LuTrash2, LuClock, LuRefreshCw,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,7 +28,10 @@ import {
 } from '@/lib/documents/actions'
 import { classifyDocumentSmart, type SmartClassifyResult } from '@/lib/documents/smart-classify'
 import { isPdfFile, rasterizePdf, imageFileToPage, normalizeImageMimeType } from '@/lib/ocr/rasterize'
-import { runOcrExtraction } from '@/lib/ocr/actions'
+import { runOcrExtraction, type RunOcrInput } from '@/lib/ocr/actions'
+import { getCachedDocText, putCachedDocText } from '@/lib/documents/text-cache'
+import { isQuotaMessage } from '@/lib/ai/quota'
+import { isReadableText } from '@/lib/documents/text-quality'
 
 /**
  * Έξυπνη μεταφόρτωση δικαιολογητικών: πολλά αρχεία μαζί → για το καθένα ανάγνωση
@@ -37,7 +40,7 @@ import { runOcrExtraction } from '@/lib/ocr/actions'
  * γίνεται παράδειγμα εκμάθησης, ώστε οι επόμενες αναγνωρίσεις να είναι καλύτερες.
  */
 
-type Phase = 'reading' | 'classifying' | 'ready' | 'saving' | 'saved' | 'error'
+type Phase = 'reading' | 'classifying' | 'waiting' | 'ready' | 'saving' | 'saved' | 'error'
 /** Πού πάει το αρχείο: δικαιολογητικό πελάτη · προσφορά/παραστατικό → «Προς καταχώριση» του έργου · αρχεία πελάτη (με τη δομή φακέλων). */
 type Dest = 'dossier' | 'approval' | 'quote' | 'invoice' | 'files' | 'junk'
 type AppOption = { id: string; programId: string; title: string }
@@ -77,6 +80,11 @@ type Row = {
   savedNote: string | null
   /** Γιατί προτείνεται ως άχρηστο (προσωρινό/κενό/συντόμευση…). */
   junkReason: string | null
+  /** Αναμονή λόγω ορίου AI/διακοπής: πότε ξαναδοκιμάζει και γιατί. */
+  retryAt: number | null
+  waitReason: string | null
+  /** Η αναγνώριση απέτυχε προσωρινά (όριο/δίκτυο) — μπαίνει στο «Ξανά τα αποτυχημένα». */
+  retryable: boolean
 }
 
 const GENERAL = '__general__'
@@ -95,7 +103,17 @@ function defaultDecision(dup: DossierDuplicateCheck | null, typeExpires: boolean
   if (dup?.sameType.length && typeExpires) return 'replace'
   return 'keep'
 }
-const CONCURRENCY = 3
+const CONCURRENCY = 2
+/** Αναμονές πριν από κάθε νέα προσπάθεια όταν το AI απαντά «όριο»/διακοπή (μετά: «Ξανά τα αποτυχημένα»). */
+const RETRY_DELAYS = [30_000, 60_000, 120_000, 300_000, 600_000, 1_800_000]
+
+/** Σφάλμα που αξίζει νέα προσπάθεια αργότερα: όριο AI ή διακοπή σύνδεσης. */
+function retryKind(msg: string | null | undefined): 'minute' | 'day' | 'network' | null {
+  const q = isQuotaMessage(msg)
+  if (q) return q
+  if (msg && /failed to fetch|network|fetch failed|ECONNRESET|timeout|socket|HTTP 5\d\d|UNAVAILABLE|high demand/i.test(msg)) return 'network'
+  return null
+}
 /** Όριο αιτήματος server action — μεγαλύτερα δικαιολογητικά/προσφορές πάνε στα αρχεία πελάτη (τμηματικά, χωρίς όριο). */
 const INLINE_MAX = 11 * 1024 * 1024
 /** Αρχεία που δεν είναι έγγραφα (βίντεο/ήχος/αρχειοθήκες) → κατευθείαν στα αρχεία πελάτη, χωρίς αναγνώριση. */
@@ -134,20 +152,36 @@ function readFileBase64(file: File): Promise<{ base64: string; ext: string }> {
 }
 
 /** Κείμενο εγγράφου: ψηφιακό κείμενο PDF αν υπάρχει, αλλιώς OCR (σκαναρισμένα/εικόνες). */
-async function extractText(file: File): Promise<string> {
+async function extractText(file: File, hash: string): Promise<string> {
+  // 1. Κρυφή μνήμη ανά περιεχόμενο: ίδιο αρχείο (επανάληψη, νέο ανέβασμα, άλλος πελάτης) → καμία νέα ανάγνωση.
+  if (hash) {
+    const cached = await getCachedDocText(hash).catch(() => null)
+    if (cached) return cached
+  }
+  const keep = (text: string, source: 'pdf-text' | 'ocr' | 'office') => {
+    if (hash && text.trim()) void putCachedDocText(hash, text, source).catch(() => {})
+    return text
+  }
+  const ocrOrThrow = async (images: RunOcrInput['images'], text?: string) => {
+    const ocr = await runOcrExtraction({ images, text, docType: 'auto' })
+    if (ocr.ok) return JSON.stringify(ocr.data).slice(0, 3000)
+    // Όριο AI / διακοπή → σφάλμα ώστε να ξαναδοκιμαστεί (όχι σιωπηλά «αναγνώριστο»).
+    if (retryKind(ocr.message)) throw new Error(ocr.message)
+    return text ?? ''
+  }
   if (isPdfFile(file)) {
-    const { pages, text } = await rasterizePdf(file, { maxPages: 2 })
-    if ((text ?? '').trim().length >= 80) return text!.slice(0, 60_000)
-    const ocr = await runOcrExtraction({ images: pages.map(p => ({ base64: p.base64, mimeType: p.mimeType })), text: text || undefined, docType: 'auto' })
-    return ocr.ok ? JSON.stringify(ocr.data).slice(0, 3000) : (text ?? '')
+    // 2. Ψηφιακό κείμενο (δωρεάν)· 3. αλλιώς OCR ΜΟΝΟ της 1ης σελίδας (αρκεί για την αναγνώριση).
+    const { pages, text } = await rasterizePdf(file, { maxPages: 1, scale: 1.6 })
+    // Μόνο ΑΝΑΓΝΩΣΙΜΟ κείμενο μετρά (PDF με «σπασμένη» γραμματοσειρά δίνουν χαρακτήρες ελέγχου → OCR).
+    if (isReadableText(text)) return keep(text!.slice(0, 60_000), 'pdf-text')
+    return keep(await ocrOrThrow(pages.slice(0, 1).map(p => ({ base64: p.base64, mimeType: p.mimeType })), text || undefined), 'ocr')
   }
   if (normalizeImageMimeType(file)) {
     const page = await imageFileToPage(file)
-    const ocr = await runOcrExtraction({ images: [{ base64: page.base64, mimeType: page.mimeType }], docType: 'auto' })
-    return ocr.ok ? JSON.stringify(ocr.data).slice(0, 3000) : ''
+    return keep(await ocrOrThrow([{ base64: page.base64, mimeType: page.mimeType }]), 'ocr')
   }
   // Word/Excel/κείμενο: το περιεχόμενό τους (αλλιώς αναγνώριση μόνο από το όνομα αρχείου).
-  return readOfficeText(file).catch(() => '')
+  return keep(await readOfficeText(file).catch(() => ''), 'office')
 }
 
 export function DossierSmartUpload({
@@ -177,6 +211,9 @@ export function DossierSmartUpload({
   const [dragOver, setDragOver] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const queue = React.useRef<string[]>([])
+  const attempts = React.useRef(new Map<string, number>())
+  const timers = React.useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  React.useEffect(() => () => { for (const t of timers.current.values()) clearTimeout(t) }, [])
   const active = React.useRef(0)
   const files = React.useRef(new Map<string, File>())
   const typesRef = React.useRef(types)
@@ -191,14 +228,16 @@ export function DossierSmartUpload({
       if (NOT_A_DOC.test(file.name)) { patch(id, { phase: 'ready', dest: 'files' }); return }
       const hash = file.size < 200 * 1024 * 1024 ? await sha256(file).catch(() => '') : ''
       patch(id, { hash })
-      const text = await extractText(file).catch(() => '')
+      const text = await extractText(file, hash)
       patch(id, { phase: 'classifying', snippet: text })
       // Η διαδρομή φακέλου βοηθά την αναγνώριση (π.χ. «Προσφορές/…», «Τιμολόγια/…»).
       const res = await classifyDocumentSmart({ trdrId, fileName: relativePathOf(file) || file.name, text })
       if (!res.ok) {
+        if (retryKind(res.message)) { scheduleRetry(id, res.message); return }
         patch(id, { phase: 'ready', error: res.message, dest: 'files' })
         return
       }
+      attempts.current.delete(id)
       const s = res.result
       if (s.commercial) {
         const list = appsRef.current
@@ -235,8 +274,34 @@ export function DossierSmartUpload({
         period: s.period ?? '',
       })
     } catch (err) {
-      patch(id, { phase: 'ready', error: err instanceof Error ? err.message : 'Η αναγνώριση απέτυχε.' })
+      const msg = err instanceof Error ? err.message : 'Η αναγνώριση απέτυχε.'
+      if (retryKind(msg)) { scheduleRetry(id, msg); return }
+      patch(id, { phase: 'ready', error: msg })
     }
+  }
+
+  /** Νέα προσπάθεια αργότερα (όριο AI / διακοπή) με αυξανόμενη αναμονή· μετά από 6 → «Ξανά τα αποτυχημένα». */
+  function scheduleRetry(id: string, msg: string) {
+    const kind = retryKind(msg)
+    const n = attempts.current.get(id) ?? 0
+    if (n >= RETRY_DELAYS.length) {
+      patch(id, { phase: 'ready', dest: 'files', retryable: true, retryAt: null, waitReason: null, error: 'Η αναγνώριση δεν ολοκληρώθηκε (όριο AI/σύνδεση) — πατήστε «Ξανά τα αποτυχημένα».' })
+      return
+    }
+    attempts.current.set(id, n + 1)
+    // Ημερήσιο όριο: δεν έχει νόημα να χτυπάμε συχνά — ξαναδοκιμάζει ανά 30′ (ο server απαντά αμέσως όσο ισχύει).
+    const delay = kind === 'day' ? 30 * 60_000 : RETRY_DELAYS[n]
+    const reason = kind === 'day' ? 'εξαντλήθηκε το ημερήσιο όριο του AI' : kind === 'minute' ? 'όριο AI ανά λεπτό' : 'διακοπή σύνδεσης'
+    patch(id, { phase: 'waiting', retryAt: Date.now() + delay, waitReason: reason, retryable: true, error: null })
+    clearTimeout(timers.current.get(id))
+    timers.current.set(id, setTimeout(() => requeue([id]), delay))
+  }
+
+  function requeue(ids: string[]) {
+    for (const id of ids) { clearTimeout(timers.current.get(id)); timers.current.delete(id) }
+    setRows(prev => prev.map(r => (ids.includes(r.id) ? { ...r, phase: 'reading', retryAt: null, waitReason: null, error: null, retryable: false } : r)))
+    queue.current.push(...ids.filter(id => !queue.current.includes(id)))
+    pump()
   }
 
   function pump() {
@@ -258,6 +323,7 @@ export function DossierSmartUpload({
         typeId: '', programId: fallbackProgram, reusable: true, hasExpiry: false, expiresAt: '', expiryNote: null, period: '',
         hash: '', dup: null, decision: 'keep', needs: null, covered: [],
         relPath: relativePathOf(file), dest: 'dossier', appId: '', savedNote: null, junkReason: null,
+        retryAt: null, waitReason: null, retryable: false,
       }
     })
     for (const r of newRows) {
@@ -311,7 +377,11 @@ export function DossierSmartUpload({
 
   function handleOpenChange(next: boolean) {
     if (!next && busy) return
-    if (!next) { setRows([]); queue.current = []; files.current.clear() }
+    if (!next) {
+      setRows([]); queue.current = []; files.current.clear(); attempts.current.clear()
+      for (const t of timers.current.values()) clearTimeout(t)
+      timers.current.clear()
+    }
     setOpen(next)
   }
 
@@ -439,11 +509,13 @@ export function DossierSmartUpload({
   const toSave = pending.filter(r => r.phase === 'ready' && !batchDupOf.has(r.id)).length
   const counts = rows.reduce((acc, r) => {
     if (r.phase === 'reading' || r.phase === 'classifying') acc.working += 1
+    else if (r.phase === 'waiting') acc.waiting += 1
     else if (r.phase === 'saved') acc.done += 1
     else if (r.decision === 'skip' || batchDupOf.has(r.id)) acc.junk += 1
     else acc[r.dest] += 1
     return acc
-  }, { working: 0, done: 0, dossier: 0, approval: 0, quote: 0, invoice: 0, files: 0, junk: 0 } as Record<Dest | 'working' | 'done', number>)
+  }, { working: 0, waiting: 0, done: 0, dossier: 0, approval: 0, quote: 0, invoice: 0, files: 0, junk: 0 } as Record<Dest | 'working' | 'waiting' | 'done', number>)
+  const retryIds = rows.filter(r => r.phase === 'waiting' || (r.retryable && r.phase === 'ready')).map(r => r.id)
 
   return (
     <>
@@ -491,10 +563,16 @@ export function DossierSmartUpload({
             />
           </div>
 
-          {rows.length > 1 && (
+          {(rows.length > 1 || retryIds.length > 0) && (
             <div className="flex flex-wrap items-center gap-1.5 text-[length:var(--fs-11-5)]" aria-live="polite">
               <span className="font-semibold">{rows.length} αρχεία:</span>
               {counts.working > 0 && <span className="badge-pill muted"><LuLoaderCircle className="size-3 animate-spin" aria-hidden /> {counts.working} σε αναγνώριση</span>}
+              {counts.waiting > 0 && <span className="badge-pill warn" style={{ textTransform: 'none' }} title="Το AI έφτασε το όριό του ή διακόπηκε η σύνδεση — ξαναδοκιμάζονται αυτόματα"><LuClock className="size-3" aria-hidden /> {counts.waiting} σε αναμονή</span>}
+              {retryIds.length > 0 && (
+                <button type="button" onClick={() => requeue(retryIds)} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                  <LuRefreshCw className="size-3" aria-hidden /> Ξανά τα αποτυχημένα ({retryIds.length})
+                </button>
+              )}
               {(['dossier', 'approval', 'quote', 'invoice', 'files'] as Dest[]).filter(d => counts[d] > 0).map(d => (
                 <span key={d} className={cn('badge-pill', d === 'files' ? 'muted' : d === 'dossier' ? 'ok' : 'info')} style={{ textTransform: 'none' }}>{counts[d]} {DEST_META[d].short}</span>
               ))}
@@ -531,7 +609,7 @@ export function DossierSmartUpload({
                   batchDupOf={batchDupOf.get(r.id) ?? null}
                   onChange={p => patch(r.id, p)}
                   onTypeChange={(typeId, period) => void recheck(r, typeId, period)}
-                  onRemove={() => { setRows(prev => prev.filter(x => x.id !== r.id)); files.current.delete(r.id) }}
+                  onRemove={() => { setRows(prev => prev.filter(x => x.id !== r.id)); files.current.delete(r.id); clearTimeout(timers.current.get(r.id)); timers.current.delete(r.id); queue.current = queue.current.filter(q => q !== r.id) }}
                   onTypeCreated={t => setExtraTypes(prev => (prev.some(x => x.id === t.id) ? prev : [...prev, t]))}
                 />
               ))}
@@ -586,14 +664,17 @@ function RowCard({
   const scannable = row.file.type === 'application/pdf' || row.file.type.startsWith('image/') || !!officeKind(row.file)
   const curType = types.find(t => t.id === row.typeId) ?? null
   const skipped = row.decision === 'skip' || !!batchDupOf
-  const working = row.phase === 'reading' || row.phase === 'classifying'
-  const locked = working || row.phase === 'saving' || row.phase === 'saved'
+  // Σε αναμονή (όριο AI): χωρίς επιλογές ακόμη — αλλά μπορεί να αφαιρεθεί από τη λίστα.
+  const working = row.phase === 'reading' || row.phase === 'classifying' || row.phase === 'waiting'
+  const locked = (working && row.phase !== 'waiting') || row.phase === 'saving' || row.phase === 'saved'
   const sizeKb = Math.max(1, Math.round(row.file.size / 1024))
   return (
     <li className={cn('rounded-2xl border bg-card p-3', row.phase === 'saved' ? 'border-[color:var(--success)]/40' : 'border-border', skipped && row.phase !== 'saved' && 'opacity-70')}>
       <div className="flex items-start gap-2.5">
         <span className="relative mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-          {working || row.phase === 'saving'
+          {row.phase === 'waiting'
+            ? <LuClock className="size-4.5 text-[color:var(--warning)]" aria-hidden />
+            : working || row.phase === 'saving'
             ? <LuLoaderCircle className="size-4.5 animate-spin text-primary" aria-hidden />
             : row.phase === 'saved'
               ? <LuCircleCheck className="size-4.5 text-[color:var(--success)]" aria-hidden />
@@ -612,6 +693,11 @@ function RowCard({
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[length:var(--fs-11-5)] text-muted-foreground" aria-live="polite">
             {row.phase === 'reading' && 'Ανάγνωση εγγράφου…'}
             {row.phase === 'classifying' && 'Αναγνώριση τύπου…'}
+            {row.phase === 'waiting' && (
+              <span className="inline-flex items-center gap-1 text-[color:var(--warning)]">
+                <LuClock className="size-3.5" aria-hidden /> Σε αναμονή — {row.waitReason}· νέα προσπάθεια στις {row.retryAt ? new Date(row.retryAt).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—'}
+              </span>
+            )}
             {row.phase === 'saving' && 'Αποθήκευση…'}
             {row.phase === 'saved' && <span className="font-semibold text-[color:var(--success)]">Αποθηκεύτηκε{row.savedNote ? ` — ${row.savedNote}` : ''}</span>}
             {(row.phase === 'ready' || row.phase === 'error') && row.dest === 'dossier' && <ConfidenceChip s={row.suggestion} />}
