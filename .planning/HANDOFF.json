@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-13T21:41:03.408Z",
+  "timestamp": "2026-10-13T22:06:45.672Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -30,53 +30,73 @@
     },
     {
       "status": "M",
-      "path": "src/components/trdr/dossier-smart-upload.tsx"
-    },
-    {
-      "status": "M",
       "path": "src/lib/documents/actions.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/smart-classify-core.ts"
+      "path": "src/lib/documents/dossier-core.ts"
     },
     {
-      "status": "D",
-      "path": "src/lib/documents/text-cache.ts"
+      "status": "M",
+      "path": "src/lib/documents/training.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/documents/type-admin.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/documents/value-capture.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/import/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/import/recognize.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/memory/health.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/pm/expense-inbox.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/programs/expense-proposal.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/programs/expense-purchase.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/tax/actions.ts"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/tax/template-auto.ts"
     },
     {
       "status": "M",
       "path": "src/server/queue-start.ts"
     },
     {
-      "status": "M",
-      "path": "tests/commercial-hint.test.ts"
+      "status": "??",
+      "path": "prisma/migrations/20261014150000_import_existing_catalog/"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20261014120000_import_batch/"
+      "path": "src/lib/import/catalog.ts"
     },
     {
       "status": "??",
-      "path": "src/app/api/imports/"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/documents/dossier-core.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/import/actions.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/import/recognize.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/import/rules.ts"
+      "path": "src/lib/import/existing.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nc8fdb28 feat(import): μαζική εισαγωγή ανθεκτική σε όρια AI — φάση 1 (μνήμη ορίων Gemini, επαναλήψεις, κρυφή μνήμη κειμένου)\n44de71e docs: σχεδιασμός μαζικής εισαγωγής που δεν χάνεται (παρτίδα στον server, ρυθμιστής ρυθμού, «υπάρχει ήδη», ξαναεξέταση με αλλαγές καταλόγου)\n27ccc4c chore: ενημέρωση HANDOFF\nff89f05 fix(memory): η συγχώνευση τύπων κρατά πάντα τον τύπο με ειδικό αναγνώστη (Δήλωση ΜΜΕ / Ε3 / ΕΜΕ)\ncfbeb79 chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\n154c782 chore: ενημέρωση HANDOFF\n9dcf229 feat(import): φάση 2 — μαζική εισαγωγή ως παρτίδα στον server, αναγνώριση στο παρασκήνιο, συνέχεια μετά από διακοπή\nc8fdb28 feat(import): μαζική εισαγωγή ανθεκτική σε όρια AI — φάση 1 (μνήμη ορίων Gemini, επαναλήψεις, κρυφή μνήμη κειμένου)\n44de71e docs: σχεδιασμός μαζικής εισαγωγής που δεν χάνεται (παρτίδα στον server, ρυθμιστής ρυθμού, «υπάρχει ήδη», ξαναεξέταση με αλλαγές καταλόγου)\n27ccc4c chore: ενημέρωση HANDOFF"
 }
