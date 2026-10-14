@@ -18,6 +18,8 @@ import {
 } from '@/lib/tax/actions'
 import { ScanFormDialog } from './scan-form-dialog'
 import { RecordPreviewDialog } from './record-preview-dialog'
+import { listValuesGrids, type ValuesGridView } from '@/lib/documents/values-grid'
+import { ValuesGridTable } from '@/components/trdr/values-grid'
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   EXTRACTED: { label: 'Εξήχθη', cls: 'ok' },
@@ -49,6 +51,7 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
   const [manualOpen, setManualOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<TrdrFinancialValueItem | null>(null)
   const [previewRec, setPreviewRec] = React.useState<TrdrFormRecordItem | null>(null)
+  const [grids, setGrids] = React.useState<ValuesGridView[]>([])
 
   const load = React.useCallback(() => {
     setLoading(true)
@@ -57,6 +60,7 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
       .then(res => { setRecords(res.records); setValues(res.values) })
       .catch(() => setError('Αποτυχία φόρτωσης φορολογικών στοιχείων.'))
       .finally(() => setLoading(false))
+    listValuesGrids(trdrId).then(setGrids).catch(() => setGrids([]))
   }, [trdrId])
 
   React.useEffect(() => { load() }, [load])
@@ -139,7 +143,16 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
             </div>
           )}
 
+          {/* Πίνακες τιμών ανά έντυπο (Ε3/Ε1 ανά έτος με μεταβολή, Φ2 ανά μήνα με σύνολο έτους). */}
+          {grids.map(g => (
+            <ValuesGridTable key={g.templateId} trdrId={trdrId} grid={g} canEdit onChanged={load} title={g.typeName ?? g.templateName} />
+          ))}
+
           {fieldKeys.length > 0 && (
+            <details className="group" open={grids.length === 0}>
+              <summary className="mb-1.5 cursor-pointer list-none text-[length:var(--fs-12)] font-semibold text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+                <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>›</span> Όλες οι ετήσιες τιμές — επεξεργασία / επαλήθευση
+              </summary>
             <div>
               <p className="mb-1.5 text-[length:var(--fs-11)] text-muted-foreground">Κλικ σε κελί για επεξεργασία / επαλήθευση. <LuCheck className="inline size-3 text-[color:var(--success)]" aria-hidden /> = επαληθευμένο.</p>
               <div className="glass max-h-[min(50vh,420px)] overflow-y-auto rounded-[16px]">
@@ -180,6 +193,7 @@ export function FinancialsTab({ trdrId, trdrName }: { trdrId: string; trdrName: 
                 </Table>
               </div>
             </div>
+            </details>
           )}
         </div>
       )}
