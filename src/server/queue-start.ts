@@ -192,6 +192,16 @@ export async function startQueue(): Promise<void> {
   })
   await boss.schedule(QUEUE_CATALOG_RECHECK, '*/15 * * * *', null, { tz: 'Europe/Athens' })
 
+  // Πακέτα δικαιολογητικών σειράς (π.χ. 12 Φ2 σε ένα PDF) → ένα έγγραφο ανά περίοδο.
+  const { QUEUE_SERIES_BUNDLE, runBundleJob } = await import('@/lib/documents/bundle')
+  await boss.createQueue(QUEUE_SERIES_BUNDLE)
+  await boss.work<{ docId: string; userId: string | null }>(QUEUE_SERIES_BUNDLE, async jobs => {
+    for (const job of jobs) {
+      const r = await runBundleJob(job.data.docId, job.data.userId)
+      if (r?.bundle) console.log(`[pg-boss] series-bundle ${job.data.docId}: ${r.created.length} περίοδοι, ${r.existing.length} υπήρχαν`)
+    }
+  })
+
   // Αυτόματη καταχώριση εγγράφων στην υλοποίηση έργου (κατ' απαίτηση από τη σελίδα· η πρόοδος σε Setting).
   const { QUEUE_IMPL_AUTOFILE, runImplAutofile } = await import('@/lib/pm/impl-autofile')
   await boss.createQueue(QUEUE_IMPL_AUTOFILE)

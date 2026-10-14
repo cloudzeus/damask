@@ -28,6 +28,8 @@ export type DossierUploadInput = {
     fullText?: string | null
     /** Περίοδος για τύπους-σειρές (π.χ. Φ2 «2025-03»). */
     period?: string | null
+    /** Τμήμα από χωρισμό πακέτου (δεν ξαναελέγχεται ως πακέτο). */
+    fromBundle?: boolean
 }
 
 export type DossierUploadResult = { id: string; covered: number; coveredPrograms: string[]; eme?: EmeApplied | null; e3?: E3Applied | null; mme?: MmeApplied | null; template?: TemplateApplied | null }
@@ -93,6 +95,17 @@ export async function createDossierDocCore(trdrId: string, userId: string, input
     : null
   // Οι τιμές του Οδηγού διαβάστηκαν τώρα → η ξαναεξέταση καταλόγου δεν θα τις ξαναδιαβάσει (βλ. import/catalog.ts).
   if (template) await prisma.trdrDossierDocument.update({ where: { id }, data: { valuesReadAt: new Date() } }).catch(() => {})
+  // ΠΑΚΕΤΟ σειράς (π.χ. 12 Φ2 σε ένα PDF) → χωρισμός σελίδα-σελίδα σε έγγραφα ανά περίοδο, στο παρασκήνιο.
+  if (!input.fromBundle && input.mimeType === 'application/pdf') {
+    try {
+      const t = await prisma.documentType.findUnique({ where: { id: input.documentTypeId }, select: { seriesKind: true } })
+      if (t?.seriesKind && t.seriesKind !== 'LIST') {
+        const { PDFDocument } = await import('pdf-lib')
+        const pages = (await PDFDocument.load(body, { ignoreEncryption: true })).getPageCount()
+        if (pages >= 2) { const { enqueueBundleSplit } = await import('@/lib/documents/bundle'); await enqueueBundleSplit(id, userId) }
+      }
+    } catch (err) { console.error('[dossier] έλεγχος πακέτου απέτυχε', err) }
+  }
   return { id, covered: cover.covered, coveredPrograms: [...new Set(cover.programs)], eme, e3: e3?.applied ?? null, mme: mme?.applied ?? null, template }
 }
 
