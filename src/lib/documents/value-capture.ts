@@ -146,37 +146,7 @@ export async function saveValueTemplate(input: {
   return { ok: true, type, added }
 }
 
-export type SeriesValues = {
-  fields: { key: string; label: string; valueType: string }[]
-  rows: { period: string; values: Record<string, string | null> }[]
-  /** Δικαιολογητικά του τύπου που δεν έχουν διαβαστεί ακόμη (για «Ανάγνωση τιμών»). */
-  unread: number
-}
-
 /** Πίνακας τιμών ενός τύπου-σειράς για τον πελάτη: γραμμές = περίοδοι, στήλες = πεδία του Οδηγού. */
-export async function listSeriesValues(trdrId: string, typeId: string): Promise<SeriesValues | null> {
-  await requirePermission('customer.view')
-  const tpl = await templateOf(typeId)
-  if (!tpl?.fields.length) return null
-  const [vals, docs, records] = await Promise.all([
-    prisma.trdrFinancialValue.findMany({ where: { trdrId, templateId: tpl.id, period: { not: '' } }, select: { fieldKey: true, period: true, valueText: true } }),
-    prisma.trdrDossierDocument.findMany({ where: { trdrId, documentTypeId: typeId }, select: { id: true } }),
-    prisma.trdrFormRecord.findMany({ where: { trdrId, templateId: tpl.id, dossierDocId: { not: null } }, select: { dossierDocId: true } }),
-  ])
-  const byPeriod = new Map<string, Record<string, string | null>>()
-  for (const v of vals) {
-    const row = byPeriod.get(v.period) ?? {}
-    row[v.fieldKey] = v.valueText
-    byPeriod.set(v.period, row)
-  }
-  const read = new Set(records.map(r => r.dossierDocId))
-  return {
-    fields: tpl.fields.map(f => ({ key: f.fieldKey, label: f.label, valueType: f.valueType })),
-    rows: [...byPeriod.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([period, values]) => ({ period, values })),
-    unread: docs.filter(d => !read.has(d.id)).length,
-  }
-}
-
 /** Ανάγνωση τιμών στα ήδη ανεβασμένα δικαιολογητικά ενός τύπου (π.χ. όλα τα Φ2) που δεν έχουν διαβαστεί. */
 export async function readTypeValues(trdrId: string, typeId: string): Promise<{ read: number; failed: number }> {
   const session = await requirePermission('customer.edit')
