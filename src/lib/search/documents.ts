@@ -209,6 +209,7 @@ export async function reindexDocuments(opts: { embed?: boolean } = {}): Promise<
 
   let embedded = 0
   if (opts.embed !== false) {
+    await ensureEmbeddingSource()
     const stale = await prisma.$queryRaw<{ key: string; content: string; contentHash: string }[]>`
       SELECT "key", "content", "contentHash" FROM "DocumentSearch" WHERE "embedding" IS NULL OR "embeddedHash" IS DISTINCT FROM "contentHash"`
     for (let i = 0; i < stale.length; i += 100) {
@@ -296,4 +297,23 @@ export async function topTags(limit = 30): Promise<{ tag: string; n: number }[]>
   const rows = await prisma.$queryRaw<{ tag: string; n: bigint }[]>`
     SELECT t AS tag, COUNT(*) AS n FROM "DocumentSearch", unnest("tags") t WHERE "category" NOT LIKE 'memory-%' GROUP BY t ORDER BY n DESC LIMIT ${limit}`
   return rows.map(r => ({ tag: r.tag, n: Number(r.n) }))
+}
+
+/**
+ * Όταν αλλάζει η πηγή των embeddings (απευθείας Gemini ↔ OpenRouter), τα vectors δεν είναι συγκρίσιμα: όλα
+ * ξαναφτιάχνονται (ευρετήριο εγγράφων + μαθήματα Thanos) ώστε ερωτήματα και ευρετήριο να είναι από την ίδια πηγή.
+ */
+async function ensureEmbeddingSource(): Promise<void> {
+  const { embeddingSource } = await import('@/lib/gemini')
+  const source = await embeddingSource()
+  const prev = (await prisma.setting.findUnique({ where: { key: 'search.embeddingSource' } }))?.value as { source?: string } | null
+  if ((prev?.source ?? 'gemini') === source) return
+  await prisma.$executeRaw`UPDATE "DocumentSearch" SET "embeddedHash" = NULL`
+  const lessons = await prisma.$queryRaw<{ id: string; question: string; answer: string }[]>`SELECT "id", "question", "answer" FROM "ThanosLesson" WHERE "embedding" IS NOT NULL`
+  for (let i = 0; i < lessons.length; i += 100) {
+    const chunk = lessons.slice(i, i + 100)
+    const vecs = await geminiEmbed(chunk.map(l => `${l.question}\n${l.answer}`), { task: 'RETRIEVAL_DOCUMENT', refType: 'thanos-lessons' })
+    for (let j = 0; j < chunk.length; j++) await prisma.$executeRaw`UPDATE "ThanosLesson" SET "embedding" = ${toVector(vecs[j])}::vector WHERE "id" = ${chunk[j].id}`
+  }
+  await prisma.setting.upsert({ where: { key: 'search.embeddingSource' }, create: { key: 'search.embeddingSource', value: { source } }, update: { value: { source } } })
 }

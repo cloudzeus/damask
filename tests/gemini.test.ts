@@ -17,6 +17,11 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
+/** Config μόνο για το integration «gemini» (χωρίς OpenRouter → απευθείας Gemini). */
+function geminiConfig(cfg: Record<string, unknown>, openrouter: Record<string, unknown> = {}) {
+  vi.mocked(getIntegration).mockImplementation(async (name: string) => (name === 'gemini' ? cfg : name === 'openrouter' ? openrouter : {}) as never)
+}
+
 function genResponse(text: string, status = 200, extra: Record<string, unknown> = {}): Response {
   return new Response(JSON.stringify({
     candidates: [{ content: { parts: [{ text }] } }],
@@ -38,13 +43,13 @@ describe('parseFallbackModels', () => {
 
 describe('geminiGenerate — config resolution', () => {
   it('throws a friendly Greek error when no apiKey is configured anywhere', async () => {
-    vi.mocked(getIntegration).mockResolvedValue({})
+    geminiConfig({})
     await expect(geminiGenerate({ text: 'hi' })).rejects.toThrow(/API key/)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('uses the stored config (getIntegration) when opts omit fields', async () => {
-    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'stored-key', model: 'gemini-2.5-pro' })
+    geminiConfig({ apiKey: 'stored-key', model: 'gemini-2.5-pro' })
     fetchMock.mockResolvedValueOnce(genResponse('pong'))
 
     const result = await geminiGenerate({ text: 'ping' })
@@ -58,7 +63,7 @@ describe('geminiGenerate — config resolution', () => {
   })
 
   it('opts override the stored config field-by-field', async () => {
-    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'stored-key', model: 'gemini-2.5-flash' })
+    geminiConfig({ apiKey: 'stored-key', model: 'gemini-2.5-flash' })
     fetchMock.mockResolvedValueOnce(genResponse('pong'))
 
     await geminiGenerate({ text: 'ping', apiKey: 'explicit-key', model: 'gemini-2.5-pro' })
@@ -69,7 +74,7 @@ describe('geminiGenerate — config resolution', () => {
   })
 
   it('falls back to the documented default model when neither opts nor storage set one', async () => {
-    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k' })
+    geminiConfig({ apiKey: 'k' })
     fetchMock.mockResolvedValueOnce(genResponse('pong'))
 
     await geminiGenerate({ text: 'ping' })
@@ -78,7 +83,7 @@ describe('geminiGenerate — config resolution', () => {
   })
 
   it('uses the documented default fallback chain when storage has no fallbackModels', async () => {
-    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k', model: 'primary-model' })
+    geminiConfig({ apiKey: 'k', model: 'primary-model' })
     // primary fails non-retryably (404) so tryModels advances immediately, no fetch-retry backoff
     fetchMock
       .mockResolvedValueOnce(new Response('not found', { status: 404 }))
@@ -91,7 +96,7 @@ describe('geminiGenerate — config resolution', () => {
   })
 
   it('an explicit empty stored fallbackModels string disables fallback entirely', async () => {
-    vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k', model: 'only-model', fallbackModels: '' })
+    geminiConfig({ apiKey: 'k', model: 'only-model', fallbackModels: '' })
     fetchMock.mockResolvedValueOnce(new Response('nope', { status: 404 }))
 
     await expect(geminiGenerate({ text: 'ping' })).rejects.toThrow(/404/)
@@ -100,7 +105,7 @@ describe('geminiGenerate — config resolution', () => {
 })
 
 describe('geminiGenerate — request shape', () => {
-  beforeEach(() => vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k' }))
+  beforeEach(() => geminiConfig({ apiKey: 'k' }))
 
   it('sends `parts` as-is for vision (inlineData + text)', async () => {
     fetchMock.mockResolvedValueOnce(genResponse('{"ok":true}'))
@@ -143,7 +148,7 @@ describe('geminiGenerate — request shape', () => {
 })
 
 describe('geminiGenerate — model fallback + errors', () => {
-  beforeEach(() => vi.mocked(getIntegration).mockResolvedValue({ apiKey: 'k', model: 'a', fallbackModels: 'b' }))
+  beforeEach(() => geminiConfig({ apiKey: 'k', model: 'a', fallbackModels: 'b' }))
 
   it('falls through to the next model on a non-2xx response', async () => {
     fetchMock
@@ -182,5 +187,51 @@ describe('geminiGenerate — model fallback + errors', () => {
 
     const result = await geminiGenerate({ text: 'ping' })
     expect(result.text).toBe('pong')
+  })
+})
+
+describe('geminiGenerate — μέσω OpenRouter', () => {
+  function orResponse(text: string, status = 200): Response {
+    return new Response(JSON.stringify(status === 200
+      ? { choices: [{ message: { content: text } }], usage: { prompt_tokens: 20, completion_tokens: 5, total_tokens: 25 } }
+      : { error: { message: text } }), { status })
+  }
+
+  it('δρομολογεί από OpenRouter με το ίδιο μοντέλο Google όταν υπάρχει κλειδί', async () => {
+    geminiConfig({ apiKey: 'g', model: 'gemini-2.5-flash', fallbackModels: '' }, { apiKey: 'or-key' })
+    fetchMock.mockResolvedValueOnce(orResponse('{"ok":1}'))
+    const r = await geminiGenerate({
+      parts: [{ text: 'τι είναι;' }, { inlineData: { data: 'QUJD', mimeType: 'application/pdf' } }, { inlineData: { data: 'WFla', mimeType: 'image/png' } }],
+      systemInstruction: 'sys', json: true,
+    })
+    expect(r).toEqual({ text: '{"ok":1}', model: 'gemini-2.5-flash', tokensUsed: 25 })
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions')
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer or-key')
+    const body = JSON.parse(init.body as string)
+    expect(body.model).toBe('google/gemini-2.5-flash')
+    expect(body.response_format).toEqual({ type: 'json_object' })
+    expect(body.messages[0]).toEqual({ role: 'system', content: 'sys' })
+    expect(body.messages[1].content).toEqual([
+      { type: 'text', text: 'τι είναι;' },
+      { type: 'file', file: { filename: 'document-2.pdf', file_data: 'data:application/pdf;base64,QUJD' } },
+      { type: 'image_url', image_url: { url: 'data:image/png;base64,WFla' } },
+    ])
+    expect(logAiUsage).toHaveBeenCalledWith(expect.objectContaining({ provider: 'openrouter', model: 'gemini-2.5-flash', totalTokens: 25 }))
+  })
+
+  it('αν αποτύχει το OpenRouter, πέφτει στο απευθείας κλειδί Gemini', async () => {
+    geminiConfig({ apiKey: 'g', model: 'm', fallbackModels: '' }, { apiKey: 'or-key' })
+    fetchMock.mockResolvedValueOnce(orResponse('insufficient credits', 402)).mockResolvedValueOnce(genResponse('pong'))
+    const r = await geminiGenerate({ text: 'ping' })
+    expect(r.text).toBe('pong')
+    expect(fetchMock.mock.calls[1][0]).toContain('generativelanguage.googleapis.com')
+  })
+
+  it('το «Δοκιμή σύνδεσης» με ρητό apiKey ελέγχει πάντα την απευθείας σύνδεση', async () => {
+    geminiConfig({}, { apiKey: 'or-key' })
+    fetchMock.mockResolvedValueOnce(genResponse('pong'))
+    await geminiGenerate({ text: 'ping', apiKey: 'explicit', fallbackModels: [] })
+    expect(fetchMock.mock.calls[0][0]).toContain('generativelanguage.googleapis.com')
   })
 })

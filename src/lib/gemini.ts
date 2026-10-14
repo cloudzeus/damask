@@ -1,5 +1,5 @@
 import { getIntegration } from '@/lib/settings'
-import { buildModelChain, tryModels } from '@/lib/ocr/model-fallback'
+import { buildModelChain, tryModels, type AttemptResult } from '@/lib/ocr/model-fallback'
 import { fetchWithRetry } from '@/lib/ocr/fetch-retry'
 import { logAiUsage, type AiScope } from '@/lib/ai/usage'
 import { AiQuotaError, parseQuotaError, waitForModel, noteMinuteLimit, noteDailyLimit, isExhausted, exhaustedUntilOf } from '@/lib/ai/quota'
@@ -91,6 +91,82 @@ function extractText(data: { candidates?: { content?: { parts?: { text?: string 
  * παραπλανητικού fallback (ίδιο idiom με deepseekChat).
  */
 export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult> {
+  // Δρομολόγηση: μέσω OpenRouter (ίδια μοντέλα Google, χρεώσιμο) όταν υπάρχει κλειδί· το απευθείας κλειδί Gemini
+  // μένει εφεδρεία. Το «Δοκιμή σύνδεσης» με ρητό apiKey ελέγχει πάντα την απευθείας σύνδεση.
+  const or = opts.apiKey ? null : await openrouterKey()
+  if (or) {
+    const stored = await getIntegration<StoredGeminiConfig>('gemini')
+    const chain = buildModelChain(opts.model || stored.model || GEMINI_DEFAULT_MODEL, opts.fallbackModels ?? (stored.fallbackModels !== undefined ? parseFallbackModels(stored.fallbackModels) : DEFAULT_FALLBACK_MODELS))
+    try {
+      return await tryModels(chain, m => viaOpenRouter(or, m, opts))
+    } catch (err) {
+      if (!stored.apiKey) throw err
+      console.warn(`[gemini] OpenRouter απέτυχε (${err instanceof Error ? err.message.slice(0, 120) : err}) — δοκιμή απευθείας Gemini`)
+    }
+  }
+  return geminiDirect(opts)
+}
+
+async function openrouterKey(): Promise<string | null> {
+  const c = await getIntegration<{ apiKey?: string }>('openrouter')
+  return c.apiKey?.trim() || null
+}
+
+const OPENROUTER_API = 'https://openrouter.ai/api/v1'
+function openrouterHeaders(key: string): Record<string, string> {
+  return { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'HTTP-Referer': process.env.AUTH_URL ?? 'https://wwa.gr', 'X-Title': 'WWA' }
+}
+
+/** Gemini parts → OpenAI-compatible content (εικόνες ως image_url, PDF/λοιπά ως file). */
+function toOpenRouterContent(parts: GeminiPart[]): unknown[] {
+  return parts.map((p, i) => {
+    if ('text' in p) return { type: 'text', text: p.text }
+    const url = `data:${p.inlineData.mimeType};base64,${p.inlineData.data}`
+    if (p.inlineData.mimeType.startsWith('image/')) return { type: 'image_url', image_url: { url } }
+    const ext = p.inlineData.mimeType.split('/')[1]?.split(/[+;]/)[0] || 'bin'
+    return { type: 'file', file: { filename: `document-${i + 1}.${ext}`, file_data: url } }
+  })
+}
+
+async function viaOpenRouter(key: string, m: string, opts: GeminiOptions): Promise<AttemptResult<GeminiResult>> {
+  const parts: GeminiPart[] = opts.parts ?? (opts.text ? [{ text: opts.text }] : [])
+  if (!parts.length) return { ok: false, error: new Error('Gemini: δεν δόθηκε περιεχόμενο (parts/text).') }
+  const startedAt = Date.now()
+  try {
+    const reasoning = opts.fast ? (m.startsWith('gemini-2.5') ? { max_tokens: m.includes('pro') ? 128 : 0 } : m.startsWith('gemini-3') ? { effort: 'low' } : undefined) : undefined
+    const res = await fetchWithRetry(`${OPENROUTER_API}/chat/completions`, {
+      method: 'POST',
+      headers: openrouterHeaders(key),
+      body: JSON.stringify({
+        model: `google/${m}`,
+        messages: [
+          ...(opts.systemInstruction ? [{ role: 'system', content: opts.systemInstruction }] : []),
+          { role: 'user', content: toOpenRouterContent(parts) },
+        ],
+        temperature: opts.temperature ?? 0.1,
+        ...(opts.maxOutputTokens ? { max_tokens: opts.maxOutputTokens } : {}),
+        ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
+        ...(reasoning ? { reasoning } : {}),
+      }),
+      signal: AbortSignal.timeout(180_000),
+    }, { label: `openrouter:${m}` })
+    const data = await res.json().catch(() => null) as { error?: { message?: string }; choices?: { message?: { content?: string | null } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } } | null
+    if (!res.ok) return { ok: false, error: new Error(`OpenRouter HTTP ${res.status}: ${data?.error?.message ?? ''}`.slice(0, 300)) }
+    const text = data?.choices?.[0]?.message?.content ?? ''
+    if (!text) return { ok: false, error: new Error('Gemini (OpenRouter): κενή απάντηση.') }
+    void logAiUsage({
+      scope: opts.scope ?? 'OTHER', provider: 'openrouter', model: m, operation: 'generateContent',
+      inputTokens: data?.usage?.prompt_tokens, outputTokens: data?.usage?.completion_tokens, totalTokens: data?.usage?.total_tokens,
+      durationMs: Date.now() - startedAt, userId: opts.userId, refType: opts.refType, refId: opts.refId,
+    })
+    return { ok: true, value: { text, model: m, tokensUsed: data?.usage?.total_tokens ?? null } }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err : new Error(String(err)) }
+  }
+}
+
+/** Απευθείας Google Gemini API (εφεδρεία ή «Δοκιμή σύνδεσης»). */
+async function geminiDirect(opts: GeminiOptions): Promise<GeminiResult> {
   const { apiKey, model, fallbackModels } = await resolveConfig(opts)
 
   const parts: GeminiPart[] = opts.parts ?? (opts.text ? [{ text: opts.text }] : [])
@@ -196,6 +272,10 @@ export async function geminiEmbed(
   opts: { task: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY'; refType?: string; userId?: string | null } = { task: 'RETRIEVAL_DOCUMENT' },
 ): Promise<number[][]> {
   if (texts.length === 0) return []
+  // Μέσω OpenRouter όταν υπάρχει κλειδί — ΟΛΑ τα vectors (ευρετήριο + ερωτήματα) από την ίδια πηγή, γιατί το OpenRouter
+  // δεν περνά taskType και τα vectors διαφέρουν ελαφρά από τα απευθείας (ανάμειξη = χειρότερη αναζήτηση).
+  const or = await openrouterKey()
+  if (or) return embedViaOpenRouter(or, texts, opts)
   const { apiKey } = await resolveConfig({ parts: [] } as unknown as GeminiOptions)
   const out: number[][] = []
   for (let i = 0; i < texts.length; i += 100) {
@@ -221,6 +301,35 @@ export async function geminiEmbed(
     void logAiUsage({
       scope: 'OTHER', provider: 'gemini', model: EMBEDDING_MODEL, operation: 'embed',
       inputTokens: Math.ceil(chunk.reduce((a, t) => a + Math.min(t.length, 8000), 0) / 4), outputTokens: 0,
+      durationMs: Date.now() - startedAt, userId: opts.userId ?? null, refType: opts.refType ?? 'search-embed',
+    })
+  }
+  return out
+}
+
+/** Πηγή των vectors — όταν αλλάζει, το ευρετήριο ξαναφτιάχνεται (βλ. search/documents.ts). */
+export async function embeddingSource(): Promise<'openrouter' | 'gemini'> {
+  return (await openrouterKey()) ? 'openrouter' : 'gemini'
+}
+
+async function embedViaOpenRouter(key: string, texts: string[], opts: { refType?: string; userId?: string | null }): Promise<number[][]> {
+  const out: number[][] = []
+  for (let i = 0; i < texts.length; i += 100) {
+    const chunk = texts.slice(i, i + 100).map(t => t.slice(0, 8000))
+    const startedAt = Date.now()
+    const res = await fetchWithRetry(`${OPENROUTER_API}/embeddings`, {
+      method: 'POST',
+      headers: openrouterHeaders(key),
+      body: JSON.stringify({ model: `google/${EMBEDDING_MODEL}`, input: chunk, dimensions: EMBEDDING_DIM }),
+    }, { label: 'openrouter:embed' })
+    const data = await res.json().catch(() => null) as { error?: { message?: string }; data?: { index?: number; embedding: number[] }[]; usage?: { prompt_tokens?: number } } | null
+    if (!res.ok || !data?.data) throw new Error(`OpenRouter embeddings HTTP ${res.status}: ${data?.error?.message ?? ''}`.slice(0, 200))
+    const vecs = [...data.data].sort((a, b) => (a.index ?? 0) - (b.index ?? 0)).map(d => d.embedding)
+    if (vecs.length !== chunk.length) throw new Error('OpenRouter embeddings: λάθος πλήθος αποτελεσμάτων.')
+    out.push(...vecs)
+    void logAiUsage({
+      scope: 'OTHER', provider: 'openrouter', model: EMBEDDING_MODEL, operation: 'embed',
+      inputTokens: data.usage?.prompt_tokens ?? Math.ceil(chunk.reduce((a, t) => a + t.length, 0) / 4), outputTokens: 0,
       durationMs: Date.now() - startedAt, userId: opts.userId ?? null, refType: opts.refType ?? 'search-embed',
     })
   }
