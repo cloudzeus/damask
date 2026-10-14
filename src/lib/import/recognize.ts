@@ -97,6 +97,16 @@ async function loadItem(id: string) {
   return prisma.importItem.findUnique({ where: { id }, include: { batch: { select: { createdById: true } } } })
 }
 
+/**
+ * «Δεν αναγνωρίστηκε ως κάτι συγκεκριμένο»: στη μαζική εισαγωγή → «για έλεγχο» (στα αρχεία πελάτη)· για ΕΙΣΕΡΧΟΜΕΝΑ από
+ * αρχεία πελάτη/email/portal το πρωτότυπο είναι ήδη αρχειοθετημένο → ήσυχη παράλειψη (κανένας θόρυβος στον χρήστη).
+ */
+function notRecognized(item: { source: string }): Prisma.ImportItemUpdateInput {
+  if (item.source === 'UPLOAD') return { phase: 'REVIEW', dest: 'files' }
+  const where = item.source === 'EMAIL' ? 'στα αρχεία πελάτη (από email)' : item.source === 'PORTAL' ? 'εκεί που το ανέβασε ο πελάτης' : 'στα αρχεία πελάτη'
+  return { phase: 'SKIPPED', dest: 'files', resultNote: `Δεν είναι δικαιολογητικό ή έγγραφο έργου — παραμένει ${where}.` }
+}
+
 /** Αναγνώριση ενός αρχείου + αυτόματη αποθήκευση αν είναι βέβαιο. */
 export async function recognizeItem(id: string): Promise<void> {
   // Η έκδοση καταλόγου με την οποία αναγνωρίζεται (αλλαγή τύπων/Οδηγών ⇒ ξαναεξέταση — βλ. catalog.ts).
@@ -106,12 +116,12 @@ export async function recognizeItem(id: string): Promise<void> {
   const item = (await loadItem(id))!
   try {
     if (NOT_A_DOC.test(item.fileName)) {
-      await prisma.importItem.update({ where: { id }, data: { phase: 'REVIEW', dest: 'files' } })
+      await prisma.importItem.update({ where: { id }, data: notRecognized(item) })
       return
     }
     // Ίδιο αρχείο ήδη σε δικαιολογητικά/αρχεία/έργα του πελάτη (π.χ. αποθηκεύτηκε στο μεταξύ) → δεν χρειάζεται τίποτα.
     const { findExisting } = await import('./existing')
-    const existing = await findExisting(item.trdrId, item.hash)
+    const existing = await findExisting(item.trdrId, item.hash, { ignoreKey: item.sourceKey })
     if (existing) {
       await prisma.importItem.update({ where: { id }, data: { phase: 'SKIPPED', dest: existing.where === 'dossier' ? 'dossier' : 'files', resultNote: existing.note } })
       return
@@ -134,7 +144,7 @@ export async function recognizeItem(id: string): Promise<void> {
     }
     const kind = err instanceof AiQuotaError ? err.kind === 'day' ? 'day' : 'minute' : retryKind(msg)
     if (!kind) {
-      await prisma.importItem.update({ where: { id }, data: { phase: 'REVIEW', dest: 'files', error: msg.slice(0, 300) } })
+      await prisma.importItem.update({ where: { id }, data: { ...notRecognized(item), error: item.source === 'UPLOAD' ? msg.slice(0, 300) : null } })
       return
     }
     const n = item.attempts
@@ -190,7 +200,7 @@ async function decide(item: ItemRow, s: SmartClassifyResult, text: string, buf: 
     return
   }
   if (!s.typeId) {
-    await prisma.importItem.update({ where: { id: item.id }, data: { ...base, phase: 'REVIEW', dest: 'files' } })
+    await prisma.importItem.update({ where: { id: item.id }, data: { ...base, ...notRecognized(item) } })
     return
   }
   const type = await prisma.documentType.findUnique({ where: { id: s.typeId }, select: { name: true, expires: true, seriesKind: true } })

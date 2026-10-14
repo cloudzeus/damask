@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
  * οποιοδήποτε ανέβασμα/AI στη μαζική εισαγωγή.
  */
 
-export type ExistingKind = 'customer-file' | 'inbox' | 'quote' | 'purchase'
+export type ExistingKind = 'customer-file' | 'inbox' | 'quote' | 'purchase' | 'project-doc'
 
 export function sha256Hex(body: Buffer): string {
   return crypto.createHash('sha256').update(body).digest('hex')
@@ -31,12 +31,13 @@ export async function recordFileHash(input: { key: string; hash?: string | null;
 export type ExistingHit = { where: 'dossier' | ExistingKind; note: string }
 
 /** Πού υπάρχει ήδη το ίδιο αρχείο για τον πελάτη (ή null). Επαληθεύει ότι η εγγραφή υπάρχει ακόμη. */
-export async function findExisting(trdrId: string, hash: string | null | undefined): Promise<ExistingHit | null> {
+export async function findExisting(trdrId: string, hash: string | null | undefined, opts: { ignoreKey?: string | null } = {}): Promise<ExistingHit | null> {
   if (!hash) return null
   const dossier = await prisma.trdrDossierDocument.findFirst({ where: { trdrId, contentHash: hash }, select: { name: true, period: true, documentType: { select: { name: true } } } })
   if (dossier) return { where: 'dossier', note: `Υπάρχει ήδη στα δικαιολογητικά ως «${dossier.name}» (${dossier.documentType.name}${dossier.period ? ` ${dossier.period}` : ''}).` }
 
-  const hits = await prisma.storedFileHash.findMany({ where: { trdrId, hash }, orderBy: { createdAt: 'desc' }, take: 10 })
+  // `ignoreKey`: το πρωτότυπο ενός εισερχομένου (π.χ. το αρχείο πελάτη που μόλις ανέβηκε) δεν είναι «ήδη υπάρχον» για τον εαυτό του.
+  const hits = await prisma.storedFileHash.findMany({ where: { trdrId, hash, ...(opts.ignoreKey ? { key: { not: opts.ignoreKey } } : {}) }, orderBy: { createdAt: 'desc' }, take: 10 })
   for (const h of hits) {
     if (h.kind === 'customer-file') {
       const live = await prisma.fileIndexEntry.findFirst({ where: { key: h.key, missingAt: null }, select: { id: true } })
@@ -48,6 +49,9 @@ export async function findExisting(trdrId: string, hash: string | null | undefin
     } else if (h.kind === 'quote' && h.ref) {
       const e = await prisma.programExpense.findFirst({ where: { id: h.ref, quoteStorageKey: h.key }, select: { description: true } })
       if (e) return { where: 'quote', note: `Υπάρχει ήδη ως προσφορά της δαπάνης «${e.description.slice(0, 80)}».` }
+    } else if (h.kind === 'project-doc') {
+      const d = await prisma.applicationDocument.findFirst({ where: { storageKey: h.key }, select: { application: { select: { program: { select: { title: true } } } } } })
+      if (d) return { where: 'project-doc', note: `Υπάρχει ήδη στα έγγραφα του έργου «${d.application.program.title}».` }
     } else if (h.kind === 'purchase' && h.ref) {
       const p = await prisma.expensePurchase.findFirst({ where: { expenseId: h.ref, OR: [{ invoiceKey: h.key }, { bankExtraitKey: h.key }, { supplierCertKey: h.key }] }, select: { expense: { select: { description: true } } } })
       if (p) return { where: 'purchase', note: `Υπάρχει ήδη στα έγγραφα αγοράς της δαπάνης «${p.expense.description.slice(0, 80)}».` }

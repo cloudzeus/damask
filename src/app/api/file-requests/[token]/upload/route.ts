@@ -105,6 +105,11 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
   } catch (err) {
     return NextResponse.json({ error: 'Αποτυχία αποθήκευσης.', detail: err instanceof Error ? err.message : String(err) }, { status: 502 })
   }
+  {
+    // «Υπάρχει ήδη» (το αρχείο μπαίνει στον φάκελο του πελάτη).
+    const { recordFileHash } = await import('@/lib/import/existing')
+    await recordFileHash({ key: storageKey, body: Buffer.from(arrayBuffer), trdrId: fr.trdrId, kind: 'customer-file', label: `αίτημα αρχείων: ${file.name}` })
+  }
 
   // Σειρά: πρώτο αρχείο → στο ίδιο το ζητούμενο· επόμενα → νέα «παιδική» γραμμή (δεν αντικαθιστούν).
   let targetId = item.id

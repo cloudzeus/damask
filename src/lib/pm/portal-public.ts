@@ -33,6 +33,11 @@ export async function submitDocumentUpload(raw: string, file: { filename: string
     ? await prisma.applicationDocument.update({ where: { id: rec.uploadedDocumentId }, data: { name, storageKey: key, mimeType: file.mimeType, size: body.length } })
     : await prisma.applicationDocument.create({ data: { applicationId: rec.applicationId, obligationId: rec.obligationId, name, storageKey: key, mimeType: file.mimeType, size: body.length, uploadedById: null } })
   await prisma.documentRequest.update({ where: { id: rec.id }, data: { status: 'UPLOADED', uploadedDocumentId: doc.id, uploadedAt: new Date() } })
+  {
+    const app = await prisma.programApplication.findUnique({ where: { id: rec.applicationId }, select: { trdrId: true } })
+    const { recordFileHash } = await import('@/lib/import/existing')
+    await recordFileHash({ key, body, trdrId: app?.trdrId ?? null, kind: 'project-doc', label: `portal: ${name}`, ref: doc.id })
+  }
   if (rec.deliverableTaskId) {
     try {
       await prisma.deliverableFile.create({ data: { taskId: rec.deliverableTaskId, name, storageKey: key, mimeType: file.mimeType, size: body.length, uploadedById: null } })

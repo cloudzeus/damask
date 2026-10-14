@@ -14,6 +14,8 @@ import { createNotification } from '@/lib/notifications/service'
  * Public route (proxy: /api/webhooks/) — κάνει δικό του έλεγχο υπογραφής Mailgun.
  * Πάντα επιστρέφει 200 (εκτός invalid signature) ώστε το Mailgun να μην κάνει retries.
  *
+ * Συνημμένα: αποθηκεύονται στον φάκελο του πελάτη και περνούν από την ενιαία αξιολόγηση αρχείου (import/evaluate).
+ *
  * ⚠ STUB: απαιτεί ρύθμιση Mailgun inbound route + webhook signing key. Χωρίς
  * ρυθμισμένο signing key, τα αιτήματα ΑΠΟΡΡΙΠΤΟΝΤΑΙ (401) για ασφάλεια.
  */
@@ -86,6 +88,35 @@ export async function POST(request: Request) {
   }
 
   const snippet = (bodyText || bodyHtml || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180)
+
+  // Συνημμένα (Mailgun: attachment-1…attachment-N): αποθήκευση στον φάκελο του πελάτη (ή του προγράμματος του νήματος)
+  // + ΕΝΙΑΙΑ ΑΞΙΟΛΟΓΗΣΗ — δικαιολογητικά/έγγραφα έργου πάνε μόνα τους στη θέση τους.
+  const attachments: { name: string; key: string; size: number; mime: string }[] = []
+  if (thread.trdrId) {
+    const files = [...form.entries()].filter(([k, v]) => /^attachment(-\d+)?$/i.test(k) && v instanceof File).map(([, v]) => v as File)
+    if (files.length) {
+      const { trdrUploadFolder } = await import('@/lib/trdr/cdn-folder')
+      const { safeSegment } = await import('@/lib/trdr/safe-name')
+      const { bunnyUploadPrivate } = await import('@/lib/bunny-storage')
+      const { recordFileHash } = await import('@/lib/import/existing')
+      const { evaluateIncomingFile } = await import('@/lib/import/evaluate')
+      const folder = (await trdrUploadFolder(thread.trdrId, thread.programId)) ?? `email-attachments/${thread.trdrId}/`
+      const month = new Date().toISOString().slice(0, 7)
+      for (const f of files.slice(0, 20)) {
+        try {
+          if (f.size <= 0 || f.size > 25 * 1024 * 1024) continue
+          const body = Buffer.from(await f.arrayBuffer())
+          const ext = (/\.[a-z0-9]{1,10}$/i.exec(f.name)?.[0] ?? '').toLowerCase()
+          const key = `${folder}email/${month}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safeSegment(f.name.replace(/\.[a-z0-9]{1,10}$/i, ''), 'file')}${ext}`
+          await bunnyUploadPrivate({ key, body, contentType: f.type || 'application/octet-stream' })
+          await recordFileHash({ key, body, trdrId: thread.trdrId, kind: 'customer-file', label: `email/${f.name}` })
+          attachments.push({ name: f.name, key, size: f.size, mime: f.type || 'application/octet-stream' })
+          void evaluateIncomingFile({ trdrId: thread.trdrId, fileName: f.name, relPath: `email/${subject ?? ''}/${f.name}`.slice(0, 400), mime: f.type || 'application/octet-stream', body, source: 'EMAIL', sourceKey: key, userId: thread.createdById })
+        } catch (err) { console.error('mailgun inbound: συνημμένο απέτυχε', f.name, err) }
+      }
+    }
+  }
+
   await prisma.emailMessage.create({
     data: {
       threadId: thread.id,
@@ -105,6 +136,7 @@ export async function POST(request: Request) {
       programId: thread.programId,
       applicationId: thread.applicationId,
       obligationId: thread.obligationId,
+      ...(attachments.length ? { attachments: attachments.map(a => ({ name: a.name, key: a.key, size: a.size, mime: a.mime })) } : {}),
     },
   })
   await prisma.emailThread.update({ where: { id: thread.id }, data: { lastMessageAt: new Date() } })
@@ -112,7 +144,7 @@ export async function POST(request: Request) {
   await createNotification({
     type: 'GENERIC',
     title: `Νέα απάντηση: ${thread.subject}`,
-    body: snippet || undefined,
+    body: [snippet, attachments.length ? `${attachments.length} συνημμένα — αξιολογούνται αυτόματα.` : null].filter(Boolean).join(' · ') || undefined,
     entityType: 'EmailThread',
     entityId: thread.id,
     meta: { trdrId: thread.trdrId, from: sender },

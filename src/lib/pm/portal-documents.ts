@@ -1,5 +1,6 @@
 'use server'
 
+import { createHash } from 'node:crypto'
 import { isSeriesKind, normalizePeriod, periodFromFileName } from '@/lib/documents/series'
 import { after } from 'next/server'
 import { processTemplateIfApplicable } from '@/lib/tax/template-auto'
@@ -157,6 +158,7 @@ export async function uploadMyDocument(raw: z.input<typeof uploadSchema>): Promi
   const doc = await prisma.trdrDossierDocument.create({
     data: {
       trdrId: contact.trdrId, documentTypeId: type.id, name: f.filename, storageKey: key, mimeType: f.mimeType, sizeBytes: body.length,
+      contentHash: createHash('sha256').update(body).digest('hex'),
       issuedAt: toDate(f.issuedAt), expiresAt: toDate(f.expiresAt),
       period: isSeriesKind(type.seriesKind) ? normalizePeriod(f.period, type.seriesKind) ?? periodFromFileName(f.filename, type.seriesKind) : null,
     },

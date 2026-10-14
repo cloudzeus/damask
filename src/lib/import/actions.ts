@@ -32,13 +32,15 @@ export type ImportItemView = {
   nextAttemptAt: string | null
   autoSaved: boolean
   resultNote: string | null
+  /** UPLOAD | CUSTOMER_FILE | EMAIL | PORTAL — από πού ήρθε (αυτόματη αξιολόγηση εισερχομένων). */
+  source: string
 }
 export type ImportBatchView = { id: string; createdAt: string; items: ImportItemView[] }
 
-const view = (i: { id: string; fileName: string; relPath: string | null; size: number; mimeType: string; hash: string | null; phase: string; dest: string | null; suggestion: unknown; appId: string | null; junkReason: string | null; error: string | null; waitReason: string | null; nextAttemptAt: Date | null; autoSaved: boolean; resultNote: string | null }): ImportItemView => ({
+const view = (i: { id: string; fileName: string; relPath: string | null; size: number; mimeType: string; hash: string | null; phase: string; dest: string | null; suggestion: unknown; appId: string | null; junkReason: string | null; error: string | null; waitReason: string | null; nextAttemptAt: Date | null; autoSaved: boolean; resultNote: string | null; source: string }): ImportItemView => ({
   id: i.id, fileName: i.fileName, relPath: i.relPath, size: i.size, mimeType: i.mimeType, hash: i.hash, phase: i.phase, dest: i.dest,
   suggestion: (i.suggestion as SmartClassifyResult | null) ?? null, appId: i.appId, junkReason: i.junkReason, error: i.error, waitReason: i.waitReason,
-  nextAttemptAt: i.nextAttemptAt?.toISOString() ?? null, autoSaved: i.autoSaved, resultNote: i.resultNote,
+  nextAttemptAt: i.nextAttemptAt?.toISOString() ?? null, autoSaved: i.autoSaved, resultNote: i.resultNote, source: i.source,
 })
 
 /** Η ενεργή παρτίδα του πελάτη (αν υπάρχει) με όλα τα αρχεία της. */

@@ -1,5 +1,6 @@
 'use server'
 
+import { createHash } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { resolvePortalContact as resolveContact, portalApplicationsWhere } from '@/lib/pm/portal-session'
@@ -186,7 +187,7 @@ export async function submitObligationUpload(
       data: {
         trdrId: app.trdrId, documentTypeId: form.documentTypeId, name: file.filename.slice(0, 200), storageKey: skey,
         mimeType: file.mimeType, sizeBytes: body.length, programId: app.programId, period: verdict.period,
-        uploadedById: null,
+        uploadedById: null, contentHash: createHash('sha256').update(body).digest('hex'),
       },
     })
     const { syncSeriesObligation } = await import('@/lib/pm/form-obligations')
@@ -220,12 +221,15 @@ export async function submitObligationUpload(
     if (typeId && (await prisma.documentType.findUnique({ where: { id: typeId }, select: { id: true } }))) {
       const d = (s?: string | null) => (s && !Number.isNaN(Date.parse(s)) ? new Date(s) : null)
       await prisma.trdrDossierDocument.create({
-        data: { trdrId: app.trdrId, documentTypeId: typeId, name, storageKey: key, mimeType: file.mimeType, sizeBytes: body.length, issuedAt: d(ai?.issuedAt), expiresAt: d(ai?.expiresAt), programId: app.programId },
+        data: { trdrId: app.trdrId, documentTypeId: typeId, name, storageKey: key, mimeType: file.mimeType, sizeBytes: body.length, issuedAt: d(ai?.issuedAt), expiresAt: d(ai?.expiresAt), programId: app.programId, contentHash: createHash('sha256').update(body).digest('hex') },
       }).catch(() => null)
     }
   }
   if (obl.documentRequests[0]) {
     await prisma.documentRequest.update({ where: { id: obl.documentRequests[0].id }, data: { status: 'UPLOADED', uploadedDocumentId: doc.id, uploadedAt: new Date() } })
   }
+  // «Υπάρχει ήδη»: το ίδιο αρχείο αν ξαναέρθει (μαζική εισαγωγή/email/αρχεία πελάτη) δεν ξαναμπαίνει.
+  const { recordFileHash } = await import('@/lib/import/existing')
+  await recordFileHash({ key, body, trdrId: app.trdrId, kind: 'project-doc', label: `portal: ${name}`, ref: doc.id })
   return { ok: true }
 }

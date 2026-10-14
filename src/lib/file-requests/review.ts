@@ -175,6 +175,8 @@ export async function reviewFileRequestItem(itemId: string, decision: 'ACCEPTED'
           trdrId: item.fileRequest.trdrId, documentTypeId: item.documentTypeId, name: (item.fileName ?? item.label).slice(0, 200),
           storageKey: item.fileKey, mimeType: item.mimeType, sizeBytes: item.sizeBytes, period: item.period,
           programId: item.fileRequest.programId, uploadedById: session.user.id,
+          // Το hash καταγράφηκε στο ανέβασμα (αίτημα αρχείων) — για το «Υπάρχει ήδη».
+          contentHash: (await prisma.storedFileHash.findUnique({ where: { key: item.fileKey }, select: { hash: true } }))?.hash ?? null,
         },
         select: { id: true },
       }).catch(() => null)

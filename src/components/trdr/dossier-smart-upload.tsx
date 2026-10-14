@@ -46,6 +46,8 @@ type AppOption = { id: string; programId: string; title: string }
 
 type Row = {
   id: string
+  /** Από πού ήρθε — αυτόματη αξιολόγηση εισερχομένων (αρχεία πελάτη / email / portal). */
+  source?: string
   /** Το αρχείο της παρτίδας στον server (ImportItem). */
   itemId: string | null
   /** Το αρχείο του browser — μόνο όσο είναι ανοιχτό το παράθυρο που το διάλεξε (μετά: από τον server). */
@@ -193,7 +195,7 @@ export function DossierSmartUpload({
       itemId: item.id, hash: item.hash ?? '', phase, junkReason: item.junkReason,
       waitReason: item.waitReason, retryAt: item.nextAttemptAt ? Date.parse(item.nextAttemptAt) : null,
       retryable: item.phase === 'FAILED' || item.phase === 'WAITING', autoSaved: item.autoSaved,
-      savedNote: item.resultNote, error: item.phase === 'FAILED' ? item.error : item.phase === 'REVIEW' ? item.error : null,
+      source: item.source, savedNote: item.resultNote, error: item.phase === 'FAILED' ? item.error : item.phase === 'REVIEW' ? item.error : null,
       ...(item.dest ? { dest: item.dest as Dest } : {}), ...(item.appId ? { appId: item.appId } : {}),
     }
     if (item.phase !== 'REVIEW' || !s) { patch(rowId, { ...common, ...(s ? { suggestion: s } : {}) }); return }
@@ -649,6 +651,11 @@ function RowCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="min-w-0 truncate text-[length:var(--fs-13)] font-semibold">{row.name}</span>
+            {row.source && row.source !== 'UPLOAD' && (
+              <span className="badge-pill muted shrink-0" style={{ textTransform: 'none' }} title="Ήρθε αυτόματα για αξιολόγηση">
+                {row.source === 'EMAIL' ? 'από email' : row.source === 'PORTAL' ? 'από το portal' : 'από τα αρχεία πελάτη'}
+              </span>
+            )}
             <span className="text-[length:var(--fs-11)] text-muted-foreground tabular-nums">{sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`}</span>
             {row.relPath.includes('/') && (
               <span className="inline-flex min-w-0 items-center gap-1 text-[length:var(--fs-11)] text-muted-foreground" title={row.relPath}>

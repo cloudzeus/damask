@@ -78,5 +78,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
 
   void logApiUsage({ service: 'bunnycdn', operation: 'upload', units: file.size / 1e9, userId: session?.user?.id, refType: 'trdr-file', refId: id })
+  // «Υπάρχει ήδη» + ενιαία αξιολόγηση (όπως το ανέβασμα σε κομμάτια).
+  const body = Buffer.from(arrayBuffer)
+  const { recordFileHash } = await import('@/lib/import/existing')
+  await recordFileHash({ key, body, trdrId: id, kind: 'customer-file', label: `${rel}${relDir}${file.name}` })
+  const { evaluable, evaluateIncomingFile } = await import('@/lib/import/evaluate')
+  if (evaluable(file.name, file.type, file.size)) {
+    const rawDir = typeof relDirRaw === 'string' ? relDirRaw.replace(/^\/+|\/+$/g, '') : ''
+    void evaluateIncomingFile({ trdrId: id, fileName: file.name, relPath: rawDir ? `${rawDir}/${file.name}` : file.name, mime: file.type || 'application/octet-stream', body, source: 'CUSTOMER_FILE', sourceKey: key, userId: session?.user?.id ?? null })
+  }
   return NextResponse.json({ ok: true, name: file.name, key, size: file.size })
 }

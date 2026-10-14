@@ -3,7 +3,7 @@ import { randomUUID, createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { mkdir, appendFile, stat, unlink, readdir } from 'node:fs/promises'
+import { mkdir, appendFile, stat, unlink, readdir, readFile } from 'node:fs/promises'
 import { auth } from '@/auth'
 import { can } from '@/lib/rbac'
 import { prisma } from '@/lib/prisma'
@@ -105,6 +105,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (hash) {
       const { recordFileHash } = await import('@/lib/import/existing')
       await recordFileHash({ key, hash, trdrId: id, kind: 'customer-file', label: `${rel}${relDir}${name}` })
+    }
+    // Ενιαία αξιολόγηση: δικαιολογητικό/έγγραφο έργου → και στη θέση του (το αρχείο μένει και στα αρχεία πελάτη).
+    // Η αρχική (ελληνική) διαδρομή φακέλου — όχι η μεταγραμμένη — γιατί από αυτήν «καταλαβαίνει» ο ρόλος.
+    const { evaluable, evaluateIncomingFile } = await import('@/lib/import/evaluate')
+    const mime = String(fd.get('type') ?? '') || 'application/octet-stream'
+    if (evaluable(name, mime, received)) {
+      const rawDir = String(fd.get('relDir') ?? '').replace(/^\/+|\/+$/g, '')
+      const body = await readFile(part)
+      void evaluateIncomingFile({ trdrId: id, fileName: name, relPath: rawDir ? `${rawDir}/${name}` : name, mime, body, source: 'CUSTOMER_FILE', sourceKey: key, userId: session?.user?.id ?? null })
     }
     return NextResponse.json({ ok: true, done: true, name, key, size: received })
   } catch (err) {

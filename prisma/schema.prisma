@@ -3274,6 +3274,10 @@ model ImportItem {
   hash           String?
   /// Προσωρινό αντίγραφο: imports/<batchId>/<itemId>.<ext>
   storageKey     String?
+  /// Από πού ήρθε: UPLOAD (μαζική εισαγωγή) | CUSTOMER_FILE | EMAIL | PORTAL — αυτόματη αξιολόγηση εισερχομένων.
+  source         String      @default("UPLOAD")
+  /// Το πρωτότυπο (π.χ. το αρχείο πελάτη) — δεν μετρά ως «υπάρχει ήδη» για το ίδιο του το αρχείο.
+  sourceKey      String?
   /// UPLOADING | QUEUED | RECOGNIZING | WAITING | REVIEW | SAVING | SAVED | SKIPPED | FAILED
   phase          String      @default("UPLOADING")
   /// dossier | approval | quote | invoice | files | junk
