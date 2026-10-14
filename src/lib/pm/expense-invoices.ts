@@ -12,6 +12,7 @@ import { certNeededFor, isPayrollExpense, type MatchVerdict } from '@/lib/pm/inv
 import { summarizePayroll, perEmeCapFrom } from '@/lib/pm/payroll-calc'
 import { quotePolicyLabel } from '@/lib/programs/quote-policy'
 import { rematchInvoice as rematch, parseMatch } from '@/lib/pm/invoice-rematch'
+import { createInvoiceCore, attachPaymentCore, attachCertCore, addAttachmentCore } from '@/lib/pm/impl-core'
 
 /**
  * Υλοποίηση εγκεκριμένου έργου — «Δαπάνες ανά κατηγορία»: κάθε εγκεκριμένη δαπάνη έχει ΠΟΛΛΑ παραστατικά, το καθένα με
@@ -33,7 +34,6 @@ async function accessByInvoice(invoiceId: string) {
 const n = (v: unknown) => (v == null ? null : Number(v))
 const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null)
 const toDate = (s: string | null | undefined) => (s && !Number.isNaN(Date.parse(s)) ? new Date(s) : null)
-const readable = (mime: string) => mime === 'application/pdf' || mime.startsWith('image/')
 
 // ── Τύποι για το UI ──────────────────────────────────────────────────────────────────────────────
 
@@ -50,6 +50,8 @@ export type BoardInvoice = {
   payments: BoardPayment[]
   /** Άθροισμα πληρωμών (με ΦΠΑ). */
   paidAmount: number
+  /** Συνοδευτικά: λογιστικές εγγραφές, φωτογραφίες εξοπλισμού, λοιπά. */
+  attachments: { id: string; kind: 'ACCOUNTING' | 'PHOTO' | 'OTHER'; name: string }[]
   hasCert: boolean
   certName: string | null
   /** Ψηφιακή βεβαίωση (σύνταξη/αποστολή/υπογραφή) του παραστατικού. */
@@ -73,9 +75,11 @@ export type ImplementationBoard = {
   quotePolicyLabel: string
   quotePolicyNote: string | null
   programId: string
+  /** Αρχεία στο «Προς καταχώριση» που περιμένουν (εκτός εγκριτικών). */
+  inboxPending: number
 }
 
-const INV_INCLUDE = { certificate: { select: { status: true } }, payments: { orderBy: [{ paidAt: 'asc' as const }, { createdAt: 'asc' as const }] } } satisfies Prisma.ExpenseInvoiceInclude
+const INV_INCLUDE = { certificate: { select: { status: true } }, payments: { orderBy: [{ paidAt: 'asc' as const }, { createdAt: 'asc' as const }] }, attachments: { select: { id: true, kind: true, name: true }, orderBy: { createdAt: 'asc' as const } } } satisfies Prisma.ExpenseInvoiceInclude
 type PayDoc = { key: string; name: string; mime?: string | null }
 const docsOf = (v: unknown): PayDoc[] => (Array.isArray(v) ? (v as PayDoc[]) : [])
 
@@ -86,6 +90,7 @@ function toBoardInvoice(r: Prisma.ExpenseInvoiceGetPayload<{ include: typeof INV
     id: r.id, number: r.number, date: day(r.date), supplier: r.supplier, supplierAfm: r.supplierAfm,
     totalAmount: n(r.totalAmount), netAmount: n(r.netAmount), invoiceName: r.invoiceName,
     payments, paidAmount: payments.reduce((a, p) => a + (p.amount ?? 0), 0),
+    attachments: r.attachments.map(a => ({ id: a.id, kind: a.kind as 'ACCOUNTING' | 'PHOTO' | 'OTHER', name: a.name })),
     hasCert: !!r.supplierCertKey, certName: r.supplierCertName, certStatus: (r.certificate?.status as BoardInvoice['certStatus'] | undefined) ?? 'NEW',
     matchVerdict: (r.matchVerdict as MatchVerdict | null) ?? null, checks: m.checks ?? [], readError: r.readError,
   }
@@ -151,20 +156,12 @@ export async function getImplementationBoard(applicationId: string): Promise<Imp
     quotePolicyLabel: quotePolicyLabel(program?.quotePolicy, program?.quotePolicyRule, new Map(cats.map((c, i) => [c.id, `${i + 1}`]))),
     quotePolicyNote: program?.quotePolicyNote ?? null,
     programId: app.programId,
+    inboxPending: await prisma.applicationInboxDoc.count({ where: { applicationId, status: 'PENDING', kind: { not: 'APPROVAL' } } }),
   }
 }
 
 // ── Ανάγνωση (AI) ────────────────────────────────────────────────────────────────────────────────
 
-async function aiRead<T>(file: FileIn, system: string, userId: string, refId: string): Promise<T | null> {
-  if (!readable(file.mimeType)) return null
-  const { geminiGenerate } = await import('@/lib/gemini')
-  const r = await geminiGenerate({
-    parts: [{ inlineData: { data: file.base64, mimeType: file.mimeType } }, { text: 'Διάβασε το έγγραφο σύμφωνα με τις οδηγίες.' }],
-    systemInstruction: system, json: true, scope: 'OCR_VISION', refType: 'expense-invoice', refId, userId,
-  })
-  return (parseJsonLoose(r.text) ?? null) as T | null
-}
 
 const num = (v: unknown) => { const x = typeof v === 'number' ? v : typeof v === 'string' ? Number(v.replace(/\./g, '').replace(',', '.')) : NaN; return Number.isFinite(x) ? x : null }
 const str = (v: unknown) => (typeof v === 'string' && v.trim() && v.trim() !== 'null' ? v.trim() : null)
@@ -187,77 +184,27 @@ export async function addExpenseInvoice(expenseId: string, file: FileIn): Promis
   const { session, app } = await accessByExpense(expenseId)
   try {
     const key = await store(`expense-invoices/${expenseId}`, file, app.trdrId, `Παραστατικό: ${file.name}`, expenseId)
-    let data: Prisma.ExpenseInvoiceUncheckedCreateInput = { expenseId, invoiceKey: key, invoiceName: file.name.slice(0, 250), invoiceMime: file.mimeType, createdById: session.user.id }
-    try {
-      if (readable(file.mimeType)) {
-        const { extractDocument } = await import('@/lib/ocr/extract')
-        const x = (await extractDocument({ images: [{ base64: file.base64, mimeType: file.mimeType as 'image/png' }], docType: 'invoice', refId: expenseId, userId: session.user.id })).data
-        data = {
-          ...data, number: x.documentNumber, date: toDate(x.date), supplier: x.issuer.name, supplierAfm: x.issuer.afm,
-          netAmount: x.totals.net, vatAmount: x.totals.vat, totalAmount: x.totals.gross ?? (x.totals.net != null ? x.totals.net + (x.totals.vat ?? 0) : null),
-          lines: x.lines as unknown as Prisma.InputJsonValue,
-        }
-      } else data.readError = 'Μόνο PDF ή εικόνες διαβάζονται αυτόματα — συμπληρώστε τα στοιχεία.'
-    } catch (err) { data.readError = err instanceof Error ? err.message.slice(0, 300) : 'Η ανάγνωση απέτυχε.' }
-    const row = await prisma.expenseInvoice.create({ data })
-    await rematch(row.id)
-    await logActivity('expense.invoice', { entityType: 'expense', entityId: expenseId, userId: session.user.id, meta: { invoiceId: row.id } })
-    return { ok: true, invoice: toBoardInvoice(await prisma.expenseInvoice.findUniqueOrThrow({ where: { id: row.id }, include: INV_INCLUDE })) }
+    const id = await createInvoiceCore({ expenseId, file: { key, name: file.name, mime: file.mimeType, base64: file.base64 }, userId: session.user.id })
+    await logActivity('expense.invoice', { entityType: 'expense', entityId: expenseId, userId: session.user.id, meta: { invoiceId: id } })
+    return { ok: true, invoice: toBoardInvoice(await prisma.expenseInvoice.findUniqueOrThrow({ where: { id }, include: INV_INCLUDE })) }
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Το ανέβασμα απέτυχε.' }
   }
 }
 
 /**
- * Πληρωμή (αποδεικτικό ή εξτρέ) ή βεβαίωση προμηθευτή για ένα παραστατικό — ανέβασμα + ανάγνωση + διασταύρωση.
- * Πληρωμή με ίδιο ποσό & ημερομηνία με υπάρχουσα (π.χ. αποδεικτικό + εξτρέ της ίδιας δόσης) ενώνεται — δεν μετρά διπλά.
+ * Πληρωμή (αποδεικτικό ή εξτρέ), βεβαίωση προμηθευτή ή συνοδευτικό (λογιστική εγγραφή/φωτογραφία) για ένα παραστατικό.
+ * Πληρωμή με ίδιο ποσό & ημερομηνία με υπάρχουσα (αποδεικτικό + εξτρέ της ίδιας δόσης) ενώνεται — δεν μετρά διπλά.
  */
-export async function attachInvoiceDoc(invoiceId: string, kind: 'payment' | 'cert', file: FileIn): Promise<{ ok: true; invoice: BoardInvoice } | { ok: false; message: string }> {
+export async function attachInvoiceDoc(invoiceId: string, kind: 'payment' | 'cert' | 'accounting' | 'photo', file: FileIn): Promise<{ ok: true; invoice: BoardInvoice } | { ok: false; message: string }> {
   const { session, app, expenseId } = await accessByInvoice(invoiceId)
   try {
-    const inv = await prisma.expenseInvoice.findUniqueOrThrow({ where: { id: invoiceId }, include: INV_INCLUDE })
-    const key = await store(`expense-invoices/${expenseId}/${kind}`, file, app.trdrId, `${kind === 'payment' ? 'Πληρωμή' : 'Βεβαίωση'}: ${file.name}`, expenseId)
-    const ctx = `Παραστατικό: αρ. ${inv.number ?? '—'}, ημ. ${day(inv.date) ?? '—'}, προμηθευτής ${inv.supplier ?? '—'} (ΑΦΜ ${inv.supplierAfm ?? '—'}), σύνολο ${n(inv.totalAmount) ?? '—'} €.`
-    let readError: string | null = null
-    if (kind === 'payment') {
-      const already = inv.payments.map(p => `${n(p.amount)}€ στις ${day(p.paidAt) ?? '—'}`).join(', ')
-      let paid: { amount?: unknown; date?: unknown; payee?: unknown } | null = null
-      try {
-        paid = await aiRead(file, [
-          'Διαβάζεις ελληνικό τραπεζικό αποδεικτικό πληρωμής / εξτρέ λογαριασμού / αντίγραφο κίνησης.',
-          `Βρες την ΠΛΗΡΩΜΗ προς τον προμηθευτή που αντιστοιχεί σε αυτό το παραστατικό (αν υπάρχουν πολλές κινήσεις, διάλεξε αυτή με τον ίδιο δικαιούχο/ποσό/αιτιολογία): ${ctx}`,
-          already ? `Έχουν ήδη καταχωριστεί οι πληρωμές: ${already}. Αν το έγγραφο δείχνει ΚΑΙ άλλη πληρωμή του ίδιου παραστατικού, προτίμησε αυτή που δεν έχει καταχωριστεί.` : '',
-          'Απάντησε ΑΥΣΤΗΡΑ JSON: {"amount": ποσό χρέωσης σε ευρώ (αριθμός), "date": "YYYY-MM-DD", "payee": "δικαιούχος/αποδέκτης της πληρωμής"} — null όπου δεν φαίνεται.',
-        ].filter(Boolean).join('\n'), session.user.id, invoiceId)
-        if (!paid) readError = 'Μόνο PDF ή εικόνες διαβάζονται αυτόματα — συμπληρώστε το ποσό.'
-      } catch (err) { readError = err instanceof Error ? err.message.slice(0, 300) : 'Η ανάγνωση απέτυχε.' }
-      const amount = num(paid?.amount)
-      const paidAt = toDate(str(paid?.date))
-      const doc: PayDoc = { key, name: file.name.slice(0, 250), mime: file.mimeType }
-      // Ίδια δόση (αποδεικτικό + εξτρέ): ίδιο ποσό και ίδια ημέρα → ένα επιπλέον έγγραφο στην υπάρχουσα πληρωμή.
-      const same = amount != null && paidAt ? inv.payments.find(p => n(p.amount) === amount && day(p.paidAt) === day(paidAt)) : undefined
-      if (same) {
-        await prisma.expenseInvoicePayment.update({ where: { id: same.id }, data: { docs: [...docsOf(same.docs), doc] as unknown as Prisma.InputJsonValue, payee: same.payee ?? str(paid?.payee) } })
-      } else {
-        await prisma.expenseInvoicePayment.create({
-          data: { invoiceId, amount, paidAt, payee: str(paid?.payee), docs: [doc] as unknown as Prisma.InputJsonValue, readError, createdById: session.user.id },
-        })
-      }
-    } else {
-      let cert: { invoiceNumbers?: unknown; amount?: unknown } | null = null
-      try {
-        cert = await aiRead(file, [
-          'Διαβάζεις ελληνική ΒΕΒΑΙΩΣΗ ΠΡΟΜΗΘΕΥΤΗ (εξόφλησης/παράδοσης) για επενδυτικό σχέδιο ΕΣΠΑ.',
-          `Αφορά (πιθανότατα) το παραστατικό: ${ctx}`,
-          'Απάντησε ΑΥΣΤΗΡΑ JSON: {"invoiceNumbers": ["αριθμοί παραστατικών που αναφέρει"], "amount": συνολικό ποσό που βεβαιώνει (αριθμός ή null)}.',
-        ].join('\n'), session.user.id, invoiceId)
-      } catch { /* η βεβαίωση μετρά ως «υπάρχει» και χωρίς ανάγνωση */ }
-      const nums = Array.isArray(cert?.invoiceNumbers) ? cert.invoiceNumbers.map(String).filter(Boolean) : []
-      await prisma.expenseInvoice.update({ where: { id: invoiceId }, data: { supplierCertKey: key, supplierCertName: file.name.slice(0, 250), supplierCertMime: file.mimeType } })
-      await rematch(invoiceId, { invoiceNumbers: nums, amount: num(cert?.amount) })
-      return { ok: true, invoice: toBoardInvoice(await prisma.expenseInvoice.findUniqueOrThrow({ where: { id: invoiceId }, include: INV_INCLUDE })) }
-    }
-    await rematch(invoiceId)
+    const label = { payment: 'Πληρωμή', cert: 'Βεβαίωση', accounting: 'Λογιστική εγγραφή', photo: 'Φωτογραφία' }[kind]
+    const key = await store(`expense-invoices/${expenseId}/${kind}`, file, app.trdrId, `${label}: ${file.name}`, expenseId)
+    const f = { key, name: file.name, mime: file.mimeType, base64: file.base64 }
+    if (kind === 'payment') await attachPaymentCore({ invoiceId, file: f, userId: session.user.id })
+    else if (kind === 'cert') await attachCertCore({ invoiceId, file: f, userId: session.user.id })
+    else await addAttachmentCore({ invoiceId, kind: kind === 'accounting' ? 'ACCOUNTING' : 'PHOTO', file: f })
     return { ok: true, invoice: toBoardInvoice(await prisma.expenseInvoice.findUniqueOrThrow({ where: { id: invoiceId }, include: INV_INCLUDE })) }
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : 'Το ανέβασμα απέτυχε.' }

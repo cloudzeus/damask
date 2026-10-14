@@ -76,8 +76,10 @@ export function matchInvoice({ invoice, payments, cert }: MatchInput): MatchResu
   if (cert) {
     if (!cert.present) { soft = true; checks.push({ ok: false, text: 'Λείπει η βεβαίωση προμηθευτή.' }) }
     else {
-      const nums = (cert.invoiceNumbers ?? []).map(digits).filter(Boolean)
-      if (invoice.number && nums.length && !nums.includes(digits(invoice.number))) { hard = true; checks.push({ ok: false, text: `Η βεβαίωση αναφέρει άλλο παραστατικό (${(cert.invoiceNumbers ?? []).join(', ')}).` }) }
+      // Ομάδες ψηφίων («16019/15-10-24» → 16019, 15, 10, 24): ταιριάζει αν κάποια ομάδα = ο αριθμός του παραστατικού.
+      const groups = (cert.invoiceNumbers ?? []).flatMap(x => x.split(/\D+/)).map(g => g.replace(/^0+/, '')).filter(Boolean)
+      const own = digits(invoice.number ?? '').replace(/^0+/, '')
+      if (own && groups.length && !groups.includes(own) && !(cert.invoiceNumbers ?? []).some(x => digits(x).replace(/^0+/, '') === own)) { hard = true; checks.push({ ok: false, text: `Η βεβαίωση αναφέρει άλλο παραστατικό (${(cert.invoiceNumbers ?? []).join(', ')}).` }) }
       else if (cert.amount != null && invoice.total != null && Math.abs(cert.amount - invoice.total) > 0.01 && Math.abs(cert.amount - paid) > 0.01) { hard = true; checks.push({ ok: false, text: `Η βεβαίωση γράφει ${eur(cert.amount)} — διαφορετικό ποσό.` }) }
       else checks.push({ ok: true, text: 'Η βεβαίωση προμηθευτή υπάρχει και αναφέρεται στο παραστατικό.' })
     }

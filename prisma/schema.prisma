@@ -3341,6 +3341,7 @@ model ExpenseInvoice {
   matchNote       String?
   readError       String?
   certificate     SupplierCertificate?
+  attachments     ExpenseInvoiceAttachment[]
   createdById     String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -3429,4 +3430,19 @@ model PayrollDoc {
   createdAt   DateTime       @default(now())
 
   @@index([expenseId])
+}
+
+/// Συνοδευτικά ενός παραστατικού υλοποίησης: λογιστικές εγγραφές (Γεν. Ημερολόγιο/καρτέλα προμηθευτή), φωτογραφίες
+/// εξοπλισμού/σειριακών, λοιπά. ACCOUNTING | PHOTO | OTHER.
+model ExpenseInvoiceAttachment {
+  id        String         @id @default(cuid())
+  invoiceId String
+  invoice   ExpenseInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  kind      String
+  key       String
+  name      String
+  mime      String?
+  createdAt DateTime       @default(now())
+
+  @@index([invoiceId])
 }

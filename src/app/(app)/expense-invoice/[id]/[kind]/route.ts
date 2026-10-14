@@ -10,7 +10,7 @@ type Doc = { key: string; name: string; mime?: string | null }
 
 /**
  * Προβολή αρχείου παραστατικού υλοποίησης — inline, με έλεγχο ορατότητας έργου.
- * kind: invoice | cert | payment (?p=<paymentId>&i=<θέση εγγράφου της πληρωμής>).
+ * kind: invoice | cert | payment (?p=<paymentId>&i=<θέση εγγράφου της πληρωμής>) | att (?a=<συνοδευτικό>).
  */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string; kind: string }> }) {
   let session
@@ -20,7 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { id, kind } = await params
   const r = await prisma.expenseInvoice.findFirst({
     where: { id, expense: { application: visibleApplicationWhere({ id: session.user.id, permissions: session.user.permissions ?? [] }) } },
-    include: { payments: { select: { id: true, docs: true } } },
+    include: { payments: { select: { id: true, docs: true } }, attachments: true },
   })
   if (!r) return NextResponse.json({ error: 'Δεν βρέθηκε.' }, { status: 404 })
 
@@ -31,6 +31,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const q = new URL(req.url).searchParams
     const p = r.payments.find(x => x.id === q.get('p'))
     doc = (Array.isArray(p?.docs) ? (p.docs as Doc[]) : [])[Number(q.get('i') ?? 0)] ?? null
+  }
+  else if (kind === 'att') {
+    const a = r.attachments.find(x => x.id === new URL(req.url).searchParams.get('a'))
+    if (a) doc = { key: a.key, name: a.name, mime: a.mime }
   }
   if (!doc?.key) return NextResponse.json({ error: 'Δεν υπάρχει έγγραφο.' }, { status: 404 })
 

@@ -29,6 +29,7 @@ describe('matchInvoice', () => {
     expect(matchInvoice({ invoice, payments, cert: { present: false } }).verdict).toBe('PARTIAL')
     expect(matchInvoice({ invoice, payments, cert: { present: true, invoiceNumbers: ['16019'] } }).verdict).toBe('MISMATCH')
     expect(matchInvoice({ invoice, payments, cert: { present: true, invoiceNumbers: ['14759'] } }).verdict).toBe('OK')
+    expect(matchInvoice({ invoice, payments, cert: { present: true, invoiceNumbers: ['14759/15-10-24'] } }).verdict).toBe('OK')
   })
 })
 

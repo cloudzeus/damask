@@ -192,6 +192,16 @@ export async function startQueue(): Promise<void> {
   })
   await boss.schedule(QUEUE_CATALOG_RECHECK, '*/15 * * * *', null, { tz: 'Europe/Athens' })
 
+  // Αυτόματη καταχώριση εγγράφων στην υλοποίηση έργου (κατ' απαίτηση από τη σελίδα· η πρόοδος σε Setting).
+  const { QUEUE_IMPL_AUTOFILE, runImplAutofile } = await import('@/lib/pm/impl-autofile')
+  await boss.createQueue(QUEUE_IMPL_AUTOFILE)
+  await boss.work<{ applicationId: string; userId: string | null }>(QUEUE_IMPL_AUTOFILE, async jobs => {
+    for (const job of jobs) {
+      const r = await runImplAutofile(job.data.applicationId, job.data.userId)
+      console.log(`[pg-boss] impl-autofile ${job.data.applicationId}: ${r.state} — ${JSON.stringify(r.counts)}`)
+    }
+  })
+
   await boss.createQueue(QUEUE_THANOS_DISTILL)
   await boss.work(QUEUE_THANOS_DISTILL, async () => {
     try {

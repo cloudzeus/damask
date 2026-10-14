@@ -4,7 +4,7 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import {
   LuChevronRight, LuCloudUpload, LuLoaderCircle, LuFileText, LuLandmark, LuSignature, LuCircleCheck, LuTriangleAlert,
-  LuCircleAlert, LuEllipsisVertical, LuPencil, LuTrash2, LuEye, LuSparkles, LuX,
+  LuCircleAlert, LuEllipsisVertical, LuPencil, LuTrash2, LuEye, LuSparkles, LuX, LuWandSparkles, LuBookOpen, LuImage,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import { SupplierCertButton } from '@/components/programs/supplier-cert-dialog'
 import { PayrollPanel } from './payroll-panel'
+import { startImplAutofile, getImplAutofileStatus } from '@/lib/pm/impl-autofile-actions'
+import type { AutofileStatus } from '@/lib/pm/impl-autofile'
 import { cn } from '@/lib/utils'
 import {
   getImplementationBoard, addExpenseInvoice, attachInvoiceDoc, updateExpenseInvoice, updateInvoicePayment, removeInvoiceDoc, setQuotePolicy, detectQuotePolicy,
@@ -115,6 +117,8 @@ export function ImplementationBoard({ applicationId, onChanged }: { applicationI
           <QuotePolicy applicationId={applicationId} board={board} onChanged={() => load()} />
         </div>
       </div>
+
+      <AutofileBar applicationId={applicationId} pending={board.inboxPending} onDone={refresh} />
 
       {board.categories.length === 0 && (
         <div className="rounded-[18px] border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-[length:var(--fs-13)] text-muted-foreground">
@@ -244,15 +248,17 @@ function InvoicesBlock({ exp, onChanged, onView }: { exp: BoardExpense; onChange
 }
 
 function InvoiceRow({ expenseId, inv, certNeeded, onChanged, onView }: { expenseId: string; inv: BoardInvoice; certNeeded: boolean; onChanged: () => void; onView: (f: ViewerFile) => void }) {
-  const [busy, setBusy] = React.useState<'payment' | 'cert' | 'del' | null>(null)
+  const [busy, setBusy] = React.useState<'payment' | 'cert' | 'accounting' | 'photo' | 'del' | null>(null)
   const [details, setDetails] = React.useState(inv.matchVerdict === 'MISMATCH' || !!inv.readError)
   const [editing, setEditing] = React.useState(false)
   const payRef = React.useRef<HTMLInputElement>(null)
+  const accRef = React.useRef<HTMLInputElement>(null)
+  const photoRef = React.useRef<HTMLInputElement>(null)
   const certRef = React.useRef<HTMLInputElement>(null)
   const v = VERDICT[inv.matchVerdict ?? 'NONE']
   const VIcon = v.icon
 
-  async function attach(kind: 'payment' | 'cert', files: File[]) {
+  async function attach(kind: 'payment' | 'cert' | 'accounting' | 'photo', files: File[]) {
     setBusy(kind)
     let last: BoardInvoice | null = null
     for (const f of files) {
@@ -263,7 +269,7 @@ function InvoiceRow({ expenseId, inv, certNeeded, onChanged, onView }: { expense
     }
     if (last) {
       const nv = last.matchVerdict
-      toast[nv === 'MISMATCH' ? 'warning' : 'success'](kind === 'payment' ? (files.length > 1 ? `Καταχωρίστηκαν ${files.length} έγγραφα πληρωμής.` : 'Η πληρωμή καταχωρίστηκε.') : 'Η βεβαίωση καταχωρίστηκε.', {
+      toast[nv === 'MISMATCH' ? 'warning' : 'success'](kind === 'payment' ? (files.length > 1 ? `Καταχωρίστηκαν ${files.length} έγγραφα πληρωμής.` : 'Η πληρωμή καταχωρίστηκε.') : kind === 'cert' ? 'Η βεβαίωση καταχωρίστηκε.' : 'Το συνοδευτικό καταχωρίστηκε.', {
         description: nv === 'OK' ? 'Παραστατικό και πληρωμές ταιριάζουν.' : nv === 'MISMATCH' ? 'Βρέθηκε ασυμφωνία — δείτε τον έλεγχο.' : undefined,
       })
       if (nv !== 'OK') setDetails(true)
@@ -311,6 +317,8 @@ function InvoiceRow({ expenseId, inv, certNeeded, onChanged, onView }: { expense
             <LuCloudUpload className="size-3.5" aria-hidden /> Πληρωμή / εξτρέ
           </button>
         )}
+        <input ref={accRef} type="file" multiple accept="application/pdf,image/*" className="hidden" onChange={e => { if (e.target.files?.length) void attach('accounting', [...e.target.files]); e.target.value = '' }} />
+        <input ref={photoRef} type="file" multiple accept="application/pdf,image/*" className="hidden" onChange={e => { if (e.target.files?.length) void attach('photo', [...e.target.files]); e.target.value = '' }} />
         <input ref={payRef} type="file" multiple accept="application/pdf,image/*" className="hidden" onChange={e => { if (e.target.files?.length) void attach('payment', [...e.target.files]); e.target.value = '' }} />
 
         {/* Βεβαίωση — μόνο όταν χρειάζεται (ή υπάρχει ήδη) */}
@@ -327,6 +335,13 @@ function InvoiceRow({ expenseId, inv, certNeeded, onChanged, onView }: { expense
           <span className="text-[length:var(--fs-11)] text-muted-foreground" title="Η βεβαίωση προμηθευτή χρειάζεται μόνο σε αγορές εξοπλισμού/μηχανημάτων/λογισμικού.">Βεβαίωση: δεν απαιτείται</span>
         )}
 
+        {inv.attachments.length > 0 && (
+          <button type="button" onClick={() => setDetails(true)} className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-border px-3 text-[length:var(--fs-11-5)] text-muted-foreground hover:border-primary hover:text-primary" title="Συνοδευτικά: λογιστικές εγγραφές, φωτογραφίες">
+            {inv.attachments.some(a => a.kind === 'ACCOUNTING') && <span className="inline-flex items-center gap-1"><LuBookOpen className="size-3.5" aria-hidden /> {inv.attachments.filter(a => a.kind === 'ACCOUNTING').length}</span>}
+            {inv.attachments.some(a => a.kind === 'PHOTO') && <span className="inline-flex items-center gap-1"><LuImage className="size-3.5" aria-hidden /> {inv.attachments.filter(a => a.kind === 'PHOTO').length}</span>}
+          </button>
+        )}
+
         {/* Αποτέλεσμα διασταύρωσης */}
         <button type="button" onClick={() => setDetails(d => !d)} aria-expanded={details} className={`badge-pill ${v.cls} cursor-pointer`} style={{ textTransform: 'none' }}>
           <VIcon className="size-3" aria-hidden /> {v.label}
@@ -341,6 +356,8 @@ function InvoiceRow({ expenseId, inv, certNeeded, onChanged, onView }: { expense
           <DropdownMenuContent align="end" className="w-max min-w-52">
             <DropdownMenuItem onClick={() => file('invoice', inv.invoiceName)}><LuEye className="size-3.5" aria-hidden /> Προβολή παραστατικού</DropdownMenuItem>
             <DropdownMenuItem onClick={() => { setEditing(true); setDetails(true) }}><LuPencil className="size-3.5" aria-hidden /> Διόρθωση στοιχείων</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => accRef.current?.click()}><LuBookOpen className="size-3.5" aria-hidden /> Προσθήκη λογιστικής εγγραφής</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => photoRef.current?.click()}><LuImage className="size-3.5" aria-hidden /> Προσθήκη φωτογραφιών εξοπλισμού</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={() => void remove('invoice')}><LuTrash2 className="size-3.5" aria-hidden /> Διαγραφή παραστατικού</DropdownMenuItem>
           </DropdownMenuContent>
@@ -358,6 +375,18 @@ function InvoiceRow({ expenseId, inv, certNeeded, onChanged, onView }: { expense
               <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-card">
                 {inv.payments.map((p, k) => <PaymentRow key={p.id} n={k + 1} p={p} onView={(idx, name) => payFile(p, idx, name)} onRemove={() => void remove({ paymentId: p.id })} onChanged={onChanged} />)}
               </ul>
+            </div>
+          )}
+          {inv.attachments.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="text-[length:var(--fs-11)] font-semibold text-muted-foreground">Συνοδευτικά</div>
+              <div className="flex flex-wrap gap-1">
+                {inv.attachments.map(a => (
+                  <button key={a.id} type="button" onClick={() => onView({ name: a.name, url: `/expense-invoice/${inv.id}/att?a=${a.id}` })} className="inline-flex h-7 max-w-56 cursor-pointer items-center gap-1 rounded-full border border-border px-2 text-[length:var(--fs-11)] hover:border-primary hover:text-primary" title={a.name}>
+                    {a.kind === 'PHOTO' ? <LuImage className="size-3 shrink-0" aria-hidden /> : <LuBookOpen className="size-3 shrink-0" aria-hidden />}<span className="truncate">{a.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {inv.checks.length > 0 ? (
@@ -523,5 +552,80 @@ function QuotePolicy({ applicationId, board, onChanged }: { applicationId: strin
         <DropdownMenuItem onClick={() => void set('REQUIRED')}>Απαιτούνται προσφορές</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+/** «Αυτόματη καταχώριση»: τα αρχεία του «Προς καταχώριση» μπαίνουν μόνα τους στη θέση τους (στο παρασκήνιο). */
+function AutofileBar({ applicationId, pending, onDone }: { applicationId: string; pending: number; onDone: () => void }) {
+  const [st, setSt] = React.useState<AutofileStatus | null>(null)
+  const [starting, setStarting] = React.useState(false)
+  const running = st?.state === 'RUNNING'
+
+  React.useEffect(() => { getImplAutofileStatus(applicationId).then(setSt).catch(() => {}) }, [applicationId])
+  React.useEffect(() => {
+    if (!running) return
+    const t = setInterval(() => {
+      getImplAutofileStatus(applicationId).then(s => {
+        setSt(s)
+        if (s && s.state !== 'RUNNING') { onDone(); toast.success('Η αυτόματη καταχώριση ολοκληρώθηκε.') }
+      }).catch(() => {})
+    }, 4000)
+    return () => clearInterval(t)
+  }, [running, applicationId, onDone])
+
+  async function start() {
+    setStarting(true)
+    try {
+      const r = await startImplAutofile(applicationId)
+      if (!r.ok) toast.error(r.message)
+      else setSt({ state: 'RUNNING', total: 0, done: 0, counts: { invoices: 0, payments: 0, certs: 0, attachments: 0, payroll: 0, existing: 0, unresolved: 0 }, notes: [], startedAt: new Date().toISOString() })
+    } catch { toast.error('Η εκκίνηση απέτυχε.') }
+    setStarting(false)
+  }
+
+  if (!pending && !st) return null
+  const c = st?.counts
+  const finished = st && st.state !== 'RUNNING'
+  return (
+    <div className="flex flex-col gap-2 rounded-[18px] border border-primary/30 bg-primary/5 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <LuWandSparkles className="size-5 shrink-0 text-primary" aria-hidden />
+        <div className="min-w-0 flex-1 text-[length:var(--fs-12-5)]">
+          {running ? (
+            <span aria-live="polite"><b>Αυτόματη καταχώριση σε εξέλιξη…</b> {st!.total ? `${st!.done}/${st!.total} αρχεία` : 'ταξινόμηση αρχείων'} — μπορείτε να συνεχίσετε τη δουλειά σας.</span>
+          ) : pending ? (
+            <span><b>{pending} αρχεία</b> περιμένουν στο «Προς καταχώριση». Η αυτόματη καταχώριση τα αναγνωρίζει (παραστατικό, πληρωμή/εξτρέ, βεβαίωση, λογιστικά, φωτογραφίες, μισθοδοσία) και τα βάζει στη θέση τους.</span>
+          ) : (
+            <span>Όλα τα αρχεία της μαζικής εισαγωγής έχουν καταχωριστεί.</span>
+          )}
+        </div>
+        {pending > 0 && !running && (
+          <Button size="sm" onClick={() => void start()} disabled={starting}>
+            {starting ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuWandSparkles className="size-3.5" aria-hidden />} Αυτόματη καταχώριση
+          </Button>
+        )}
+        {running && <LuLoaderCircle className="size-4 animate-spin text-primary" aria-hidden />}
+      </div>
+      {finished && c && (
+        <div className="flex flex-col gap-1 text-[length:var(--fs-12)]">
+          <div className="flex flex-wrap gap-1.5">
+            {c.invoices > 0 && <span className="badge-pill ok" style={{ textTransform: 'none' }}>{c.invoices} παραστατικά</span>}
+            {c.payments > 0 && <span className="badge-pill ok" style={{ textTransform: 'none' }}>{c.payments} πληρωμές</span>}
+            {c.certs > 0 && <span className="badge-pill ok" style={{ textTransform: 'none' }}>{c.certs} βεβαιώσεις</span>}
+            {c.attachments > 0 && <span className="badge-pill ok" style={{ textTransform: 'none' }}>{c.attachments} συνοδευτικά</span>}
+            {c.payroll > 0 && <span className="badge-pill ok" style={{ textTransform: 'none' }}>{c.payroll} μισθοδοσίας</span>}
+            {c.existing > 0 && <span className="badge-pill muted" style={{ textTransform: 'none' }}>{c.existing} υπήρχαν ήδη</span>}
+            {c.unresolved > 0 && <span className="badge-pill warn" style={{ textTransform: 'none' }}>{c.unresolved} θέλουν εσάς</span>}
+            {st.state === 'FAILED' && <span className="badge-pill danger" style={{ textTransform: 'none' }}>Διακόπηκε: {st.error}</span>}
+          </div>
+          {st.notes.length > 0 && (
+            <details>
+              <summary className="cursor-pointer text-[length:var(--fs-11-5)] font-semibold text-muted-foreground">Τι έμεινε για εσάς ({st.notes.length})</summary>
+              <ul className="mt-1 list-disc pl-5 text-[length:var(--fs-11-5)] text-muted-foreground">{st.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+            </details>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
