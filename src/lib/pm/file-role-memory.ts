@@ -38,6 +38,8 @@ export async function classifyWithMemory(input: ClassifyInput): Promise<RoleDeci
   if (userSame) return { role: userSame.role as ImplDocRole, source: 'user', confidence: 0.98 }
 
   const rule = classifyImplDoc(input)
+  // Ρητά «όχι δαπάνη» από το όνομα (σύμβαση, ΥΔ, υπόδειγμα) — ποτέ δεν αλλάζει από ομοιότητα με άλλα αρχεία του φακέλου.
+  if (rule === 'OTHER' && /συμβασ|υπ\.? ?δ\.?|υπευθυν|υποδειγμ/.test(foldText(input.fileName))) return { role: 'OTHER', source: 'rules', confidence: 0.9 }
   // «Αδύναμες» απαντήσεις κανόνων (γενική κατηγορία ή μόνο από κατάληξη) → η μνήμη μπορεί να τις εξειδικεύσει.
   const weak = rule === 'OTHER' || rule === 'PAYROLL_OTHER' || (rule === 'PHOTO' && !/φωτο|foto|photo|img|^sn|signal|picture/.test(foldText(`${input.relPath ?? ''} ${input.fileName}`)))
   if (!weak) return { role: rule, source: 'rules', confidence: 0.9 }
@@ -52,6 +54,9 @@ export async function classifyWithMemory(input: ClassifyInput): Promise<RoleDeci
     const s = jaccard(w, words(`${e.pattern} ${e.folder}`)) + (e.source === 'USER' ? 0.1 : 0)
     if (!best || s > best.s) best = { role: e.role, s }
   }
+  // Word/Excel δεν γίνονται «παραστατικό/πληρωμή» μόνο από ομοιότητα (τα πραγματικά είναι PDF/εικόνες).
+  const office = /\.(docx?|xlsx?|csv|txt)$/i.test(input.fileName)
+  if (best && office && ['INVOICE', 'PAYMENT', 'SUPPLIER_CERT'].includes(best.role)) best = null
   if (best && best.s >= 0.55) return { role: best.role as ImplDocRole, source: 'memory', confidence: Math.min(0.9, best.s) }
   return rule === 'OTHER' ? { role: 'OTHER', source: 'none', confidence: 0 } : { role: rule, source: 'rules', confidence: 0.6 }
 }

@@ -116,8 +116,8 @@ export function ExpensesTab({ applicationId, programId, stage, trdrId, approved 
           <ImplementationBoard key={`b-${refreshKey}`} applicationId={applicationId} />
 
           {/* Δευτερεύοντα — κλειστά, ανοίγουν όταν χρειαστούν. */}
-          <Fold title="Αρχεία από τη μαζική εισαγωγή («Προς καταχώριση»)" hint="Προσφορές/παραστατικά/εγκριτικά που βρέθηκαν στα αρχεία του πελάτη — ήδη διαβασμένα.">
-            <ExpenseInboxPanel key={`i-${refreshKey}`} applicationId={applicationId} trdrId={trdrId} onChanged={refreshExpenses} />
+          <Fold title="Αρχεία πελάτη «Προς καταχώριση»" hint="Ό,τι ανέβηκε για το έργο, αναγνωρισμένο: τι χρειάζεται έλεγχο, τι μπαίνει αυτόματα, τι δεν χρειάζεται.">
+            <ExpenseInboxPanel key={`i-${refreshKey}`} applicationId={applicationId} trdrId={trdrId} onChanged={refreshExpenses} implementation />
           </Fold>
           <Fold title="Μητρώο παγίων" hint="Διασταύρωση δαπανών με το μητρώο παγίων του λογιστή.">
             <AssetRegisterPanel key={`a-${refreshKey}`} applicationId={applicationId} />

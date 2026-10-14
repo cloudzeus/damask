@@ -41,6 +41,8 @@ export type InboxItem = {
   role: string | null
   roleSource: 'user' | 'rules' | 'memory' | 'none'
   approval: ApprovalExtract | null
+  /** Εγκριτικό που έχει ήδη καταχωριστεί στο έργο (ίδια απόφαση/τροποποίηση) — αρκεί αρχειοθέτηση. */
+  approvalApplied: boolean
 }
 
 const MAX_BYTES = 11 * 1024 * 1024
@@ -142,8 +144,13 @@ export async function listInboxDocs(applicationId: string): Promise<{ items: Inb
   const [rows, expenses, app] = await Promise.all([
     prisma.applicationInboxDoc.findMany({ where: { applicationId, status: 'PENDING' }, orderBy: { createdAt: 'asc' } }),
     expenseOptions(applicationId),
-    prisma.programApplication.findUnique({ where: { id: applicationId }, select: { trdr: { select: { AFM: true } } } }),
+    prisma.programApplication.findUnique({ where: { id: applicationId }, select: { trdr: { select: { AFM: true } }, approval: { select: { decisionRef: true, applicationCode: true, docName: true, extra: true } } } }),
   ])
+  const appr = app?.approval
+  const apprText = appr ? JSON.stringify([appr.decisionRef, appr.docName, appr.extra]) : ''
+  const applied = (x: ApprovalExtract | null, fileName: string) => !!appr && (
+    (!!x?.decisionRef && apprText.includes(x.decisionRef)) || apprText.includes(fileName.replace(/\.[^.]+$/, '')) ||
+    (!!x?.applicationCode && x.applicationCode === appr.applicationCode && !x.decisionRef && !!appr.decisionRef))
   const ownAfm = norm(app?.trdr.AFM)
   const { classifyWithMemory } = await import('@/lib/pm/file-role-memory')
   const roles = await Promise.all(rows.map(async r => {
@@ -163,6 +170,7 @@ export async function listInboxDocs(applicationId: string): Promise<{ items: Inb
       suggestedExpenseId: sug?.id ?? null, suggestReason: sug?.reason ?? null,
       ownInvoice: !!invoice && !!ownAfm && norm(invoice.issuer.afm) === ownAfm,
       approval: kind === 'APPROVAL' && r.extracted ? (r.extracted as unknown as ApprovalExtract) : null,
+      approvalApplied: kind === 'APPROVAL' && applied(r.extracted ? (r.extracted as unknown as ApprovalExtract) : null, r.fileName),
       role: roles[idx].role, roleSource: roles[idx].source,
     }
   })
@@ -271,7 +279,15 @@ export async function moveInboxDoc(id: string, applicationId: string): Promise<{
 export async function dismissInboxDoc(id: string): Promise<void> {
   const session = await requirePermission('programs.manage')
   const row = await getPending(id)
-  await finish(id, 'DISMISSED', 'Απορρίφθηκε', session.user.id, row.applicationId)
+  await finish(id, 'DISMISSED', 'Αρχειοθετήθηκε (δεν χρειάζεται καταχώριση)', session.user.id, row.applicationId)
+}
+
+/** «Αρχειοθέτηση όλων» — αρχεία που δεν χρειάζονται καταχώριση (συμβάσεις, υποδείγματα…). Το αρχείο δεν διαγράφεται. */
+export async function dismissInboxDocs(applicationId: string, ids: string[]): Promise<{ ok: true; count: number }> {
+  const session = await requirePermission('programs.manage')
+  const rows = await prisma.applicationInboxDoc.findMany({ where: { id: { in: ids.slice(0, 200) }, applicationId, status: 'PENDING' }, select: { id: true } })
+  for (const r of rows) await finish(r.id, 'DISMISSED', 'Αρχειοθετήθηκε (δεν χρειάζεται καταχώριση)', session.user.id, applicationId)
+  return { ok: true, count: rows.length }
 }
 
 /** Εγκριτικό από το «Προς καταχώριση» → πρόταση για έλεγχο (κατηγορίες κ.λπ.). */
@@ -300,13 +316,15 @@ export async function listTrdrApplicationsForInbox(trdrId: string): Promise<{ id
 export async function setInboxRole(id: string, role: string): Promise<{ ok: true } | { ok: false; message: string }> {
   const session = await requirePermission('programs.manage')
   const { ROLE_LABEL } = await import('@/lib/pm/impl-doc-classify')
-  if (!(role in ROLE_LABEL) || role === 'APPROVAL') return { ok: false, message: 'Άγνωστος ρόλος.' }
-  const row = await prisma.applicationInboxDoc.findUnique({ where: { id }, select: { applicationId: true, fileName: true, relPath: true, status: true } })
+  if (!(role in ROLE_LABEL)) return { ok: false, message: 'Άγνωστος ρόλος.' }
+  const row = await prisma.applicationInboxDoc.findUnique({ where: { id }, select: { applicationId: true, fileName: true, relPath: true, status: true, kind: true } })
   if (!row || row.status !== 'PENDING') return { ok: false, message: 'Το αρχείο δεν είναι πια στο «Προς καταχώριση».' }
+  // «Εγκριτική» μόνο για αρχεία που διαβάστηκαν ως εγκριτικό (π.χ. ο χρήστης διορθώνει σύμβαση ↔ απόφαση).
+  if (role === 'APPROVAL' && row.kind !== 'APPROVAL') return { ok: false, message: 'Για εγκριτική χρησιμοποιήστε «Νέα ανάγνωση» ως εγκριτικό.' }
   await prisma.applicationInboxDoc.update({ where: { id }, data: { role } })
   const { learnFileRole } = await import('@/lib/pm/file-role-memory')
   await learnFileRole({ fileName: row.fileName, relPath: row.relPath, role: role as never, source: 'USER' })
-  if (role !== 'OTHER') {
+  if (role !== 'OTHER' && role !== 'APPROVAL') {
     const { scheduleImplAutofile } = await import('@/lib/pm/impl-inbox-core')
     await scheduleImplAutofile(row.applicationId, session.user.id, 5)
   }

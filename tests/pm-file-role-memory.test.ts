@@ -35,4 +35,12 @@ describe('classifyWithMemory', () => {
     findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([])
     expect((await classifyWithMemory({ fileName: 'κάτι.pdf' })).role).toBe('OTHER')
   })
+  it('σύμβαση δεν γίνεται παραστατικό από ομοιότητα φακέλου', async () => {
+    findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([{ pattern: 'efcc ι κ ε τδα #', folder: '# efcc ικε / εγκριση', role: 'INVOICE', source: 'AUTO', hits: 3 }])
+    expect((await classifyWithMemory({ fileName: 'Σύμβαση EFCC Ι Κ Ε.doc', relPath: '3 = EFCC ΙΚΕ/ΕΓΚΡΙΣΗ/Σύμβαση EFCC Ι Κ Ε.doc' })).role).toBe('OTHER')
+  })
+  it('αρχείο Word δεν γίνεται πληρωμή από ομοιότητα', async () => {
+    findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([{ pattern: 'efcc καταλογος', folder: 'x / y', role: 'PAYMENT', source: 'USER', hits: 3 }])
+    expect((await classifyWithMemory({ fileName: 'EFCC κατάλογος.docx', relPath: 'x/y/EFCC κατάλογος.docx' })).role).toBe('OTHER')
+  })
 })
