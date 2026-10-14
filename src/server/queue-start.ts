@@ -202,6 +202,16 @@ export async function startQueue(): Promise<void> {
     }
   })
 
+  // Συμφιλίωση εκκρεμοτήτων με τα δικαιολογητικά της εταιρίας (μετά από ανεβάσματα).
+  const { QUEUE_OBLIGATIONS_RECONCILE, reconcileTrdrObligations } = await import('@/lib/pm/obligations-reconcile')
+  await boss.createQueue(QUEUE_OBLIGATIONS_RECONCILE)
+  await boss.work<{ trdrId: string }>(QUEUE_OBLIGATIONS_RECONCILE, async jobs => {
+    for (const job of jobs) {
+      const r = await reconcileTrdrObligations(job.data.trdrId, { ai: true })
+      if (r.covered.length || r.waived || r.series) console.log(`[pg-boss] obligations-reconcile ${job.data.trdrId}: ${r.covered.length} καλύφθηκαν, ${r.waived} δεν απαιτούνται, ${r.series} σειρές`)
+    }
+  })
+
   // Αυτόματη καταχώριση εγγράφων στην υλοποίηση έργου (κατ' απαίτηση από τη σελίδα· η πρόοδος σε Setting).
   const { QUEUE_IMPL_AUTOFILE, runImplAutofile } = await import('@/lib/pm/impl-autofile')
   await boss.createQueue(QUEUE_IMPL_AUTOFILE)

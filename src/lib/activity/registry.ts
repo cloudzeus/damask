@@ -70,6 +70,7 @@ export const ACTIONS = {
   'supplier_cert.sign': { category: 'APPLICATION', label: 'Υπογραφή βεβαίωσης προμηθευτή (γραφείο)', weight: 1 },
   'expense.invoice': { category: 'APPLICATION', label: 'Παραστατικό υλοποίησης δαπάνης', weight: 1 },
   'expense_inbox.role': { category: 'APPLICATION', label: 'Ορισμός ρόλου αρχείου υλοποίησης', weight: 0 },
+  'obligations.reconcile': { category: 'APPLICATION', label: 'Συμφιλίωση εκκρεμοτήτων με δικαιολογητικά', weight: 0 },
   'expense.autofile': { category: 'APPLICATION', label: 'Αυτόματη καταχώριση εγγράφων υλοποίησης', weight: 1 },
   'expense.payroll': { category: 'APPLICATION', label: 'Μισθοδοσία δαπάνης προσωπικού', weight: 1 },
   'expense.invoice.delete': { category: 'APPLICATION', label: 'Διαγραφή παραστατικού υλοποίησης', weight: 0 },

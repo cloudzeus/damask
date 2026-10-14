@@ -106,6 +106,8 @@ export async function createDossierDocCore(trdrId: string, userId: string, input
       }
     } catch (err) { console.error('[dossier] έλεγχος πακέτου απέτυχε', err) }
   }
+  // Συμφιλίωση εκκρεμοτήτων (ισοδύναμοι τύποι, σειρές, παλιές «Λείπει προσφορά») — μία φορά ανά φουρνιά, στο παρασκήνιο.
+  { const { enqueueReconcile } = await import('@/lib/pm/obligations-reconcile'); await enqueueReconcile(trdrId) }
   return { id, covered: cover.covered, coveredPrograms: [...new Set(cover.programs)], eme, e3: e3?.applied ?? null, mme: mme?.applied ?? null, template }
 }
 

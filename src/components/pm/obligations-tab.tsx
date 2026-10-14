@@ -6,7 +6,8 @@ import type { SeriesDetail } from '@/lib/pm/form-obligations'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { LuPlus, LuTrash2, LuLoaderCircle, LuRefreshCw, LuListChecks, LuMailPlus } from 'react-icons/lu'
+import { LuPlus, LuTrash2, LuLoaderCircle, LuRefreshCw, LuListChecks, LuMailPlus, LuFileCheck } from 'react-icons/lu'
+import { reconcileObligationsNow } from '@/lib/pm/obligations-reconcile-actions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -222,6 +223,7 @@ export function ObligationsTab({
           {showBoardToggle && <ListBoardToggle active={viewMode} onChange={handleViewChange} />}
           {canManage && (
             <>
+              <ReconcileButton applicationId={applicationId} onDone={() => { load(); router.refresh() }} />
               <Button type="button" variant="outline" onClick={handleSync} disabled={syncing}>
                 {syncing ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuRefreshCw className="size-3.5" aria-hidden />}
                 Συγχρονισμός από πρόγραμμα
@@ -532,5 +534,29 @@ function AddObligationDialog({ applicationId, onCreated }: { applicationId: stri
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+/** «Έλεγχος από τα δικαιολογητικά»: κλείνει εκκρεμότητες που καλύπτονται ήδη από την αποθήκη της εταιρίας (και με ισοδύναμο τύπο). */
+function ReconcileButton({ applicationId, onDone }: { applicationId: string; onDone: () => void }) {
+  const [busy, setBusy] = React.useState(false)
+  async function run() {
+    setBusy(true)
+    try {
+      const r = await reconcileObligationsNow(applicationId)
+      const n = r.covered.length + r.series
+      if (!n && !r.waived) toast.info('Δεν βρέθηκε κάτι νέο στα δικαιολογητικά της εταιρίας.', { description: 'Οι εκκρεμότητες που μένουν χρειάζονται νέο έγγραφο.' })
+      else toast.success([n ? `${n} καλύφθηκαν — περιμένουν έγκριση` : null, r.waived ? `${r.waived} δεν απαιτούνται πια` : null].filter(Boolean).join(' · '), {
+        description: r.covered.slice(0, 4).map(c => `${c.obligation.slice(0, 50)} ← «${c.doc}»`).join('\n') || undefined,
+      })
+      onDone()
+    } catch { toast.error('Ο έλεγχος απέτυχε.') }
+    setBusy(false)
+  }
+  return (
+    <Button type="button" variant="outline" onClick={() => void run()} disabled={busy} title="Ψάχνει στα δικαιολογητικά της εταιρίας έγγραφα που καλύπτουν τις εκκρεμότητες — και με ισοδύναμο τύπο">
+      {busy ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuFileCheck className="size-3.5" aria-hidden />}
+      Έλεγχος από τα δικαιολογητικά
+    </Button>
   )
 }
