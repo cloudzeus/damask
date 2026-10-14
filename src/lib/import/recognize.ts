@@ -118,6 +118,9 @@ export async function recognizeItem(id: string): Promise<void> {
     }
     if (!item.storageKey) throw new Error('Το αρχείο δεν έχει ανέβει.')
     const buf = await bunnyDownload(item.storageKey)
+    // Γνώση γραφείου (χωρίς AI): έγγραφα ΥΛΟΠΟΙΗΣΗΣ (πληρωμή/εξτρέ, βεβαίωση, λογιστικά, φωτογραφίες, μισθοδοσία…) →
+    // κατευθείαν στο εγκεκριμένο έργο του πελάτη + αυτόματη καταχώριση.
+    if (await routeImplementation(item, buf)) return
     const text = await extractTextServer(buf, item.mimeType, item.fileName, item.hash, item.batch.createdById)
     const res = await classifyDocumentCore({ trdrId: item.trdrId, fileName: item.relPath || item.fileName, text })
     if (!res.ok) throw new Error(res.message)
@@ -145,6 +148,32 @@ export async function recognizeItem(id: string): Promise<void> {
       data: { phase: 'WAITING', attempts: n + 1, nextAttemptAt: until, error: null, waitReason: kind === 'day' ? 'εξαντλήθηκε το ημερήσιο όριο του AI' : kind === 'minute' ? 'όριο AI ανά λεπτό' : 'διακοπή σύνδεσης' },
     })
   }
+}
+
+const IMPL_DIRECT = new Set(['PAYMENT', 'SUPPLIER_CERT', 'ACCOUNTING', 'PHOTO', 'PAYSLIPS', 'HIRING', 'PAYROLL_PAYMENT', 'INVOICE'])
+
+/** Έγγραφο υλοποίησης για πελάτη με ΕΝΑ έργο σε υλοποίηση → «Προς καταχώριση» του έργου (SAVED) + αυτόματη καταχώριση. */
+async function routeImplementation(item: ItemRow, buf: Buffer): Promise<boolean> {
+  const { classifyImplDoc, ROLE_LABEL } = await import('@/lib/pm/impl-doc-classify')
+  const role = classifyImplDoc({ fileName: item.fileName, relPath: item.relPath, mimeType: item.mimeType })
+  if (!IMPL_DIRECT.has(role)) return false
+  // Φωτογραφία μόνο με ρητή ένδειξη εξοπλισμού (όχι κάθε εικόνα — π.χ. ταυτότητα/βεβαίωση σε jpg είναι δικαιολογητικό).
+  if (role === 'PHOTO' && !/φωτο|φώτο|foto|photo|img|^sn|signal|picture/i.test(`${item.relPath ?? ''}/${item.fileName}`)) return false
+  const { implementationApps, stageImplDoc, scheduleImplAutofile } = await import('@/lib/pm/impl-inbox-core')
+  const apps = await implementationApps(item.trdrId)
+  if (apps.length !== 1) return false // κανένα ή πολλά έργα σε υλοποίηση → κανονική αναγνώριση/επιλογή από τον χρήστη
+  const app = apps[0]
+  const inboxId = await stageImplDoc({ applicationId: app.id, trdrId: item.trdrId, name: item.fileName, body: buf, mime: item.mimeType, relPath: item.relPath, userId: item.batch.createdById })
+  await prisma.importItem.update({
+    where: { id: item.id },
+    data: {
+      phase: 'SAVED', dest: 'impl', appId: app.id, autoSaved: true, resultRef: inboxId, error: null, waitReason: null, nextAttemptAt: null,
+      suggestion: { role } as Prisma.InputJsonValue,
+      resultNote: `Υλοποίηση «${app.title}»: ${ROLE_LABEL[role as keyof typeof ROLE_LABEL]} — καταχωρίζεται αυτόματα στη θέση του.`,
+    },
+  })
+  await scheduleImplAutofile(app.id, item.batch.createdById)
+  return true
 }
 
 /** Προορισμός + αυτόματη αποθήκευση των βέβαιων δικαιολογητικών. */

@@ -25,9 +25,17 @@ describe('summarizePayroll', () => {
     expect(s.cost).toBe(18750)
     expect(s.employees[0]).toMatchObject({ cost: 18750, cap: 15000, eligible: 15000, months: 2 })
     expect(s.eligible).toBe(15000)
+    // Σωρευτικά: Ιαν (καθαρά 8.800) καλύπτεται από πληρωμές ως τον Φεβ (10.800) · Φεβ: 10.800 / 13.600 → μερικώς.
     expect(s.periods.map(p => p.status)).toEqual(['PAID', 'PARTIAL'])
-    // Ιαν: πλήρως εξοφλημένος (12.500)· Φεβ: 2000/4800 του 6.250 → 15.104 — αλλά όχι πάνω από το επιλέξιμο (15.000).
-    expect(s.paidCost).toBe(15000)
+    expect(s.paidCost).toBe(15000) // 12.500 + 6.250 × 0,79 → πάνω από το επιλέξιμο → 15.000
+  })
+  it('πληρωμή μήνα που γίνεται τον επόμενο (π.χ. δώρο Χριστουγέννων τον Ιανουάριο) = εξοφλημένος', () => {
+    const s = summarizePayroll({
+      employees, perEmeCap: null, approved: 100000,
+      lines: [line('a', '2023-12', 3000, 600, 2500), line('a', '2023-12', 1500, 300, 1250, 'δώρο Χριστουγέννων'), line('a', '2024-01', 3000, 600, 2500)],
+      payments: [{ period: '2023-12', amount: 2500 }, { period: '2024-01', amount: 3750 }],
+    })
+    expect(s.periods.map(p => p.status)).toEqual(['PAID', 'PAID'])
   })
   it('μερική απασχόληση → αναλογικό όριο', () => {
     const s = summarizePayroll({ employees: [{ id: 'a', name: 'Χ', projectHire: true, fte: 0.5 }], lines: [line('a', '2024-01', 10000, 0, 0)], payments: [], perEmeCap: 15000, approved: 100000 })

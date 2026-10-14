@@ -94,7 +94,7 @@ export async function registerImportFiles(trdrId: string, files: { clientId: str
 }
 
 export type SaveDecision = {
-  dest: 'dossier' | 'approval' | 'quote' | 'invoice' | 'files' | 'junk'
+  dest: 'dossier' | 'approval' | 'quote' | 'invoice' | 'impl' | 'files' | 'junk'
   typeId?: string | null
   period?: string | null
   programId?: string | null
@@ -153,6 +153,13 @@ export async function saveImportItem(itemId: string, d: SaveDecision): Promise<{
       await recordFileHash({ key, hash: item.hash, body: item.hash ? undefined : buf, trdrId: item.trdrId, kind: 'customer-file', label: dir ? `${dir}/${item.fileName}` : item.fileName })
       ref = key
       note = `στα αρχεία πελάτη${dir ? ` › ${dir}` : ''}`
+    } else if (d.dest === 'impl') {
+      // Υλοποίηση εγκεκριμένου έργου: «Προς καταχώριση» + αυτόματη καταχώριση (ρόλος από τη γνώση γραφείου).
+      if (!d.appId) throw new Error('Επιλέξτε έργο.')
+      const { stageImplDoc, scheduleImplAutofile } = await import('@/lib/pm/impl-inbox-core')
+      ref = await stageImplDoc({ applicationId: d.appId, trdrId: item.trdrId, name: item.fileName, body: buf, mime: item.mimeType, relPath: item.relPath, userId: session.user.id })
+      await scheduleImplAutofile(d.appId, session.user.id)
+      note = 'στην υλοποίηση του έργου — καταχωρίζεται αυτόματα στη θέση του'
     } else {
       if (!d.appId) throw new Error('Επιλέξτε έργο.')
       const { stageInboxDoc } = await import('@/lib/pm/expense-inbox')

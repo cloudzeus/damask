@@ -8,7 +8,7 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import {
   LuUpload, LuLoaderCircle, LuX, LuSparkles, LuBrain, LuCircleCheck, LuTriangleAlert, LuFileText, LuCloudUpload, LuCopy, LuInfo, LuFolderKanban,
-  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuStamp, LuEye, LuScanText, LuTrash2, LuClock, LuRefreshCw,
+  LuFolderOpen, LuFolder, LuReceipt, LuFileBadge, LuHardDrive, LuPackageCheck, LuStamp, LuEye, LuScanText, LuTrash2, LuClock, LuRefreshCw,
 } from 'react-icons/lu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,7 +41,7 @@ import type { SmartClassifyResult } from '@/lib/documents/smart-classify'
 
 type Phase = 'hashing' | 'uploading' | 'interrupted' | 'reading' | 'classifying' | 'waiting' | 'ready' | 'saving' | 'saved' | 'skipped' | 'error'
 /** Πού πάει το αρχείο: δικαιολογητικό πελάτη · προσφορά/παραστατικό → «Προς καταχώριση» του έργου · αρχεία πελάτη (με τη δομή φακέλων). */
-type Dest = 'dossier' | 'approval' | 'quote' | 'invoice' | 'files' | 'junk'
+type Dest = 'dossier' | 'approval' | 'quote' | 'invoice' | 'impl' | 'files' | 'junk'
 type AppOption = { id: string; programId: string; title: string }
 
 type Row = {
@@ -121,6 +121,7 @@ const DEST_META: Record<Dest, { label: string; short: string }> = {
   approval: { label: 'Εγκριτική', short: 'εγκριτικά' },
   quote: { label: 'Προσφορά', short: 'προσφορές' },
   invoice: { label: 'Παραστατικό', short: 'παραστατικά' },
+  impl: { label: 'Υλοποίηση έργου', short: 'στην υλοποίηση' },
   files: { label: 'Αρχεία πελάτη', short: 'στα αρχεία' },
   junk: { label: 'Άχρηστο', short: 'άχρηστα' },
 }
@@ -320,7 +321,7 @@ export function DossierSmartUpload({
   const busy = rows.some(r => r.phase === 'hashing' || r.phase === 'uploading' || r.phase === 'saving')
   const pending = rows.filter(r => r.phase !== 'saved' && r.phase !== 'skipped' && r.decision !== 'skip' && r.dest !== 'junk')
   const missingType = pending.some(r => r.phase === 'ready' && r.dest === 'dossier' && !r.typeId)
-  const missingApp = pending.some(r => r.phase === 'ready' && (r.dest === 'quote' || r.dest === 'invoice' || r.dest === 'approval') && !r.appId)
+  const missingApp = pending.some(r => r.phase === 'ready' && (r.dest === 'quote' || r.dest === 'invoice' || r.dest === 'approval' || r.dest === 'impl') && !r.appId)
 
   // Ίδιο αρχείο δύο φορές στην ίδια παρτίδα: το δεύτερο δείχνει στο πρώτο.
   const batchDupOf = React.useMemo(() => {
@@ -377,7 +378,7 @@ export function DossierSmartUpload({
     for (const r of rowsRef.current) {
       if (r.phase !== 'ready' || !r.itemId || r.decision === 'skip' || r.dest === 'junk' || batchDupOf.has(r.id)) continue
       if (r.dest === 'dossier' && !r.typeId) continue
-      if ((r.dest === 'quote' || r.dest === 'invoice' || r.dest === 'approval') && !r.appId) continue
+      if ((r.dest === 'quote' || r.dest === 'invoice' || r.dest === 'approval' || r.dest === 'impl') && !r.appId) continue
       patch(r.id, { phase: 'saving' })
       const res = await saveImportItem(r.itemId, {
         dest: r.dest, typeId: r.typeId || null, period: r.period || null,
@@ -418,7 +419,7 @@ export function DossierSmartUpload({
     else if (r.phase === 'skipped' || r.decision === 'skip' || batchDupOf.has(r.id)) acc.junk += 1
     else acc[r.dest] += 1
     return acc
-  }, { uploading: 0, working: 0, waiting: 0, interrupted: 0, done: 0, auto: 0, dossier: 0, approval: 0, quote: 0, invoice: 0, files: 0, junk: 0 } as Record<Dest | 'uploading' | 'working' | 'waiting' | 'interrupted' | 'done' | 'auto', number>)
+  }, { uploading: 0, working: 0, waiting: 0, interrupted: 0, done: 0, auto: 0, dossier: 0, approval: 0, quote: 0, invoice: 0, impl: 0, files: 0, junk: 0 } as Record<Dest | 'uploading' | 'working' | 'waiting' | 'interrupted' | 'done' | 'auto', number>)
   const retryIds = rows.filter(r => r.phase === 'waiting' || (r.retryable && r.phase === 'ready')).map(r => r.id)
 
   return (
@@ -486,7 +487,7 @@ export function DossierSmartUpload({
                   <LuRefreshCw className="size-3" aria-hidden /> Ξανά τα αποτυχημένα ({retryIds.length})
                 </button>
               )}
-              {(['dossier', 'approval', 'quote', 'invoice', 'files'] as Dest[]).filter(d => counts[d] > 0).map(d => (
+              {(['dossier', 'approval', 'quote', 'invoice', 'impl', 'files'] as Dest[]).filter(d => counts[d] > 0).map(d => (
                 <span key={d} className={cn('badge-pill', d === 'files' ? 'muted' : d === 'dossier' ? 'ok' : 'info')} style={{ textTransform: 'none' }}>{counts[d]} {DEST_META[d].short}</span>
               ))}
               {counts.done > 0 && <span className="badge-pill ok" style={{ textTransform: 'none' }}>{counts.done} αποθηκεύτηκαν{counts.auto ? ` (${counts.auto} αυτόματα)` : ''}</span>}
@@ -703,9 +704,9 @@ function RowCard({
 
       {!working && row.phase !== 'saved' && !skipped && (
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label={`Πού πάει το ${row.name}`}>
-          {(['dossier', 'approval', 'quote', 'invoice', 'files', 'junk'] as Dest[]).map(d => {
-            const Icon = d === 'junk' ? LuTrash2 : d === 'dossier' ? LuFileBadge : d === 'approval' ? LuStamp : d === 'quote' ? LuFileText : d === 'invoice' ? LuReceipt : LuHardDrive
-            const off = (d === 'quote' || d === 'invoice' || d === 'approval') && apps.length === 0
+          {(['dossier', 'approval', 'quote', 'invoice', 'impl', 'files', 'junk'] as Dest[]).map(d => {
+            const Icon = d === 'junk' ? LuTrash2 : d === 'dossier' ? LuFileBadge : d === 'approval' ? LuStamp : d === 'quote' ? LuFileText : d === 'invoice' ? LuReceipt : d === 'impl' ? LuPackageCheck : LuHardDrive
+            const off = (d === 'quote' || d === 'invoice' || d === 'approval' || d === 'impl') && apps.length === 0
             return (
               <button
                 key={d}
@@ -728,7 +729,7 @@ function RowCard({
         </div>
       )}
 
-      {!working && row.phase !== 'saved' && !skipped && (row.dest === 'quote' || row.dest === 'invoice' || row.dest === 'approval') && (
+      {!working && row.phase !== 'saved' && !skipped && (row.dest === 'quote' || row.dest === 'invoice' || row.dest === 'approval' || row.dest === 'impl') && (
         <div className="mt-2.5 field !mb-0">
           <label>Έργο στο οποίο αφορά <span className="font-normal text-muted-foreground">— μπαίνει στο έργο (Δαπάνες & Πλάνο) ως «Προς καταχώριση», ήδη διαβασμένο</span></label>
           <Select value={row.appId || undefined} onValueChange={v => onChange({ appId: v ?? '' })} disabled={locked}>

@@ -9,7 +9,7 @@ export type CalcLine = { employeeId: string; period: string; kind: string; gross
 export type CalcPayment = { period: string | null; amount: number | null }
 
 export type EmployeeSummary = { id: string; months: number; cost: number; cap: number | null; eligible: number; /** Μήνες χωρίς μισθοδοσία ανάμεσα στον πρώτο και τον τελευταίο. */ missing: string[] }
-export type PeriodSummary = { period: string; hireCost: number; netDue: number; paid: number; status: 'PAID' | 'PARTIAL' | 'UNPAID' }
+export type PeriodSummary = { period: string; hireCost: number; netDue: number; paid: number; status: 'PAID' | 'PARTIAL' | 'UNPAID'; /** Σωρευτική κάλυψη 0..1. */ coverage: number }
 export type PayrollSummary = {
   perEmeCap: number | null
   employees: EmployeeSummary[]
@@ -54,18 +54,32 @@ export function summarizePayroll(input: { employees: CalcEmployee[]; lines: Calc
     return { id: e.id, months: ps.length, cost, cap, eligible: cap != null ? Math.min(cost, cap) : cost, missing: ps.length ? gaps(ps[0], ps[ps.length - 1], new Set(ps)) : [] }
   })
 
-  const periods = [...new Set(input.lines.map(l => l.period))].sort().map(period => {
+  const raw = [...new Set(input.lines.map(l => l.period))].sort().map(period => {
     const ls = input.lines.filter(l => l.period === period)
-    const netDue = r2(ls.reduce((a, l) => a + (l.net ?? 0), 0))
-    const hireCost = r2(ls.filter(l => hires.has(l.employeeId)).reduce((a, l) => a + l.gross + l.employerContrib, 0))
-    const paid = r2(input.payments.filter(p => p.period === period).reduce((a, p) => a + (p.amount ?? 0), 0))
-    const status: PeriodSummary['status'] = paid <= 0 ? 'UNPAID' : netDue > 0 && paid + 0.01 < netDue ? 'PARTIAL' : 'PAID'
-    return { period, hireCost, netDue, paid, status }
+    return {
+      period,
+      netDue: r2(ls.reduce((a, l) => a + (l.net ?? 0), 0)),
+      hireCost: r2(ls.filter(l => hires.has(l.employeeId)).reduce((a, l) => a + l.gross + l.employerContrib, 0)),
+      paid: r2(input.payments.filter(p => p.period === period).reduce((a, p) => a + (p.amount ?? 0), 0)),
+    }
+  })
+  // ΣΩΡΕΥΤΙΚΑ (όπως ο ελεγκτής): δώρα/επίδομα/εξοφλήσεις συχνά πληρώνονται τον επόμενο μήνα — ένας μήνας είναι εξοφλημένος
+  // όταν οι πληρωμές ΕΩΣ ΚΑΙ ΤΟΝ ΕΠΟΜΕΝΟ καλύπτουν τα καθαρά ΕΩΣ ΑΥΤΟΝ (ανοχή 1%, στρογγυλοποιήσεις/κρατήσεις).
+  let cumDue = 0
+  const cumPaid: number[] = []
+  raw.reduce((a, p, i) => (cumPaid[i] = a + p.paid), 0)
+  const periods: PeriodSummary[] = raw.map((p, i) => {
+    cumDue += p.netDue
+    const paidBy = cumPaid[Math.min(i + 1, raw.length - 1)]
+    const tol = Math.max(1, cumDue * 0.01)
+    const coverage = cumDue > 0 ? Math.min(1, paidBy / cumDue) : 1
+    const status: PeriodSummary['status'] = p.paid <= 0 && paidBy <= 0 ? 'UNPAID' : paidBy + tol >= cumDue ? 'PAID' : coverage > 0 ? 'PARTIAL' : 'UNPAID'
+    return { ...p, status, coverage }
   })
 
   const cost = r2(employees.reduce((a, e) => a + e.cost, 0))
   const eligible = r2(Math.min(employees.reduce((a, e) => a + e.eligible, 0), input.approved > 0 ? input.approved : Infinity))
-  const paidCost = r2(periods.reduce((a, p) => a + (p.netDue > 0 ? p.hireCost * Math.min(1, p.paid / p.netDue) : 0), 0))
+  const paidCost = r2(periods.reduce((a, p) => a + p.hireCost * (p.status === 'PAID' ? 1 : p.coverage), 0))
   return { perEmeCap: input.perEmeCap, employees, periods, cost, eligible, paidCost: Math.min(paidCost, eligible) }
 }
 
