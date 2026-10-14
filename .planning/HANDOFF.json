@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-13T22:06:45.672Z",
+  "timestamp": "2026-10-14T04:06:58.629Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,43 +26,27 @@
     },
     {
       "status": "M",
-      "path": "src/app/api/partners/[id]/files/upload-chunk/route.ts"
+      "path": "src/app/(app)/supplier-cert/[expenseId]/pdf/route.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/actions.ts"
+      "path": "src/components/pm/expenses-tab.tsx"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/dossier-core.ts"
+      "path": "src/components/programs/budget-proposal.tsx"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/training.ts"
+      "path": "src/components/programs/supplier-cert-dialog.tsx"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/type-admin.ts"
+      "path": "src/lib/activity/registry.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/documents/value-capture.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/import/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/import/recognize.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/memory/health.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/expense-inbox.ts"
+      "path": "src/lib/pm/actions.ts"
     },
     {
       "status": "M",
@@ -74,29 +58,61 @@
     },
     {
       "status": "M",
-      "path": "src/lib/tax/actions.ts"
+      "path": "src/lib/supplier-cert/actions.ts"
     },
     {
       "status": "M",
-      "path": "src/lib/tax/template-auto.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/server/queue-start.ts"
+      "path": "src/lib/supplier-cert/core.ts"
     },
     {
       "status": "??",
-      "path": "prisma/migrations/20261014150000_import_existing_catalog/"
+      "path": "prisma/migrations/20261014180000_expense_invoices/"
     },
     {
       "status": "??",
-      "path": "src/lib/import/catalog.ts"
+      "path": "prisma/migrations/20261014181000_expense_invoice_match/"
     },
     {
       "status": "??",
-      "path": "src/lib/import/existing.ts"
+      "path": "prisma/migrations/20261014182000_supplier_cert_per_invoice/"
+    },
+    {
+      "status": "??",
+      "path": "prisma/migrations/20261014183000_invoice_payments/"
+    },
+    {
+      "status": "??",
+      "path": "prisma/migrations/20261014184000_quote_policy_rule/"
+    },
+    {
+      "status": "??",
+      "path": "src/app/(app)/expense-invoice/"
+    },
+    {
+      "status": "??",
+      "path": "src/components/pm/implementation-board.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/pm/expense-invoices.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/pm/invoice-match.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/pm/invoice-rematch.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/programs/quote-policy.ts"
+    },
+    {
+      "status": "??",
+      "path": "tests/pm-invoice-match.test.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n154c782 chore: ενημέρωση HANDOFF\n9dcf229 feat(import): φάση 2 — μαζική εισαγωγή ως παρτίδα στον server, αναγνώριση στο παρασκήνιο, συνέχεια μετά από διακοπή\nc8fdb28 feat(import): μαζική εισαγωγή ανθεκτική σε όρια AI — φάση 1 (μνήμη ορίων Gemini, επαναλήψεις, κρυφή μνήμη κειμένου)\n44de71e docs: σχεδιασμός μαζικής εισαγωγής που δεν χάνεται (παρτίδα στον server, ρυθμιστής ρυθμού, «υπάρχει ήδη», ξαναεξέταση με αλλαγές καταλόγου)\n27ccc4c chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\n68430f0 feat(pm): τροποποίηση εγκεκριμένου έργου — νεότερη εγκριτική = πίνακας διαφορών (ίδια/αλλαγή/νέα/καταργείται), ευθυγράμμιση δαπανών χωρίς διπλές, ιστορικό αρχικής απόφασης, λήξη από την αρχική έναρξη\na7e9a88 refactor(ai): ανάγνωση εγκριτικού σε plain module (worker/scripts)· OCR δουλεύει και μόνο με OpenRouter (χωρίς απευθείας κλειδί Gemini)\n161b6c1 fix(pm): έργο με εγκεκριμένη πρόταση (μόνο project management) δεν μπλοκάρεται από δικαιολογητικά υποβολής· η καταχώριση εγκριτικού πάει κατευθείαν σε υλοποίηση\ne6ffa23 feat(ai): κλήσεις Gemini μέσω OpenRouter (ίδια μοντέλα Google, χρεώσιμο) με εφεδρεία το απευθείας κλειδί· embeddings από την ίδια πηγή με αυτόματη αναδημιουργία ευρετηρίου όταν αλλάζει η πηγή\nf1cc764 chore: ενημέρωση HANDOFF"
 }
