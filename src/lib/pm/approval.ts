@@ -278,9 +278,8 @@ export async function applyApproval(applicationId: string, input: ApplyApprovalI
 
   const { waivePreApprovalSteps } = await import('@/lib/pm/onboard-core')
   await waivePreApprovalSteps(applicationId)
-  // Στάδιο: μόνο προς τα εμπρός — υλοποίηση, ή δικαιολογητικά αν εκκρεμούν υποχρεωτικά.
-  const pendingForms = await prisma.applicationObligation.count({ where: { applicationId, kind: 'FORM', mandatory: true, status: { notIn: ['APPROVED', 'WAIVED'] } } })
-  const target: StageStr = pendingForms > 0 ? 'DOCUMENTS' : 'INSPECTION'
+  // Στάδιο: μόνο προς τα εμπρός — υλοποίηση (η έγκριση έχει ήδη δοθεί· τυχόν εκκρεμή δικαιολογητικά δεν μπλοκάρουν).
+  const target: StageStr = 'INSPECTION'
   const stage = STAGE_ORDER.indexOf(target) > STAGE_ORDER.indexOf(app.stage as StageStr) ? target : (app.stage as StageStr)
   await prisma.programApplication.update({
     where: { id: applicationId },
