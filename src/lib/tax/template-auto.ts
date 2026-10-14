@@ -100,7 +100,7 @@ export async function processTemplateIfApplicable(input: {
   try {
     const kind = template.documentType?.seriesKind && template.documentType.seriesKind !== 'LIST' ? template.documentType.seriesKind : null
     const res = await extractTemplateValues({ base64: input.base64, mimeType: input.mimeType, typeName: template.documentType?.name ?? template.name, fields, refId: input.docId, userId: input.userId, seriesKind: kind, text: input.text })
-    const trdr = await prisma.trdr.findUnique({ where: { id: input.trdrId }, select: { AFM: true, appEmployeesYear: true, appRevenueYear: true } })
+    const trdr = await prisma.trdr.findUnique({ where: { id: input.trdrId }, select: { AFM: true, appEmployeesYear: true, appRevenueYear: true, appRevenueSource: true } })
     const docAfm = res.afm
     const afmMismatch = !!(docAfm && docAfm.length === 9 && trdr?.AFM && trdr.AFM.replace(/\D/g, '') !== docAfm)
 
@@ -152,8 +152,15 @@ export async function processTemplateIfApplicable(input: {
     const trdrData: Prisma.TrdrUpdateInput = {}
     const docData: { issuedAt?: Date; expiresAt?: Date } = {}
     const src = `Έγγραφο: ${input.name}`.slice(0, 120)
+    // Σειρές (Φ2 ανά μήνα): η τιμή ενός μήνα ΔΕΝ γίνεται ετήσιο στοιχείο εταιρίας — μόνο το σύνολο πλήρους έτους.
+    const partial = kind === 'MONTHLY' || kind === 'QUARTERLY'
+    if (partial) {
+      const r = await rollupSeriesToCompany(input.trdrId, template.id)
+      if (r) out.appliedTo.push(r)
+    }
     for (const { f, raw: rv } of values) {
       if (!rv || !f.target) continue
+      if (partial && f.target.startsWith('trdr.app')) continue
       const n = parseGreekNumber(rv)
       const d = parseGreekDate(rv)
       switch (f.target) {
@@ -192,4 +199,31 @@ export async function processTemplateIfApplicable(input: {
     console.error('[template-auto] failed', err)
     return null
   }
+}
+
+/**
+ * Σύνολο ΠΛΗΡΟΥΣ έτους σειράς (12/12 μήνες ή 4/4 τρίμηνα) για πεδίο με προορισμό «Κύκλος εργασιών» → στοιχείο εταιρίας,
+ * μόνο όταν είναι νεότερο από το τελευταίο Ε3/ΜΜΕ (ίδιο έτος: υπερισχύει το λογιστικό έντυπο). Έτσι ο τζίρος από τα Φ2
+ * είναι διαθέσιμος σε ΚΑΘΕ πρόγραμμα, γρήγορη αξιολόγηση και δυνητικά προγράμματα. Επιστρέφει τι εφαρμόστηκε ή null.
+ */
+export async function rollupSeriesToCompany(trdrId: string, templateId: string): Promise<string | null> {
+  const tpl = await prisma.taxFormTemplate.findUnique({ where: { id: templateId }, select: { name: true, documentType: { select: { name: true, seriesKind: true } }, fields: { where: { target: 'trdr.appAnnualRevenue' }, select: { fieldKey: true } } } })
+  const kind = tpl?.documentType?.seriesKind
+  if (!tpl || (kind !== 'MONTHLY' && kind !== 'QUARTERLY') || !tpl.fields.length) return null
+  const expected = kind === 'MONTHLY' ? 12 : 4
+  const rows = await prisma.trdrFinancialValue.findMany({ where: { trdrId, fieldKey: tpl.fields[0].fieldKey, period: { not: '' } }, select: { year: true, value: true, valueText: true } })
+  const byYear = new Map<number, number[]>()
+  for (const r of rows) {
+    const n = r.value != null ? Number(r.value) : parseGreekNumber(r.valueText ?? '')
+    if (n != null) byYear.set(r.year, [...(byYear.get(r.year) ?? []), n])
+  }
+  const year = [...byYear.entries()].filter(([, v]) => v.length >= expected).map(([y]) => y).sort((a, b) => b - a)[0]
+  if (!year) return null
+  const trdr = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { appRevenueYear: true, appRevenueSource: true } })
+  const sameYearSeries = year === (trdr?.appRevenueYear ?? 0) && (trdr?.appRevenueSource ?? '').startsWith('Σύνολο')
+  if (!(year > (trdr?.appRevenueYear ?? 0) || sameYearSeries)) return null
+  const total = Math.round(byYear.get(year)!.reduce((a, b) => a + b, 0) * 100) / 100
+  const label = `Σύνολο ${tpl.documentType?.name ?? tpl.name} ${year} (${byYear.get(year)!.length}/${expected})`.slice(0, 120)
+  await prisma.trdr.update({ where: { id: trdrId }, data: { appAnnualRevenue: total, appRevenueYear: year, appRevenueSource: label } })
+  return `Κύκλος εργασιών ${year} = άθροισμα ${byYear.get(year)!.length} περιόδων`
 }

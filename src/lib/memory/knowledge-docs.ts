@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { parseGreekNumber } from '@/lib/tax/greek-format'
 import { periodLabel } from '@/lib/documents/series'
 import { quotePolicyLabel } from '@/lib/programs/quote-policy'
 import { perEmeCapFrom } from '@/lib/pm/payroll-calc'
@@ -153,10 +154,22 @@ export async function buildKnowledgeDocs(): Promise<KnowledgeDoc[]> {
     }
     for (const g of groups.values()) {
       const rows = [...g.rows.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+      // Σειρές (μήνες): σύνολο έτους ανά ποσό ώστε ερωτήσεις «τζίρος 2022;» να απαντώνται χωρίς πρόσθεση (όχι υπόλοιπα/ημερομηνίες).
+      const sums = new Map<string, { sum: number; n: number }>()
+      if (rows.length > 1 && rows.every(([when]) => when.includes('/'))) {
+        for (const [, items] of rows) for (const it of items) {
+          const i = it.indexOf(': ')
+          const label = it.slice(0, i), n = parseGreekNumber(it.slice(i + 2))
+          if (n == null || /υπόλοιπ|μεταφορ|ημερομην|ημ\/νία/i.test(label)) continue
+          const cur = sums.get(label) ?? { sum: 0, n: 0 }
+          sums.set(label, { sum: cur.sum + n, n: cur.n + 1 })
+        }
+      }
+      const totalsLine = sums.size ? `Σύνολο ${g.year} (${rows.length} περίοδοι): ${[...sums.entries()].map(([l, x]) => `${l}: ${eur(x.sum)}`).join('; ')}` : null
       out.push({
         key: `mem:values:${c.id}:${(g.tpl + g.year).replace(/[^a-z0-9α-ω]+/gi, '-').slice(0, 60)}`, title: `${g.tpl} ${g.year} — ${c.NAME}`, category: 'memory-values', trdrId: c.id, programTitle: null, docType: g.tpl, year: g.year,
         tags: ['τιμές', g.tpl, String(g.year), c.AFM ? `ΑΦΜ ${c.AFM}` : null].filter(Boolean) as string[],
-        lines: [`Αποθηκευμένες τιμές «${g.tpl}» ${g.year} της εταιρίας ${c.NAME}${c.AFM ? ` (ΑΦΜ ${c.AFM})` : ''}:`, ...rows.map(([when, a]) => `${when}: ${a.join('; ')}`)].join('\n').slice(0, CAP * 2).split('\n'),
+        lines: [`Αποθηκευμένες τιμές «${g.tpl}» ${g.year} της εταιρίας ${c.NAME}${c.AFM ? ` (ΑΦΜ ${c.AFM})` : ''}:`, ...(totalsLine ? [totalsLine] : []), ...rows.map(([when, a]) => `${when}: ${a.join('; ')}`)].join('\n').slice(0, CAP * 2).split('\n'),
       })
     }
   }

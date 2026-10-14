@@ -149,3 +149,36 @@ export function gridToCsv(g: ValuesGrid): string {
   })])
   return '﻿' + [header, ...rows].map(r => r.map(esc).join(';')).join('\r\n')
 }
+
+export type FieldYearTotal = { year: number; total: number; have: number; expected: number; complete: boolean }
+export type FieldPeriodTotals = {
+  fieldKey: string
+  label: string
+  years: FieldYearTotal[]
+  /** Τελευταίοι 12 μήνες (ή 4 τρίμηνα) με τιμή — για «τρέχοντα» τζίρο όταν δεν υπάρχει ακόμη Ε3. */
+  last12: { from: string; to: string; total: number; have: number; expected: number } | null
+}
+
+/**
+ * Σύνολα ανά έτος από σειρά (Φ2 μήνες → ετήσιο ποσό) για ΚΑΘΕ αθροίσιμο πεδίο, με την κάλυψη (12/12 = πλήρες).
+ * Τα διαβάζουν η αξιολόγηση ένταξης, ο Thanos, η Μνήμη γραφείου και τα στοιχεία εταιρίας.
+ */
+export function periodTotals(g: ValuesGrid): FieldPeriodTotals[] {
+  if (g.kind === 'YEARLY') return []
+  const per = g.kind === 'MONTHLY' ? 12 : 4
+  return g.fields.filter(f => f.summable).map(f => {
+    const years = g.years.flatMap(y => {
+      const t = g.totals[cellKey(f.key, String(y.year))]
+      if (t == null) return []
+      const have = y.keys.filter(k => g.cells[cellKey(f.key, k)]?.num != null).length
+      return [{ year: y.year, total: t, have, expected: per, complete: have >= per }]
+    })
+    const withVal = g.columns.filter(c => g.cells[cellKey(f.key, c.key)]?.num != null)
+    const lastCols = g.columns.slice(-per)
+    const last = withVal.length ? lastCols.filter(c => g.cells[cellKey(f.key, c.key)]?.num != null) : []
+    const last12 = last.length
+      ? { from: lastCols[0].key, to: lastCols[lastCols.length - 1].key, total: Math.round(last.reduce((a, c) => a + (g.cells[cellKey(f.key, c.key)]!.num ?? 0), 0) * 100) / 100, have: last.length, expected: per }
+      : null
+    return { fieldKey: f.key, label: f.label, years, last12 }
+  }).filter(t => t.years.length)
+}

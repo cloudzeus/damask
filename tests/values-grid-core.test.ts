@@ -56,3 +56,14 @@ describe('υπόλοιπα', () => {
     expect(g.fields[0].summable).toBe(false)
   })
 })
+
+describe('σύνολα ανά έτος (για αξιολογήσεις)', () => {
+  it('πλήρες έτος 12/12 και τελευταίο 12μηνο', async () => {
+    const { periodTotals } = await import('@/lib/documents/values-grid-core')
+    const months = Array.from({ length: 14 }, (_, i) => { const d = new Date(Date.UTC(2021, i, 1)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}` })
+    const g = buildValuesGrid({ kind: 'MONTHLY', fields: [fields[0]], values: months.map(m => v(m, '100')), docs: [] })
+    const [t] = periodTotals(g)
+    expect(t.years).toEqual([{ year: 2021, total: 1200, have: 12, expected: 12, complete: true }, { year: 2022, total: 200, have: 2, expected: 12, complete: false }])
+    expect(t.last12).toMatchObject({ from: '2021-03', to: '2022-02', total: 1200, have: 12 })
+  })
+})

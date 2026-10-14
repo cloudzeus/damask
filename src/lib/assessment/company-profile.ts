@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import { deriveHierarchyFromMap, type RegionNodeLookup } from '@/lib/registries/regions-tree'
 import { yearsSince } from '@/lib/prospects/eligibility'
+import { loadValuesGrids } from '@/lib/documents/values-grid-load'
+import { periodTotals } from '@/lib/documents/values-grid-core'
 
 /**
  * (Plain module.) «Προφίλ επιλεξιμότητας» επιχείρησης — ενιαία εικόνα από όλες τις πηγές της
@@ -34,6 +36,11 @@ export type CompanyProfile = {
   }
   /** Χρονοσειρές από ανεβασμένα έντυπα (ΕΜΕ, Ε3, Δήλωση ΜΜΕ…). */
   series: ProfileSeries[]
+  /**
+   * Ετήσια σύνολα από δικαιολογητικά-σειρές (π.χ. 12 Φ2 → ετήσιος κύκλος εργασιών ΦΠΑ) με κάλυψη have/expected
+   * και τελευταίο 12μηνο — χρήσιμα όταν λείπει Ε3 ή για νεότερο έτος από το τελευταίο Ε3.
+   */
+  periodTotals: { document: string; field: string; years: { year: number; total: number; months: string; complete: boolean }[]; last12: { from: string; to: string; total: number; months: string } | null }[]
   documents: { type: string; name: string; issuedAt: string | null; expiresAt: string | null; valid: boolean; programSpecific: string | null }[]
   otherPrograms: { title: string; lifecycle: string; stage: string }[]
   /** Τι λείπει από το προφίλ — για να το ζητήσει η αναφορά. */
@@ -44,7 +51,7 @@ const SME_LABEL: Record<string, string> = { '1': 'Πολύ μικρή', '2': 'Μ
 const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null)
 
 export async function buildCompanyProfile(trdrId: string, now = new Date()): Promise<CompanyProfile> {
-  const [t, values, docs, apps, regions] = await Promise.all([
+  const [t, values, docs, apps, regions, grids] = await Promise.all([
     prisma.trdr.findUniqueOrThrow({
       where: { id: trdrId },
       select: {
@@ -67,7 +74,14 @@ export async function buildCompanyProfile(trdrId: string, now = new Date()): Pro
     }),
     prisma.programApplication.findMany({ where: { trdrId }, select: { lifecycle: true, stage: true, program: { select: { title: true } } } }),
     prisma.region.findMany({ select: { code: true, nameEL: true, level: true, parentCode: true } }),
+    loadValuesGrids(trdrId).catch(() => []),
   ])
+  const totals = grids.filter(g => g.kind !== 'YEARLY').flatMap(g => periodTotals(g).map(t => ({
+    document: g.typeName ?? g.templateName,
+    field: t.label,
+    years: t.years.map(y => ({ year: y.year, total: y.total, months: `${y.have}/${y.expected}`, complete: y.complete })),
+    last12: t.last12 ? { from: t.last12.from, to: t.last12.to, total: t.last12.total, months: `${t.last12.have}/${t.last12.expected}` } : null,
+  })))
 
   // Ετικέτες πεδίων εντύπων (fieldKey → label) από τους Οδηγούς Εντύπων.
   const keys = [...new Set(values.map(v => v.fieldKey))]
@@ -123,6 +137,7 @@ export async function buildCompanyProfile(trdrId: string, now = new Date()): Pro
       smeCategory: smeLast?.value != null ? (SME_LABEL[String(Math.round(smeLast.value))] ?? null) : null,
     },
     series,
+    periodTotals: totals,
     documents,
     otherPrograms: apps.map(a => ({ title: a.program.title, lifecycle: a.lifecycle, stage: a.stage })),
     gaps: [],
@@ -133,6 +148,7 @@ export async function buildCompanyProfile(trdrId: string, now = new Date()): Pro
   if (!profile.legalForm) profile.gaps.push('Λείπει η νομική μορφή.')
   if (!profile.region.periferia) profile.gaps.push('Λείπει η περιφέρεια (διεύθυνση/ΤΚ).')
   if (profile.headline.eme == null && !byKey.has('eme')) profile.gaps.push('Δεν υπάρχουν ΕΜΕ — ανέβασε ΕΜΕ ή Δήλωση ΜΜΕ.')
-  if (profile.headline.revenue == null && !byKey.has('e3_kyklos_ergasion') && !byKey.has('mme_kyklos_ergasion')) profile.gaps.push('Δεν υπάρχει κύκλος εργασιών — ανέβασε Ε3.')
+  const seriesRevenue = totals.some(t => /κυκλ.*εργασ|εκροων|πωλησ/i.test(t.field.normalize('NFD').replace(/[\u0300-\u036f]/g, '')))
+  if (profile.headline.revenue == null && !seriesRevenue && !byKey.has('e3_kyklos_ergasion') && !byKey.has('mme_kyklos_ergasion')) profile.gaps.push('Δεν υπάρχει κύκλος εργασιών — ανέβασε Ε3.')
   return profile
 }
