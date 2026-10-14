@@ -106,8 +106,9 @@ async function resolveAiCall(
   const hasText = !!input.text?.trim()
   const hasImages = input.images.length > 0
 
-  const gemini = await getIntegration('gemini')
-  if (isIntegrationConfigured('gemini', gemini)) {
+  // Vision μέσω geminiGenerate: OpenRouter (κύρια δρομολόγηση) ή απευθείας κλειδί Gemini — αρκεί ένα από τα δύο.
+  const [gemini, openrouter] = await Promise.all([getIntegration('gemini'), getIntegration('openrouter')])
+  if (isIntegrationConfigured('gemini', gemini) || isIntegrationConfigured('openrouter', openrouter)) {
     const instruction = hasImages
       ? (hasText
         ? `Επιπλέον, εδώ είναι κείμενο που εξήχθη ήδη ψηφιακά από το ίδιο έγγραφο (μπορεί να βοηθήσει σε δυσανάγνωστα σημεία):\n\n${input.text}`
