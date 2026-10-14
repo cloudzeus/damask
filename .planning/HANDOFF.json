@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-14T05:42:33.084Z",
+  "timestamp": "2026-10-14T06:21:42.719Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,69 +22,9 @@
     },
     {
       "status": "M",
-      "path": "prisma/schema.prisma"
-    },
-    {
-      "status": "M",
-      "path": "src/app/api/file-requests/[token]/upload/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/app/api/partners/[id]/files/upload-chunk/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/app/api/partners/[id]/files/upload/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/app/api/webhooks/mailgun/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/components/trdr/dossier-smart-upload.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/file-requests/review.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/import/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/import/existing.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/import/recognize.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/portal-contact.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/portal-documents.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/portal-public.ts"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261014220000_import_item_source/"
-    },
-    {
-      "status": "??",
-      "path": "scripts/backfill-file-hashes.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/import/evaluate.ts"
+      "path": "src/lib/documents/value-capture.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\na0d6300 chore: ενημέρωση HANDOFF\nfc39f25 feat(memory): ενιαία αξιολόγηση αρχείου φ3 — γνώση υλοποίησης στη Μνήμη γραφείου (κατάσταση/εκκρεμότητες ανά έργο, οδηγός φακέλου υλοποίησης & τι έμαθε η μνήμη ρόλων, κανόνες προγράμματος: προσφορές/ΕΜΕ/έμμεσες)\ne5636ce feat(import): ενιαία αξιολόγηση αρχείου φ2 — μνήμη ρόλων που μαθαίνει (σχήμα ονόματος/φακέλου → ρόλος) από κάθε επιτυχή καταχώριση και κάθε επιλογή χρήστη («Είναι: …»)· κοινή για όλα τα έργα\nddf100a feat(import): ενιαία αξιολόγηση αρχείου φ1 — η μαζική εισαγωγή αναγνωρίζει έγγραφα υλοποίησης χωρίς AI και τα στέλνει στο εγκεκριμένο έργο με αυτόματη καταχώριση· μισθοδοσία: σωρευτική εξόφληση μηνών (δώρα/εξοφλήσεις τον επόμενο μήνα)\n4fd19aa feat(pm): αποπληρωμές με τεκμηριωμένο ποσό (παραστατικά/μισθοδοσία υλοποίησης)· έμμεσες δαπάνες κατ' αποκοπή % επί των τεκμηριωμένων άμεσων"
+  "context_notes": "Recent commits:\n4140511 feat(dossier): «Πίνακας τιμών» από πολλά δικαιολογητικά όπως η μισθοδοσία — πεδία × περίοδοι ανά έτος με σύνολο έτους (π.χ. ετήσιος τζίρος από 12 Φ2), Ε3/Ε1 ανά έτος με μεταβολή %, κενά με εικονίδιο+κείμενο, κλικ = έγγραφο, ανέβασμα (και πακέτων), CSV\n9c66909 feat(pm): «Προς καταχώριση» με προεπισκόπηση & επεξήγηση — 3 ομάδες (έλεγχος / αυτόματα / δεν χρειάζονται), μία ενέργεια ανά ρόλο, «Είναι κάτι άλλο» που εκπαιδεύει, ήδη καταχωρισμένα εγκριτικά → αρχειοθέτηση· συμβάσεις/Word δεν γίνονται παραστατικά από ομοιότητα\n8376234 feat(dossier): πακέτα δικαιολογητικών σειράς (π.χ. 12 Φ2 σε ένα PDF) → χωρισμός σελίδα-σελίδα σε έγγραφα ανά περίοδο με τιμές, στο παρασκήνιο\n8271fc3 fix(db): λιγότερες συνδέσεις στον κοινό Postgres (pool 8 παραγωγή / 4 dev, pg-boss 3) — «too many clients»\nf078b0c chore: ενημέρωση HANDOFF"
 }
