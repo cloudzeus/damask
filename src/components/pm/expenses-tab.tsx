@@ -13,6 +13,7 @@ import { InspectionExportPanel } from '@/components/programs/inspection-export-p
 import { ReplaceExpenseDialog } from './replace-expense-dialog'
 import { ExpenseInboxPanel } from './expense-inbox-panel'
 import { AssetRegisterPanel } from './asset-register-panel'
+import { ImplementationBoard } from './implementation-board'
 
 function formatEUR(v: number): string {
   return `${v.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
@@ -32,7 +33,7 @@ function phaseOf(stage: StageStr): Phase {
 const PHASE_BANNER: Record<Phase, { icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>; title: string; hint: string }> = {
   PLANNING: { icon: LuPencilRuler, title: 'Στάδιο μελέτης — Σχέδιο δαπανών', hint: 'Προδιαγράφεις τις δαπάνες/προσφορές ανά κατηγορία. Όταν το σχέδιο και τα δικαιολογητικά είναι έτοιμα, προχωράς στην υποβολή (tab «ΟΠΣΚΕ»).' },
   SUBMISSION: { icon: LuSend, title: 'Υποβολή & έγκριση', hint: 'Το σχέδιο δαπανών κλειδώνει για υποβολή. Η υποβολή/έγκριση γίνεται από το tab «ΟΠΣΚΕ». Μετά την έγκριση ξεκινούν οι αγορές.' },
-  IMPLEMENTATION: { icon: LuPackageCheck, title: 'Υλοποίηση — αγορές & αποπληρωμή', hint: 'Καταχωρείς τις πραγματικές αγορές (παραστατικό/extrait/serial/βεβαίωση) και υποβάλλεις αίτημα αποπληρωμής (tab «Αποπληρωμές»). Τροποποιήσεις εγκεκριμένων δαπανών γίνονται εδώ.' },
+  IMPLEMENTATION: { icon: LuPackageCheck, title: 'Υλοποίηση — παραστατικά & πληρωμές', hint: 'Για κάθε εγκεκριμένη δαπάνη ανεβάστε τα παραστατικά της και το εξτρέ πληρωμής· η βεβαίωση προμηθευτή συντάσσεται και στέλνεται με ένα κλικ. Το σύστημα ελέγχει αν ταιριάζουν.' },
 }
 
 /**
@@ -109,26 +110,54 @@ export function ExpensesTab({ applicationId, programId, stage, trdrId, approved 
         )}
       </div>
 
-      {/* Προσφορές/παραστατικά από τη μαζική εισαγωγή αρχείων του πελάτη — ήδη διαβασμένα. */}
-      <ExpenseInboxPanel key={`i-${refreshKey}`} applicationId={applicationId} trdrId={trdrId} onChanged={refreshExpenses} />
+      {isImplementation ? (
+        <>
+          {/* Κύρια οθόνη υλοποίησης: δαπάνες ανά κατηγορία → παραστατικά + εξτρέ + βεβαίωση + διασταύρωση. */}
+          <ImplementationBoard key={`b-${refreshKey}`} applicationId={applicationId} />
 
-      {/* Σχέδιο δαπανών — expandable κατηγορίες, δαπάνες μία-μία + όρια + PDF. */}
-      <BudgetProposalPanel key={refreshKey} applicationId={applicationId} />
-
-      {/* Στοιχεία αγορών & τεκμηρίωση — μόνο post-approval (φάση υλοποίησης). */}
-      {isImplementation && <PurchaseDocsPanel key={`p-${refreshKey}`} applicationId={applicationId} />}
-
-      {/* Μητρώο παγίων ↔ δαπάνες (αρ. παραστατικού/ημ./ποσό/S/N) — αναφορά για φάκελο/ελεγκτή. */}
-      {isImplementation && <AssetRegisterPanel key={`a-${refreshKey}`} applicationId={applicationId} />}
-
-      {/* Επιτόπιος έλεγχος — εξαγωγές Excel/Word για τον ελεγκτή. */}
-      {isImplementation && <InspectionExportPanel applicationId={applicationId} />}
-
-      {/* Αντικατάσταση δαπανών — μόνο post-approval (φάση υλοποίησης). */}
-      {isImplementation && (
-        <ReplaceExpensesSection applicationId={applicationId} refreshKey={refreshKey} onReplaced={refreshExpenses} />
+          {/* Δευτερεύοντα — κλειστά, ανοίγουν όταν χρειαστούν. */}
+          <Fold title="Αρχεία από τη μαζική εισαγωγή («Προς καταχώριση»)" hint="Προσφορές/παραστατικά/εγκριτικά που βρέθηκαν στα αρχεία του πελάτη — ήδη διαβασμένα.">
+            <ExpenseInboxPanel key={`i-${refreshKey}`} applicationId={applicationId} trdrId={trdrId} onChanged={refreshExpenses} />
+          </Fold>
+          <Fold title="Μητρώο παγίων" hint="Διασταύρωση δαπανών με το μητρώο παγίων του λογιστή.">
+            <AssetRegisterPanel key={`a-${refreshKey}`} applicationId={applicationId} />
+          </Fold>
+          <Fold title="Εξαγωγές για τον επιτόπιο έλεγχο" hint="Excel/Word για τον ελεγκτή.">
+            <InspectionExportPanel applicationId={applicationId} />
+          </Fold>
+          <Fold title="Σχέδιο δαπανών & αντικατάσταση δαπάνης" hint="Το εγκεκριμένο σχέδιο, όρια κατηγοριών, αντικατάσταση δαπάνης.">
+            <BudgetProposalPanel key={refreshKey} applicationId={applicationId} />
+            <ReplaceExpensesSection applicationId={applicationId} refreshKey={refreshKey} onReplaced={refreshExpenses} />
+          </Fold>
+          <Fold title="Έγγραφα αγορών (παλαιός τρόπος — ένα παραστατικό ανά δαπάνη)" hint="Για έργα που καταχωρίστηκαν πριν από τα παραστατικά ανά κατηγορία.">
+            <PurchaseDocsPanel key={`p-${refreshKey}`} applicationId={applicationId} />
+          </Fold>
+        </>
+      ) : (
+        <>
+          {/* Προσφορές/παραστατικά από τη μαζική εισαγωγή αρχείων του πελάτη — ήδη διαβασμένα. */}
+          <ExpenseInboxPanel key={`i-${refreshKey}`} applicationId={applicationId} trdrId={trdrId} onChanged={refreshExpenses} />
+          {/* Σχέδιο δαπανών — expandable κατηγορίες, δαπάνες μία-μία + όρια + PDF. */}
+          <BudgetProposalPanel key={refreshKey} applicationId={applicationId} />
+        </>
       )}
     </div>
+  )
+}
+
+/** Δευτερεύουσα ενότητα που ανοίγει με κλικ (κρατά την κύρια οθόνη καθαρή). */
+function Fold({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+  return (
+    <details className="group rounded-[18px] border border-border bg-card">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 px-4 py-2.5 [&::-webkit-details-marker]:hidden">
+        <span className="text-muted-foreground transition-transform duration-200 group-open:rotate-90" aria-hidden>›</span>
+        <span className="min-w-0">
+          <span className="block text-[length:var(--fs-13)] font-semibold">{title}</span>
+          <span className="block text-[length:var(--fs-11-5)] text-muted-foreground">{hint}</span>
+        </span>
+      </summary>
+      <div className="flex flex-col gap-3 border-t border-border p-3">{children}</div>
+    </details>
   )
 }
 

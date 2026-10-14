@@ -2336,7 +2336,7 @@ async function computeSubmissionReadiness(applicationId: string): Promise<Submis
   })
   const app = await prisma.programApplication.findUnique({
     where: { id: applicationId },
-    select: { program: { select: { totalBudget: true, expenseCats: { select: { id: true, name: true, mandatory: true, minAmount: true, maxAmount: true, minPercentage: true, maxPercentage: true } } } } },
+    select: { program: { select: { totalBudget: true, quotePolicy: true, quotePolicyRule: true, expenseCats: { select: { id: true, name: true, mandatory: true, minAmount: true, maxAmount: true, minPercentage: true, maxPercentage: true } } } } },
   })
   const rows = await prisma.programExpense.findMany({
     where: { applicationId, status: 'ACTIVE' },
@@ -2365,7 +2365,9 @@ async function computeSubmissionReadiness(applicationId: string): Promise<Submis
     if (c.mandatory && c.spent === 0) blockers.push(`Υποχρεωτική κατηγορία «${c.name}» χωρίς δαπάνη`)
     if (c.status === 'UNDER') warnings.push(`Η κατηγορία «${c.name}» είναι κάτω από το ελάχιστο όριο`)
   }
-  const missingQuotes = rows.filter(r => !r.quoteStorageKey).length
+  // Μόνο δαπάνες για τις οποίες ο κανόνας του προγράμματος ζητά προσφορά (π.χ. κατ. 1-3 άνω των 50.000 €).
+  const { quoteRequiredFor } = await import('@/lib/programs/quote-policy')
+  const missingQuotes = rows.filter(r => !r.quoteStorageKey && quoteRequiredFor(app?.program.quotePolicy, app?.program.quotePolicyRule, { amount: Number(r.amount), categoryId: r.categoryId })).length
   if (missingQuotes > 0) warnings.push(`${missingQuotes} δαπάνες χωρίς ενυπόγραφη προσφορά`)
 
   return { ready: blockers.length === 0, blockers, warnings, totalPlanned: comp.totalSpent, missingQuotes }

@@ -29,7 +29,7 @@ const addr = (t: { ADDRESS: string | null; ZIP: string | null; CITY: string | nu
   [t.ADDRESS, [t.ZIP, t.CITY].filter(Boolean).join(' ')].filter(Boolean).join(', ')
 
 /** Προσυμπλήρωση από τη δαπάνη: προμηθευτής, δικαιούχος, πρόγραμμα, τιμολόγιο, είδη (γραμμές δαπάνης). */
-export async function buildDefaultCertData(expenseId: string): Promise<CertData> {
+export async function buildDefaultCertData(expenseId: string, invoiceId?: string | null): Promise<CertData> {
   const e = await prisma.programExpense.findUniqueOrThrow({
     where: { id: expenseId },
     select: {
@@ -45,9 +45,14 @@ export async function buildDefaultCertData(expenseId: string): Promise<CertData>
       },
     },
   })
-  const sup = e.supplier
+  // Παραστατικό υλοποίησης (πολλά ανά δαπάνη): τα στοιχεία του ίδιου του παραστατικού έχουν προτεραιότητα.
+  const ei = invoiceId ? await prisma.expenseInvoice.findUnique({ where: { id: invoiceId } }) : null
+  const eiSup = ei?.supplierAfm ? await prisma.trdr.findFirst({ where: { AFM: ei.supplierAfm }, select: { NAME: true, AFM: true, IRSDATA: true, ADDRESS: true, ZIP: true, CITY: true } }) : null
+  const sup = ei ? eiSup : e.supplier
   const buyer = e.application.trdr
-  const p = e.purchase
+  const p = ei
+    ? { invoiceNumber: ei.number, invoiceDate: ei.date, serial: null as string | null, paidAmount: ei.totalAmount, ocrNumber: null, ocrDate: null, invoiceLines: ei.lines }
+    : e.purchase
   const serial = p?.serial?.trim() ?? ''
   // 1η πηγή: οι γραμμές του καταχωρημένου ΠΑΡΑΣΤΑΤΙΚΟΥ (OCR τιμολογίου: περιγραφή/κωδικός/ποσότητα/σειριακός) —
   // η βεβαίωση πρέπει να ταυτίζεται με το τιμολόγιο. Εφεδρεία: οι γραμμές της δαπάνης (προσφορά).
@@ -65,17 +70,17 @@ export async function buildDefaultCertData(expenseId: string): Promise<CertData>
   if (!items.length) items = [{ code: '', description: e.description.slice(0, 300), quantity: '1', unit: '', serial: '' }]
   // Ένας σειριακός στην αγορά και ένα είδος → πάει σε αυτό· πολλά είδη → τα συμπληρώνει ο χρήστης.
   if (serial && items.length === 1 && !items[0].serial) items[0].serial = serial
-  const invoiceDate = p?.invoiceDate ?? p?.ocrDate ?? e.date
+  const invoiceDate = p?.invoiceDate ?? p?.ocrDate ?? (ei ? null : e.date)
   return {
     supplier: {
-      name: sup?.NAME ?? n(e.vendor),
-      afm: sup?.AFM ?? n(e.vendorAfm),
+      name: sup?.NAME ?? n(ei?.supplier ?? e.vendor),
+      afm: sup?.AFM ?? n(ei?.supplierAfm ?? e.vendorAfm),
       doy: sup ? await doyName(sup.IRSDATA) : '',
       address: sup ? addr(sup) : '',
     },
     buyer: { name: buyer.NAME, afm: n(buyer.AFM), doy: await doyName(buyer.IRSDATA), address: addr(buyer) },
     programTitle: (e.application.program.cmsContent as { cardTitle?: string } | null)?.cardTitle || e.application.program.title,
-    invoiceNumber: p?.invoiceNumber ?? p?.ocrNumber ?? n(e.docNumber),
+    invoiceNumber: p?.invoiceNumber ?? p?.ocrNumber ?? (ei ? '' : n(e.docNumber)),
     invoiceDate: invoiceDate ? invoiceDate.toISOString().slice(0, 10) : '',
     items,
     place: sup?.CITY ?? '',
@@ -137,12 +142,19 @@ export async function finalizeCert(certId: string): Promise<{ pdfKey: string }> 
   const name = `Βεβαίωση προμηθευτή — ${data.invoiceNumber || 'τιμολόγιο'}.pdf`
   await prisma.$transaction([
     prisma.supplierCertificate.update({ where: { id: certId }, data: { pdfKey, status: 'SIGNED' } }),
-    prisma.expensePurchase.upsert({
-      where: { expenseId: cert.expenseId },
-      create: { expenseId: cert.expenseId, supplierCertKey: pdfKey, supplierCertName: name },
-      update: { supplierCertKey: pdfKey, supplierCertName: name },
-    }),
+    // Βεβαίωση παραστατικού υλοποίησης → στο ίδιο το παραστατικό (και νέα διασταύρωση)· αλλιώς στην αγορά της δαπάνης.
+    cert.invoiceId
+      ? prisma.expenseInvoice.update({ where: { id: cert.invoiceId }, data: { supplierCertKey: pdfKey, supplierCertName: name, supplierCertMime: 'application/pdf' } })
+      : prisma.expensePurchase.upsert({
+        where: { expenseId: cert.expenseId },
+        create: { expenseId: cert.expenseId, supplierCertKey: pdfKey, supplierCertName: name },
+        update: { supplierCertKey: pdfKey, supplierCertName: name },
+      }),
   ])
+  if (cert.invoiceId) {
+    const { rematchInvoice } = await import('@/lib/pm/invoice-rematch')
+    await rematchInvoice(cert.invoiceId, { invoiceNumbers: data.invoiceNumber ? [data.invoiceNumber] : [], amount: null })
+  }
   const exp = await prisma.programExpense.findUnique({ where: { id: cert.expenseId }, select: { applicationId: true, application: { select: { trdr: { select: { NAME: true } } } } } })
   const { createNotification } = await import('@/lib/notifications/service')
   await createNotification({

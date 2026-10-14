@@ -30,17 +30,24 @@ export type CertState = {
   signerName: string | null
 }
 
-export async function getSupplierCert(expenseId: string): Promise<CertState> {
+/** Η βεβαίωση της δαπάνης (κλασική) ή συγκεκριμένου παραστατικού υλοποίησης. */
+const certWhere = (expenseId: string, invoiceId?: string | null) => (invoiceId ? { invoiceId } : { expenseId, invoiceId: null })
+
+export async function getSupplierCert(expenseId: string, invoiceId?: string | null): Promise<CertState> {
   await requirePermission('programs.manage')
   const [cert, exp] = await Promise.all([
-    prisma.supplierCertificate.findUnique({ where: { expenseId } }),
+    prisma.supplierCertificate.findFirst({ where: certWhere(expenseId, invoiceId) }),
     prisma.programExpense.findUniqueOrThrow({ where: { id: expenseId }, select: { supplier: { select: { NAME: true, EMAIL: true, supplierLogoKey: true } } } }),
   ])
+  // Παραστατικό υλοποίησης: ο προμηθευτής του παραστατικού (με ΑΦΜ) — όχι της δαπάνης.
+  const inv = invoiceId ? await prisma.expenseInvoice.findUnique({ where: { id: invoiceId }, select: { supplier: true, supplierAfm: true } }) : null
+  const invSup = inv?.supplierAfm ? await prisma.trdr.findFirst({ where: { AFM: inv.supplierAfm }, select: { NAME: true, EMAIL: true, supplierLogoKey: true } }) : null
+  const sup = inv ? invSup : exp.supplier
   const base = {
-    supplierEmail: exp.supplier?.EMAIL ?? null, supplierName: exp.supplier?.NAME ?? null, hasLogo: !!exp.supplier?.supplierLogoKey,
+    supplierEmail: sup?.EMAIL ?? null, supplierName: sup?.NAME ?? inv?.supplier ?? null, hasLogo: !!sup?.supplierLogoKey,
   }
   if (!cert) {
-    return { id: null, status: 'NEW', data: await buildDefaultCertData(expenseId), link: null, sentTo: null, sentAt: null, viewedAt: null, signedAt: null, signerName: null, ...base }
+    return { id: null, status: 'NEW', data: await buildDefaultCertData(expenseId, invoiceId), link: null, sentTo: null, sentAt: null, viewedAt: null, signedAt: null, signerName: null, ...base }
   }
   return {
     id: cert.id, status: cert.status as CertState['status'], data: cert.data as unknown as CertData,
@@ -67,19 +74,25 @@ function clean(d: CertData): CertData {
 }
 
 /** Προσυμπλήρωση από την αγορά (για «Γραμμές από το παραστατικό» σε ήδη συνταγμένη βεβαίωση). */
-export async function getCertDefaults(expenseId: string): Promise<{ data: CertData; fromInvoice: boolean }> {
+export async function getCertDefaults(expenseId: string, invoiceId?: string | null): Promise<{ data: CertData; fromInvoice: boolean }> {
   await requirePermission('programs.manage')
-  const p = await prisma.expensePurchase.findUnique({ where: { expenseId }, select: { invoiceLines: true } })
-  return { data: await buildDefaultCertData(expenseId), fromInvoice: Array.isArray(p?.invoiceLines) && p.invoiceLines.length > 0 }
+  const lines = invoiceId
+    ? (await prisma.expenseInvoice.findUnique({ where: { id: invoiceId }, select: { lines: true } }))?.lines
+    : (await prisma.expensePurchase.findUnique({ where: { expenseId }, select: { invoiceLines: true } }))?.invoiceLines
+  return { data: await buildDefaultCertData(expenseId, invoiceId), fromInvoice: Array.isArray(lines) && lines.length > 0 }
 }
 
 /** Αποθήκευση/ενημέρωση. Αν ήταν υπογεγραμμένη, οποιαδήποτε αλλαγή την ξαναφέρνει σε πρόχειρο (νέα υπογραφή). */
-export async function saveSupplierCert(expenseId: string, data: CertData): Promise<CertState> {
+export async function saveSupplierCert(expenseId: string, data: CertData, invoiceId?: string | null): Promise<CertState> {
   const session = await requirePermission('programs.manage')
   const d = clean(data)
   if (!d.items.length) throw new Error('Προσθέστε τουλάχιστον ένα είδος.')
   const exp = await prisma.programExpense.findUniqueOrThrow({ where: { id: expenseId }, select: { supplierTrdrId: true } })
-  const existing = await prisma.supplierCertificate.findUnique({ where: { expenseId }, select: { id: true, status: true } })
+  if (invoiceId) {
+    const inv = await prisma.expenseInvoice.findUnique({ where: { id: invoiceId }, select: { supplierAfm: true } })
+    exp.supplierTrdrId = inv?.supplierAfm ? (await prisma.trdr.findFirst({ where: { AFM: inv.supplierAfm }, select: { id: true } }))?.id ?? null : null
+  }
+  const existing = await prisma.supplierCertificate.findFirst({ where: certWhere(expenseId, invoiceId), select: { id: true, status: true } })
   const json = d as unknown as Prisma.InputJsonValue
   if (existing) {
     await prisma.supplierCertificate.update({
@@ -91,19 +104,19 @@ export async function saveSupplierCert(expenseId: string, data: CertData): Promi
     })
   } else {
     await prisma.supplierCertificate.create({
-      data: { expenseId, token: newCertToken(), data: json, supplierTrdrId: exp.supplierTrdrId, expiresAt: new Date(Date.now() + CERT_TTL_DAYS * 864e5), createdById: session.user.id },
+      data: { expenseId, invoiceId: invoiceId ?? null, token: newCertToken(), data: json, supplierTrdrId: exp.supplierTrdrId, expiresAt: new Date(Date.now() + CERT_TTL_DAYS * 864e5), createdById: session.user.id },
     })
   }
   await logActivity('supplier_cert.save', { entityType: 'expense', entityId: expenseId, userId: session.user.id })
-  return getSupplierCert(expenseId)
+  return getSupplierCert(expenseId, invoiceId)
 }
 
 /** Αποστολή στον προμηθευτή με σύνδεσμο υπογραφής (μέσω του κοινού tagged μονοπατιού email). */
-export async function sendSupplierCert(expenseId: string, input: { to: string; note?: string | null }): Promise<{ ok: boolean; message: string }> {
+export async function sendSupplierCert(expenseId: string, input: { to: string; note?: string | null }, invoiceId?: string | null): Promise<{ ok: boolean; message: string }> {
   const session = await requirePermission('programs.manage')
   const to = input.to.trim()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { ok: false, message: 'Μη έγκυρο email.' }
-  const cert = await prisma.supplierCertificate.findUnique({ where: { expenseId } })
+  const cert = await prisma.supplierCertificate.findFirst({ where: certWhere(expenseId, invoiceId) })
   if (!cert) return { ok: false, message: 'Αποθηκεύστε πρώτα τη βεβαίωση.' }
   const exp = await prisma.programExpense.findUniqueOrThrow({ where: { id: expenseId }, select: { applicationId: true, application: { select: { programId: true } } } })
   const d = cert.data as unknown as CertData
@@ -130,9 +143,9 @@ export async function sendSupplierCert(expenseId: string, input: { to: string; n
 }
 
 /** Υπογραφή από το γραφείο για λογαριασμό του προμηθευτή (π.χ. ήρθε σφραγισμένη σε χαρτί) — ανέβασμα σφραγίδας/υπογραφής. */
-export async function signSupplierCertInternally(expenseId: string, input: { signerName: string; signerTitle?: string | null; signature?: { base64: string; mime: string } | null; stamp?: { base64: string; mime: string } | null }): Promise<CertState> {
+export async function signSupplierCertInternally(expenseId: string, input: { signerName: string; signerTitle?: string | null; signature?: { base64: string; mime: string } | null; stamp?: { base64: string; mime: string } | null }, invoiceId?: string | null): Promise<CertState> {
   const session = await requirePermission('programs.manage')
-  const cert = await prisma.supplierCertificate.findUniqueOrThrow({ where: { expenseId } })
+  const cert = await prisma.supplierCertificate.findFirstOrThrow({ where: certWhere(expenseId, invoiceId) })
   if (!input.signature && !input.stamp) throw new Error('Χρειάζεται υπογραφή ή σφραγίδα.')
   const signatureKey = input.signature ? await storeCertImage(cert.id, 'signature', input.signature.base64, input.signature.mime) : cert.signatureKey
   const stampKey = input.stamp ? await storeCertImage(cert.id, 'stamp', input.stamp.base64, input.stamp.mime) : cert.stampKey
@@ -140,5 +153,5 @@ export async function signSupplierCertInternally(expenseId: string, input: { sig
   await finalizeCert(cert.id)
   await logActivity('supplier_cert.sign', { entityType: 'expense', entityId: expenseId, userId: session.user.id, meta: { internal: true } })
   revalidatePath('/programs')
-  return getSupplierCert(expenseId)
+  return getSupplierCert(expenseId, invoiceId)
 }

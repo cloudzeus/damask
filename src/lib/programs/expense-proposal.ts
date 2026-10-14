@@ -1,5 +1,6 @@
 'use server'
 
+import { quoteRequiredFor } from '@/lib/programs/quote-policy'
 import crypto from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
@@ -33,6 +34,8 @@ export type ProposalExpense = {
   supplierName: string | null
   supplierAfm: string | null
   hasQuote: boolean
+  /** Ο κανόνας του προγράμματος ζητά προσφορά για αυτή τη δαπάνη (κατηγορία/ποσό). */
+  quoteNeeded: boolean
   quoteName: string | null
   eligibilityVerdict: string | null
   eligibilityNote: string | null
@@ -61,6 +64,8 @@ export type BudgetProposal = {
   categories: ProposalCategory[]
   expenses: ProposalExpense[]
   missingQuotes: number
+  /** Το πρόγραμμα ζητά προσφορές; false = κανόνας προγράμματος «δεν απαιτούνται» (καμία εκκρεμότητα προσφοράς). */
+  quotesRequired: boolean
 }
 
 function limitLabel(c: { minAmount: number | null; maxAmount: number | null; minPercentage: number | null; maxPercentage: number | null }): string {
@@ -92,7 +97,7 @@ export async function getBudgetProposal(applicationId: string): Promise<BudgetPr
     select: {
       trdrId: true,
       trdr: { select: { NAME: true } },
-      program: { select: { title: true, totalBudget: true, expenseCats: { orderBy: { order: 'asc' }, select: { id: true, name: true, mandatory: true, minAmount: true, maxAmount: true, minPercentage: true, maxPercentage: true } } } },
+      program: { select: { title: true, totalBudget: true, quotePolicy: true, quotePolicyRule: true, expenseCats: { orderBy: { order: 'asc' }, select: { id: true, name: true, mandatory: true, minAmount: true, maxAmount: true, minPercentage: true, maxPercentage: true } } } },
     },
   })
   if (!app) return null
@@ -132,6 +137,7 @@ export async function getBudgetProposal(applicationId: string): Promise<BudgetPr
     id: r.id, description: r.description, amount: Number(r.amount), categoryId: r.categoryId,
     supplierName: r.supplier?.NAME ?? r.vendor ?? null, supplierAfm: r.supplier?.AFM ?? r.vendorAfm ?? null,
     hasQuote: !!r.quoteStorageKey, quoteName: r.quoteName,
+    quoteNeeded: quoteRequiredFor(app.program.quotePolicy, app.program.quotePolicyRule, { amount: Number(r.amount), categoryId: r.categoryId }),
     eligibilityVerdict: r.eligibilityVerdict, eligibilityNote: r.eligibilityNote, eligibilityDetail: (r.eligibilityDetail as unknown as ExpenseEligibilityDetail | null) ?? null,
     lines: r.lines.map(l => ({
       id: l.id, product: l.product, description: l.description, unit: l.unit,
@@ -143,7 +149,9 @@ export async function getBudgetProposal(applicationId: string): Promise<BudgetPr
 
   return {
     programTitle: app.program.title, trdrId: app.trdrId, trdrName: app.trdr.NAME, totalBudget, totalSpent: comp.totalSpent,
-    categories, expenses, missingQuotes: expenses.filter(e => !e.hasQuote).length,
+    categories, expenses,
+    quotesRequired: app.program.quotePolicy !== 'OPTIONAL',
+    missingQuotes: expenses.filter(e => !e.hasQuote && e.quoteNeeded).length,
   }
 }
 

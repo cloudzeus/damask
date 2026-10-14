@@ -119,11 +119,11 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
 
       <div className="flex flex-col gap-2.5">
         {data.categories.map(c => (
-          <CategoryCard key={c.id} category={c} expenses={expensesByCat(c.id)} onAdd={() => setAddCat(c)} onReload={load} />
+          <CategoryCard key={c.id} category={c} expenses={expensesByCat(c.id)} quotesRequired={data.quotesRequired} onAdd={() => setAddCat(c)} onReload={load} />
         ))}
         {/* Δαπάνες χωρίς κατηγορία */}
         {expensesByCat(null).length > 0 && (
-          <CategoryCard category={null} expenses={expensesByCat(null)} onAdd={() => setAddCat('none')} onReload={load} />
+          <CategoryCard category={null} expenses={expensesByCat(null)} quotesRequired={data.quotesRequired} onAdd={() => setAddCat('none')} onReload={load} />
         )}
       </div>
 
@@ -143,10 +143,11 @@ export function BudgetProposalPanel({ applicationId }: { applicationId: string }
 }
 
 function CategoryCard({
-  category: c, expenses, onAdd, onReload,
+  category: c, expenses, onAdd, onReload, quotesRequired = true,
 }: {
   category: ProposalCategory | null
   expenses: BudgetProposal['expenses']
+  quotesRequired?: boolean
   onAdd: () => void
   onReload: () => void
 }) {
@@ -159,7 +160,7 @@ function CategoryCard({
   // Ανοιχτή εξ ορισμού όταν έχει δαπάνες· κλειστή όταν είναι άδεια.
   const [open, setOpen] = React.useState(count > 0)
   const [evaluatingAll, setEvaluatingAll] = React.useState(false)
-  const missing = expenses.filter(e => !e.hasQuote).length
+  const missing = quotesRequired ? expenses.filter(e => !e.hasQuote && e.quoteNeeded).length : 0
   const panelId = React.useId()
 
   // «Τεκμηρίωση AI για όλες» — αξιολογεί σειριακά κάθε δαπάνη της κατηγορίας.
@@ -346,8 +347,8 @@ function ExpenseRow({ expense: e, onReload }: { expense: BudgetProposal['expense
         ) : (
           <>
             <input ref={fileRef} type="file" className="hidden" onChange={ev => { const f = ev.target.files?.[0]; if (f) void upload(f); ev.target.value = '' }} />
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="badge-pill warn shrink-0" title="Ανέβασε ενυπόγραφη προσφορά — αλλιώς μένει σε εκκρεμότητα">
-              {busy ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />} λείπει προσφορά
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className={`badge-pill ${e.quoteNeeded ? 'warn' : 'muted'} shrink-0`} title={e.quoteNeeded ? 'Ανέβασε ενυπόγραφη προσφορά — αλλιώς μένει σε εκκρεμότητα' : 'Το πρόγραμμα δεν ζητά προσφορά για αυτή τη δαπάνη — προαιρετικό ανέβασμα'}>
+              {busy ? <LuLoaderCircle className="size-3 animate-spin" aria-hidden /> : <LuUpload className="size-3" aria-hidden />} {e.quoteNeeded ? 'λείπει προσφορά' : 'προσφορά (προαιρετική)'}
             </button>
           </>
         )}

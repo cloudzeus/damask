@@ -67,7 +67,7 @@ export async function listExpensePurchases(applicationId: string): Promise<Purch
       purchase: true,
       paymentRequest: { select: { ordinal: true, status: true } },
       eligibilityDetail: true,
-      supplierCertificate: { select: { status: true } },
+      supplierCertificates: { where: { invoiceId: null }, select: { status: true }, take: 1 },
     },
   })
   return rows.map(r => {
@@ -87,7 +87,7 @@ export async function listExpensePurchases(applicationId: string): Promise<Purch
       ocr: p?.ocrCheckedAt ? { amount: p.ocrAmount != null ? Number(p.ocrAmount) : null, supplier: p.ocrSupplier ?? null, number: p.ocrNumber ?? null } : null,
       inRequest: r.paymentRequest ? { ordinal: r.paymentRequest.ordinal, status: r.paymentRequest.status } : null,
       eligibilityDetail: (r.eligibilityDetail as unknown as ExpenseEligibilityDetail | null) ?? null,
-      certStatus: (r.supplierCertificate?.status ?? 'NEW') as PurchaseItem['certStatus'],
+      certStatus: (r.supplierCertificates[0]?.status ?? 'NEW') as PurchaseItem['certStatus'],
     }
   })
 }

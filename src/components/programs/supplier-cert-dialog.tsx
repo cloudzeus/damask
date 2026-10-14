@@ -43,7 +43,7 @@ function Section({ title, children, open = true }: { title: string; children: Re
  * «Βεβαίωση προμηθευτή» μιας αγοράς: αυτόματη σύνταξη από τα στοιχεία της (τιμολόγιο, είδη, σειριακοί) με το λεκτικό
  * που καλύπτει όλους τους οδηγούς → αποστολή στον προμηθευτή με σύνδεσμο ή υπογραφή εδώ (QR σε tablet/κινητό).
  */
-export function SupplierCertButton({ expenseId, status, onChanged }: { expenseId: string; status: CertState['status']; onChanged: () => void }) {
+export function SupplierCertButton({ expenseId, invoiceId = null, status, onChanged, label }: { expenseId: string; invoiceId?: string | null; status: CertState['status']; onChanged: () => void; label?: string }) {
   const [open, setOpen] = React.useState(false)
   const [state, setState] = React.useState<CertState | null>(null)
   const [data, setData] = React.useState<CertData | null>(null)
@@ -55,10 +55,10 @@ export function SupplierCertButton({ expenseId, status, onChanged }: { expenseId
 
   const load = React.useCallback(async () => {
     try {
-      const s = await getSupplierCert(expenseId)
+      const s = await getSupplierCert(expenseId, invoiceId)
       setState(s); setData(s.data); setEmail(s.sentTo ?? s.supplierEmail ?? ''); setDirty(false)
     } catch { toast.error('Η φόρτωση της βεβαίωσης απέτυχε.') }
-  }, [expenseId])
+  }, [expenseId, invoiceId])
 
 
   const set = (p: Partial<CertData>) => { setData(d => (d ? { ...d, ...p } : d)); setDirty(true) }
@@ -68,7 +68,7 @@ export function SupplierCertButton({ expenseId, status, onChanged }: { expenseId
     if (!data) return null
     setBusy('save')
     try {
-      const s = await saveSupplierCert(expenseId, data)
+      const s = await saveSupplierCert(expenseId, data, invoiceId)
       setState(s); setData(s.data); setDirty(false)
       toast.success(state?.status === 'SIGNED' ? 'Αποθηκεύτηκε — χρειάζεται νέα υπογραφή.' : 'Η βεβαίωση αποθηκεύτηκε.')
       onChanged()
@@ -84,7 +84,7 @@ export function SupplierCertButton({ expenseId, status, onChanged }: { expenseId
     if (!s) return
     setBusy('send')
     try {
-      const r = await sendSupplierCert(expenseId, { to: email, note })
+      const r = await sendSupplierCert(expenseId, { to: email, note }, invoiceId)
       if (!r.ok) { toast.error(r.message); return }
       toast.success(r.message)
       await load()
@@ -102,7 +102,7 @@ export function SupplierCertButton({ expenseId, status, onChanged }: { expenseId
   return (
     <>
       <button type="button" onClick={() => { setOpen(true); void load() }} className={cn('inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[length:var(--fs-10-5)] font-semibold hover:border-primary hover:text-primary', st.cls)}>
-        {current === 'SIGNED' ? <LuCircleCheck className="size-3" aria-hidden /> : <LuSignature className="size-3" aria-hidden />} {st.label}
+        {current === 'SIGNED' ? <LuCircleCheck className="size-3" aria-hidden /> : <LuSignature className="size-3" aria-hidden />} {label && current === 'NEW' ? label : st.label}
       </button>
       <Dialog open={open} onOpenChange={o => { setOpen(o); if (!o) setQr(null) }}>
         <DialogContent className="sm:max-w-6xl">
@@ -170,7 +170,7 @@ export function SupplierCertButton({ expenseId, status, onChanged }: { expenseId
                       type="button" variant="outline" size="sm"
                       title="Ξαναγεμίζει τα είδη (και αρ./ημ. τιμολογίου) από το καταχωρημένο παραστατικό"
                       onClick={async () => {
-                        const r = await getCertDefaults(expenseId).catch(() => null)
+                        const r = await getCertDefaults(expenseId, invoiceId).catch(() => null)
                         if (!r) { toast.error('Η ανάγνωση απέτυχε.'); return }
                         set({ items: r.data.items, invoiceNumber: r.data.invoiceNumber || data.invoiceNumber, invoiceDate: r.data.invoiceDate || data.invoiceDate })
                         toast.success(r.fromInvoice ? 'Τα είδη συμπληρώθηκαν από το παραστατικό.' : 'Δεν υπάρχει ανάγνωση παραστατικού — συμπληρώθηκαν από τη δαπάνη. Κάντε «AI ανάγνωση παραστατικού» για γραμμές από το τιμολόγιο.')
@@ -215,7 +215,7 @@ export function SupplierCertButton({ expenseId, status, onChanged }: { expenseId
                       {busy === 'save' && <LuLoaderCircle className="size-4 animate-spin" aria-hidden />} Αποθήκευση
                     </Button>
                     {state.id && (
-                      <Button type="button" variant="outline" nativeButton={false} render={<a href={`/supplier-cert/${expenseId}/pdf`} target="_blank" rel="noreferrer" />}>
+                      <Button type="button" variant="outline" nativeButton={false} render={<a href={`/supplier-cert/${expenseId}/pdf${invoiceId ? `?invoice=${invoiceId}` : ''}`} target="_blank" rel="noreferrer" />}>
                         <LuFileText className="size-4" aria-hidden /> PDF
                       </Button>
                     )}
