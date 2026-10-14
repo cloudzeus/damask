@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-14T04:06:58.629Z",
+  "timestamp": "2026-10-14T05:28:54.925Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,97 +22,9 @@
     },
     {
       "status": "M",
-      "path": "prisma/schema.prisma"
-    },
-    {
-      "status": "M",
-      "path": "src/app/(app)/supplier-cert/[expenseId]/pdf/route.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/expenses-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/programs/budget-proposal.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/programs/supplier-cert-dialog.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/activity/registry.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/programs/expense-proposal.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/programs/expense-purchase.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/supplier-cert/actions.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/supplier-cert/core.ts"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261014180000_expense_invoices/"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261014181000_expense_invoice_match/"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261014182000_supplier_cert_per_invoice/"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261014183000_invoice_payments/"
-    },
-    {
-      "status": "??",
-      "path": "prisma/migrations/20261014184000_quote_policy_rule/"
-    },
-    {
-      "status": "??",
-      "path": "src/app/(app)/expense-invoice/"
-    },
-    {
-      "status": "??",
-      "path": "src/components/pm/implementation-board.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/pm/expense-invoices.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/pm/invoice-match.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/pm/invoice-rematch.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/programs/quote-policy.ts"
-    },
-    {
-      "status": "??",
-      "path": "tests/pm-invoice-match.test.ts"
+      "path": "src/lib/memory/knowledge-docs.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n68430f0 feat(pm): τροποποίηση εγκεκριμένου έργου — νεότερη εγκριτική = πίνακας διαφορών (ίδια/αλλαγή/νέα/καταργείται), ευθυγράμμιση δαπανών χωρίς διπλές, ιστορικό αρχικής απόφασης, λήξη από την αρχική έναρξη\na7e9a88 refactor(ai): ανάγνωση εγκριτικού σε plain module (worker/scripts)· OCR δουλεύει και μόνο με OpenRouter (χωρίς απευθείας κλειδί Gemini)\n161b6c1 fix(pm): έργο με εγκεκριμένη πρόταση (μόνο project management) δεν μπλοκάρεται από δικαιολογητικά υποβολής· η καταχώριση εγκριτικού πάει κατευθείαν σε υλοποίηση\ne6ffa23 feat(ai): κλήσεις Gemini μέσω OpenRouter (ίδια μοντέλα Google, χρεώσιμο) με εφεδρεία το απευθείας κλειδί· embeddings από την ίδια πηγή με αυτόματη αναδημιουργία ευρετηρίου όταν αλλάζει η πηγή\nf1cc764 chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\ne5636ce feat(import): ενιαία αξιολόγηση αρχείου φ2 — μνήμη ρόλων που μαθαίνει (σχήμα ονόματος/φακέλου → ρόλος) από κάθε επιτυχή καταχώριση και κάθε επιλογή χρήστη («Είναι: …»)· κοινή για όλα τα έργα\nddf100a feat(import): ενιαία αξιολόγηση αρχείου φ1 — η μαζική εισαγωγή αναγνωρίζει έγγραφα υλοποίησης χωρίς AI και τα στέλνει στο εγκεκριμένο έργο με αυτόματη καταχώριση· μισθοδοσία: σωρευτική εξόφληση μηνών (δώρα/εξοφλήσεις τον επόμενο μήνα)\n4fd19aa feat(pm): αποπληρωμές με τεκμηριωμένο ποσό (παραστατικά/μισθοδοσία υλοποίησης)· έμμεσες δαπάνες κατ' αποκοπή % επί των τεκμηριωμένων άμεσων\nb23a8d4 feat(pm): αυτόματη καταχώριση φακέλου υλοποίησης — γνώση ρόλων εγγράφων (παραστατικό/πληρωμή/εξτρέ/βεβαίωση/λογιστικά/φωτογραφίες/μισθοδοσία), ομαδοποίηση ανά φάκελο παραστατικού, AI αντιστοίχιση σε εγκεκριμένη δαπάνη, εξτρέ πολλών κινήσεων χωρίς διπλομετρήσεις, συνοδευτικά παραστατικού\n7e94efa feat(pm): μισθολογικό κόστος έργου — μισθοδοτικές (ανάγνωση ανά κομμάτια σελίδων), αναγγελίες πρόσληψης → νέοι εργαζόμενοι, πληρωμές μισθοδοσίας ανά μήνα, όριο προγράμματος ανά ΕΜΕ, πλέγμα μηνών"
 }
