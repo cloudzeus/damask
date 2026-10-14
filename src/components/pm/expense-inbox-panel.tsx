@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import {
-  reviewInboxApproval, listInboxDocs, linkInboxInvoice, createExpenseFromInboxInvoice, rereadInboxDoc, moveInboxDoc, dismissInboxDoc, listTrdrApplicationsForInbox,
+  reviewInboxApproval, listInboxDocs, linkInboxInvoice, createExpenseFromInboxInvoice, rereadInboxDoc, moveInboxDoc, dismissInboxDoc, listTrdrApplicationsForInbox, setInboxRole,
   type InboxItem, type InboxExpenseOption,
 } from '@/lib/pm/expense-inbox'
 import { getBudgetProposal, type ProposalCategory } from '@/lib/programs/expense-proposal'
@@ -150,6 +150,7 @@ function InboxRow({
           {it.readError && (
             <p className="mt-1 flex items-center gap-1 text-[length:var(--fs-11-5)] text-[color:var(--warning)]"><LuTriangleAlert className="size-3.5" aria-hidden /> Δεν διαβάστηκε: {it.readError}</p>
           )}
+          {!isApproval && !isQuote && <RolePicker item={it} onDone={onDone} />}
           {it.ownInvoice && (
             <p className="mt-1 flex items-center gap-1 text-[length:var(--fs-11-5)] text-[color:var(--warning)]"><LuTriangleAlert className="size-3.5" aria-hidden /> Το εξέδωσε ο ίδιος ο πελάτης (πώληση) — μάλλον δεν είναι δαπάνη.</p>
           )}
@@ -269,5 +270,44 @@ function MoveDialog({ open, onOpenChange, trdrId, currentId, onMove }: { open: b
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** Ρόλοι εγγράφων υλοποίησης που μπορεί να ορίσει ο χρήστης. */
+const ROLE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'INVOICE', label: 'Παραστατικό' }, { value: 'PAYMENT', label: 'Πληρωμή / εξτρέ' }, { value: 'SUPPLIER_CERT', label: 'Βεβαίωση προμηθευτή' },
+  { value: 'ACCOUNTING', label: 'Λογιστική εγγραφή' }, { value: 'PHOTO', label: 'Φωτογραφία εξοπλισμού' }, { value: 'PAYSLIPS', label: 'Μισθοδοτική κατάσταση' },
+  { value: 'HIRING', label: 'Αναγγελία πρόσληψης' }, { value: 'PAYROLL_PAYMENT', label: 'Πληρωμή μισθοδοσίας' }, { value: 'PAYROLL_OTHER', label: 'Λοιπά προσωπικού (ΑΠΔ/e-ΕΦΚΑ)' },
+  { value: 'OTHER', label: 'Λοιπό (δεν καταχωρίζεται)' },
+]
+
+/**
+ * «Είναι: …» — τι ρόλο έχει το αρχείο στην υλοποίηση. Η αναγνώριση φαίνεται ως πρόταση· η επιλογή του χρήστη το καταχωρίζει
+ * αυτόματα ΚΑΙ η εφαρμογή το θυμάται για αρχεία με ίδιο σχήμα ονόματος/φακέλου (σε όλα τα έργα).
+ */
+function RolePicker({ item, onDone }: { item: InboxItem; onDone: () => void }) {
+  const [busy, setBusy] = React.useState(false)
+  const label = ROLE_OPTIONS.find(o => o.value === item.role)?.label
+  const by = item.roleSource === 'user' ? 'επιλογή σας' : item.roleSource === 'memory' ? 'από τη μνήμη' : item.roleSource === 'rules' ? 'αναγνώριση' : null
+  async function pick(v: string) {
+    setBusy(true)
+    try {
+      const r = await setInboxRole(item.id, v)
+      if (!r.ok) toast.error(r.message)
+      else { toast.success(v === 'OTHER' ? 'Σημειώθηκε ως «λοιπό».' : 'Καταχωρίζεται αυτόματα σε λίγα δευτερόλεπτα.', { description: 'Η εφαρμογή θα το θυμάται για ανάλογα αρχεία.' }); onDone() }
+    } catch { toast.error('Απέτυχε.') }
+    setBusy(false)
+  }
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[length:var(--fs-11-5)]">
+      <span className="text-muted-foreground">Είναι:</span>
+      <Select value={item.role && item.role !== 'APPROVAL' ? item.role : ''} onValueChange={v => { if (v) void pick(v) }} disabled={busy}>
+        <SelectTrigger aria-label="Ρόλος αρχείου στην υλοποίηση" className="h-7 w-auto min-w-44 rounded-full border-border bg-card px-2.5 text-[length:var(--fs-11-5)]">
+          <SelectValue>{(v: string) => ROLE_OPTIONS.find(o => o.value === v)?.label ?? 'Επιλέξτε…'}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>{ROLE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+      </Select>
+      {busy ? <LuLoaderCircle className="size-3.5 animate-spin text-muted-foreground" aria-hidden /> : label && by ? <span className="text-muted-foreground">({by})</span> : null}
+    </div>
   )
 }

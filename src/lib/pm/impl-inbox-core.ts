@@ -35,11 +35,11 @@ export async function stageImplDoc(input: { applicationId: string; trdrId: strin
 }
 
 /** Αυτόματη καταχώριση ~2′ αργότερα (μία φορά ανά έργο — τα επόμενα αρχεία της ίδιας παρτίδας μαζεύονται). */
-export async function scheduleImplAutofile(applicationId: string, userId: string | null): Promise<void> {
+export async function scheduleImplAutofile(applicationId: string, userId: string | null, delaySeconds = 120): Promise<void> {
   try {
     const { startBoss } = await import('@/lib/queue')
     const { QUEUE_IMPL_AUTOFILE } = await import('@/lib/pm/impl-autofile')
     const boss = await startBoss()
-    await boss.send(QUEUE_IMPL_AUTOFILE, { applicationId, userId }, { startAfter: 120, singletonKey: `auto:${applicationId}`, singletonSeconds: 120, retryLimit: 0 })
+    await boss.send(QUEUE_IMPL_AUTOFILE, { applicationId, userId }, { startAfter: delaySeconds, singletonKey: `auto:${applicationId}`, singletonSeconds: Math.max(10, delaySeconds), retryLimit: 0 })
   } catch (err) { console.error('[impl] προγραμματισμός αυτόματης καταχώρισης απέτυχε', err) }
 }

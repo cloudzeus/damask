@@ -37,6 +37,9 @@ export type InboxItem = {
   suggestReason: string | null
   /** Παραστατικό που εξέδωσε ο ίδιος ο πελάτης (πώληση) — μάλλον δεν αφορά δαπάνη. */
   ownInvoice: boolean
+  /** Ρόλος στην υλοποίηση (επιλογή χρήστη ή αναγνώριση από γνώση/μνήμη) και από πού προέκυψε. */
+  role: string | null
+  roleSource: 'user' | 'rules' | 'memory' | 'none'
   approval: ApprovalExtract | null
 }
 
@@ -142,7 +145,14 @@ export async function listInboxDocs(applicationId: string): Promise<{ items: Inb
     prisma.programApplication.findUnique({ where: { id: applicationId }, select: { trdr: { select: { AFM: true } } } }),
   ])
   const ownAfm = norm(app?.trdr.AFM)
-  const items = rows.map(r => {
+  const { classifyWithMemory } = await import('@/lib/pm/file-role-memory')
+  const roles = await Promise.all(rows.map(async r => {
+    if (r.role) return { role: r.role, source: 'user' as const }
+    const x = r.kind === 'INVOICE' && r.extracted ? (r.extracted as unknown as ExtractedDocument) : null
+    const d = await classifyWithMemory({ fileName: r.fileName, relPath: r.relPath, mimeType: r.mimeType, docType: x?.docType, issuerName: x?.issuer?.name, issuerAfm: x?.issuer?.afm, gross: x?.totals?.gross, inboxKind: r.kind })
+    return { role: d.role as string, source: d.source }
+  }))
+  const items = rows.map((r, idx) => {
     const kind = r.kind as InboxKind
     const invoice = kind === 'INVOICE' && r.extracted ? (r.extracted as unknown as ExtractedDocument) : null
     const sug = invoice ? suggestExpense(invoice, expenses) : null
@@ -153,6 +163,7 @@ export async function listInboxDocs(applicationId: string): Promise<{ items: Inb
       suggestedExpenseId: sug?.id ?? null, suggestReason: sug?.reason ?? null,
       ownInvoice: !!invoice && !!ownAfm && norm(invoice.issuer.afm) === ownAfm,
       approval: kind === 'APPROVAL' && r.extracted ? (r.extracted as unknown as ApprovalExtract) : null,
+      role: roles[idx].role, roleSource: roles[idx].source,
     }
   })
   return { items, expenses: expenses.map(({ docNumber: _d, ...e }) => { void _d; return e }) }
@@ -280,4 +291,25 @@ export async function listTrdrApplicationsForInbox(trdrId: string): Promise<{ id
     select: { id: true, programId: true, program: { select: { title: true } } },
   })
   return apps.map(a => ({ id: a.id, programId: a.programId, title: a.program.title }))
+}
+
+/**
+ * «Είναι: …» — ο χρήστης ορίζει τον ρόλο ενός αρχείου υλοποίησης. Η εφαρμογή το ΘΥΜΑΤΑΙ (μνήμη ρόλων, για όλα τα έργα)
+ * και το καταχωρίζει αυτόματα σε λίγα δευτερόλεπτα.
+ */
+export async function setInboxRole(id: string, role: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const session = await requirePermission('programs.manage')
+  const { ROLE_LABEL } = await import('@/lib/pm/impl-doc-classify')
+  if (!(role in ROLE_LABEL) || role === 'APPROVAL') return { ok: false, message: 'Άγνωστος ρόλος.' }
+  const row = await prisma.applicationInboxDoc.findUnique({ where: { id }, select: { applicationId: true, fileName: true, relPath: true, status: true } })
+  if (!row || row.status !== 'PENDING') return { ok: false, message: 'Το αρχείο δεν είναι πια στο «Προς καταχώριση».' }
+  await prisma.applicationInboxDoc.update({ where: { id }, data: { role } })
+  const { learnFileRole } = await import('@/lib/pm/file-role-memory')
+  await learnFileRole({ fileName: row.fileName, relPath: row.relPath, role: role as never, source: 'USER' })
+  if (role !== 'OTHER') {
+    const { scheduleImplAutofile } = await import('@/lib/pm/impl-inbox-core')
+    await scheduleImplAutofile(row.applicationId, session.user.id, 5)
+  }
+  await logActivity('expense_inbox.role', { entityType: 'application', entityId: row.applicationId, userId: session.user.id, meta: { file: row.fileName, role } })
+  return { ok: true }
 }

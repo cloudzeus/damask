@@ -154,8 +154,9 @@ const IMPL_DIRECT = new Set(['PAYMENT', 'SUPPLIER_CERT', 'ACCOUNTING', 'PHOTO', 
 
 /** Έγγραφο υλοποίησης για πελάτη με ΕΝΑ έργο σε υλοποίηση → «Προς καταχώριση» του έργου (SAVED) + αυτόματη καταχώριση. */
 async function routeImplementation(item: ItemRow, buf: Buffer): Promise<boolean> {
-  const { classifyImplDoc, ROLE_LABEL } = await import('@/lib/pm/impl-doc-classify')
-  const role = classifyImplDoc({ fileName: item.fileName, relPath: item.relPath, mimeType: item.mimeType })
+  const { ROLE_LABEL } = await import('@/lib/pm/impl-doc-classify')
+  const { classifyWithMemory } = await import('@/lib/pm/file-role-memory')
+  const { role, source } = await classifyWithMemory({ fileName: item.fileName, relPath: item.relPath, mimeType: item.mimeType })
   if (!IMPL_DIRECT.has(role)) return false
   // Φωτογραφία μόνο με ρητή ένδειξη εξοπλισμού (όχι κάθε εικόνα — π.χ. ταυτότητα/βεβαίωση σε jpg είναι δικαιολογητικό).
   if (role === 'PHOTO' && !/φωτο|φώτο|foto|photo|img|^sn|signal|picture/i.test(`${item.relPath ?? ''}/${item.fileName}`)) return false
@@ -168,7 +169,7 @@ async function routeImplementation(item: ItemRow, buf: Buffer): Promise<boolean>
     where: { id: item.id },
     data: {
       phase: 'SAVED', dest: 'impl', appId: app.id, autoSaved: true, resultRef: inboxId, error: null, waitReason: null, nextAttemptAt: null,
-      suggestion: { role } as Prisma.InputJsonValue,
+      suggestion: { role, roleSource: source } as Prisma.InputJsonValue,
       resultNote: `Υλοποίηση «${app.title}»: ${ROLE_LABEL[role as keyof typeof ROLE_LABEL]} — καταχωρίζεται αυτόματα στη θέση του.`,
     },
   })

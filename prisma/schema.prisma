@@ -3162,6 +3162,8 @@ model ApplicationInboxDoc {
   trdrId        String
   /// QUOTE | INVOICE
   kind          String
+  /// Ρόλος υλοποίησης που όρισε ο χρήστης (υπερισχύει της αναγνώρισης) — impl-doc-classify ImplDocRole.
+  role          String?
   fileName      String
   storageKey    String
   mimeType      String
@@ -3445,4 +3447,23 @@ model ExpenseInvoiceAttachment {
   createdAt DateTime       @default(now())
 
   @@index([invoiceId])
+}
+
+/// Μνήμη αναγνώρισης ρόλων εγγράφων (μαθαίνει): «σχήμα» ονόματος/φακέλου → ρόλος. AUTO = επιτυχής καταχώριση,
+/// USER = διόρθωση/επιλογή χρήστη (μετρά περισσότερο). Κοινή για όλους τους πελάτες/προγράμματα του γραφείου.
+model FileRoleExample {
+  id        String   @id @default(cuid())
+  /// Κανονικοποιημένο όνομα (χωρίς τόνους, ψηφία → #, χωρίς κατάληξη).
+  pattern   String
+  /// Οι 2 τελευταίοι φάκελοι, κανονικοποιημένοι.
+  folder    String   @default("")
+  role      String
+  source    String   @default("AUTO")
+  hits      Int      @default(1)
+  sample    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pattern, folder, role])
+  @@index([pattern])
 }

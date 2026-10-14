@@ -2,7 +2,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { ExtractedDocument } from '@/lib/ocr/schema'
 import { parseJsonLoose } from '@/lib/ocr/extract'
-import { classifyImplDoc, invoiceNumberHint, folderOf, ROLE_LABEL, type ImplDocRole } from '@/lib/pm/impl-doc-classify'
+import { invoiceNumberHint, folderOf, ROLE_LABEL, type ImplDocRole } from '@/lib/pm/impl-doc-classify'
 import { isPayrollExpense } from '@/lib/pm/invoice-match'
 import { createInvoiceCore, attachPaymentCore, attachCertCore, addAttachmentCore, type StoredFile } from '@/lib/pm/impl-core'
 import { ingestPayrollDocCore, type PayrollDocKind } from '@/lib/pm/payroll-core'
@@ -41,7 +41,7 @@ async function writeStatus(applicationId: string, st: AutofileStatus) {
 const digits = (s: string | null | undefined) => (s ?? '').replace(/\D/g, '').replace(/^0+/, '')
 const r2 = (v: number) => Math.round(v * 100) / 100
 
-type InboxRow = { id: string; fileName: string; relPath: string | null; storageKey: string; mimeType: string; kind: string; extracted: unknown }
+type InboxRow = { id: string; fileName: string; relPath: string | null; storageKey: string; mimeType: string; kind: string; role: string | null; extracted: unknown }
 type Item = InboxRow & { role: ImplDocRole; folder: string; numberHint: string | null; x: ExtractedDocument | null }
 
 /** Ποια εγκεκριμένη δαπάνη αφορά κάθε νέο παραστατικό (AI με ποσά/προμηθευτή/είδη). */
@@ -78,14 +78,14 @@ export async function runImplAutofile(applicationId: string, userId: string | nu
   const st: AutofileStatus = { state: 'RUNNING', total: 0, done: 0, counts: { invoices: 0, payments: 0, certs: 0, attachments: 0, payroll: 0, existing: 0, unresolved: 0 }, notes: [], startedAt: new Date().toISOString() }
   try {
     const app = await prisma.programApplication.findUniqueOrThrow({ where: { id: applicationId }, select: { trdr: { select: { NAME: true, AFM: true } } } })
-    const rows = await prisma.applicationInboxDoc.findMany({ where: { applicationId, status: 'PENDING' }, select: { id: true, fileName: true, relPath: true, storageKey: true, mimeType: true, kind: true, extracted: true }, orderBy: { createdAt: 'asc' } })
-    const items: Item[] = rows.map(r => {
+    const rows = await prisma.applicationInboxDoc.findMany({ where: { applicationId, status: 'PENDING' }, select: { id: true, fileName: true, relPath: true, storageKey: true, mimeType: true, kind: true, role: true, extracted: true }, orderBy: { createdAt: 'asc' } })
+    const { classifyWithMemory, learnFileRole } = await import('@/lib/pm/file-role-memory')
+    const items: Item[] = (await Promise.all(rows.map(async r => {
       const x = (r.kind === 'INVOICE' ? (r.extracted as ExtractedDocument | null) : null) ?? null
-      return {
-        ...r, x, folder: folderOf(r.relPath), numberHint: invoiceNumberHint(`${r.relPath ?? ''} ${r.fileName}`),
-        role: classifyImplDoc({ fileName: r.fileName, relPath: r.relPath, mimeType: r.mimeType, docType: x?.docType, issuerName: x?.issuer?.name, issuerAfm: x?.issuer?.afm, gross: x?.totals?.gross, beneficiaryName: app.trdr.NAME, beneficiaryAfm: app.trdr.AFM, inboxKind: r.kind }),
-      }
-    }).filter(i => i.role !== 'APPROVAL' && i.role !== 'OTHER')
+      // Ρόλος: επιλογή χρήστη → μνήμη/κανόνες (γνώση γραφείου που μαθαίνει).
+      const role = (r.role as ImplDocRole | null) ?? (await classifyWithMemory({ fileName: r.fileName, relPath: r.relPath, mimeType: r.mimeType, docType: x?.docType, issuerName: x?.issuer?.name, issuerAfm: x?.issuer?.afm, gross: x?.totals?.gross, beneficiaryName: app.trdr.NAME, beneficiaryAfm: app.trdr.AFM, inboxKind: r.kind })).role
+      return { ...r, x, folder: folderOf(r.relPath), numberHint: invoiceNumberHint(`${r.relPath ?? ''} ${r.fileName}`), role }
+    }))).filter(i => i.role !== 'APPROVAL' && i.role !== 'OTHER')
     st.total = items.length
     await writeStatus(applicationId, st)
 
@@ -97,8 +97,12 @@ export async function runImplAutofile(applicationId: string, userId: string | nu
     const invoiceExpenses = expenses.filter(e => e !== payrollExpense)
 
     const processed = new Set<string>()
+    const byId = new Map(items.map(i => [i.id, i]))
     const done = async (id: string, note: string) => {
       processed.add(id)
+      // Επιτυχής θέση = παράδειγμα για τη μνήμη (όχι τα «υπάρχει ήδη»).
+      const it = byId.get(id)
+      if (it && !/υπάρχει ήδη/i.test(note)) await learnFileRole({ fileName: it.fileName, relPath: it.relPath, role: it.role, source: 'AUTO' })
       await prisma.applicationInboxDoc.update({ where: { id }, data: { status: 'DONE', processedAt: new Date(), resultNote: note.slice(0, 300) } })
       st.done++
       if (st.done % 5 === 0) await writeStatus(applicationId, st)
