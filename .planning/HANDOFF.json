@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-14T08:46:43.494Z",
+  "timestamp": "2026-10-14T08:51:56.061Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,7 +15,20 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [],
+  "uncommitted_files": [
+    {
+      "status": "M",
+      "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "src/components/pm/obligations-tab.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/lib/pm/actions.ts"
+    }
+  ],
   "next_action": null,
-  "context_notes": "Recent commits:\n2b0916d chore: ενημέρωση HANDOFF\n7eb162d feat(pm): συμφιλίωση εκκρεμοτήτων με τα δικαιολογητικά της εταιρίας — ισοδύναμοι τύποι (κανόνες «υπόδειγμα Χ»/όνομα + AI), σωστό έγγραφο μέσα στον τύπο, σειρές, παλιές «Λείπει προσφορά»/έντυπα προσφορών μετά την έγκριση· αυτόματα μετά από ανεβάσματα (pg-boss, μία φορά ανά φουρνιά) + κουμπί «Έλεγχος από τα δικαιολογητικά»\n5ecd743 docs(ops): οδηγός μετάβασης των άλλων projects στο PgBouncer\n6ab8704 chore: ενημέρωση HANDOFF\ne966e4a feat(db): σύνδεση εφαρμογής μέσω PgBouncer με PGBOUNCER_PORT (ίδια στοιχεία, μόνο η θύρα)· pg-boss/migrations/backups μένουν απευθείας"
+  "context_notes": "Recent commits:\n08f8587 chore: ενημέρωση HANDOFF\n2b0916d chore: ενημέρωση HANDOFF\n7eb162d feat(pm): συμφιλίωση εκκρεμοτήτων με τα δικαιολογητικά της εταιρίας — ισοδύναμοι τύποι (κανόνες «υπόδειγμα Χ»/όνομα + AI), σωστό έγγραφο μέσα στον τύπο, σειρές, παλιές «Λείπει προσφορά»/έντυπα προσφορών μετά την έγκριση· αυτόματα μετά από ανεβάσματα (pg-boss, μία φορά ανά φουρνιά) + κουμπί «Έλεγχος από τα δικαιολογητικά»\n5ecd743 docs(ops): οδηγός μετάβασης των άλλων projects στο PgBouncer\n6ab8704 chore: ενημέρωση HANDOFF"
 }
