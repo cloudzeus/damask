@@ -1716,6 +1716,8 @@ model ProgramExpense {
   lines                ProgramExpenseLine[]
   supplierCertificates SupplierCertificate[]
   invoices             ExpenseInvoice[]
+  payrollEmployees     PayrollEmployee[]
+  payrollDocs          PayrollDoc[]
 
   @@index([applicationId])
   @@index([categoryId])
@@ -3363,4 +3365,68 @@ model ExpenseInvoicePayment {
   updatedAt   DateTime       @updatedAt
 
   @@index([invoiceId])
+}
+
+/// Μισθολογικό κόστος (δαπάνη προσωπικού): εργαζόμενος όπως βρέθηκε στις μισθοδοτικές/αναγγελίες. `projectHire` = νέος
+/// εργαζόμενος του έργου (μόνο αυτοί μετρούν στο πρόγραμμα· π.χ. «νέων εργαζομένων 1-3 ΕΜΕ»).
+model PayrollEmployee {
+  id          String         @id @default(cuid())
+  expenseId   String
+  expense     ProgramExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  name        String
+  afm         String?
+  amka        String?
+  hiredAt     DateTime?
+  projectHire Boolean        @default(false)
+  /// Πλήρης = 1, μερική απασχόληση < 1 (για το όριο ανά ΕΜΕ).
+  fte         Float          @default(1)
+  lines       PayrollLine[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([expenseId])
+}
+
+/// Μία γραμμή μισθοδοσίας: εργαζόμενος × μήνας × είδος (τακτικές, δώρα, επίδομα αδείας).
+model PayrollLine {
+  id              String          @id @default(cuid())
+  employeeId      String
+  employee        PayrollEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  docId           String?
+  doc             PayrollDoc?     @relation(fields: [docId], references: [id], onDelete: Cascade)
+  /// YYYY-MM
+  period          String
+  kind            String          @default("τακτικές")
+  days            Float?
+  gross           Decimal         @db.Decimal(18, 2)
+  employeeContrib Decimal?        @db.Decimal(18, 2)
+  employerContrib Decimal         @db.Decimal(18, 2)
+  tax             Decimal?        @db.Decimal(18, 2)
+  net             Decimal?        @db.Decimal(18, 2)
+  createdAt       DateTime        @default(now())
+
+  @@unique([employeeId, period, kind])
+  @@index([docId])
+}
+
+/// Έγγραφο μισθοδοσίας: PAYSLIPS (μισθοδοτικές) | PAYMENT (πληρωμή/εξτρέ) | HIRING (αναγγελία πρόσληψης) | OTHER (ΑΠΔ, e-ΕΦΚΑ…).
+model PayrollDoc {
+  id          String         @id @default(cuid())
+  expenseId   String
+  expense     ProgramExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  kind        String
+  key         String
+  name        String
+  mime        String?
+  /// Πληρωμή: ποσό/ημερομηνία/μήνας μισθοδοσίας που αφορά.
+  amount      Decimal?       @db.Decimal(18, 2)
+  paidAt      DateTime?
+  period      String?
+  note        String?
+  readError   String?
+  lines       PayrollLine[]
+  createdById String?
+  createdAt   DateTime       @default(now())
+
+  @@index([expenseId])
 }

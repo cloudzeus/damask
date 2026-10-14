@@ -23,6 +23,11 @@ export function certNeededFor(category: string | null, description: string): boo
   return /εξοπλισμ|μηχαν|οργαν|συσκευ|οχημ|μεταφορικ|λογισμικ|software|hardware|υπολογιστ|φωτοβολτα|green/.test(t)
 }
 
+/** Δαπάνη μισθολογικού κόστους (μισθοδοσία αντί για παραστατικά). */
+export function isPayrollExpense(category: string | null, description: string): boolean {
+  return /μισθ|προσωπικ|εργαζομεν/.test(fold(`${category ?? ''} ${description}`))
+}
+
 const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zα-ω0-9]+/g, ' ').trim()
 const STOP = new Set(['ικε', 'επε', 'οε', 'εε', 'αε', 'μικε', 'ae', 'ike', 'ltd', 'και', 'the'])
 function sameParty(a: string, b: string): boolean {

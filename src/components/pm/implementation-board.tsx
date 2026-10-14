@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FileViewerModal, type ViewerFile } from '@/components/ui/file-viewer-modal'
 import { SupplierCertButton } from '@/components/programs/supplier-cert-dialog'
+import { PayrollPanel } from './payroll-panel'
 import { cn } from '@/lib/utils'
 import {
   getImplementationBoard, addExpenseInvoice, attachInvoiceDoc, updateExpenseInvoice, updateInvoicePayment, removeInvoiceDoc, setQuotePolicy, detectQuotePolicy,
@@ -164,6 +165,29 @@ function CategorySection({ cat, isOpen, onToggle, onChanged, onView }: { cat: Bo
 }
 
 function ExpenseBlock({ exp, onChanged, onView }: { exp: BoardExpense; onChanged: () => void; onView: (f: ViewerFile) => void }) {
+  if (exp.kind === 'payroll') return <PayrollBlock exp={exp} onChanged={onChanged} onView={onView} />
+  return <InvoicesBlock exp={exp} onChanged={onChanged} onView={onView} />
+}
+
+/** Δαπάνη προσωπικού: μισθολογικό κόστος (μισθοδοτικές, πληρωμές, νέοι εργαζόμενοι) αντί για παραστατικά. */
+function PayrollBlock({ exp, onChanged, onView }: { exp: BoardExpense; onChanged: () => void; onView: (f: ViewerFile) => void }) {
+  const p = exp.payroll
+  return (
+    <div className="rounded-xl border border-border bg-card">
+      <div className="px-3 py-2.5">
+        <div className="text-[length:var(--fs-13)] font-semibold">{exp.description} <span className="badge-pill info ml-1" style={{ textTransform: 'none' }}>Μισθολογικό κόστος</span></div>
+        <div className="text-[length:var(--fs-11-5)] text-muted-foreground tabular-nums">
+          Εγκεκριμένο {EUR.format(exp.approved)}
+          {p ? ` · ${p.hires} ${p.hires === 1 ? 'νέος εργαζόμενος' : 'νέοι εργαζόμενοι'} · ${p.months} μήνες · επιλέξιμο ${EUR.format(p.eligible)}` : ''}
+          {p && p.unpaidMonths > 0 ? ` · ${p.unpaidMonths} μήνες χωρίς πλήρη πληρωμή` : ''}
+        </div>
+      </div>
+      <PayrollPanel expenseId={exp.id} onChanged={onChanged} onView={onView} />
+    </div>
+  )
+}
+
+function InvoicesBlock({ exp, onChanged, onView }: { exp: BoardExpense; onChanged: () => void; onView: (f: ViewerFile) => void }) {
   const [busy, setBusy] = React.useState<string | null>(null)
   const [drag, setDrag] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)

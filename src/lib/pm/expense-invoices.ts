@@ -4,12 +4,12 @@ import crypto from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { requirePermission } from '@/lib/rbac-server'
 import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { logActivity } from '@/lib/activity/log'
-import { visibleApplicationWhere } from '@/lib/pm/scoping'
+import { requireApplicationAccess, requireExpenseAccess } from '@/lib/pm/access'
 import { parseJsonLoose } from '@/lib/ocr/extract'
-import { certNeededFor, type MatchVerdict } from '@/lib/pm/invoice-match'
+import { certNeededFor, isPayrollExpense, type MatchVerdict } from '@/lib/pm/invoice-match'
+import { summarizePayroll, perEmeCapFrom } from '@/lib/pm/payroll-calc'
 import { quotePolicyLabel } from '@/lib/programs/quote-policy'
 import { rematchInvoice as rematch, parseMatch } from '@/lib/pm/invoice-rematch'
 
@@ -22,21 +22,8 @@ import { rematchInvoice as rematch, parseMatch } from '@/lib/pm/invoice-rematch'
 const MAX_BYTES = 15 * 1024 * 1024
 type FileIn = { name: string; base64: string; mimeType: string }
 
-async function requireAccess(applicationId: string) {
-  let session
-  try { session = await requirePermission('pm.work') } catch { session = await requirePermission('pm.manage') }
-  const app = await prisma.programApplication.findFirst({
-    where: { id: applicationId, ...visibleApplicationWhere({ id: session.user.id, permissions: session.user.permissions ?? [] }) },
-    select: { id: true, programId: true, trdrId: true },
-  })
-  if (!app) notFound()
-  return { session, app }
-}
-async function accessByExpense(expenseId: string) {
-  const e = await prisma.programExpense.findUnique({ where: { id: expenseId }, select: { applicationId: true } })
-  if (!e) notFound()
-  return requireAccess(e.applicationId)
-}
+const requireAccess = requireApplicationAccess
+const accessByExpense = requireExpenseAccess
 async function accessByInvoice(invoiceId: string) {
   const i = await prisma.expenseInvoice.findUnique({ where: { id: invoiceId }, select: { expenseId: true } })
   if (!i) notFound()
@@ -72,7 +59,12 @@ export type BoardInvoice = {
   readError: string | null
 }
 export type BoardPayment = { id: string; amount: number | null; paidAt: string | null; payee: string | null; docs: { name: string; idx: number }[]; readError: string | null }
-export type BoardExpense = { id: string; description: string; approved: number; invoices: BoardInvoice[]; invoiced: number; paid: number; certNeeded: boolean }
+export type BoardExpense = {
+  id: string; description: string; approved: number; invoices: BoardInvoice[]; invoiced: number; paid: number; certNeeded: boolean
+  /** Μισθολογικό κόστος: μισθοδοσία αντί για παραστατικά. */
+  kind: 'invoices' | 'payroll'
+  payroll: { hires: number; months: number; cost: number; eligible: number; paidCost: number; unpaidMonths: number; perEmeCap: number | null } | null
+}
 export type BoardCategory = { id: string | null; name: string; approved: number; invoiced: number; paid: number; expenses: BoardExpense[]; issues: number }
 export type ImplementationBoard = {
   categories: BoardCategory[]
@@ -107,14 +99,14 @@ export async function getImplementationBoard(applicationId: string): Promise<Imp
     prisma.programExpense.findMany({
       where: { applicationId, status: 'ACTIVE' },
       orderBy: { createdAt: 'asc' },
-      select: { id: true, description: true, amount: true, categoryId: true, category: { select: { name: true } }, invoices: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }], include: INV_INCLUDE } },
+      select: { id: true, description: true, amount: true, categoryId: true, category: { select: { name: true, notes: true } }, payrollEmployees: { include: { lines: true } }, payrollDocs: { where: { kind: 'PAYMENT' }, select: { period: true, amount: true } }, invoices: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }], include: INV_INCLUDE } },
     }),
   ])
   const byCat = new Map<string | null, BoardExpense[]>()
   for (const e of expenses) {
     const invoices = e.invoices.map(toBoardInvoice)
     const be: BoardExpense = {
-      id: e.id, description: e.description, approved: Number(e.amount), invoices, certNeeded: certNeededFor(e.category?.name ?? null, e.description),
+      id: e.id, description: e.description, approved: Number(e.amount), invoices, certNeeded: certNeededFor(e.category?.name ?? null, e.description), kind: 'invoices', payroll: null,
       invoiced: invoices.reduce((a, i) => a + (i.netAmount ?? i.totalAmount ?? 0), 0),
       // Πληρωμένο σε καθαρή αξία (ίδια βάση με τα εγκεκριμένα, που είναι χωρίς ΦΠΑ): αναλογία πληρωμής × καθαρό.
       paid: invoices.reduce((a, i) => {
@@ -122,6 +114,19 @@ export async function getImplementationBoard(applicationId: string): Promise<Imp
         const tot = i.totalAmount ?? i.netAmount ?? 0
         return a + (tot > 0 ? net * Math.min(1, i.paidAmount / tot) : 0)
       }, 0),
+    }
+    if (isPayrollExpense(e.category?.name ?? null, e.description)) {
+      const perEmeCap = perEmeCapFrom(e.category?.notes)
+      const s = summarizePayroll({
+        employees: e.payrollEmployees.map(x => ({ id: x.id, name: x.name, projectHire: x.projectHire, fte: x.fte })),
+        lines: e.payrollEmployees.flatMap(x => x.lines.map(l => ({ employeeId: x.id, period: l.period, kind: l.kind, gross: Number(l.gross), employerContrib: Number(l.employerContrib), net: n(l.net) }))),
+        payments: e.payrollDocs.map(d => ({ period: d.period, amount: n(d.amount) })), perEmeCap, approved: be.approved,
+      })
+      be.kind = 'payroll'
+      be.certNeeded = false
+      be.invoiced = s.eligible
+      be.paid = s.paidCost
+      be.payroll = { hires: s.employees.length, months: s.periods.length, cost: s.cost, eligible: s.eligible, paidCost: s.paidCost, unpaidMonths: s.periods.filter(p => p.status !== 'PAID').length, perEmeCap }
     }
     const k = e.categoryId && cats.some(c => c.id === e.categoryId) ? e.categoryId : null
     byCat.set(k, [...(byCat.get(k) ?? []), be])
@@ -132,7 +137,7 @@ export async function getImplementationBoard(applicationId: string): Promise<Imp
     return {
       id, name, expenses: ex,
       approved: ex.reduce((a, e) => a + e.approved, 0), invoiced: ex.reduce((a, e) => a + e.invoiced, 0), paid: ex.reduce((a, e) => a + e.paid, 0),
-      issues: ex.reduce((a, e) => a + e.invoices.filter(i => i.matchVerdict !== 'OK').length, 0),
+      issues: ex.reduce((a, e) => a + (e.kind === 'payroll' ? (e.payroll?.unpaidMonths ?? 0) + (e.payroll && !e.payroll.hires ? 1 : 0) : e.invoices.filter(i => i.matchVerdict !== 'OK').length), 0),
     }
   }
   const categories = [...cats.map(c => mk(c.id, c.name)), mk(null, 'Χωρίς κατηγορία')].filter((c): c is BoardCategory => !!c)

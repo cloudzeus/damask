@@ -69,6 +69,7 @@ export const ACTIONS = {
   'supplier_cert.send': { category: 'APPLICATION', label: 'Αποστολή βεβαίωσης προμηθευτή για υπογραφή', weight: 2 },
   'supplier_cert.sign': { category: 'APPLICATION', label: 'Υπογραφή βεβαίωσης προμηθευτή (γραφείο)', weight: 1 },
   'expense.invoice': { category: 'APPLICATION', label: 'Παραστατικό υλοποίησης δαπάνης', weight: 1 },
+  'expense.payroll': { category: 'APPLICATION', label: 'Μισθοδοσία δαπάνης προσωπικού', weight: 1 },
   'expense.invoice.delete': { category: 'APPLICATION', label: 'Διαγραφή παραστατικού υλοποίησης', weight: 0 },
   'program.quotePolicy': { category: 'APPLICATION', label: 'Κανόνας προσφοράς προγράμματος', weight: 0 },
   'application.onboard': { category: 'APPLICATION', label: 'Εισαγωγή έργου σε εξέλιξη (εγκεκριμένο)', weight: 3 },
