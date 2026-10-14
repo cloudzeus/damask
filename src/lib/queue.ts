@@ -7,6 +7,8 @@ export function getBoss(): PgBoss {
     const boss = new PgBoss({
       connectionString: process.env.DATABASE_URL!,
       schema: 'pgboss',
+      // Κοινός Postgres server (όριο συνδέσεων): ο pg-boss κρατούσε ~9 αδρανείς συνδέσεις — 3 αρκούν.
+      max: Number(process.env.PGBOSS_POOL_MAX) || 3,
     })
     boss.on('error', err => console.error('[pg-boss] error:', err))
     globalForBoss.boss = boss
