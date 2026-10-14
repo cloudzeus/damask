@@ -8,7 +8,7 @@ import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { logActivity } from '@/lib/activity/log'
 import { requireApplicationAccess, requireExpenseAccess } from '@/lib/pm/access'
 import { parseJsonLoose } from '@/lib/ocr/extract'
-import { certNeededFor, isPayrollExpense, type MatchVerdict } from '@/lib/pm/invoice-match'
+import { certNeededFor, isPayrollExpense, isIndirectExpense, indirectRate, type MatchVerdict } from '@/lib/pm/invoice-match'
 import { summarizePayroll, perEmeCapFrom } from '@/lib/pm/payroll-calc'
 import { quotePolicyLabel } from '@/lib/programs/quote-policy'
 import { rematchInvoice as rematch, parseMatch } from '@/lib/pm/invoice-rematch'
@@ -64,7 +64,9 @@ export type BoardPayment = { id: string; amount: number | null; paidAt: string |
 export type BoardExpense = {
   id: string; description: string; approved: number; invoices: BoardInvoice[]; invoiced: number; paid: number; certNeeded: boolean
   /** Μισθολογικό κόστος: μισθοδοσία αντί για παραστατικά. */
-  kind: 'invoices' | 'payroll'
+  kind: 'invoices' | 'payroll' | 'indirect'
+  /** Έμμεσες: κατ' αποκοπή ποσοστό επί των τεκμηριωμένων άμεσων. */
+  indirect: { rate: number; base: number } | null
   payroll: { hires: number; months: number; cost: number; eligible: number; paidCost: number; unpaidMonths: number; perEmeCap: number | null } | null
 }
 export type BoardCategory = { id: string | null; name: string; approved: number; invoiced: number; paid: number; expenses: BoardExpense[]; issues: number }
@@ -111,7 +113,7 @@ export async function getImplementationBoard(applicationId: string): Promise<Imp
   for (const e of expenses) {
     const invoices = e.invoices.map(toBoardInvoice)
     const be: BoardExpense = {
-      id: e.id, description: e.description, approved: Number(e.amount), invoices, certNeeded: certNeededFor(e.category?.name ?? null, e.description), kind: 'invoices', payroll: null,
+      id: e.id, description: e.description, approved: Number(e.amount), invoices, certNeeded: certNeededFor(e.category?.name ?? null, e.description), kind: 'invoices', payroll: null, indirect: null,
       invoiced: invoices.reduce((a, i) => a + (i.netAmount ?? i.totalAmount ?? 0), 0),
       // Πληρωμένο σε καθαρή αξία (ίδια βάση με τα εγκεκριμένα, που είναι χωρίς ΦΠΑ): αναλογία πληρωμής × καθαρό.
       paid: invoices.reduce((a, i) => {
@@ -120,7 +122,11 @@ export async function getImplementationBoard(applicationId: string): Promise<Imp
         return a + (tot > 0 ? net * Math.min(1, i.paidAmount / tot) : 0)
       }, 0),
     }
-    if (isPayrollExpense(e.category?.name ?? null, e.description)) {
+    if (isIndirectExpense(e.category?.name ?? null, e.description)) {
+      be.kind = 'indirect'
+      be.certNeeded = false
+      be.indirect = { rate: indirectRate(e.category?.notes, e.category?.name, e.description), base: 0 }
+    } else if (isPayrollExpense(e.category?.name ?? null, e.description)) {
       const perEmeCap = perEmeCapFrom(e.category?.notes)
       const s = summarizePayroll({
         employees: e.payrollEmployees.map(x => ({ id: x.id, name: x.name, projectHire: x.projectHire, fte: x.fte })),
@@ -136,13 +142,20 @@ export async function getImplementationBoard(applicationId: string): Promise<Imp
     const k = e.categoryId && cats.some(c => c.id === e.categoryId) ? e.categoryId : null
     byCat.set(k, [...(byCat.get(k) ?? []), be])
   }
+  // Έμμεσες: υπολογισμός μετά τις άμεσες (ποσοστό × τεκμηριωμένο/πληρωμένο άμεσο κόστος, έως το εγκεκριμένο).
+  const all = [...byCat.values()].flat()
+  const base = all.filter(x => x.kind !== 'indirect').reduce((a, x) => a + x.paid, 0)
+  for (const x of all.filter(x => x.kind === 'indirect')) {
+    x.indirect = { rate: x.indirect!.rate, base: Math.round(base * 100) / 100 }
+    x.invoiced = x.paid = Math.min(Math.round(base * x.indirect.rate * 100) / 100, x.approved)
+  }
   const mk = (id: string | null, name: string): BoardCategory | null => {
     const ex = byCat.get(id)
     if (!ex?.length) return null
     return {
       id, name, expenses: ex,
       approved: ex.reduce((a, e) => a + e.approved, 0), invoiced: ex.reduce((a, e) => a + e.invoiced, 0), paid: ex.reduce((a, e) => a + e.paid, 0),
-      issues: ex.reduce((a, e) => a + (e.kind === 'payroll' ? (e.payroll?.unpaidMonths ?? 0) + (e.payroll && !e.payroll.hires ? 1 : 0) : e.invoices.filter(i => i.matchVerdict !== 'OK').length), 0),
+      issues: ex.reduce((a, e) => a + (e.kind === 'indirect' ? 0 : e.kind === 'payroll' ? (e.payroll?.unpaidMonths ?? 0) + (e.payroll && !e.payroll.hires ? 1 : 0) : e.invoices.filter(i => i.matchVerdict !== 'OK').length), 0),
     }
   }
   const categories = [...cats.map(c => mk(c.id, c.name)), mk(null, 'Χωρίς κατηγορία')].filter((c): c is BoardCategory => !!c)

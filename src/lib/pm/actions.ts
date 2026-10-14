@@ -1084,12 +1084,16 @@ export async function listPaymentRequests(applicationId: string): Promise<Paymen
   await requireVisibleApplication(applicationId)
   const rows = await prisma.paymentRequest.findMany({
     where: { applicationId }, orderBy: { ordinal: 'asc' },
-    include: { expenses: { where: { status: 'ACTIVE' }, select: { amount: true } } },
+    include: { expenses: { where: { status: 'ACTIVE' }, select: { id: true, amount: true } } },
   })
+  // Υλοποίηση με παραστατικά/μισθοδοσία: η δόση αθροίζει το ΤΕΚΜΗΡΙΩΜΕΝΟ ποσό (όχι το εγκεκριμένο).
+  const { implStatusFor } = await import('@/lib/pm/impl-status')
+  const impl = await implStatusFor(applicationId)
+  const amountOf = (e: { id: string; amount: unknown }) => { const s = impl.get(e.id); return s?.hasDocs ? s.documented : Number(e.amount) }
   return rows.map(r => ({
     id: r.id, ordinal: r.ordinal, title: r.title, status: r.status as PaymentStatusStr,
     targetAmount: r.targetAmount != null ? Number(r.targetAmount) : null,
-    total: paymentRequestTotal(r.expenses.map(e => Number(e.amount))),
+    total: paymentRequestTotal(r.expenses.map(amountOf)),
     expenseCount: r.expenses.length,
     submittedAt: r.submittedAt?.toISOString() ?? null, approvedAt: r.approvedAt?.toISOString() ?? null,
     paidAt: r.paidAt?.toISOString() ?? null, paidAmount: r.paidAmount != null ? Number(r.paidAmount) : null,
@@ -1135,7 +1139,13 @@ export async function setPaymentRequestStatus(id: string, to: PaymentStatusStr, 
   if (to === 'PAID') {
     data.paidAt = new Date()
     if (opts?.paidAmount != null) data.paidAmount = opts.paidAmount
-    else { const sum = await prisma.programExpense.aggregate({ where: { paymentRequestId: id }, _sum: { amount: true } }); data.paidAmount = sum._sum.amount != null ? Number(sum._sum.amount) : 0 }
+    else {
+      // Τεκμηριωμένο ποσό (παραστατικά/μισθοδοσία υλοποίησης) όπου υπάρχει· αλλιώς το ποσό της δαπάνης.
+      const exps = await prisma.programExpense.findMany({ where: { paymentRequestId: id }, select: { id: true, amount: true } })
+      const { implStatusFor } = await import('@/lib/pm/impl-status')
+      const impl = await implStatusFor(req.applicationId)
+      data.paidAmount = exps.reduce((a, e) => { const st = impl.get(e.id); return a + (st?.hasDocs ? st.documented : Number(e.amount)) }, 0)
+    }
   }
   if (to === 'DRAFT') { data.submittedAt = null; data.approvedAt = null }
   await prisma.paymentRequest.update({ where: { id }, data })
@@ -1147,6 +1157,9 @@ export type PaymentEligibleExpenseItem = {
   // Ετοιμότητα αγοράς (Β3b): έγγραφα αγοράς + AI διασταύρωση — δείχνει αν η
   // δαπάνη έχει τα δικαιολογητικά αποπληρωμής, ανεξάρτητα από την πιστοποίηση.
   purchaseDocsComplete: boolean; purchaseMissing: number; purchaseReconVerdict: 'OK' | 'MISMATCH' | 'UNCERTAIN' | null
+  /** Τεκμηριωμένο ποσό από παραστατικά/μισθοδοσία υλοποίησης (null = παλαιός τρόπος, ένα παραστατικό ανά δαπάνη). */
+  documented: number | null
+  implReason: string | null
 }
 
 export async function listPaymentEligibleExpenses(applicationId: string, requestId?: string | null): Promise<PaymentEligibleExpenseItem[]> {
@@ -1156,17 +1169,25 @@ export async function listPaymentEligibleExpenses(applicationId: string, request
     select: { id: true, description: true, amount: true, confirmed: true, status: true, paymentRequestId: true, certification: { select: { verified: true } }, purchase: { select: { invoiceKey: true, bankExtraitKey: true, supplierCertKey: true, reconVerdict: true } } },
     orderBy: { createdAt: 'asc' },
   })
+  const { implStatusFor } = await import('@/lib/pm/impl-status')
+  const impl = await implStatusFor(applicationId)
   return rows.map(r => {
     const p = r.purchase
     const present = [p?.invoiceKey, p?.bankExtraitKey, p?.supplierCertKey].filter(Boolean).length
+    const s = impl.get(r.id)
+    // Νέος τρόπος (παραστατικά ανά δαπάνη / μισθοδοσία) υπερισχύει όταν υπάρχουν έγγραφα· αλλιώς ο παλαιός (ExpensePurchase).
+    const complete = s?.hasDocs ? s.complete : present === 3
     const { eligible, reason } = expenseEligibleForPayment(
-      { status: r.status as 'ACTIVE' | 'REPLACED', confirmed: r.confirmed, verified: r.certification?.verified ?? false, purchaseComplete: present === 3, missingSupplierCert: !p?.supplierCertKey, paymentRequestId: r.paymentRequestId },
+      { status: r.status as 'ACTIVE' | 'REPLACED', confirmed: r.confirmed, verified: r.certification?.verified ?? false, purchaseComplete: complete, missingSupplierCert: !s?.hasDocs && !p?.supplierCertKey, paymentRequestId: r.paymentRequestId },
       requestId ?? null,
     )
     return {
-      id: r.id, description: r.description, amount: Number(r.amount), eligible, reason, inThisRequest: !!requestId && r.paymentRequestId === requestId,
-      purchaseDocsComplete: present === 3, purchaseMissing: 3 - present,
+      id: r.id, description: r.description, amount: Number(r.amount), eligible,
+      reason: !eligible && s?.hasDocs && !s.complete ? s.reason : reason,
+      inThisRequest: !!requestId && r.paymentRequestId === requestId,
+      purchaseDocsComplete: complete, purchaseMissing: s?.hasDocs ? (s.complete ? 0 : 1) : 3 - present,
       purchaseReconVerdict: (p?.reconVerdict ?? null) as 'OK' | 'MISMATCH' | 'UNCERTAIN' | null,
+      documented: s?.hasDocs ? s.documented : null, implReason: s?.reason ?? null,
     }
   })
 }
@@ -1180,10 +1201,13 @@ export async function addExpenseToRequest(requestId: string, expenseId: string):
   })
   if (exp.applicationId !== req.applicationId) throw new Error('Η δαπάνη ανήκει σε άλλο έργο.')
   const present = [exp.purchase?.invoiceKey, exp.purchase?.bankExtraitKey, exp.purchase?.supplierCertKey].filter(Boolean).length
-  const { eligible, reason } = expenseEligibleForPayment(
-    { status: exp.status as 'ACTIVE' | 'REPLACED', confirmed: exp.confirmed, verified: exp.certification?.verified ?? false, purchaseComplete: present === 3, missingSupplierCert: !exp.purchase?.supplierCertKey, paymentRequestId: exp.paymentRequestId },
+  const { implStatusFor } = await import('@/lib/pm/impl-status')
+  const s = (await implStatusFor(req.applicationId)).get(expenseId)
+  const { eligible, reason: baseReason } = expenseEligibleForPayment(
+    { status: exp.status as 'ACTIVE' | 'REPLACED', confirmed: exp.confirmed, verified: exp.certification?.verified ?? false, purchaseComplete: s?.hasDocs ? s.complete : present === 3, missingSupplierCert: !s?.hasDocs && !exp.purchase?.supplierCertKey, paymentRequestId: exp.paymentRequestId },
     requestId,
   )
+  const reason = !eligible && s?.hasDocs && !s.complete ? s.reason : baseReason
   if (!eligible) throw new Error(`Μη επιλέξιμη δαπάνη: ${reason}.`)
   await prisma.programExpense.update({ where: { id: expenseId }, data: { paymentRequestId: requestId } })
   revalidatePath(`/pm/applications/${req.applicationId}`)

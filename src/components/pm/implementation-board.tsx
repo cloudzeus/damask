@@ -170,7 +170,23 @@ function CategorySection({ cat, isOpen, onToggle, onChanged, onView }: { cat: Bo
 
 function ExpenseBlock({ exp, onChanged, onView }: { exp: BoardExpense; onChanged: () => void; onView: (f: ViewerFile) => void }) {
   if (exp.kind === 'payroll') return <PayrollBlock exp={exp} onChanged={onChanged} onView={onView} />
+  if (exp.kind === 'indirect') return <IndirectBlock exp={exp} />
   return <InvoicesBlock exp={exp} onChanged={onChanged} onView={onView} />
+}
+
+/** Έμμεσες δαπάνες: κατ' αποκοπή ποσοστό επί των άμεσων — υπολογίζονται, δεν χρειάζονται παραστατικά. */
+function IndirectBlock({ exp }: { exp: BoardExpense }) {
+  const i = exp.indirect
+  const pct = i ? `${Math.round(i.rate * 1000) / 10}%` : '7%'
+  return (
+    <div className="rounded-xl border border-border bg-card px-3 py-2.5">
+      <div className="text-[length:var(--fs-13)] font-semibold">{exp.description} <span className="badge-pill info ml-1" style={{ textTransform: 'none' }}>Κατ&apos; αποκοπή {pct}</span></div>
+      <p className="mt-1 text-[length:var(--fs-12)] text-muted-foreground tabular-nums">
+        Δεν χρειάζονται παραστατικά: υπολογίζονται αυτόματα ως {pct} επί των τεκμηριωμένων άμεσων δαπανών
+        {i ? <> — {pct} × {EUR.format(i.base)} = <b className="text-foreground">{EUR.format(exp.paid)}</b></> : null} (εγκεκριμένο {EUR.format(exp.approved)}).
+      </p>
+    </div>
+  )
 }
 
 /** Δαπάνη προσωπικού: μισθολογικό κόστος (μισθοδοτικές, πληρωμές, νέοι εργαζόμενοι) αντί για παραστατικά. */

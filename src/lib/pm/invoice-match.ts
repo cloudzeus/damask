@@ -23,6 +23,20 @@ export function certNeededFor(category: string | null, description: string): boo
   return /εξοπλισμ|μηχαν|οργαν|συσκευ|οχημ|μεταφορικ|λογισμικ|software|hardware|υπολογιστ|φωτοβολτα|green/.test(t)
 }
 
+/** Έμμεσες δαπάνες: κατ' αποκοπή ποσοστό (π.χ. 7%) επί των επιλέξιμων άμεσων — χωρίς παραστατικά. */
+export function isIndirectExpense(category: string | null, description: string): boolean {
+  return /εμμεσ/.test(fold(`${category ?? ''} ${description}`))
+}
+
+/** Ποσοστό έμμεσων από κείμενα κατηγορίας/εγκριτικής («7% επί των επιλέξιμων άμεσων»)· προεπιλογή 7%. */
+export function indirectRate(...texts: (string | null | undefined)[]): number {
+  for (const t of texts) {
+    const m = (t ?? '').match(/(\d{1,2}(?:[.,]\d+)?)\s*%/)
+    if (m) { const v = Number(m[1].replace(',', '.')); if (v > 0 && v <= 40) return v / 100 }
+  }
+  return 0.07
+}
+
 /** Δαπάνη μισθολογικού κόστους (μισθοδοσία αντί για παραστατικά). */
 export function isPayrollExpense(category: string | null, description: string): boolean {
   return /μισθ|προσωπικ|εργαζομεν/.test(fold(`${category ?? ''} ${description}`))

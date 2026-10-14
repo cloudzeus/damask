@@ -322,7 +322,7 @@ function ExpensePicker({
             {included.map(i => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5">
                 <span className="min-w-0 flex-1 truncate text-[length:var(--fs-12)]">
-                  {i.description} <span className="text-muted-foreground">{formatEUR(i.amount)}</span>
+                  {i.description} <AmountLabel item={i} />
                 </span>
                 <PurchaseBadge item={i} />
                 <Button type="button" size="sm" variant="outline" onClick={() => handleRemove(i.id)} disabled={pending === i.id}>
@@ -343,7 +343,7 @@ function ExpensePicker({
             {available.map(i => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5">
                 <span className="min-w-0 flex-1 truncate text-[length:var(--fs-12)]">
-                  {i.description} <span className="text-muted-foreground">{formatEUR(i.amount)}</span>
+                  {i.description} <AmountLabel item={i} />
                 </span>
                 <PurchaseBadge item={i} />
                 <Button type="button" size="sm" onClick={() => handleAdd(i.id)} disabled={pending === i.id}>
@@ -364,7 +364,7 @@ function ExpensePicker({
             {ineligible.map(i => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 opacity-60">
                 <span className="min-w-0 truncate text-[length:var(--fs-12)] text-muted-foreground">
-                  {i.description} {formatEUR(i.amount)}
+                  {i.description} <AmountLabel item={i} />
                 </span>
                 <span className="badge-pill muted shrink-0">{i.reason}</span>
               </div>
@@ -379,8 +379,20 @@ function ExpensePicker({
 /** Ετοιμότητα εγγράφων αγοράς (Β3b) για μια δαπάνη μέσα στο payment picker:
  * πληρότητα 3 εγγράφων + AI διασταύρωση. Δείχνει αν η αγορά έχει τα
  * δικαιολογητικά αποπληρωμής. */
+/** Ποσό: τεκμηριωμένο (παραστατικά/μισθοδοσία υλοποίησης) έναντι εγκεκριμένου — αλλιώς το ποσό της δαπάνης. */
+function AmountLabel({ item }: { item: PaymentEligibleExpenseItem }) {
+  if (item.documented == null) return <span className="text-muted-foreground">{formatEUR(item.amount)}</span>
+  return <span className="text-muted-foreground" title="Τεκμηριωμένο (εξοφλημένα παραστατικά/μισθοδοσία) / εγκεκριμένο"><b className="text-foreground">{formatEUR(item.documented)}</b> / {formatEUR(item.amount)}</span>
+}
+
 function PurchaseBadge({ item }: { item: PaymentEligibleExpenseItem }) {
   const recon = item.purchaseReconVerdict
+  // Υλοποίηση με παραστατικά ανά δαπάνη / μισθοδοσία: η πληρότητα έρχεται από τη διασταύρωση της οθόνης «Δαπάνες ανά κατηγορία».
+  if (item.documented != null) {
+    return item.purchaseDocsComplete
+      ? <span className="inline-flex shrink-0 items-center gap-1 text-[length:var(--fs-10)] font-semibold text-[color:var(--success)]"><LuFileCheck2 className="size-3" aria-hidden /> τεκμηρίωση πλήρης</span>
+      : <span className="inline-flex shrink-0 items-center gap-1 text-[length:var(--fs-10)] font-semibold text-[color:var(--warning)]" title={item.implReason ?? undefined}><LuTriangleAlert className="size-3" aria-hidden /> {item.implReason ?? 'εκκρεμότητα'}</span>
+  }
   return (
     <span className="flex shrink-0 items-center gap-1">
       {item.purchaseDocsComplete ? (
