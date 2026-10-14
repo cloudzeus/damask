@@ -18,7 +18,8 @@ import {
 } from '@/lib/tax/actions'
 import { ScanFormDialog } from './scan-form-dialog'
 import { RecordPreviewDialog } from './record-preview-dialog'
-import { listValuesGrids, type ValuesGridView } from '@/lib/documents/values-grid'
+import { listValuesGrids } from '@/lib/documents/values-grid'
+import type { ValuesGridView } from '@/lib/documents/values-grid-load'
 import { ValuesGridTable } from '@/components/trdr/values-grid'
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {

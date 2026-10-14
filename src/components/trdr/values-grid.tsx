@@ -8,7 +8,7 @@ import { DocumentPreviewButton } from '@/components/ui/document-preview'
 import { readTypeValues } from '@/lib/documents/value-capture'
 import { uploadTrdrDossierDoc } from '@/lib/documents/actions'
 import { cellKey, gridToCsv, type GridColumn } from '@/lib/documents/values-grid-core'
-import type { ValuesGridView } from '@/lib/documents/values-grid'
+import type { ValuesGridView } from '@/lib/documents/values-grid-load'
 
 /**
  * Πίνακας τιμών από πολλά δικαιολογητικά (λογική πλέγματος μισθοδοσίας): πεδία × περίοδοι, ομάδες ανά έτος με

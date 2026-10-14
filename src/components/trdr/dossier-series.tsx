@@ -8,7 +8,8 @@ import { DocumentPreviewButton } from '@/components/ui/document-preview'
 import { updateTrdrDossierDoc, removeTrdrDossierDoc, type DossierDocItem } from '@/lib/documents/actions'
 import { lastPeriods, rangePeriods, normalizePeriod, periodLabel, seriesMeta, type SeriesKind } from '@/lib/documents/series'
 import { PeriodInput } from './dossier-smart-upload'
-import { getValuesGridForType, type ValuesGridView } from '@/lib/documents/values-grid'
+import { getValuesGridForType } from '@/lib/documents/values-grid'
+import type { ValuesGridView } from '@/lib/documents/values-grid-load'
 import { ValuesGridTable } from './values-grid'
 
 /**

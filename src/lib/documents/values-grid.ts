@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/rbac-server'
 import { gridFor, loadValuesGrids, TPL_SELECT, type ValuesGridView } from '@/lib/documents/values-grid-load'
 
-export type { ValuesGridView }
 
 /** Πίνακας τιμών για έναν τύπο δικαιολογητικού (π.χ. Φ2) — null αν ο τύπος δεν έχει Οδηγό με πεδία. */
 export async function getValuesGridForType(trdrId: string, documentTypeId: string): Promise<ValuesGridView | null> {
