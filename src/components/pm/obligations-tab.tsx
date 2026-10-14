@@ -6,7 +6,7 @@ import type { SeriesDetail } from '@/lib/pm/form-obligations'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { LuPlus, LuTrash2, LuLoaderCircle, LuRefreshCw, LuListChecks, LuMailPlus, LuFileCheck } from 'react-icons/lu'
+import { LuPlus, LuTrash2, LuLoaderCircle, LuRefreshCw, LuListChecks, LuMailPlus, LuFileCheck, LuCircleCheck, LuCircleX, LuEye, LuUpload, LuTriangleAlert, LuChevronRight, LuCircleDashed, LuBan } from 'react-icons/lu'
 import { reconcileObligationsNow } from '@/lib/pm/obligations-reconcile-actions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,7 @@ import {
   type StageStr, type ObligationStatusStr, type ObligationKindStr,
 } from '@/lib/pm/types'
 import { ApplicationDocuments } from './application-documents'
+import { DocumentPreviewButton } from '@/components/ui/document-preview'
 import { ObligationsBoard } from './obligations-board'
 import { NewDocumentRequestDialog } from './new-document-request-dialog'
 
@@ -157,12 +158,25 @@ export function ObligationsTab({
     void persist(o.id, { notes: next })
   }
 
+  async function handleApprove(o: ObligationItem) {
+    patchLocal(o.id, { status: 'APPROVED' })
+    await persist(o.id, { status: 'APPROVED' })
+    toast.success(`Εγκρίθηκε: ${o.name.slice(0, 60)}`)
+  }
+
+  async function handleReject(o: ObligationItem, reason: string) {
+    const notes = `Απορρίφθηκε: ${reason.trim() || 'χρειάζεται νέο έγγραφο'}`
+    patchLocal(o.id, { status: 'REJECTED', notes })
+    await persist(o.id, { status: 'REJECTED', notes })
+    toast.info('Απορρίφθηκε — ζητήστε νέο έγγραφο από τον πελάτη.')
+  }
+
   async function handleWaive(o: ObligationItem) {
     const prevStatus = o.status
     patchLocal(o.id, { status: 'WAIVED' })
     try {
       await waiveObligation(o.id)
-      toast.success('Η υποχρέωση απαλλάχθηκε.')
+      toast.success('Σημειώθηκε «Δεν απαιτείται».')
       router.refresh()
     } catch {
       toast.error('Η απαλλαγή απέτυχε.')
@@ -205,10 +219,16 @@ export function ObligationsTab({
 
   const visibleObligations = filterKind ? obligations.filter(o => o.kind === filterKind) : obligations
 
-  const grouped = STAGE_ORDER.map(stage => ({
-    stage,
-    items: visibleObligations.filter(o => o.stage === stage),
-  })).filter(g => g.items.length > 0)
+  // Πρώτα ό,τι θέλει ενέργεια ΣΑΣ (έλεγχος), μετά τα απορριφθέντα, μετά όσα λείπουν· τα ολοκληρωμένα στο τέλος, μαζεμένα.
+  const RANK: Record<ObligationStatusStr, number> = { SUBMITTED: 0, REJECTED: 1, IN_PROGRESS: 2, PENDING: 3, APPROVED: 4, WAIVED: 5 }
+  const isDone = (o: ObligationItem) => o.status === 'APPROVED' || o.status === 'WAIVED'
+  const grouped = STAGE_ORDER.map(stage => {
+    const items = visibleObligations.filter(o => o.stage === stage).sort((a, b) => RANK[a.status] - RANK[b.status] || Number(b.mandatory) - Number(a.mandatory))
+    return { stage, open: items.filter(o => !isDone(o)), done: items.filter(isDone) }
+  }).filter(g => g.open.length + g.done.length > 0)
+  const toReview = visibleObligations.filter(o => o.status === 'SUBMITTED').length
+  const missing = visibleObligations.filter(o => o.status === 'PENDING' || o.status === 'IN_PROGRESS' || o.status === 'REJECTED')
+  const doneCount = visibleObligations.filter(isDone).length
 
   return (
     <section className="glass rounded-[22px] p-4">
@@ -255,13 +275,21 @@ export function ObligationsTab({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
+          {/* Τι να κάνετε τώρα — με μια ματιά. */}
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2.5 text-[length:var(--fs-12-5)]">
+            <span className="font-semibold">Τι να κάνετε τώρα:</span>
+            {toReview > 0 && <span className="badge-pill ok inline-flex items-center gap-1"><LuEye className="size-3" aria-hidden />{toReview} για έλεγχο & αποδοχή</span>}
+            {missing.length > 0 && <span className="badge-pill warn inline-flex items-center gap-1"><LuTriangleAlert className="size-3" aria-hidden />{missing.length} λείπουν{missing.some(o => o.mandatory) ? ` (${missing.filter(o => o.mandatory).length} υποχρεωτικά)` : ''}</span>}
+            {doneCount > 0 && <span className="badge-pill muted inline-flex items-center gap-1"><LuCircleCheck className="size-3" aria-hidden />{doneCount} ολοκληρώθηκαν</span>}
+            {toReview === 0 && missing.length === 0 && <span className="text-[color:var(--success)]">Όλα είναι εντάξει — τίποτα δεν εκκρεμεί.</span>}
+          </div>
           {grouped.map(g => (
             <div key={g.stage}>
               <div className="dotted-leader mb-2 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
-                {stageLabel(g.stage)} ({g.items.length})
+                {stageLabel(g.stage)} ({g.open.length + g.done.length})
               </div>
               <div className="flex flex-col gap-2">
-                {g.items.map(o => (
+                {g.open.map(o => (
                   <React.Fragment key={o.id}>
                   <ObligationRow
                     obligation={o}
@@ -274,12 +302,36 @@ export function ObligationsTab({
                     onAssigneeChange={value => handleAssigneeChange(o, value)}
                     onNotesBlur={value => handleNotesBlur(o, value)}
                     onWaive={() => handleWaive(o)}
+                    onApprove={() => handleApprove(o)}
+                    onReject={reason => handleReject(o, reason)}
                     onRemove={() => handleRemove(o)}
                     onReload={load}
                   />
                   {series?.details[o.id] && <SeriesPeriods trdrId={series.trdrId} detail={series.details[o.id]} />}
                   </React.Fragment>
                 ))}
+                {g.done.length > 0 && (
+                  <details className="group rounded-2xl border border-dashed border-border">
+                    <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 px-3 py-2 text-[length:var(--fs-12)] text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+                      <LuChevronRight className="size-3.5 transition-transform group-open:rotate-90" aria-hidden />
+                      <LuCircleCheck className="size-3.5 text-[color:var(--success)]" aria-hidden /> Ολοκληρωμένα ({g.done.length}) — εγκεκριμένα ή δεν απαιτούνται
+                    </summary>
+                    <ul className="flex flex-col divide-y divide-border border-t border-dashed border-border">
+                      {g.done.map(o => (
+                        <li key={o.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-[length:var(--fs-12)]">
+                          {o.status === 'APPROVED' ? <LuCircleCheck className="size-3.5 shrink-0 text-[color:var(--success)]" aria-label="Εγκρίθηκε" /> : <LuBan className="size-3.5 shrink-0 text-muted-foreground" aria-label="Δεν απαιτείται" />}
+                          <span className="min-w-0 flex-1 truncate" title={o.name}>{o.name}</span>
+                          <span className={cn('badge-pill shrink-0', o.status === 'APPROVED' ? 'ok' : 'muted')}>{o.status === 'APPROVED' ? 'Εγκρίθηκε' : 'Δεν απαιτείται'}</span>
+                          {canManage && (
+                            <button type="button" onClick={() => handleStatusChange(o, 'PENDING')} className="cursor-pointer rounded-full px-2 py-1 text-[length:var(--fs-11)] text-muted-foreground hover:bg-muted hover:text-foreground" title="Ξανανοίγει την εκκρεμότητα">
+                              Αναίρεση
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             </div>
           ))}
@@ -321,7 +373,7 @@ function ListBoardToggle({ active, onChange }: { active: 'list' | 'board'; onCha
 
 function ObligationRow({
   obligation: o, users, canManage, applicationId, programId,
-  onStatusChange, onDueDateBlur, onAssigneeChange, onNotesBlur, onWaive, onRemove, onReload,
+  onStatusChange, onDueDateBlur, onAssigneeChange, onNotesBlur, onWaive, onApprove, onReject, onRemove, onReload,
 }: {
   obligation: ObligationItem
   users: InternalUserOption[]
@@ -333,9 +385,13 @@ function ObligationRow({
   onAssigneeChange: (value: string) => void
   onNotesBlur: (value: string) => void
   onWaive: () => void
+  onApprove: () => void
+  onReject: (reason: string) => void
   onRemove: () => void
   onReload: () => void
 }) {
+  const [rejecting, setRejecting] = React.useState(false)
+  const [reason, setReason] = React.useState('')
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const isOverdue = !!o.dueDate && new Date(o.dueDate) < today && o.status !== 'APPROVED' && o.status !== 'WAIVED'
@@ -353,25 +409,6 @@ function ObligationRow({
         </div>
         {canManage && (
           <div className="flex shrink-0 items-center gap-1">
-            {o.status !== 'WAIVED' && (
-              <Button type="button" size="sm" variant="outline" onClick={onWaive}>Απαλλαγή</Button>
-            )}
-            <NewDocumentRequestDialog
-              applicationId={applicationId}
-              obligationId={o.id}
-              defaultTitle={o.name}
-              onCreated={onReload}
-              trigger={(
-                <button
-                  type="button"
-                  className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label={`Ζήτησε από πελάτη — ${o.name}`}
-                  title="Ζήτησε από πελάτη"
-                >
-                  <LuMailPlus className="size-3.5" aria-hidden />
-                </button>
-              )}
-            />
             <button
               type="button"
               onClick={onRemove}
@@ -384,6 +421,65 @@ function ObligationRow({
           </div>
         )}
       </div>
+
+      {/* Επόμενο βήμα — τι κάνει ο χρήστης ΤΩΡΑ σε αυτή την εκκρεμότητα. */}
+      {o.status === 'SUBMITTED' ? (
+        <div className="mt-2.5 rounded-xl border border-[color:var(--success)]/40 bg-[color:var(--success)]/8 p-2.5">
+          <p className="flex items-start gap-1.5 text-[length:var(--fs-12-5)]">
+            <LuEye className="mt-0.5 size-4 shrink-0 text-[color:var(--success)]" aria-hidden />
+            <span><b>Υπάρχει έγγραφο — ελέγξτε το και αποδεχτείτε.</b> Ανοίξτε το, και αν είναι το σωστό και σε ισχύ, πατήστε «Αποδοχή».</span>
+          </p>
+          {o.docs.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {o.docs.map(d => (
+                <DocumentPreviewButton
+                  key={d.id}
+                  url={`/programs/${programId}/applications/${applicationId}/documents/${d.id}`}
+                  name={d.name}
+                  mimeType={d.mimeType}
+                  className="!inline-block !w-auto"
+                  trigger={<span className="inline-flex max-w-72 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[length:var(--fs-12)] font-semibold hover:border-[color:var(--success)] hover:text-[color:var(--success)]"><LuEye className="size-3.5 shrink-0" aria-hidden /><span className="truncate">{d.name}</span></span>}
+                />
+              ))}
+            </div>
+          )}
+          {canManage && (rejecting ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Input autoFocus value={reason} onChange={e => setReason(e.target.value)} placeholder="Γιατί; π.χ. έχει λήξει, λάθος έγγραφο" className="h-9 min-w-0 flex-1 text-[length:var(--fs-12-5)]" aria-label="Λόγος απόρριψης" />
+              <Button type="button" size="sm" variant="destructive" onClick={() => { onReject(reason); setRejecting(false); setReason('') }}>Απόρριψη</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setRejecting(false)}>Άκυρο</Button>
+            </div>
+          ) : (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Button type="button" size="sm" onClick={onApprove} className="!bg-[#1F7A4A] !text-white hover:!bg-[#17633B] dark:!bg-[#2E9E63]">
+                <LuCircleCheck className="size-4" aria-hidden /> Αποδοχή
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setRejecting(true)}>
+                <LuCircleX className="size-4" aria-hidden /> Απόρριψη
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : o.status === 'REJECTED' ? (
+        <div className="mt-2.5 rounded-xl border border-[color:var(--danger)]/40 bg-[color:var(--danger)]/6 p-2.5">
+          <p className="flex items-start gap-1.5 text-[length:var(--fs-12-5)]">
+            <LuCircleX className="mt-0.5 size-4 shrink-0 text-[color:var(--danger)]" aria-hidden />
+            <span><b>Απορρίφθηκε.</b> {o.notes?.replace(/^Απορρίφθηκε:\s*/, '') || 'Χρειάζεται νέο έγγραφο.'} — ανεβάστε σωστό έγγραφο παρακάτω ή ζητήστε το από τον πελάτη.</span>
+          </p>
+          {canManage && <MissingActions o={o} applicationId={applicationId} onReload={onReload} onWaive={onWaive} />}
+        </div>
+      ) : (
+        <div className="mt-2.5 rounded-xl border border-[color:var(--warning)]/35 bg-[color:var(--warning)]/6 p-2.5">
+          <p className="flex items-start gap-1.5 text-[length:var(--fs-12-5)]">
+            {o.status === 'IN_PROGRESS' ? <LuCircleDashed className="mt-0.5 size-4 shrink-0 text-[color:var(--warning)]" aria-hidden /> : <LuUpload className="mt-0.5 size-4 shrink-0 text-[color:var(--warning)]" aria-hidden />}
+            <span>
+              <b>{o.status === 'IN_PROGRESS' ? 'Μερικώς — λείπουν ακόμη έγγραφα.' : 'Λείπει το έγγραφο.'}</b>{' '}
+              {o.notes && o.status === 'IN_PROGRESS' ? `${o.notes} · ` : ''}Ανεβάστε το με «Ανέβασμα εγγράφου» παρακάτω, ζητήστε το από τον πελάτη, ή — αν δεν αφορά αυτή την επιχείρηση — «Δεν απαιτείται».
+            </span>
+          </p>
+          {canManage && <MissingActions o={o} applicationId={applicationId} onReload={onReload} onWaive={onWaive} />}
+        </div>
+      )}
 
       <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         <div className="field !mb-0">
@@ -558,5 +654,27 @@ function ReconcileButton({ applicationId, onDone }: { applicationId: string; onD
       {busy ? <LuLoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <LuFileCheck className="size-3.5" aria-hidden />}
       Έλεγχος από τα δικαιολογητικά
     </Button>
+  )
+}
+
+/** Ενέργειες για εκκρεμότητα που λείπει: ζήτηση από πελάτη (με κείμενο) και «Δεν απαιτείται». */
+function MissingActions({ o, applicationId, onReload, onWaive }: { o: ObligationItem; applicationId: string; onReload: () => void; onWaive: () => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <NewDocumentRequestDialog
+        applicationId={applicationId}
+        obligationId={o.id}
+        defaultTitle={o.name}
+        onCreated={onReload}
+        trigger={(
+          <Button type="button" size="sm" variant="outline">
+            <LuMailPlus className="size-4" aria-hidden /> Ζήτησε από πελάτη
+          </Button>
+        )}
+      />
+      <Button type="button" size="sm" variant="ghost" onClick={onWaive} title="Η εκκρεμότητα δεν αφορά αυτή την επιχείρηση">
+        <LuBan className="size-4" aria-hidden /> Δεν απαιτείται
+      </Button>
+    </div>
   )
 }

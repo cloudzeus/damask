@@ -432,6 +432,8 @@ export type ObligationItem = {
   notes: string | null
   order: number
   templateId: string | null
+  /** Τα συνημμένα έγγραφα (για προβολή/έλεγχο απευθείας από την εκκρεμότητα). */
+  docs: { id: string; name: string; mimeType: string | null }[]
 }
 
 /** Πίνακες περιόδων για τα δικαιολογητικά-σειρές του έργου (π.χ. Φ2 ανά μήνα). */
@@ -445,7 +447,7 @@ export async function listObligations(applicationId: string): Promise<Obligation
   await requireVisibleApplication(applicationId)
   const rows = await prisma.applicationObligation.findMany({
     where: { applicationId },
-    include: { assignee: { select: { name: true } } },
+    include: { assignee: { select: { name: true } }, documents: { select: { id: true, name: true, mimeType: true }, orderBy: { id: 'desc' }, take: 6 } },
   })
   return rows
     .map(r => ({
@@ -461,6 +463,7 @@ export async function listObligations(applicationId: string): Promise<Obligation
       notes: r.notes,
       order: r.order,
       templateId: r.templateId,
+      docs: r.documents,
     }))
     .sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage) || a.order - b.order)
 }
