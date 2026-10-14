@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-14T07:25:21.332Z",
+  "timestamp": "2026-10-14T08:46:43.494Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,64 +15,7 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [
-    {
-      "status": "M",
-      "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/obligations-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/activity/registry.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/documents/dossier-core.ts"
-    },
-    {
-      "status": "M",
-      "path": "src/server/queue-start.ts"
-    },
-    {
-      "status": "??",
-      "path": "scripts/_tmp-a.ts"
-    },
-    {
-      "status": "??",
-      "path": "scripts/_tmp-o.ts"
-    },
-    {
-      "status": "??",
-      "path": "scripts/_tmp-o2.ts"
-    },
-    {
-      "status": "??",
-      "path": "scripts/_tmp-r.ts"
-    },
-    {
-      "status": "??",
-      "path": "scripts/_tmp-r2.ts"
-    },
-    {
-      "status": "??",
-      "path": "scripts/_tmp-r3.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/pm/obligations-reconcile-actions.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/pm/obligations-reconcile.ts"
-    },
-    {
-      "status": "??",
-      "path": "tests/obligations-reconcile.test.ts"
-    }
-  ],
+  "uncommitted_files": [],
   "next_action": null,
-  "context_notes": "Recent commits:\n5ecd743 docs(ops): οδηγός μετάβασης των άλλων projects στο PgBouncer\n6ab8704 chore: ενημέρωση HANDOFF\ne966e4a feat(db): σύνδεση εφαρμογής μέσω PgBouncer με PGBOUNCER_PORT (ίδια στοιχεία, μόνο η θύρα)· pg-boss/migrations/backups μένουν απευθείας\n2365e3e fix(dossier): χωρίς re-export τύπου από αρχείο server actions (ValuesGridView is not defined στην καρτέλα πελάτη)\n50e5323 chore(ops): script εγκατάστασης PgBouncer (6432, transaction pooling, αντίγραφο+αυτόματη επαναφορά)"
+  "context_notes": "Recent commits:\n2b0916d chore: ενημέρωση HANDOFF\n7eb162d feat(pm): συμφιλίωση εκκρεμοτήτων με τα δικαιολογητικά της εταιρίας — ισοδύναμοι τύποι (κανόνες «υπόδειγμα Χ»/όνομα + AI), σωστό έγγραφο μέσα στον τύπο, σειρές, παλιές «Λείπει προσφορά»/έντυπα προσφορών μετά την έγκριση· αυτόματα μετά από ανεβάσματα (pg-boss, μία φορά ανά φουρνιά) + κουμπί «Έλεγχος από τα δικαιολογητικά»\n5ecd743 docs(ops): οδηγός μετάβασης των άλλων projects στο PgBouncer\n6ab8704 chore: ενημέρωση HANDOFF\ne966e4a feat(db): σύνδεση εφαρμογής μέσω PgBouncer με PGBOUNCER_PORT (ίδια στοιχεία, μόνο η θύρα)· pg-boss/migrations/backups μένουν απευθείας"
 }
