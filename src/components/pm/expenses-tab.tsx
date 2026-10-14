@@ -173,7 +173,7 @@ function ReplaceExpensesSection({
               <span className="text-[length:var(--fs-11-5)] text-muted-foreground">{formatEUR(e.amount)}</span>
             </div>
             {e.status === 'REPLACED' ? (
-              <span className="badge-pill muted shrink-0">Αντικαταστάθηκε</span>
+              <span className="badge-pill muted shrink-0">{expenses.some(x => x.replacesExpenseId === e.id) ? 'Αντικαταστάθηκε' : 'Καταργήθηκε'}</span>
             ) : (
               <ReplaceExpenseDialog
                 expense={{

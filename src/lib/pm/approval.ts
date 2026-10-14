@@ -10,6 +10,7 @@ import { logActivity } from '@/lib/activity/log'
 import { parseJsonLoose } from '@/lib/ocr/extract'
 import { extractApproval as extract, type ApprovalExpense, type ApprovalExtract } from '@/lib/pm/approval-extract'
 import { STAGE_ORDER, type StageStr } from '@/lib/pm/types'
+import { overlap, isoDay, numOrNull, originalStart, isAmendmentOf, buildAmendmentPlan, type AmendmentPlan, type ApprovalHistoryEntry } from '@/lib/pm/approval-amend'
 
 /**
  * Εγκριτική απόφαση / «Αποτελέσματα Αξιολόγησης» (ΟΠΣΚΕ): ανάγνωση του PDF με AI → έλεγχος από τον χρήστη →
@@ -19,6 +20,7 @@ import { STAGE_ORDER, type StageStr } from '@/lib/pm/types'
  */
 
 export type { ApprovalExpense, ApprovalIndicator, ApprovalExtract } from '@/lib/pm/approval-extract'
+export type { AmendmentPlan, AmendmentRow, AmendmentChange } from '@/lib/pm/approval-amend'
 
 export type ApprovalReview = {
   storageKey: string
@@ -32,25 +34,18 @@ export type ApprovalReview = {
   afmMismatch: boolean
   /** Προτεινόμενη λήξη υλοποίησης (απόφαση + διάρκεια). */
   endsAt: string | null
+  /** Νεότερη απόφαση από την καταχωρισμένη → τροποποίηση: διαφορές δαπανών ανά γραμμή. */
+  amendment: AmendmentPlan | null
+  /** Το έγγραφο είναι ΠΑΛΑΙΟΤΕΡΟ από την καταχωρισμένη απόφαση (δεν πρέπει να την αντικαταστήσει). */
+  olderThanCurrent: boolean
 }
+
 
 
 /** Ανάγνωση εγκριτικού για το «Προς καταχώριση» (χωρίς εγγραφή). */
 export async function extractApprovalDoc(applicationId: string, file: { base64: string; mimeType: string }): Promise<ApprovalExtract> {
   const session = await requirePermission('programs.manage')
   return extract(file, { applicationId, userId: session.user.id })
-}
-
-function fold(s: string) {
-  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zα-ω0-9]+/g, ' ').trim()
-}
-function overlap(a: string, b: string): number {
-  const A = new Set(fold(a).split(' ').filter(w => w.length > 3))
-  const B = new Set(fold(b).split(' ').filter(w => w.length > 3))
-  if (!A.size || !B.size) return 0
-  let hit = 0
-  for (const w of A) if (B.has(w)) hit++
-  return hit / Math.min(A.size, B.size)
 }
 
 /** Κατηγορία δαπάνης του προγράμματος για κάθε εγκεκριμένη δαπάνη: ταίριασμα ονομάτων → AI για όσα μένουν. */
@@ -97,13 +92,20 @@ export async function prepareApprovalReview(applicationId: string, input: { stor
   })
   const cats = app.program.expenseCats
   const x = input.extract
+  const categoryIds = await mapCategories(x.expenses, cats)
+  const current = await prisma.applicationApproval.findUnique({ where: { applicationId } })
+  const rel = isAmendmentOf(x, current)
+  const amendment = rel === 'newer' && current ? await buildAmendmentPlan(applicationId, x, categoryIds, current) : null
+  const start = amendment && current ? originalStart(current) : x.decisionDate
   return {
     ...input,
-    categoryIds: await mapCategories(x.expenses, cats),
+    categoryIds,
     categories: cats.map(c => ({ id: c.id, name: c.name })),
     existingExpenses: app._count.expenses,
     afmMismatch: !!x.beneficiaryAfm && !!app.trdr.AFM && x.beneficiaryAfm !== app.trdr.AFM.replace(/\D/g, ''),
-    endsAt: x.decisionDate && x.durationMonths ? addMonths(x.decisionDate, x.durationMonths) : null,
+    endsAt: start && x.durationMonths ? addMonths(start, x.durationMonths) : null,
+    amendment,
+    olderThanCurrent: rel === 'older',
   }
 }
 
@@ -131,11 +133,18 @@ export type ApplyApprovalInput = {
   /** Εγκεκριμένες δαπάνες → δαπάνες του έργου (μόνο οι επιλεγμένες, με την κατηγορία τους). */
   expenses: { index: number; categoryId: string | null }[]
   inboxId?: string | null
+  /** Καταχώριση ως τροποποίηση της ήδη καταχωρισμένης απόφασης (ο server ξαναϋπολογίζει τις διαφορές). */
+  amendment?: boolean
 }
 
+export type ApplyApprovalResult =
+  | { ok: true; createdExpenses: number; stage: StageStr; updatedExpenses?: number; removedExpenses?: number; keptBlocked?: number }
+  | { ok: false; message: string }
+
 /** Καταχώριση εγκριτικού στο έργο. */
-export async function applyApproval(applicationId: string, input: ApplyApprovalInput): Promise<{ ok: true; createdExpenses: number; stage: StageStr } | { ok: false; message: string }> {
+export async function applyApproval(applicationId: string, input: ApplyApprovalInput): Promise<ApplyApprovalResult> {
   const session = await requirePermission('programs.manage')
+  if (input.amendment) return applyAmendment(applicationId, input, session.user.id)
   const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { stage: true, onboardedAt: true, programId: true, trdrId: true } })
   if (!app) return { ok: false, message: 'Το έργο δεν βρέθηκε.' }
   const x = input.extract
@@ -204,6 +213,79 @@ export async function applyApproval(applicationId: string, input: ApplyApprovalI
   return { ok: true, createdExpenses, stage }
 }
 
+/**
+ * Τροποποίηση εγκεκριμένου έργου (νεότερη απόφαση): τα οικονομικά/διάρκεια παίρνουν τις νέες τιμές, η προηγούμενη απόφαση
+ * μπαίνει στο ιστορικό, οι δαπάνες ευθυγραμμίζονται — αλλαγή ποσού στις ίδιες, νέες όσες προστίθενται, «καταργημένες»
+ * (REPLACED, όχι διαγραφή) όσες φεύγουν· όσες έχουν ήδη αγορά/πιστοποίηση/αποπληρωμή ΔΕΝ αγγίζονται.
+ */
+async function applyAmendment(applicationId: string, input: ApplyApprovalInput, userId: string): Promise<ApplyApprovalResult> {
+  const app = await prisma.programApplication.findUnique({ where: { id: applicationId }, select: { stage: true, programId: true, trdrId: true } })
+  const current = await prisma.applicationApproval.findUnique({ where: { applicationId } })
+  if (!app || !current) return { ok: false, message: 'Δεν υπάρχει καταχωρισμένη εγκριτική για τροποποίηση.' }
+  const x = input.extract
+  if (isAmendmentOf(x, current) !== 'newer') return { ok: false, message: 'Το έγγραφο δεν είναι νεότερη απόφαση από την καταχωρισμένη.' }
+  const catOf = new Map(input.expenses.map(e => [e.index, e.categoryId]))
+  const plan = await buildAmendmentPlan(applicationId, x, x.expenses.map((_, i) => catOf.get(i) ?? null), current)
+  const d = (s: string | null) => (s && !Number.isNaN(Date.parse(s)) ? new Date(s) : null)
+
+  // Ιστορικό: η απόφαση που αντικαθίσταται.
+  const extra = (current.extra ?? {}) as { history?: ApprovalHistoryEntry[] } & Record<string, unknown>
+  const history: ApprovalHistoryEntry[] = [...(extra.history ?? []), {
+    decisionRef: current.decisionRef, decisionDate: isoDay(current.decisionDate), ada: current.ada, totalBudget: numOrNull(current.totalBudget),
+    publicAmount: numOrNull(current.publicAmount), aidPct: current.aidPct, durationMonths: current.durationMonths, endsAt: isoDay(current.endsAt),
+    docKey: current.docKey, docName: current.docName, expenses: current.expenses,
+  }]
+  await prisma.applicationApproval.update({
+    where: { applicationId },
+    data: {
+      decisionRef: x.decisionRef ?? current.decisionRef, decisionDate: d(x.decisionDate) ?? current.decisionDate, ada: x.ada ?? null,
+      resultStatus: x.resultStatus ?? current.resultStatus, durationMonths: x.durationMonths ?? current.durationMonths, endsAt: d(input.endsAt) ?? current.endsAt,
+      totalBudget: x.totalBudget ?? undefined, publicAmount: x.publicAmount ?? undefined, privateAmount: x.privateAmount ?? undefined, aidPct: x.aidPct ?? current.aidPct,
+      expenses: x.expenses as unknown as Prisma.InputJsonValue,
+      indicators: x.indicators?.length ? (x.indicators as unknown as Prisma.InputJsonValue) : undefined,
+      docKey: input.storageKey, docName: input.fileName,
+      extra: { ...extra, history } as unknown as Prisma.InputJsonValue,
+    },
+  })
+
+  let updatedExpenses = 0, createdExpenses = 0, removedExpenses = 0, keptBlocked = 0
+  const { createExpense } = await import('@/lib/programs/actions')
+  for (const r of plan.rows) {
+    if (r.change === 'changed' && r.expenseId && r.index != null) {
+      const e = x.expenses[r.index]
+      await prisma.programExpense.update({ where: { id: r.expenseId }, data: { amount: e.net, vatAmount: e.vat } })
+      const lines = await prisma.programExpenseLine.findMany({ where: { expenseId: r.expenseId }, select: { id: true } })
+      if (lines.length === 1) await prisma.programExpenseLine.update({ where: { id: lines[0].id }, data: { unitPrice: e.unitPrice, quantity: e.quantity, lineTotal: e.net, vatPct: e.vat != null && e.net ? Math.round((e.vat / e.net) * 100) : null } })
+      updatedExpenses++
+    } else if (r.change === 'new' && r.index != null) {
+      const e = x.expenses[r.index]
+      const { id } = await createExpense(applicationId, {
+        description: (e.title || e.subcategory || 'Δαπάνη').slice(0, 480),
+        lines: [{ product: e.title.slice(0, 300), description: e.description && e.description !== e.title ? e.description.slice(0, 1000) : null, quantity: e.quantity, unit: e.unit, unitPrice: e.unitPrice, vatPct: e.vat != null && e.net ? Math.round((e.vat / e.net) * 100) : null, lineTotal: e.net }],
+        amount: e.net, vatAmount: e.vat, date: x.decisionDate, categoryId: catOf.get(r.index) ?? null,
+      })
+      await prisma.programExpense.update({ where: { id }, data: { confirmed: true } })
+      createdExpenses++
+    } else if (r.change === 'removed' && r.expenseId) {
+      if (r.blocked) { keptBlocked++; continue }
+      await prisma.programExpense.update({ where: { id: r.expenseId }, data: { status: 'REPLACED' } })
+      removedExpenses++
+    }
+  }
+
+  const note = ['Τροποποίηση', x.decisionRef, x.publicAmount != null ? `δημόσια δαπάνη ${x.publicAmount.toLocaleString('el-GR', { minimumFractionDigits: 2 })} €` : null].filter(Boolean).join(' · ')
+  const approved = await prisma.proposalSubmission.findFirst({ where: { applicationId, status: 'APPROVED' }, orderBy: { version: 'desc' }, select: { id: true } })
+  if (approved) await prisma.proposalSubmission.update({ where: { id: approved.id }, data: { totalAmount: x.totalBudget ?? undefined, note } })
+  await prisma.applicationDocument.create({ data: { applicationId, name: `Τροποποίηση έγκρισης${x.decisionRef ? ` — ${x.decisionRef}` : ''}`.slice(0, 250), storageKey: input.storageKey, mimeType: 'application/pdf', uploadedById: userId } })
+  if (input.inboxId) {
+    await prisma.applicationInboxDoc.updateMany({ where: { id: input.inboxId, status: 'PENDING' }, data: { status: 'DONE', processedAt: new Date(), resultNote: `Καταχωρίστηκε τροποποίηση (${updatedExpenses} αλλαγές, ${createdExpenses} νέες, ${removedExpenses} καταργήθηκαν)` } })
+  }
+  await logActivity('application.approval', { entityType: 'application', entityId: applicationId, userId, meta: { decisionRef: x.decisionRef, amendment: true, updatedExpenses, createdExpenses, removedExpenses, keptBlocked } })
+  revalidatePath(`/programs/${app.programId}/applications/${applicationId}`)
+  revalidatePath(`/partners/${app.trdrId}`)
+  return { ok: true, createdExpenses, updatedExpenses, removedExpenses, keptBlocked, stage: app.stage as StageStr }
+}
+
 export type ApprovalSummary = {
   applicationCode: string | null
   decisionRef: string | null
@@ -216,6 +298,8 @@ export type ApprovalSummary = {
   aidPct: number | null
   expenses: number
   docUrl: string | null
+  /** Προηγούμενες αποφάσεις (η αρχική εγκριτική κ.λπ.) όταν η τρέχουσα είναι τροποποίηση. */
+  history: { decisionRef: string | null; decisionDate: string | null }[]
 }
 
 export async function getApproval(applicationId: string): Promise<ApprovalSummary | null> {
@@ -228,5 +312,6 @@ export async function getApproval(applicationId: string): Promise<ApprovalSummar
     totalBudget: a.totalBudget != null ? Number(a.totalBudget) : null, publicAmount: a.publicAmount != null ? Number(a.publicAmount) : null, aidPct: a.aidPct,
     expenses: Array.isArray(a.expenses) ? a.expenses.length : 0,
     docUrl: a.docKey ? `/approval-doc/${applicationId}` : null,
+    history: (((a.extra as { history?: ApprovalHistoryEntry[] } | null)?.history) ?? []).map(h => ({ decisionRef: h.decisionRef, decisionDate: h.decisionDate })),
   }
 }
