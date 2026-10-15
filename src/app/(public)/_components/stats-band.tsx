@@ -47,7 +47,7 @@ export function StatsBand({ items, eyebrow = 'Σε αριθμούς', title = '�
 
 /** Οι βασικοί δείκτες της WWA (ίδιοι σε αρχική/εταιρεία). */
 export const WWA_STATS: StatItem[] = [
-  { count: 2500, suffix: '+', display: '2.500+', label: 'επενδυτικά σχέδια με έγκριση', icon: 'approved', fill: 92 },
+  { count: 2500, suffix: '+', display: '2.500+', label: 'επενδυτικά σχέδια — εμπειρία της ομάδας', icon: 'approved', fill: 92 },
   { display: '98–100%', label: 'ποσοστό εγκρίσεων', icon: 'rate', fill: 99 },
   { count: 30, suffix: '+', display: '30+', label: 'προγράμματα σε υλοποίηση ή ολοκληρωμένα', icon: 'programs', fill: 70 },
   { count: 6, display: '6', label: 'κλαδικοί φορείς — σύμβουλοι ή μέλη', icon: 'partners', fill: 55 },

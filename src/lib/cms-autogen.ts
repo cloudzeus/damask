@@ -41,7 +41,7 @@ export type ArticleBrief = {
 }
 
 export const BRAND_NAME = 'World Wide Associates (WWA)'
-const BRAND_DEFAULT_CONTEXT = 'World Wide Associates — σύμβουλοι ΕΣΠΑ και ευρωπαϊκών προγραμμάτων στην Αθήνα (2.500+ επενδυτικά σχέδια): έλεγχος επιλεξιμότητας, υποβολή, υλοποίηση και αποπληρωμή επιδοτήσεων για επιχειρήσεις.'
+const BRAND_DEFAULT_CONTEXT = 'World Wide Associates — σύμβουλοι ΕΣΠΑ και ευρωπαϊκών προγραμμάτων στην Αθήνα (ομάδα με εμπειρία σε 2.500+ επενδυτικά σχέδια, εγκρίσεις 98–100%): έλεγχος επιλεξιμότητας, υποβολή, υλοποίηση και αποπληρωμή επιδοτήσεων για επιχειρήσεις.'
 
 /**
  * Χτίζει τα μηνύματα (system + user) για το DeepSeek chat-completions API —
