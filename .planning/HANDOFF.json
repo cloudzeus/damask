@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-14T08:51:56.061Z",
+  "timestamp": "2026-10-15T05:43:38.050Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -21,14 +21,10 @@
       "path": ".planning/HANDOFF.json"
     },
     {
-      "status": "M",
-      "path": "src/components/pm/obligations-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/lib/pm/actions.ts"
+      "status": "??",
+      "path": "docs/seo/ai-visibility-history.md"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n08f8587 chore: ενημέρωση HANDOFF\n2b0916d chore: ενημέρωση HANDOFF\n7eb162d feat(pm): συμφιλίωση εκκρεμοτήτων με τα δικαιολογητικά της εταιρίας — ισοδύναμοι τύποι (κανόνες «υπόδειγμα Χ»/όνομα + AI), σωστό έγγραφο μέσα στον τύπο, σειρές, παλιές «Λείπει προσφορά»/έντυπα προσφορών μετά την έγκριση· αυτόματα μετά από ανεβάσματα (pg-boss, μία φορά ανά φουρνιά) + κουμπί «Έλεγχος από τα δικαιολογητικά»\n5ecd743 docs(ops): οδηγός μετάβασης των άλλων projects στο PgBouncer\n6ab8704 chore: ενημέρωση HANDOFF"
+  "context_notes": "Recent commits:\n1fffc09 fix(seo): ενιαίος ισχυρισμός παντού — «η ομάδα έχει εμπειρία σε 2.500+ επενδυτικά σχέδια, εγκρίσεις 98–100%» (ίδρυση 2022) σε αρχική, εταιρεία, FAQ, llms.txt/llms-full, Organization JSON-LD, AI αρθρογραφία\n3dd63fb chore: ενημέρωση HANDOFF\n3d01a7f feat(pm): εκκρεμότητες με «Επόμενο βήμα» — πράσινο «Αποδοχή»/«Απόρριψη» με αιτία και προβολή εγγράφου όπου υπάρχει έγγραφο, «Ζήτησε από πελάτη»/«Δεν απαιτείται» όπου λείπει, σύνοψη «Τι να κάνετε τώρα», ταξινόμηση ανά ενέργεια, ολοκληρωμένα μαζεμένα με αναίρεση\n08f8587 chore: ενημέρωση HANDOFF\n2b0916d chore: ενημέρωση HANDOFF"
 }
