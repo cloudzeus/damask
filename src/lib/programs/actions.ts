@@ -9,6 +9,7 @@ import { bunnyUploadPrivate } from '@/lib/bunny-storage'
 import { revalidatePath } from 'next/cache'
 import { extractProgramFromText } from '@/lib/programs/extract'
 import { persistExtractedProgram } from '@/lib/programs/persist'
+import type { ExtractedProgram } from '@/lib/programs/types'
 import { generateProgramCms, getProgramCms, saveProgramCms, type ProgramCms } from '@/lib/programs/cms'
 import { suggestCategory } from '@/lib/programs/categorize'
 import { expenseCatInput } from '@/lib/programs/expense-prep'
@@ -219,16 +220,27 @@ export async function deleteProgram(id: string): Promise<void> {
   revalidatePath('/', 'layout') // δημόσιο site: προγράμματα/κόμβοι/προθεσμίες
 }
 
-export async function extractProgram(programId: string, text: string): Promise<{ ok: boolean; cost: OcrCostView | null; error?: string }> {
+/**
+ * Αποδελτίωση οδηγού. `mode: 'merge'` = ΕΠΟΜΕΝΟΣ οδηγός (παράρτημα, τροποποίηση, λίστα ΚΑΔ…): τα στοιχεία του
+ * ΣΥΝΔΥΑΖΟΝΤΑΙ με την προηγούμενη αποδελτίωση (ένωση λιστών, νεότερες τιμές όπου υπάρχουν)· 'replace' = από την αρχή.
+ */
+export async function extractProgram(programId: string, text: string, opts: { mode?: 'replace' | 'merge' } = {}): Promise<{ ok: boolean; cost: OcrCostView | null; error?: string }> {
   const session = await requirePermission('programs.manage')
-  await prisma.program.update({ where: { id: programId }, data: { extractStatus: 'RUNNING' } })
+  const before = await prisma.program.update({ where: { id: programId }, data: { extractStatus: 'RUNNING' }, select: { extractedData: true } })
 
   try {
     const r = await extractProgramFromText(text, { refId: programId, userId: session.user.id })
-    await persistExtractedProgram(programId, r.data)
+    const { mergeExtractedPrograms } = await import('@/lib/programs/merge-extracted')
+    const data = opts.mode === 'merge' ? mergeExtractedPrograms(before.extractedData as unknown as ExtractedProgram | null, r.data) : r.data
+    await persistExtractedProgram(programId, data)
     await prisma.program.update({
       where: { id: programId },
-      data: { model: r.model, extractedData: r.data as Prisma.InputJsonValue },
+      data: { model: r.model, extractedData: data as Prisma.InputJsonValue },
+    })
+    // Νέα στοιχεία (ΚΑΔ/περιφέρειες/νομικές μορφές) → δυνητικοί πελάτες αμέσως (και για πρόχειρα προγράμματα).
+    after(async () => {
+      const { matchProgramForAllCustomers } = await import('@/lib/pm/potential-matching')
+      await matchProgramForAllCustomers(programId).catch(err => console.error('[potential-matching]', err))
     })
     const cost = await buildOcrCostViewForSession(session.user.role, r.model, r.tokensUsed)
     await logActivity('program.extract', { entityType: 'program', entityId: programId, userId: session.user.id, meta: { model: r.model } })

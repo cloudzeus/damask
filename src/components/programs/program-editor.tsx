@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { updateProgramMeta, extractProgram, setProgramImage, setProgramPdf } from '@/lib/programs/actions'
 import { extractPdfText, extractPdfLinks } from '@/lib/programs/pdf-text'
-import { importGuideLinks } from '@/lib/programs/reference-actions'
+import { importGuideLinks, addProgramReference } from '@/lib/programs/reference-actions'
 import { MassUploader } from '@/components/media/mass-uploader'
 import { RequiredFormsTab } from './required-forms-tab'
 import { TaskTemplatesTab } from './task-templates-tab'
@@ -325,6 +325,8 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
   const [reExtracting, setReExtracting] = React.useState(false)
   const [reExtractProgress, setReExtractProgress] = React.useState(0)
   const [reExtractLabel, setReExtractLabel] = React.useState('')
+  // «Προσθήκη» = επόμενος οδηγός που ΣΥΝΔΥΑΖΕΤΑΙ με τον προηγούμενο· «Αντικατάσταση» = αποδελτίωση από την αρχή.
+  const [reExtractMode, setReExtractMode] = React.useState<'merge' | 'replace'>(program.extractStatus === 'DONE' ? 'merge' : 'replace')
 
   React.useEffect(() => {
     if (!reExtracting || reExtractProgress < 30) return
@@ -352,17 +354,22 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
         toast.error('Το PDF δεν περιέχει επιλέξιμο κείμενο (π.χ. είναι σαρωμένη εικόνα).')
         return
       }
-      // Το νέο PDF γίνεται ο διαθέσιμος οδηγός του προγράμματος + νέοι σύνδεσμοί του στη γνωσιακή μνήμη.
       setReExtractLabel('Αποθήκευση του PDF…')
       setReExtractProgress(15)
-      await setProgramPdf(program.id, { pdfBase64: arrayBufferToBase64(await reExtractFile.arrayBuffer()), fileName: reExtractFile.name, mimeType: reExtractFile.type || 'application/pdf' })
+      if (reExtractMode === 'replace') {
+        // Το νέο PDF γίνεται ο κύριος οδηγός του προγράμματος.
+        await setProgramPdf(program.id, { pdfBase64: arrayBufferToBase64(await reExtractFile.arrayBuffer()), fileName: reExtractFile.name, mimeType: reExtractFile.type || 'application/pdf' })
+      } else if (reExtractFile.size <= 9 * 1024 * 1024) {
+        // Επόμενος οδηγός: ο κύριος μένει· αυτός μπαίνει στη γνωσιακή μνήμη του προγράμματος (διαβάζεται από κάθε AI).
+        await addProgramReference(program.id, { kind: 'FILE', title: `Συμπληρωματικός οδηγός: ${reExtractFile.name}`, file: { name: reExtractFile.name, base64: arrayBufferToBase64(await reExtractFile.arrayBuffer()), mimeType: reExtractFile.type || 'application/pdf' } }).catch(() => null)
+      }
       void reExtractFile.arrayBuffer().then(extractPdfLinks).then(links => (links.length ? importGuideLinks(program.id, links) : null)).catch(() => {})
       setReExtractLabel('Αποδελτίωση με DeepSeek… (μπορεί να πάρει λεπτά)')
       setReExtractProgress(30)
-      const r = await extractProgram(program.id, text)
+      const r = await extractProgram(program.id, text, { mode: reExtractMode })
       if (r.ok) {
         setReExtractProgress(100)
-        toast.success('Η επαναποδελτίωση ολοκληρώθηκε — τα εξαγμένα στοιχεία αντικαταστάθηκαν.')
+        toast.success(reExtractMode === 'merge' ? 'Ο οδηγός προστέθηκε — τα στοιχεία συνδυάστηκαν με την προηγούμενη αποδελτίωση.' : 'Η επαναποδελτίωση ολοκληρώθηκε — τα εξαγμένα στοιχεία αντικαταστάθηκαν.')
         setReExtractFile(null)
         router.refresh()
       } else {
@@ -412,8 +419,18 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
           <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={reExtracting}>
             <LuUpload className="size-3.5" aria-hidden /> {reExtractFile ? reExtractFile.name : 'Επιλογή PDF'}
           </Button>
+          {program.extractStatus === 'DONE' && (
+            <div role="radiogroup" aria-label="Τρόπος αποδελτίωσης" className="inline-flex rounded-full border border-border bg-card p-0.5 text-[length:var(--fs-12)]">
+              {([['merge', 'Προσθήκη οδηγού'], ['replace', 'Αντικατάσταση']] as const).map(([m, l]) => (
+                <button key={m} type="button" role="radio" aria-checked={reExtractMode === m} disabled={reExtracting} onClick={() => setReExtractMode(m)}
+                  className={cn('cursor-pointer rounded-full px-3 py-1.5 font-semibold transition-colors', reExtractMode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
           <Button type="button" onClick={handleRunReextract} disabled={reExtracting || !reExtractFile}>
-            <LuRefreshCw className={cn('size-3.5', reExtracting && 'animate-spin')} aria-hidden /> {reExtracting ? 'Επεξεργασία…' : 'Επαναποδελτίωση'}
+            <LuRefreshCw className={cn('size-3.5', reExtracting && 'animate-spin')} aria-hidden /> {reExtracting ? 'Επεξεργασία…' : reExtractMode === 'merge' && program.extractStatus === 'DONE' ? 'Αποδελτίωση & συνδυασμός' : 'Επαναποδελτίωση'}
           </Button>
         </div>
         {reExtracting && (
@@ -423,7 +440,9 @@ export function ProgramEditor({ program }: { program: ProgramData }) {
           </div>
         )}
         <p className="mt-2.5 text-[length:var(--fs-11-5)] text-muted-foreground" style={{ borderTop: '1px dotted var(--dotted)', paddingTop: 10 }}>
-          Ανέβασε ξανά την προκήρυξη (π.χ. ενημερωμένη έκδοση) για να ξανατρέξει η AI αποδελτίωση — αντικαθιστά όλα τα εξαγμένα στοιχεία (κατηγορίες δαπανών, παραδοτέα, φάσεις, ΚΑΔ κ.λπ.), όχι τα στοιχεία περιγραφής/προϋποθέσεων αν τα έχεις αποθηκεύσει ξανά μετά.
+          {reExtractMode === 'merge' && program.extractStatus === 'DONE'
+            ? <><b>Προσθήκη οδηγού:</b> ανέβασε τον επόμενο οδηγό (παράρτημα, λίστα ΚΑΔ, τροποποίηση, 2ο μέρος). Τα στοιχεία του <b>συνδυάζονται</b> με όσα βρέθηκαν ήδη — ΚΑΔ, περιφέρειες, κατηγορίες, κριτήρια, προθεσμίες ενώνονται· νεότερες τιμές (π.χ. προθεσμία) υπερισχύουν.</>
+            : <><b>Αντικατάσταση:</b> ανέβασε ξανά την προκήρυξη (π.χ. ενημερωμένη έκδοση) — η αποδελτίωση ξεκινά από την αρχή και αντικαθιστά όλα τα εξαγμένα στοιχεία (κατηγορίες δαπανών, παραδοτέα, φάσεις, ΚΑΔ κ.λπ.).</>}
         </p>
       </div>
 

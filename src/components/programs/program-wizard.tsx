@@ -22,7 +22,7 @@ import {
 import { createDocumentType, listDocumentTypes } from '@/lib/documents/actions'
 import { Combobox } from '@/components/ui/combobox'
 import { extractPdfText, extractPdfLinks } from '@/lib/programs/pdf-text'
-import { importGuideLinks } from '@/lib/programs/reference-actions'
+import { importGuideLinks, addProgramReference } from '@/lib/programs/reference-actions'
 
 /**
  * «Οδηγός Αρχικοποίησης Προγράμματος» — καθοδηγούμενη ροή για μη-τεχνικό χρήστη.
@@ -101,11 +101,20 @@ function WizardDialog({ onClose }: { onClose: () => void }) {
   )
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let s = ''
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return btoa(s)
+}
+
 /* ── Βήμα 1: Ανέβασε ─────────────────────────────────────────────────────── */
 function StepUpload({ onDone }: { onDone: (programId: string) => void }) {
   const fileRef = React.useRef<HTMLInputElement | null>(null)
   const [title, setTitle] = React.useState('')
-  const [file, setFile] = React.useState<File | null>(null)
+  // Πρώτο αρχείο = κύριος οδηγός· τα επόμενα (παραρτήματα, λίστα ΚΑΔ, τροποποιήσεις) συνδυάζονται με αυτόν.
+  const [files, setFiles] = React.useState<File[]>([])
+  const file = files[0] ?? null
   const [busy, setBusy] = React.useState(false)
   const [progress, setProgress] = React.useState(0)
   const [label, setLabel] = React.useState('')
@@ -135,6 +144,17 @@ function StepUpload({ onDone }: { onDone: (programId: string) => void }) {
       setLabel('Το AI διαβάζει το πρόγραμμα και βρίσκει τα δικαιολογητικά… (ίσως πάρει λίγο)'); setProgress(30)
       const r = await extractProgram(id, text)
       if (!r.ok) { setError(r.error ?? 'Η ανάγνωση απέτυχε — δοκίμασε ξανά.'); setBusy(false); return }
+      // Επόμενοι οδηγοί: ο καθένας ΣΥΝΔΥΑΖΕΤΑΙ με ό,τι βρέθηκε ήδη (ΚΑΔ, περιφέρειες, κατηγορίες…) + γνωσιακή μνήμη.
+      for (const [i, extra] of files.slice(1).entries()) {
+        setLabel(`Συνδυάζω τον ${i + 2}ο οδηγό: ${extra.name}…`); setProgress(p => Math.max(p, 60))
+        const t = await extractPdfText(extra)
+        if (!t.trim()) continue
+        if (extra.size <= 9 * 1024 * 1024) {
+          await addProgramReference(id, { kind: 'FILE', title: `Συμπληρωματικός οδηγός: ${extra.name}`, file: { name: extra.name, base64: arrayBufferToBase64(await extra.arrayBuffer()), mimeType: extra.type || 'application/pdf' } }).catch(() => null)
+        }
+        const m = await extractProgram(id, t, { mode: 'merge' })
+        if (!m.ok) { setError(`Ο οδηγός «${extra.name}» δεν διαβάστηκε — ο κύριος οδηγός αποθηκεύτηκε. Πρόσθεσέ τον ξανά από τη σελίδα του προγράμματος.`); break }
+      }
       setProgress(100)
       onDone(id)
     } catch (err) {
@@ -152,13 +172,24 @@ function StepUpload({ onDone }: { onDone: (programId: string) => void }) {
         <Input id="wz-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="π.χ. Ψηφιακός Μετασχηματισμός ΜμΕ" disabled={busy} autoFocus />
       </div>
       <div className="field !mb-0">
-        <label>Το αρχείο PDF της προκήρυξης</label>
-        <input ref={fileRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f); e.target.value = '' }} />
+        <label>Τα PDF της προκήρυξης</label>
+        <input ref={fileRef} type="file" multiple accept=".pdf,application/pdf" className="hidden" onChange={e => { const f = [...(e.target.files ?? [])]; if (f.length) setFiles(prev => [...prev, ...f]); e.target.value = '' }} />
         <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
           className="flex w-full items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-5 text-left transition-colors hover:border-primary hover:bg-muted disabled:opacity-50">
           {file ? <LuFile className="size-5 shrink-0 text-primary" aria-hidden /> : <LuUpload className="size-5 shrink-0 text-muted-foreground" aria-hidden />}
-          <span className="truncate text-[length:var(--fs-13)] font-semibold">{file ? file.name : 'Πάτησε εδώ για να διαλέξεις το PDF…'}</span>
+          <span className="truncate text-[length:var(--fs-13)] font-semibold">{file ? 'Πρόσθεσε κι άλλο οδηγό (παράρτημα, λίστα ΚΑΔ…)' : 'Πάτησε εδώ για να διαλέξεις το PDF (ή πολλά)…'}</span>
         </button>
+        {files.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {files.map((f, i) => (
+              <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-[length:var(--fs-12-5)]">
+                <span className={cn('badge-pill shrink-0', i === 0 ? 'info' : 'muted')}>{i === 0 ? 'Κύριος οδηγός' : `${i + 1}ος — συνδυάζεται`}</span>
+                <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                {!busy && <button type="button" onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))} className="cursor-pointer rounded-full px-2 text-muted-foreground hover:text-foreground" aria-label={`Αφαίρεση ${f.name}`}>×</button>}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       {busy && (
         <div className="flex flex-col gap-1.5 pt-1">
