@@ -220,12 +220,11 @@ describe('geminiGenerate — μέσω OpenRouter', () => {
     expect(logAiUsage).toHaveBeenCalledWith(expect.objectContaining({ provider: 'openrouter', model: 'gemini-2.5-flash', totalTokens: 25 }))
   })
 
-  it('αν αποτύχει το OpenRouter, πέφτει στο απευθείας κλειδί Gemini', async () => {
+  it('αν αποτύχει το OpenRouter, ΔΕΝ πέφτει στο απευθείας Gemini (μόνο OpenRouter)', async () => {
     geminiConfig({ apiKey: 'g', model: 'm', fallbackModels: '' }, { apiKey: 'or-key' })
-    fetchMock.mockResolvedValueOnce(orResponse('insufficient credits', 402)).mockResolvedValueOnce(genResponse('pong'))
-    const r = await geminiGenerate({ text: 'ping' })
-    expect(r.text).toBe('pong')
-    expect(fetchMock.mock.calls[1][0]).toContain('generativelanguage.googleapis.com')
+    fetchMock.mockResolvedValue(orResponse('insufficient credits', 402))
+    await expect(geminiGenerate({ text: 'ping' })).rejects.toThrow()
+    expect(fetchMock.mock.calls.every(c => !String(c[0]).includes('generativelanguage.googleapis.com'))).toBe(true)
   })
 
   it('το «Δοκιμή σύνδεσης» με ρητό apiKey ελέγχει πάντα την απευθείας σύνδεση', async () => {

@@ -17,7 +17,7 @@ import type { MismatchFlag } from './invoice-math'
  */
 
 export const GEMINI_NOT_CONFIGURED_MESSAGE =
-  'Ρύθμισε το Google Gemini για OCR εικόνων στις Ρυθμίσεις (Διασυνδέσεις → Google Gemini).'
+  'Ρύθμισε το OpenRouter για ανάγνωση εικόνων/PDF στις Ρυθμίσεις (Διασυνδέσεις → OpenRouter).'
 
 export interface OcrImageInput {
   base64: string

@@ -91,18 +91,15 @@ function extractText(data: { candidates?: { content?: { parts?: { text?: string 
  * παραπλανητικού fallback (ίδιο idiom με deepseekChat).
  */
 export async function geminiGenerate(opts: GeminiOptions): Promise<GeminiResult> {
-  // Δρομολόγηση: μέσω OpenRouter (ίδια μοντέλα Google, χρεώσιμο) όταν υπάρχει κλειδί· το απευθείας κλειδί Gemini
-  // μένει εφεδρεία. Το «Δοκιμή σύνδεσης» με ρητό apiKey ελέγχει πάντα την απευθείας σύνδεση.
+  // Δρομολόγηση: μέσω OpenRouter (ίδια μοντέλα Google) όταν υπάρχει κλειδί· απευθείας Gemini ΜΟΝΟ αν δεν έχει
+  // ρυθμιστεί OpenRouter. Το «Δοκιμή σύνδεσης» με ρητό apiKey ελέγχει πάντα την απευθείας σύνδεση.
   const or = opts.apiKey ? null : await openrouterKey()
   if (or) {
     const stored = await getIntegration<StoredGeminiConfig>('gemini')
     const chain = buildModelChain(opts.model || stored.model || GEMINI_DEFAULT_MODEL, opts.fallbackModels ?? (stored.fallbackModels !== undefined ? parseFallbackModels(stored.fallbackModels) : DEFAULT_FALLBACK_MODELS))
-    try {
-      return await tryModels(chain, m => viaOpenRouter(or, m, opts))
-    } catch (err) {
-      if (!stored.apiKey) throw err
-      console.warn(`[gemini] OpenRouter απέτυχε (${err instanceof Error ? err.message.slice(0, 120) : err}) — δοκιμή απευθείας Gemini`)
-    }
+    // ΜΟΝΟ OpenRouter όταν υπάρχει κλειδί (κανόνας χρήστη): χωρίς σιωπηλή εφεδρεία στο απευθείας Gemini —
+    // ένα σφάλμα OpenRouter επιστρέφει στον καλούντα (οι ουρές ξαναδοκιμάζουν).
+    return await tryModels(chain, m => viaOpenRouter(or, m, opts))
   }
   return geminiDirect(opts)
 }

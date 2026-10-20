@@ -35,7 +35,7 @@ const DOC_TYPE_HINT_LABEL: Record<OcrDocTypeHint, string> = {
 
 const PROCESSING_STEPS = [
   'Προετοιμασία εικόνων…',
-  'Αποστολή στο Gemini…',
+  'Αποστολή στο AI…',
   'Ανάλυση εγγράφου…',
   'Έλεγχος συνόλων & ΦΠΑ…',
 ]

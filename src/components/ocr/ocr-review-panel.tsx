@@ -248,7 +248,7 @@ export function OcrReviewPanel({ pages, initialData, model, usedFallback, onConf
             <LuBadgeCheck className="size-3" /> {confidencePct}% εμπιστοσύνη
           </span>
           <span className="text-[length:var(--fs-11-5)] text-muted-foreground">
-            {usedFallback ? 'DeepSeek (χωρίς Gemini, μόνο κείμενο)' : `Gemini · ${model}`}
+            {usedFallback ? 'DeepSeek (μόνο κείμενο)' : `AI · ${model}`}
           </span>
           <div className="ml-auto">
             <Select value={data.docType} onValueChange={v => patch({ docType: v as OcrDocType })}>

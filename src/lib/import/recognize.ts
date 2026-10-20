@@ -139,7 +139,7 @@ export async function recognizeItem(id: string): Promise<void> {
     const msg = err instanceof Error ? err.message : String(err)
     // Κλειδί/λογαριασμός AI μπλοκαρισμένος (403) — δεν περνά με αναμονή· «Ξανά» αφού διορθωθεί.
     if (/HTTP 40[13]|PERMISSION_DENIED|API key not valid|denied access/i.test(msg)) {
-      await prisma.importItem.update({ where: { id }, data: { phase: 'FAILED', waitReason: null, nextAttemptAt: null, error: 'Η υπηρεσία AI (Gemini) αρνείται την πρόσβαση — ελέγξτε το κλειδί/λογαριασμό στις Ρυθμίσεις › Διασυνδέσεις και πατήστε «Ξανά».' } })
+      await prisma.importItem.update({ where: { id }, data: { phase: 'FAILED', waitReason: null, nextAttemptAt: null, error: 'Η υπηρεσία AI (OpenRouter) αρνείται την πρόσβαση — ελέγξτε το κλειδί/λογαριασμό στις Ρυθμίσεις › Διασυνδέσεις και πατήστε «Ξανά».' } })
       return
     }
     const kind = err instanceof AiQuotaError ? err.kind === 'day' ? 'day' : 'minute' : retryKind(msg)
