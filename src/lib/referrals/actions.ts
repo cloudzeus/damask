@@ -385,6 +385,8 @@ export async function convertReferralToProspect(
     })
     trdrId = created.id
     await ensureTrdrCdnFolder(trdrId).catch(() => {})
+    // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+    void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(trdrId))
   } else {
     // Υπάρχων συναλλασσόμενος → σύνδεσε τον συστήνοντα αν λείπει (χωρίς overwrite).
     await prisma.trdr.updateMany({ where: { id: trdrId, referrerId: null }, data: { referrerId: c.referrerId } })

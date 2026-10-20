@@ -59,6 +59,7 @@ export function PotentialProgramsPanel({ trdrId, rows, evaluatedAt, hasKads, can
         <div className="flex flex-wrap items-center gap-2">
           <a href={`/programs/${r.programId}`} className="font-semibold hover:underline">{r.title}</a>
           <span className={`badge-pill shrink-0 ${r.status === 'upcoming' ? 'warn' : 'teal'}`}>{r.status === 'upcoming' ? 'Αναμενόμενο' : 'Ανοιχτό'}</span>
+          {r.draft && <span className="badge-pill muted shrink-0" title="Αποδελτιωμένο πρόγραμμα που δεν έχει ακόμη ενεργοποιηθεί από το γραφείο">Πρόχειρο</span>}
           {r.fundingRate != null && <span className="badge-pill muted shrink-0 tabular-nums">έως {r.fundingRate}%</span>}
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[length:var(--fs-12)] text-muted-foreground">

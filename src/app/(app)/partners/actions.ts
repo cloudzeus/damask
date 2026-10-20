@@ -149,6 +149,8 @@ export async function createPartner(input: PartnerFormValues): Promise<ActionRes
       },
     })
     await ensureTrdrCdnFolder(created.id)
+    // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+    void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(created.id))
     revalidatePartners()
     await logActivity('partner.create', { entityType: 'trdr', entityId: created.id, summary: created.NAME })
     return { ok: true, message: `Ο συναλλασσόμενος «${created.NAME}» δημιουργήθηκε.`, partnerId: created.id }
@@ -177,6 +179,8 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
     const dup = await prisma.trdr.findFirst({ where: { AFM: afm, id: { not: id } } })
     if (dup) return { ok: false, message: UNIQUE_AFM_MESSAGE, fieldErrors: { AFM: UNIQUE_AFM_MESSAGE } }
   }
+
+  const addressChanged = (n(data.ADDRESS) ?? '') !== (existing.ADDRESS ?? '') || (n(data.CITY) ?? '') !== (existing.CITY ?? '') || (n(data.ZIP) ?? '') !== (existing.ZIP ?? '')
 
   try {
     await prisma.trdr.update({
@@ -211,6 +215,8 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
         ...(String(nDec(data.appAnnualRevenue) ?? '') !== String(existing.appAnnualRevenue ?? '') ? { appRevenueSource: 'MANUAL' } : {}),
         appNotes: n(data.appNotes),
         referrerId: n(data.referrerId),
+        // Άλλαξε η διεύθυνση → η περιφέρεια ξαναβρίσκεται (παρασκήνιο, παρακάτω).
+        ...(addressChanged ? { regionCode: null } : {}),
       },
     })
   } catch (e) {
@@ -220,6 +226,8 @@ export async function updatePartner(id: string, input: PartnerFormValues): Promi
     throw e
   }
 
+  // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (νομική μορφή/διεύθυνση μπορεί να άλλαξαν).
+  { const { enqueueTrdrDerive } = await import('@/lib/trdr/derive'); await enqueueTrdrDerive(id) }
   revalidatePartners(id)
   await logActivity('partner.update', { entityType: 'trdr', entityId: id, summary: data.NAME })
   return { ok: true, message: `Οι αλλαγές για «${data.NAME}» αποθηκεύτηκαν.` }

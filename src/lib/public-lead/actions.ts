@@ -274,6 +274,8 @@ async function finalizeVerifiedLead(request: PublicLeadRequest): Promise<VerifyL
 
   // Αυτόματος φάκελος στο CDN (idempotent).
   await ensureTrdrCdnFolder(trdrId)
+  // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+  void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(trdrId))
 
   // 2) ΚΑΔ — γράφουμε μόνο αν δεν υπάρχουν ήδη (μη επεμβαίνουμε σε υπάρχοντα πελάτη).
   const existingKads = await prisma.trdrKad.count({ where: { trdrId } })

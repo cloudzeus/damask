@@ -201,6 +201,8 @@ export async function findOrCreateSupplierByAfm(afm: string): Promise<{ ok: bool
     select: { id: true, NAME: true, AFM: true },
   })
   await ensureTrdrCdnFolder(created.id).catch(() => {})
+  // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+  void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(created.id))
   return { ok: true, created: true, supplier: { id: created.id, name: created.NAME, afm: created.AFM } }
 }
 

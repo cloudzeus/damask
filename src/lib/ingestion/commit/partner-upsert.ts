@@ -169,6 +169,8 @@ export async function runPartnerUpsert(parsed: ParsedRow[], enrich: PartnerEnric
         totals.created++
         trdrId = created.id
         await ensureTrdrCdnFolder(trdrId)
+        // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+        void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(trdrId))
       }
       if (anyEnrich) {
         await enrichTrdrRow(trdrId, row.rowNum, enrich, geocodeApiKey, pushError)

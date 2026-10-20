@@ -202,6 +202,13 @@ export async function startQueue(): Promise<void> {
     }
   })
 
+  // Πελάτης άλλαξε/δημιουργήθηκε → γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα.
+  const { QUEUE_TRDR_DERIVE, deriveTrdr } = await import('@/lib/trdr/derive')
+  await boss.createQueue(QUEUE_TRDR_DERIVE)
+  await boss.work<{ trdrId: string }>(QUEUE_TRDR_DERIVE, async jobs => {
+    for (const job of jobs) await deriveTrdr(job.data.trdrId)
+  })
+
   // Συμφιλίωση εκκρεμοτήτων με τα δικαιολογητικά της εταιρίας (μετά από ανεβάσματα).
   const { QUEUE_OBLIGATIONS_RECONCILE, reconcileTrdrObligations } = await import('@/lib/pm/obligations-reconcile')
   await boss.createQueue(QUEUE_OBLIGATIONS_RECONCILE)

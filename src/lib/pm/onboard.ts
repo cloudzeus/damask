@@ -66,6 +66,8 @@ export async function findOrCreateCustomerByAfm(programId: string, afm: string):
   }
   const created = await prisma.trdr.create({ data: { NAME: name, AFM: clean, SODTYPE: CUSTOMER_SODTYPE, ISPROSP: 0, ...extra }, select: { id: true, NAME: true, AFM: true } })
   await ensureTrdrCdnFolder(created.id).catch(() => {})
+  // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+  void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(created.id))
   return { ok: true, created: true, customer: { id: created.id, name: created.NAME, afm: created.AFM, existingStage: null } }
 }
 

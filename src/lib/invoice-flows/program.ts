@@ -78,6 +78,8 @@ export async function processProgramInvoice(input: ProcessProgramInvoiceInput): 
     // ΧΩΡΙΣ S1 push — Workflow Β είναι καθαρά δικό μας μητρώο (δες design doc).
     trdrRow = await prisma.trdr.create({ data: createData })
     await ensureTrdrCdnFolder(trdrRow.id)
+    // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+    void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(trdrRow?.id))
   }
 
   const description =

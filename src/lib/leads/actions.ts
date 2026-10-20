@@ -215,6 +215,8 @@ export async function promoteLead(leadId: string): Promise<{ ok: boolean; error?
       })
       trdrId = created.id
       await ensureTrdrCdnFolder(trdrId).catch(() => {})
+      // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+      void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(trdrId))
     }
     await prisma.lead.update({ where: { id: leadId }, data: { trdrId } })
   }

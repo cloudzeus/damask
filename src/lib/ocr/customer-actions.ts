@@ -132,5 +132,7 @@ export async function createCustomerFromOcr(input: CreateCustomerFromOcrInput): 
   })
 
   await ensureTrdrCdnFolder(trdr.id)
+  // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+  void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(trdr.id))
   return { ok: true, customerId: trdr.id }
 }

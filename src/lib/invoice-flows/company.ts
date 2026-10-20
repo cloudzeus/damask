@@ -148,6 +148,8 @@ export async function processCompanyInvoice(input: ProcessCompanyInvoiceInput): 
     )
     trdrRow = await prisma.trdr.create({ data: createData })
     await ensureTrdrCdnFolder(trdrRow.id)
+    // Γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα (παρασκήνιο).
+    void import('@/lib/trdr/derive').then(d => d.enqueueTrdrDerive(trdrRow?.id))
 
     if (s1Active) {
       try {

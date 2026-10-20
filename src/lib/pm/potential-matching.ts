@@ -12,10 +12,32 @@ import { extractKadRule } from '@/lib/prospects/evaluate-pair'
 
 const CRITERIA = { kad: true, region: true, legalForm: true, size: false, age: false }
 
-/** Ενεργά + αναμενόμενα: ACTIVE και η υποβολή δεν έχει λήξει (ή δεν έχει ημερομηνία). */
+/**
+ * Ενεργά + αναμενόμενα: ACTIVE, ΚΑΙ πρόχειρα (DRAFT) που έχουν ήδη αποδελτιωθεί (ΚΑΔ ή περιφέρειες) — ώστε μετά την
+ * αποδελτίωση οι δυνητικοί πελάτες να φαίνονται αμέσως (σημειώνονται «Πρόχειρο»)· η υποβολή δεν έχει λήξει.
+ */
 function openProgramsWhere(ids?: string[]) {
   const today = new Date(new Date().toISOString().slice(0, 10))
-  return { status: 'ACTIVE' as const, OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }], ...(ids ? { id: { in: ids } } : {}) }
+  return {
+    AND: [
+      { OR: [{ submissionEnd: null }, { submissionEnd: { gte: today } }] },
+      { OR: [{ status: 'ACTIVE' as const }, { status: 'DRAFT' as const, OR: [{ kads: { some: {} } }, { regions: { some: {} } }] }] },
+    ],
+    ...(ids ? { id: { in: ids } } : {}),
+  }
+}
+
+/**
+ * Μόνο ΕΝΕΡΓΕΣ επιχειρήσεις: όχι διαγραμμένες / σε εκκαθάριση / ανενεργές (ΓΕΜΗ, επωνυμία ΑΑΔΕ, ενεργό). ⚠ Οι κενές
+ * (NULL) καταστάσεις μετρούν ως ενεργές — γι' αυτό ρητά `null OR …` (ένα σκέτο NOT θα απέκλειε και τα NULL).
+ */
+const ACTIVE_ONLY = {
+  AND: [
+    { ISACTIVE: { not: 0 } },
+    { OR: [{ gemiStatus: null }, { gemiStatus: { notIn: ['Διαγραφή', 'Λύση - Εκκαθάριση', 'Πτώχευση', 'Ανενεργή'] } }] },
+    { OR: [{ aadeStatus: null }, { NOT: { aadeStatus: { contains: 'ΑΝΕΝΕΡΓ' } } }] },
+    { NOT: { OR: [{ NAME: { startsWith: '(ΔΙΑΓΡΑΦ' } }, { NAME: { startsWith: '(ΥΠΟ ΕΚΚΑΘ' } }, { NAME: { startsWith: '(ΣΕ ΕΚΚΑΘ' } }] } },
+  ],
 }
 
 export type MatchRunResult = { programs: number; customers: number; matches: number; restrictedMatches: number; byProgram: { programId: string; title: string; matches: number }[] }
@@ -28,7 +50,7 @@ export async function runPotentialMatching(opts: { programIds?: string[]; trdrId
     }),
     // Πελάτες & υποψήφιοι (SODTYPE 13) με τουλάχιστον έναν ΚΑΔ — χωρίς ΚΑΔ δεν κρίνεται επιλεξιμότητα.
     prisma.trdr.findMany({
-      where: { SODTYPE: 13, kads: { some: {} }, ...(opts.trdrIds ? { id: { in: opts.trdrIds } } : {}) },
+      where: { SODTYPE: 13, kads: { some: {} }, ...ACTIVE_ONLY, ...(opts.trdrIds ? { id: { in: opts.trdrIds } } : {}) },
       select: { id: true, appLegalForm: true, regionCode: true, kads: { select: { code: true } } },
     }),
     prisma.region.findMany({ select: { code: true, nameEL: true, level: true, parentCode: true } }),
@@ -78,7 +100,7 @@ export async function runPotentialMatching(opts: { programIds?: string[]; trdrId
 
 export type PotentialProgramRow = {
   programId: string; title: string; publicSlug: string | null
-  status: 'open' | 'upcoming'; submissionStart: string | null; submissionEnd: string | null; fundingRate: number | null
+  status: 'open' | 'upcoming'; draft: boolean; submissionStart: string | null; submissionEnd: string | null; fundingRate: number | null
   restricted: boolean; matched: string[]; matchedKads: string[]; evaluatedAt: string
   /** Υπάρχει ήδη συμμετοχή (οποιουδήποτε σταδίου) για αυτό το πρόγραμμα. */
   applicationId: string | null; lifecycle: string | null
@@ -92,7 +114,7 @@ export async function listPotentialPrograms(trdrId: string): Promise<{ rows: Pot
       where: { trdrId, eligible: true, program: openProgramsWhere() },
       select: {
         restricted: true, matched: true, matchedKads: true, evaluatedAt: true,
-        program: { select: { id: true, title: true, publicSlug: true, submissionStart: true, submissionEnd: true, fundingRate: true, cmsContent: true } },
+        program: { select: { id: true, title: true, status: true, publicSlug: true, submissionStart: true, submissionEnd: true, fundingRate: true, cmsContent: true } },
       },
     }),
     prisma.programApplication.findMany({ where: { trdrId }, select: { id: true, programId: true, lifecycle: true } }),
@@ -107,7 +129,7 @@ export async function listPotentialPrograms(trdrId: string): Promise<{ rows: Pot
     const app = appBy.get(p.id)
     return {
       programId: p.id, title: card || p.title, publicSlug: p.publicSlug,
-      status: upcoming ? 'upcoming' as const : 'open' as const,
+      status: upcoming ? 'upcoming' as const : 'open' as const, draft: p.status === 'DRAFT',
       submissionStart: p.submissionStart?.toISOString() ?? null, submissionEnd: p.submissionEnd?.toISOString() ?? null,
       fundingRate: p.fundingRate == null ? null : Number(p.fundingRate),
       restricted: m.restricted, matched: m.matched, matchedKads: m.matchedKads, evaluatedAt: m.evaluatedAt.toISOString(),
