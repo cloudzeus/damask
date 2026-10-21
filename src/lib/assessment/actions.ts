@@ -158,15 +158,23 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
  * Αποστολή της αναφοράς (PDF συνημμένο) στον πελάτη ή σε όποιο email ορίσει ο χρήστης — μέσω deliverCustomerEmail
  * (νήμα/ετικέτα [WWA-…]/ιστορικό στην καρτέλα «Επικοινωνία»).
  */
-export async function sendAssessmentEmail(id: string, input: { to: string; cc?: string; message?: string }): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function sendAssessmentEmail(idOrIds: string | string[], input: { to: string; cc?: string; message?: string }): Promise<{ ok: true } | { ok: false; message: string }> {
   const session = await requirePermission('customer.edit')
   const to = input.to.split(/[,;\s]+/).map(x => x.trim()).filter(Boolean)
   const cc = (input.cc ?? '').split(/[,;\s]+/).map(x => x.trim()).filter(Boolean)
   if (!to.length) return { ok: false, message: 'Γράψτε τουλάχιστον ένα email παραλήπτη.' }
   const bad = [...to, ...cc].find(e => !EMAIL_RE.test(e))
   if (bad) return { ok: false, message: `Μη έγκυρο email: ${bad}` }
-  const { assessmentPdfById } = await import('./pdf')
-  const r = await assessmentPdfById(id)
+  const { assessmentPdfById, combinedPdfByIds } = await import('./pdf')
+  const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds]
+  const id = ids[0]
+  const single = ids.length === 1 ? await assessmentPdfById(id) : null
+  const combined = ids.length > 1 ? await combinedPdfByIds(ids) : null
+  const r = single
+    ? { ...single, what: `στο πρόγραμμα <b>${single.programTitle.replace(/[<>&]/g, '')}</b>`, subjectWhat: single.programTitle, programId: single.programId as string | undefined }
+    : combined
+      ? { ...combined, what: `σε ${combined.programTitles.length} προγράμματα (συνολική ανάλυση με τα κοινά δικαιολογητικά)`, subjectWhat: `${combined.programTitles.length} προγράμματα`, programId: undefined }
+      : null
   if (!r) return { ok: false, message: 'Η αξιολόγηση δεν είναι έτοιμη.' }
   const { bunnyUploadPrivate } = await import('@/lib/bunny-storage')
   const key = `assessments/${id}/${Date.now()}.pdf`
@@ -175,17 +183,58 @@ export async function sendAssessmentEmail(id: string, input: { to: string; cc?: 
   const note = (input.message ?? '').trim()
   const bodyHtml = [
     '<p>Καλησπέρα σας,</p>',
-    note ? note.split(/\n{2,}/).map(par => `<p>${escapeHtml(par).replace(/\n/g, '<br/>')}</p>`).join('') : `<p>Σας στέλνουμε την αξιολόγηση ένταξης της επιχείρησης <b>${escapeHtml(r.companyName)}</b> στο πρόγραμμα <b>${escapeHtml(r.programTitle)}</b>, με τα κριτήρια, την εκτιμώμενη πιθανότητα έγκρισης και τα δικαιολογητικά που θα χρειαστούν.</p>`,
+    note ? note.split(/\n{2,}/).map(par => `<p>${escapeHtml(par).replace(/\n/g, '<br/>')}</p>`).join('') : `<p>Σας στέλνουμε την αξιολόγηση ένταξης της επιχείρησης <b>${escapeHtml(r.companyName)}</b> ${r.what}, με τα κριτήρια, την εκτιμώμενη πιθανότητα έγκρισης και τα δικαιολογητικά που θα χρειαστούν.</p>`,
     '<p>Θα χαρούμε να τη συζητήσουμε μαζί σας.</p>',
     '<p>Με εκτίμηση,<br/>Η ομάδα της World Wide Associates</p>',
   ].join('')
   const { deliverCustomerEmail } = await import('@/lib/email/deliver')
   const res = await deliverCustomerEmail({ id: session.user.id, name: session.user.name }, {
     trdrId: r.trdrId, programId: r.programId, to: to.join(', '), cc: cc.length ? cc.join(', ') : undefined,
-    subject: `Αξιολόγηση ένταξης: ${r.programTitle} — ${r.companyName}`.slice(0, 200), bodyHtml,
+    subject: `Αξιολόγηση ένταξης: ${r.subjectWhat} — ${r.companyName}`.slice(0, 200), bodyHtml,
     attachments: [{ name: r.fileName, key, size: r.pdf.length, mime: 'application/pdf' }],
   })
   if (!res.ok) return { ok: false, message: res.error ?? 'Η αποστολή απέτυχε.' }
   await logActivity('program.assess', { userId: session.user.id, entityType: 'EligibilityAssessment', entityId: id, summary: `Αποστολή αξιολόγησης σε ${to.join(', ')}` }).catch(() => {})
   return { ok: true }
+}
+
+/**
+ * ΣΥΝΟΛΙΚΗ ανάλυση πολλών προγραμμάτων: μία αξιολόγηση ανά πρόγραμμα (όσες ολοκληρώθηκαν τις τελευταίες 7 ημέρες
+ * ξαναχρησιμοποιούνται — εκτός αν `fresh`). Επιστρέφει τα ids· ο client κάνει polling με getCombinedAssessment.
+ */
+export async function startCombinedAssessment(trdrId: string, programIds: string[], opts: { fresh?: boolean } = {}): Promise<{ ok: true; ids: string[]; reused: number } | { ok: false; message: string }> {
+  await requirePermission('customer.view')
+  const unique = [...new Set(programIds)].slice(0, 8)
+  if (unique.length < 2) return { ok: false, message: 'Επιλέξτε τουλάχιστον 2 προγράμματα.' }
+  const ids: string[] = []
+  let reused = 0
+  for (const programId of unique) {
+    const recent = opts.fresh ? null : await prisma.eligibilityAssessment.findFirst({
+      where: { trdrId, programId, status: { in: ['DONE', 'RUNNING'] }, createdAt: { gt: new Date(Date.now() - 7 * 86_400_000) } },
+      orderBy: { createdAt: 'desc' }, select: { id: true, status: true },
+    })
+    if (recent) { ids.push(recent.id); if (recent.status === 'DONE') reused++; continue }
+    const r = await startEligibilityAssessment(trdrId, programId)
+    if (!r.ok) return r
+    ids.push(r.id)
+  }
+  return { ok: true, ids, reused }
+}
+
+export type CombinedState =
+  | { status: 'RUNNING'; done: number; total: number }
+  | { status: 'DONE'; summary: import('./combine').CombinedSummary; failed: string[] }
+
+export async function getCombinedAssessment(ids: string[]): Promise<CombinedState> {
+  await requirePermission('customer.view')
+  const rows = await prisma.eligibilityAssessment.findMany({ where: { id: { in: ids.slice(0, 12) } }, include: { program: { select: { title: true, submissionEnd: true } } } })
+  const running = rows.filter(r => r.status === 'RUNNING').length
+  if (running) return { status: 'RUNNING', done: rows.length - running, total: rows.length }
+  const { summarizeCombined } = await import('./combine')
+  const done = rows.filter(r => r.status === 'DONE' && r.result)
+  return {
+    status: 'DONE',
+    summary: summarizeCombined(done.map(r => ({ assessmentId: r.id, title: r.program.title, submissionEnd: r.program.submissionEnd?.toISOString() ?? null, result: r.result as unknown as AssessmentResult }))),
+    failed: rows.filter(r => r.status === 'ERROR').map(r => r.program.title),
+  }
 }

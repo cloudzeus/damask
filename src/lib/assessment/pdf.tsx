@@ -419,3 +419,101 @@ export async function assessmentPdfById(id: string): Promise<{ pdf: Buffer; file
   const safe = snap.profile.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60)
   return { pdf, fileName: `Αξιολόγηση-ένταξης-${safe}.pdf`, companyName: snap.profile.name, programTitle: a.program.title, trdrId: a.trdrId, programId: a.programId }
 }
+
+// ── Συνολική ανάλυση πολλών προγραμμάτων ─────────────────────────────────────
+
+export type CombinedPdfInput = { createdAt: Date; profile: CompanyProfile; summary: import('./combine').CombinedSummary }
+
+function CombinedDocument({ d }: { d: CombinedPdfInput }) {
+  const { profile: p, summary: sm } = d
+  const short = (t: string) => (t.length > 46 ? `${t.slice(0, 44)}…` : t)
+  return (
+    <Document title={`Συνολική αξιολόγηση ένταξης — ${p.name}`} author="World Wide Associates" language="el">
+      <Page size="A4" style={s.page}>
+        <View style={s.header}>
+          <View style={s.headerTop}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image (όχι <img>), δεν δέχεται alt */}
+            <Image src={path.join(process.cwd(), 'public', 'wwa', 'wwa-logo-light-text.png')} style={s.logo} />
+            <Text style={s.eyebrow}>ΣΥΝΟΛΙΚΗ ΑΞΙΟΛΟΓΗΣΗ · {dateEl(d.createdAt.toISOString())}</Text>
+          </View>
+          <Text style={s.h1}>{p.name.toUpperCase()}</Text>
+          <Text style={s.hSub}>ΑΦΜ {p.afm ?? '—'} · {p.legalForm ?? '—'} · {[p.region.dimos, p.region.periferia].filter(Boolean).join(', ') || '—'}</Text>
+          <Text style={[s.hProgram, { marginTop: 8 }]}>{sm.programs.length} προγράμματα · {sm.counts.total} δικαιολογητικά ({sm.counts.common} κοινά σε περισσότερα από ένα)</Text>
+        </View>
+
+        <View style={s.body}>
+          <Text style={[s.h2, { marginTop: 0 }]}>ΠΙΘΑΝΟΤΗΤΑ ΕΝΤΑΞΗΣ ΑΝΑ ΠΡΟΓΡΑΜΜΑ</Text>
+          <View style={[s.tr, { paddingVertical: 4 }]}>
+            <Text style={[s.th, { width: '50%' }]}>ΠΡΟΓΡΑΜΜΑ</Text>
+            <Text style={[s.th, { width: '22%' }]}>ΠΙΘΑΝΟΤΗΤΑ</Text>
+            <Text style={[s.th, { width: '16%' }]}>ΕΚΤΙΜΗΣΗ</Text>
+            <Text style={[s.th, { width: '12%', textAlign: 'right' }]}>ΛΗΞΗ</Text>
+          </View>
+          {sm.programs.map(pr => (
+            <View key={pr.assessmentId} style={s.tr} wrap={false}>
+              <Text style={{ width: '50%', fontSize: 8.5, fontWeight: 700, paddingRight: 8 }}>{pr.title}</Text>
+              <View style={{ width: '22%', paddingRight: 10 }}>
+                <Text style={{ fontSize: 9, fontWeight: 700, color: C.navy, marginBottom: 2 }}>{pr.probability}%</Text>
+                <Bar pct={pr.probability} color={pr.probability >= 60 ? C.ok : pr.probability >= 35 ? C.warn : C.bad} />
+              </View>
+              <View style={{ width: '16%' }}><Pill label={VERDICT[pr.verdict].label.replace(' ΥΠΟ ΠΡΟΫΠΟΘΕΣΕΙΣ', ' (ΟΡΟΙ)')} fg={VERDICT[pr.verdict].fg} bg={VERDICT[pr.verdict].bg} /></View>
+              <Text style={{ width: '12%', fontSize: 8, textAlign: 'right', color: C.fg2 }}>{dateEl(pr.submissionEnd)}</Text>
+            </View>
+          ))}
+
+          <Text style={s.h2} minPresenceAhead={80}>ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ ΓΙΑ ΟΛΑ ΤΑ ΠΡΟΓΡΑΜΜΑΤΑ</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
+            <Fact label="Συνολικά" value={String(sm.counts.total)} sub="μοναδικά δικαιολογητικά" />
+            <Fact label="Κοινά" value={String(sm.counts.common)} sub="σε 2+ προγράμματα — μία φορά για όλα" />
+            <Fact label="Υπάρχουν ήδη" value={String(sm.counts.ok)} sub="σε ισχύ στην επιχείρηση" />
+            <Fact label="Θέλουν ενέργεια" value={String(sm.counts.toDo)} sub="έκδοση, ανανέωση ή σύνταξη" />
+          </View>
+          <View style={[s.tr, { paddingVertical: 4 }]}>
+            <Text style={[s.th, { width: '38%' }]}>ΔΙΚΑΙΟΛΟΓΗΤΙΚΟ</Text>
+            <Text style={[s.th, { width: '16%' }]}>ΠΟΥ ΕΚΔΙΔΕΤΑΙ</Text>
+            <Text style={[s.th, { width: '32%' }]}>ΓΙΑ ΤΑ ΠΡΟΓΡΑΜΜΑΤΑ</Text>
+            <Text style={[s.th, { width: '14%', textAlign: 'right' }]}>ΚΑΤΑΣΤΑΣΗ</Text>
+          </View>
+          {sm.docs.map((doc, i) => (
+            <View key={`${doc.name}-${i}`} style={s.tr} wrap={false}>
+              <View style={{ width: '38%', paddingRight: 8 }}>
+                <Text style={{ fontSize: 8.5, fontWeight: 700 }}>{doc.name}</Text>
+                {doc.notes[0] ? <Text style={{ fontSize: 7, color: C.muted, marginTop: 1 }}>{doc.notes[0].slice(0, 140)}</Text> : null}
+              </View>
+              <Text style={{ width: '16%', fontSize: 8, color: C.fg2, paddingRight: 6 }}>{doc.issuer ?? '—'}</Text>
+              <Text style={{ width: '32%', fontSize: 7.5, color: C.fg2, paddingRight: 6 }}>
+                {doc.programs.length > 1 ? `Κοινό σε ${doc.programs.length}: ` : ''}{doc.programs.map(short).join(' · ')}
+              </Text>
+              <View style={{ width: '14%', alignItems: 'flex-end' }}><Pill {...REQ_DOC[doc.status]} /></View>
+            </View>
+          ))}
+
+          <View style={[s.card, { marginTop: 18, backgroundColor: C.navy50, borderColor: C.navy50 }]} wrap={false}>
+            <Text style={{ fontFamily: 'RobotoCondensed', fontWeight: 900, fontSize: 9.5, color: C.navy, marginBottom: 4 }}>ΜΕΘΟΔΟΛΟΓΙΑ</Text>
+            <Text style={[s.para, { fontSize: 7.5 }]}>
+              Κάθε πρόγραμμα αξιολογήθηκε χωριστά βάσει των κριτηρίων επιλεξιμότητας και του επίσημου οδηγού του. Τα δικαιολογητικά που ζητούν
+              περισσότερα από ένα προγράμματα εμφανίζονται μία φορά — εκδίδονται μία φορά και χρησιμοποιούνται σε όλα, εφόσον είναι σε ισχύ κατά
+              την υποβολή. Οι πιθανότητες είναι εκτιμήσεις και δεν αποτελούν δέσμευση έγκρισης.
+            </Text>
+          </View>
+        </View>
+        <Footer company={p.name} />
+      </Page>
+    </Document>
+  )
+}
+
+/** PDF συνολικής ανάλυσης (όλες οι αξιολογήσεις πρέπει να είναι ολοκληρωμένες και για την ίδια επιχείρηση). */
+export async function combinedPdfByIds(ids: string[]): Promise<{ pdf: Buffer; fileName: string; companyName: string; trdrId: string; programTitles: string[] } | null> {
+  const { prisma } = await import('@/lib/prisma')
+  const { summarizeCombined } = await import('./combine')
+  const rows = await prisma.eligibilityAssessment.findMany({ where: { id: { in: ids.slice(0, 12) } }, include: { program: { select: { title: true, submissionEnd: true } } }, orderBy: { createdAt: 'desc' } })
+  if (!rows.length || rows.some(r => r.status !== 'DONE' || !r.result) || new Set(rows.map(r => r.trdrId)).size !== 1) return null
+  const profile = ((rows[0].inputSnapshot ?? {}) as { profile?: CompanyProfile }).profile
+  if (!profile) return null
+  const summary = summarizeCombined(rows.map(r => ({ assessmentId: r.id, title: r.program.title, submissionEnd: r.program.submissionEnd?.toISOString() ?? null, result: r.result as unknown as AssessmentResult })))
+  ensureFonts()
+  const pdf = await renderToBuffer(<CombinedDocument d={{ createdAt: new Date(), profile, summary }} />)
+  const safe = profile.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60)
+  return { pdf, fileName: `Συνολική-αξιολόγηση-${safe}.pdf`, companyName: profile.name, trdrId: rows[0].trdrId, programTitles: rows.map(r => r.program.title) }
+}

@@ -4,7 +4,7 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import {
   Sparkles, LoaderCircle, FileText, Download, CircleCheck, CircleX, CircleAlert, CircleHelp, TrendingUp, History,
-  FileCheck2, FileWarning, FilePlus2, FilePen, Trash2, Mail, Send,
+  FileCheck2, FileWarning, FilePlus2, FilePen, Trash2, Mail, Send, Layers,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -13,8 +13,8 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { relativeTime } from '@/lib/relative-time'
 import {
-  startEligibilityAssessment, getAssessment, listAssessments, listAssessablePrograms, deleteAssessment, getProfileReadiness, listAssessmentRecipients, sendAssessmentEmail,
-  type AssessmentDetail, type AssessmentRow, type ProfileReadiness,
+  startEligibilityAssessment, getAssessment, listAssessments, listAssessablePrograms, deleteAssessment, getProfileReadiness, listAssessmentRecipients, sendAssessmentEmail, startCombinedAssessment, getCombinedAssessment,
+  type AssessmentDetail, type AssessmentRow, type ProfileReadiness, type AssessableProgram, type CombinedState,
 } from '@/lib/assessment/actions'
 import type { AssessmentResult, CheckStatus } from '@/lib/assessment/agent'
 
@@ -63,6 +63,8 @@ export function AssessmentDialog({
   const [tick, setTick] = React.useState(0)
   const [readiness, setReadiness] = React.useState<ProfileReadiness | null>(null)
   const [sendOpen, setSendOpen] = React.useState(false)
+  const [mode, setMode] = React.useState<'single' | 'multi'>('single')
+  const [rawPrograms, setRawPrograms] = React.useState<AssessableProgram[]>([])
 
   // Άνοιγμα: προγράμματα + ιστορικό· αν υπάρχει πρόσφατη αξιολόγηση για το επιλεγμένο πρόγραμμα, εμφάνισέ την.
   React.useEffect(() => {
@@ -72,6 +74,7 @@ export function AssessmentDialog({
     Promise.all([listAssessablePrograms(trdrId), listAssessments(trdrId)]).then(async ([ps, hs]) => {
       if (cancelled) return
       // Πρώτα όσα ταιριάζουν ήδη στον πελάτη (★ περιφέρεια/ΚΑΔ), μετά τα ανοιχτά, στο τέλος όσα έληξαν.
+      setRawPrograms(ps)
       setPrograms(ps.map(p => ({
         value: p.id,
         label: `${p.match === 'strong' ? '★ ' : ''}${p.title}`,
@@ -155,6 +158,17 @@ export function AssessmentDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          {/* Ένα πρόγραμμα ή συνολική ανάλυση πολλών */}
+          <div role="radiogroup" aria-label="Είδος αξιολόγησης" className="inline-flex self-start rounded-full border border-border bg-card p-0.5 text-[length:var(--fs-12-5)]">
+            {([['single', 'Ένα πρόγραμμα', Sparkles], ['multi', 'Πολλά προγράμματα (συνολική)', Layers]] as const).map(([k, l, I]) => (
+              <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}
+                className={cn('inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3.5 font-semibold', mode === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                <I className="size-3.5" /> {l}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'multi' ? <MultiAssessment trdrId={trdrId} programs={rawPrograms} onOpenSingle={id => { setMode('single'); void open_(id) }} /> : <>
           {/* Επιλογή προγράμματος */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Combobox
@@ -244,7 +258,7 @@ export function AssessmentDialog({
                   </Button>
                 </div>
               </div>
-              {sendOpen && <SendPanel assessmentId={current.id} trdrId={trdrId} onSent={() => setSendOpen(false)} />}
+              {sendOpen && <SendPanel ids={current.id} trdrId={trdrId} onSent={() => setSendOpen(false)} />}
 
               <div className="flex flex-wrap gap-1.5" role="tablist">
                 {([
@@ -266,6 +280,7 @@ export function AssessmentDialog({
               {section === 'actions' && <Actions r={r} />}
             </>
           )}
+          </>}
 
           {/* Ιστορικό */}
           {history.length > 0 && (
@@ -430,7 +445,7 @@ function Bullets({ title, items, tone }: { title: string; items: string[]; tone:
 }
 
 /** Αποστολή της αναφοράς: προτεινόμενοι παραλήπτες (πελάτης/επαφές) με ένα κλικ ή οποιοδήποτε email + μήνυμα. */
-function SendPanel({ assessmentId, trdrId, onSent }: { assessmentId: string; trdrId: string; onSent: () => void }) {
+function SendPanel({ ids, trdrId, onSent }: { ids: string | string[]; trdrId: string; onSent: () => void }) {
   const [suggestions, setSuggestions] = React.useState<{ label: string; email: string }[]>([])
   const [to, setTo] = React.useState('')
   const [cc, setCc] = React.useState('')
@@ -448,7 +463,7 @@ function SendPanel({ assessmentId, trdrId, onSent }: { assessmentId: string; trd
   async function send() {
     setSending(true)
     try {
-      const r = await sendAssessmentEmail(assessmentId, { to, cc, message })
+      const r = await sendAssessmentEmail(ids, { to, cc, message })
       if (!r.ok) { toast.error(r.message); return }
       toast.success('Η αξιολόγηση στάλθηκε.', { description: 'Θα τη βρείτε στην «Επικοινωνία» του πελάτη.' })
       onSent()
@@ -485,6 +500,154 @@ function SendPanel({ assessmentId, trdrId, onSent }: { assessmentId: string; trd
           {sending ? <LoaderCircle className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Αποστολή
         </Button>
       </div>
+    </div>
+  )
+}
+
+const DOC_FILTERS = [['all', 'Όλα'], ['common', 'Κοινά'], ['todo', 'Θέλουν ενέργεια'], ['ok', 'Υπάρχουν']] as const
+type DocFilter = (typeof DOC_FILTERS)[number][0]
+
+/**
+ * ΣΥΝΟΛΙΚΗ ανάλυση: επιλογή πολλών προγραμμάτων (προεπιλεγμένα όσα ταιριάζουν ★) → μία αξιολόγηση ανά πρόγραμμα
+ * (πρόσφατες ξαναχρησιμοποιούνται) → πίνακας πιθανοτήτων + ΜΙΑ λίστα δικαιολογητικών (κοινά / υπάρχουν / θέλουν ενέργεια)
+ * + συνολικό PDF + αποστολή.
+ */
+function MultiAssessment({ trdrId, programs, onOpenSingle }: { trdrId: string; programs: AssessableProgram[]; onOpenSingle: (id: string) => void }) {
+  const [selected, setSelected] = React.useState<Set<string>>(() => new Set(programs.filter(p => p.match === 'strong' && !p.expired).slice(0, 4).map(p => p.id)))
+  const [ids, setIds] = React.useState<string[] | null>(null)
+  const [state, setState] = React.useState<CombinedState | null>(null)
+  const [starting, setStarting] = React.useState(false)
+  const [filter, setFilter] = React.useState<DocFilter>('all')
+  const [sendOpen, setSendOpen] = React.useState(false)
+  const [showAll, setShowAll] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!ids) return
+    let alive = true
+    const tick = async () => {
+      const st = await getCombinedAssessment(ids).catch(() => null)
+      if (!alive || !st) return
+      setState(st)
+      if (st.status === 'RUNNING') setTimeout(tick, 3000)
+      else toast.success('Η συνολική ανάλυση ολοκληρώθηκε.')
+    }
+    void tick()
+    return () => { alive = false }
+  }, [ids])
+
+  function toggle(id: string) {
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else if (n.size < 8) n.add(id); else toast.info('Έως 8 προγράμματα.'); return n })
+  }
+  async function start(fresh = false) {
+    setStarting(true)
+    try {
+      const r = await startCombinedAssessment(trdrId, [...selected], { fresh })
+      if (!r.ok) { toast.error(r.message); return }
+      setState(null); setIds(r.ids)
+      if (r.reused) toast.info(`${r.reused} από ${r.ids.length} αξιολογήσεις ήταν πρόσφατες και ξαναχρησιμοποιούνται.`)
+    } finally { setStarting(false) }
+  }
+
+  const visible = showAll ? programs : programs.filter(p => !p.expired)
+  const done = state?.status === 'DONE' ? state : null
+  const docs = done ? done.summary.docs.filter(d => filter === 'all' || (filter === 'common' ? d.programs.length > 1 : filter === 'ok' ? d.status === 'OK' : d.status !== 'OK')) : []
+  const q = ids ? `ids=${ids.join(',')}` : ''
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Επιλογή προγραμμάτων */}
+      <div className="rounded-2xl border border-border bg-card p-3.5">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="text-[length:var(--fs-12-5)] font-semibold">Επιλέξτε προγράμματα ({selected.size}/8)</span>
+          <span className="text-[length:var(--fs-11-5)] text-muted-foreground">★ = ταιριάζει ήδη σε περιφέρεια/ΚΑΔ</span>
+          <button type="button" onClick={() => setShowAll(v => !v)} className="ml-auto cursor-pointer text-[length:var(--fs-11-5)] text-muted-foreground underline-offset-2 hover:underline">
+            {showAll ? 'Απόκρυψη όσων έληξαν' : 'Εμφάνιση και όσων έληξαν'}
+          </button>
+        </div>
+        <ul className="grid max-h-64 gap-1 overflow-y-auto sm:grid-cols-2">
+          {visible.map(p => (
+            <li key={p.id}>
+              <label className={cn('flex min-h-10 cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-[length:var(--fs-12-5)] hover:bg-muted/60', selected.has(p.id) && 'bg-primary/8')}>
+                <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} className="mt-0.5 size-4 accent-[var(--primary)]" />
+                <span className="min-w-0">
+                  <span className="font-semibold">{p.match === 'strong' ? '★ ' : ''}{p.title}</span>
+                  <span className="block text-[length:var(--fs-11)] text-muted-foreground">{[p.expired ? 'Έληξε' : p.status === 'DRAFT' ? 'Πρόχειρο' : null, p.hasGuide ? null : 'χωρίς οδηγό PDF', p.submissionEnd ? `λήξη ${new Date(p.submissionEnd).toLocaleDateString('el-GR')}` : null].filter(Boolean).join(' · ')}</span>
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2.5 flex flex-wrap justify-end gap-2">
+          {done && <Button type="button" variant="outline" size="sm" onClick={() => void start(true)} disabled={starting}>Νέα ανάλυση από την αρχή</Button>}
+          <Button type="button" onClick={() => void start()} disabled={starting || selected.size < 2 || state?.status === 'RUNNING'}>
+            {starting || state?.status === 'RUNNING' ? <LoaderCircle className="size-3.5 animate-spin" /> : <Layers className="size-3.5" />} Συνολική ανάλυση ({selected.size})
+          </Button>
+        </div>
+      </div>
+
+      {state?.status === 'RUNNING' && (
+        <div className="rounded-2xl border border-border bg-card p-4" aria-live="polite">
+          <div className="mb-2 text-[length:var(--fs-12-5)] font-semibold">Αξιολόγηση ανά πρόγραμμα — {state.done}/{state.total} ολοκληρώθηκαν (≈1′ το καθένα, παράλληλα)</div>
+          <div className="h-1.5 rounded-full bg-muted"><div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${(state.done / Math.max(1, state.total)) * 100}%` }} /></div>
+        </div>
+      )}
+
+      {done && (
+        <>
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[length:var(--fs-13)] font-bold">Πιθανότητα ανά πρόγραμμα</span>
+              <div className="ml-auto flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" nativeButton={false} render={<a href={`/api/assessments/combined/pdf?${q}`} target="_blank" rel="noopener" />}><FileText className="size-3.5" /> Προβολή PDF</Button>
+                <Button type="button" size="sm" nativeButton={false} render={<a href={`/api/assessments/combined/pdf?${q}&download=1`} />}><Download className="size-3.5" /> Λήψη PDF</Button>
+                <Button type="button" size="sm" variant={sendOpen ? 'secondary' : 'outline'} onClick={() => setSendOpen(o => !o)}><Mail className="size-3.5" /> Αποστολή με email</Button>
+              </div>
+            </div>
+            {done.failed.length > 0 && <p className="text-[length:var(--fs-12)] text-(--danger)">Δεν ολοκληρώθηκε για: {done.failed.join(', ')}</p>}
+            <ul className="divide-y divide-border rounded-xl border border-border">
+              {done.summary.programs.map(p => (
+                <li key={p.assessmentId} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
+                  <span className="min-w-0 flex-1 text-[length:var(--fs-12-5)] font-semibold">{p.title}</span>
+                  <span className="w-28"><span className="block text-[length:var(--fs-12)] font-bold tabular-nums">{p.probability}%</span><span className="block h-1.5 rounded-full bg-muted"><span className={cn('block h-1.5 rounded-full', p.probability >= 60 ? 'bg-(--success)' : p.probability >= 35 ? 'bg-(--warning)' : 'bg-(--danger)')} style={{ width: `${p.probability}%` }} /></span></span>
+                  <span className={cn('badge-pill', VERDICT[p.verdict].cls)}>{VERDICT[p.verdict].label}</span>
+                  <button type="button" onClick={() => onOpenSingle(p.assessmentId)} className="cursor-pointer text-[length:var(--fs-12)] font-semibold text-primary hover:underline">Λεπτομέρειες ›</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {sendOpen && ids && <SendPanel ids={ids} trdrId={trdrId} onSent={() => setSendOpen(false)} />}
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[length:var(--fs-13)] font-bold">Δικαιολογητικά για όλα τα προγράμματα</span>
+              <span className="text-[length:var(--fs-11-5)] text-muted-foreground">{done.summary.counts.total} συνολικά · {done.summary.counts.common} κοινά · {done.summary.counts.ok} υπάρχουν · {done.summary.counts.toDo} θέλουν ενέργεια</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5" role="tablist">
+              {DOC_FILTERS.map(([k, l]) => (
+                <button key={k} type="button" role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
+                  className={cn('min-h-8 cursor-pointer rounded-full border px-3 text-[length:var(--fs-12)] font-semibold', filter === k ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-muted-foreground hover:text-foreground')}>{l}</button>
+              ))}
+            </div>
+            <ul className="divide-y divide-border rounded-xl border border-border">
+              {docs.map((d, i) => {
+                const st = REQ_DOC[d.status]
+                return (
+                  <li key={`${d.name}-${i}`} className="flex flex-wrap items-start gap-3 px-3 py-2.5">
+                    <st.Icon className={cn('mt-0.5 size-4 shrink-0', d.status === 'OK' ? 'text-(--success)' : d.status === 'MISSING' ? 'text-(--danger)' : d.status === 'EXPIRED' ? 'text-(--warning)' : 'text-primary')} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[length:var(--fs-12-5)] font-semibold">{d.name}{d.issuer ? <span className="font-normal text-muted-foreground"> · {d.issuer}</span> : null}</span>
+                      <span className="block text-[length:var(--fs-11-5)] text-muted-foreground">{d.programs.length > 1 ? <b className="text-foreground">Κοινό σε {d.programs.length} προγράμματα: </b> : null}{d.programs.join(' · ')}</span>
+                      {d.notes[0] && <span className="block text-[length:var(--fs-11-5)] text-muted-foreground">{d.notes[0]}</span>}
+                    </span>
+                    <span className={cn('badge-pill shrink-0', st.cls)}>{st.label}</span>
+                  </li>
+                )
+              })}
+              {docs.length === 0 && <li className="px-3 py-4 text-center text-[length:var(--fs-12)] text-muted-foreground">Κανένα δικαιολογητικό σε αυτό το φίλτρο.</li>}
+            </ul>
+          </div>
+        </>
+      )}
     </div>
   )
 }
