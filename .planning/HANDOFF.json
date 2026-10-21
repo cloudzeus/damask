@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-21T05:19:25.201Z",
+  "timestamp": "2026-10-21T06:12:43.438Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,40 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/application-hub.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/document-requests-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/expenses-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/file-requests-review-tab.tsx"
-    },
-    {
-      "status": "M",
-      "path": "src/components/pm/obligations-tab.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/components/pm/implementation-hub.tsx"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/pm/impl-overview-core.ts"
-    },
-    {
-      "status": "??",
-      "path": "src/lib/pm/impl-overview.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n6bbb868 chore: ενημέρωση HANDOFF\nd77ffcc chore(trdr): αναδρομική ΑΑΔΕ/ΓΕΜΗ/γεωκωδικοποίηση/περιφέρεια για όσους πελάτες δεν πέρασαν ποτέ + δυνητικά για όλους\n3861708 chore: ενημέρωση HANDOFF\ndf4cb96 fix(ai): μόνο OpenRouter όταν υπάρχει κλειδί — χωρίς σιωπηλή εφεδρεία σε απευθείας Gemini· μηνύματα/ετικέτες χωρίς «Gemini»\n8e837b3 feat(programs): συνδυαστική αποδελτίωση — ο επόμενος οδηγός (παράρτημα/λίστα ΚΑΔ/τροποποίηση) συμπληρώνει τον προηγούμενο αντί να τον σβήνει· «Προσθήκη οδηγού / Αντικατάσταση», πολλά PDF στον οδηγό νέου προγράμματος, δυνητικοί πελάτες αμέσως μετά την αποδελτίωση"
+  "context_notes": "Recent commits:\n7463a25 feat(assessment): συνολική ανάλυση πολλών προγραμμάτων — επιλογή έως 8 (★ όσα ταιριάζουν προεπιλεγμένα), αξιολόγηση ανά πρόγραμμα παράλληλα (πρόσφατες 7 ημερών ξαναχρησιμοποιούνται), πίνακας πιθανοτήτων, ΜΙΑ λίστα δικαιολογητικών με κοινά/υπάρχουν/θέλουν ενέργεια, συνολικό PDF + αποστολή με email\n8a7b4eb feat(assessment): αποστολή της αναφοράς με email (πελάτης/επαφές με ένα κλικ ή οποιοδήποτε email, κοινοποίηση, μήνυμα, PDF συνημμένο μέσω deliverCustomerEmail)· χωρίς αναφορά σε AI/μοντέλο στο PDF\n6e37b7c feat(assessment): «Αξιολόγηση ένταξης & PDF» στο ⋮ κάθε πελάτη (λίστα πελατών + leads)· προτεινόμενα προγράμματα πρώτα (★ ταιριάζει σε περιφέρεια/ΚΑΔ, όσα έληξαν στο τέλος, προεπιλογή το καλύτερο)· «Στοιχεία της επιχείρησης» (ετοιμότητα % με οδηγίες για ό,τι λείπει)· φρέσκο προφίλ ΑΑΔΕ/ΓΕΜΗ/περιφέρεια πριν τρέξει ο agent\n7f963f3 chore: ενημέρωση HANDOFF\nae03136 feat(pm): «λειτουργία υλοποίησης» για εγκεκριμένα έργα — Επισκόπηση με ΜΙΑ λίστα «Τι να κάνετε τώρα» (έλεγχος → ελλείψεις → εργασίες) + 3 δείκτες, 7 καρτέλες αντί 12 (χωρίς Αξιολόγηση/ΟΠΣΚΕ/στάδια υποβολής), Παραδοτέα+Φάκελος+Gantt ενωμένα, Επαφές+Αιτήματα+Emails στην Επικοινωνία, μοναδικές ετικέτες· πλήρης προβολή από το ⋮"
 }
