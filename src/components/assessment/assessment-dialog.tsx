@@ -4,15 +4,16 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import {
   Sparkles, LoaderCircle, FileText, Download, CircleCheck, CircleX, CircleAlert, CircleHelp, TrendingUp, History,
-  FileCheck2, FileWarning, FilePlus2, FilePen, Trash2,
+  FileCheck2, FileWarning, FilePlus2, FilePen, Trash2, Mail, Send,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { relativeTime } from '@/lib/relative-time'
 import {
-  startEligibilityAssessment, getAssessment, listAssessments, listAssessablePrograms, deleteAssessment, getProfileReadiness,
+  startEligibilityAssessment, getAssessment, listAssessments, listAssessablePrograms, deleteAssessment, getProfileReadiness, listAssessmentRecipients, sendAssessmentEmail,
   type AssessmentDetail, type AssessmentRow, type ProfileReadiness,
 } from '@/lib/assessment/actions'
 import type { AssessmentResult, CheckStatus } from '@/lib/assessment/agent'
@@ -61,6 +62,7 @@ export function AssessmentDialog({
   const [section, setSection] = React.useState<Section>('docs')
   const [tick, setTick] = React.useState(0)
   const [readiness, setReadiness] = React.useState<ProfileReadiness | null>(null)
+  const [sendOpen, setSendOpen] = React.useState(false)
 
   // Άνοιγμα: προγράμματα + ιστορικό· αν υπάρχει πρόσφατη αξιολόγηση για το επιλεγμένο πρόγραμμα, εμφάνισέ την.
   React.useEffect(() => {
@@ -237,8 +239,12 @@ export function AssessmentDialog({
                   <Button type="button" size="sm" nativeButton={false} render={<a href={pdf(true)} />}>
                     <Download className="size-3.5" /> Λήψη PDF
                   </Button>
+                  <Button type="button" size="sm" variant={sendOpen ? 'secondary' : 'outline'} onClick={() => setSendOpen(o => !o)} aria-expanded={sendOpen}>
+                    <Mail className="size-3.5" /> Αποστολή με email
+                  </Button>
                 </div>
               </div>
+              {sendOpen && <SendPanel assessmentId={current.id} trdrId={trdrId} onSent={() => setSendOpen(false)} />}
 
               <div className="flex flex-wrap gap-1.5" role="tablist">
                 {([
@@ -419,6 +425,66 @@ function Bullets({ title, items, tone }: { title: string; items: string[]; tone:
           <li key={i} className="flex gap-2 text-[length:var(--fs-12)]"><span className="mt-1.5 size-1.5 shrink-0 rounded-full" style={{ background: tone }} />{x}</li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+/** Αποστολή της αναφοράς: προτεινόμενοι παραλήπτες (πελάτης/επαφές) με ένα κλικ ή οποιοδήποτε email + μήνυμα. */
+function SendPanel({ assessmentId, trdrId, onSent }: { assessmentId: string; trdrId: string; onSent: () => void }) {
+  const [suggestions, setSuggestions] = React.useState<{ label: string; email: string }[]>([])
+  const [to, setTo] = React.useState('')
+  const [cc, setCc] = React.useState('')
+  const [message, setMessage] = React.useState('')
+  const [sending, setSending] = React.useState(false)
+  React.useEffect(() => {
+    let alive = true
+    listAssessmentRecipients(trdrId).then(r => { if (!alive) return; setSuggestions(r); if (r[0]) setTo(t => t || r[0].email) }).catch(() => {})
+    return () => { alive = false }
+  }, [trdrId])
+  const toList = to.split(/[,;\s]+/).filter(Boolean)
+  function toggle(email: string) {
+    setTo(toList.includes(email) ? toList.filter(e => e !== email).join(', ') : [...toList, email].join(', '))
+  }
+  async function send() {
+    setSending(true)
+    try {
+      const r = await sendAssessmentEmail(assessmentId, { to, cc, message })
+      if (!r.ok) { toast.error(r.message); return }
+      toast.success('Η αξιολόγηση στάλθηκε.', { description: 'Θα τη βρείτε στην «Επικοινωνία» του πελάτη.' })
+      onSent()
+    } catch { toast.error('Η αποστολή απέτυχε.') } finally { setSending(false) }
+  }
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center gap-2 text-[length:var(--fs-13)] font-semibold"><Mail className="size-4 text-primary" /> Αποστολή της αναφοράς (PDF συνημμένο)</div>
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions.map(sg => (
+            <button key={sg.email} type="button" onClick={() => toggle(sg.email)} aria-pressed={toList.includes(sg.email)}
+              className={cn('inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-full border px-3 text-[length:var(--fs-12)]', toList.includes(sg.email) ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground')}>
+              {toList.includes(sg.email) && <CircleCheck className="size-3" />} {sg.label} · {sg.email}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-[length:var(--fs-12)] font-semibold">Προς
+          <Input type="email" value={to} onChange={e => setTo(e.target.value)} placeholder="email@επιχείρηση.gr — πολλά με κόμμα" />
+        </label>
+        <label className="flex flex-col gap-1 text-[length:var(--fs-12)] font-semibold">Κοινοποίηση (προαιρετικό)
+          <Input type="email" value={cc} onChange={e => setCc(e.target.value)} placeholder="π.χ. λογιστής" />
+        </label>
+      </div>
+      <label className="flex flex-col gap-1 text-[length:var(--fs-12)] font-semibold">Μήνυμα (προαιρετικό)
+        <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3}
+          placeholder="Αν το αφήσετε κενό, στέλνεται σύντομο συνοδευτικό κείμενο με το όνομα της επιχείρησης και του προγράμματος."
+          className="rounded-xl border border-border bg-card px-3 py-2 text-[length:var(--fs-13)] font-normal outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30" />
+      </label>
+      <div className="flex justify-end">
+        <Button type="button" onClick={() => void send()} disabled={sending || !toList.length}>
+          {sending ? <LoaderCircle className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Αποστολή
+        </Button>
+      </div>
     </div>
   )
 }

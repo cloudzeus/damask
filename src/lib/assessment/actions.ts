@@ -140,3 +140,52 @@ export async function getProfileReadiness(trdrId: string): Promise<ProfileReadin
   ]
   return { items, score: Math.round((items.filter(i => i.ok).length / items.length) * 100) }
 }
+
+/** Προτεινόμενοι παραλήπτες: email πελάτη + επαφές του (ο χρήστης μπορεί να γράψει και άλλο email). */
+export async function listAssessmentRecipients(trdrId: string): Promise<{ label: string; email: string }[]> {
+  await requirePermission('customer.view')
+  const t = await prisma.trdr.findUnique({ where: { id: trdrId }, select: { NAME: true, EMAIL: true, contacts: { select: { name: true, email: true, position: true } } } })
+  if (!t) return []
+  const out: { label: string; email: string }[] = []
+  if (t.EMAIL) out.push({ label: `${t.NAME} (πελάτης)`, email: t.EMAIL })
+  for (const c of t.contacts) if (c.email && !out.some(o => o.email.toLowerCase() === c.email!.toLowerCase())) out.push({ label: `${c.name}${c.position ? ` — ${c.position}` : ''}`, email: c.email })
+  return out
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * Αποστολή της αναφοράς (PDF συνημμένο) στον πελάτη ή σε όποιο email ορίσει ο χρήστης — μέσω deliverCustomerEmail
+ * (νήμα/ετικέτα [WWA-…]/ιστορικό στην καρτέλα «Επικοινωνία»).
+ */
+export async function sendAssessmentEmail(id: string, input: { to: string; cc?: string; message?: string }): Promise<{ ok: true } | { ok: false; message: string }> {
+  const session = await requirePermission('customer.edit')
+  const to = input.to.split(/[,;\s]+/).map(x => x.trim()).filter(Boolean)
+  const cc = (input.cc ?? '').split(/[,;\s]+/).map(x => x.trim()).filter(Boolean)
+  if (!to.length) return { ok: false, message: 'Γράψτε τουλάχιστον ένα email παραλήπτη.' }
+  const bad = [...to, ...cc].find(e => !EMAIL_RE.test(e))
+  if (bad) return { ok: false, message: `Μη έγκυρο email: ${bad}` }
+  const { assessmentPdfById } = await import('./pdf')
+  const r = await assessmentPdfById(id)
+  if (!r) return { ok: false, message: 'Η αξιολόγηση δεν είναι έτοιμη.' }
+  const { bunnyUploadPrivate } = await import('@/lib/bunny-storage')
+  const key = `assessments/${id}/${Date.now()}.pdf`
+  await bunnyUploadPrivate({ key, body: r.pdf, contentType: 'application/pdf' })
+  const { escapeHtml } = await import('@/lib/mailer')
+  const note = (input.message ?? '').trim()
+  const bodyHtml = [
+    '<p>Καλησπέρα σας,</p>',
+    note ? note.split(/\n{2,}/).map(par => `<p>${escapeHtml(par).replace(/\n/g, '<br/>')}</p>`).join('') : `<p>Σας στέλνουμε την αξιολόγηση ένταξης της επιχείρησης <b>${escapeHtml(r.companyName)}</b> στο πρόγραμμα <b>${escapeHtml(r.programTitle)}</b>, με τα κριτήρια, την εκτιμώμενη πιθανότητα έγκρισης και τα δικαιολογητικά που θα χρειαστούν.</p>`,
+    '<p>Θα χαρούμε να τη συζητήσουμε μαζί σας.</p>',
+    '<p>Με εκτίμηση,<br/>Η ομάδα της World Wide Associates</p>',
+  ].join('')
+  const { deliverCustomerEmail } = await import('@/lib/email/deliver')
+  const res = await deliverCustomerEmail({ id: session.user.id, name: session.user.name }, {
+    trdrId: r.trdrId, programId: r.programId, to: to.join(', '), cc: cc.length ? cc.join(', ') : undefined,
+    subject: `Αξιολόγηση ένταξης: ${r.programTitle} — ${r.companyName}`.slice(0, 200), bodyHtml,
+    attachments: [{ name: r.fileName, key, size: r.pdf.length, mime: 'application/pdf' }],
+  })
+  if (!res.ok) return { ok: false, message: res.error ?? 'Η αποστολή απέτυχε.' }
+  await logActivity('program.assess', { userId: session.user.id, entityType: 'EligibilityAssessment', entityId: id, summary: `Αποστολή αξιολόγησης σε ${to.join(', ')}` }).catch(() => {})
+  return { ok: true }
+}

@@ -347,9 +347,8 @@ function AssessmentDocument({ d }: { d: AssessmentPdfInput }) {
           <View style={[s.card, { marginTop: 18, backgroundColor: C.navy50, borderColor: C.navy50 }]} wrap={false}>
             <Text style={{ fontFamily: 'RobotoCondensed', fontWeight: 900, fontSize: 9.5, color: C.navy, marginBottom: 4 }}>ΜΕΘΟΔΟΛΟΓΙΑ & ΠΗΓΕΣ</Text>
             <Text style={[s.para, { fontSize: 7.5 }]}>
-              Η αξιολόγηση συνδυάζει αυτόματο έλεγχο κανόνων (ΚΑΔ, περιφέρεια, νομική μορφή, ΕΜΕ, έτη λειτουργίας, δικαιολογητικά) με ανάλυση
-              {d.usedGuidePdf ? ' του επίσημου οδηγού του προγράμματος' : ' των στοιχείων του προγράμματος (ο οδηγός δεν ήταν διαθέσιμος)'} από τεχνητή νοημοσύνη
-              {d.model ? ` (${d.model})` : ''}. Στοιχεία επιχείρησης: ΓΕΜΗ, ΑΑΔΕ και καταχωρισμένα έντυπα (Ε3, ΕΜΕ, Δήλωση ΜΜΕ).
+              Η αξιολόγηση συνδυάζει έλεγχο των κριτηρίων επιλεξιμότητας (ΚΑΔ, περιφέρεια, νομική μορφή, ΕΜΕ, έτη λειτουργίας, δικαιολογητικά) με ανάλυση
+              {d.usedGuidePdf ? ' του επίσημου οδηγού του προγράμματος' : ' των στοιχείων του προγράμματος (ο οδηγός δεν ήταν διαθέσιμος)'}. Στοιχεία επιχείρησης: ΓΕΜΗ, ΑΑΔΕ και καταχωρισμένα έντυπα (Ε3, ΕΜΕ, Δήλωση ΜΜΕ).
               {d.submissionEnd ? ` Λήξη υποβολών: ${dateEl(d.submissionEnd.toISOString())}.` : ''} Η πιθανότητα είναι εκτίμηση και προϋποθέτει
               την έγκαιρη ολοκλήρωση των ενεργειών· δεν αποτελεί δέσμευση έγκρισης.
             </Text>
@@ -401,4 +400,22 @@ function CriteriaTable({ rows }: { rows: AssessmentResult['criteria'] }) {
 export async function renderAssessmentPdf(input: AssessmentPdfInput): Promise<Buffer> {
   ensureFonts()
   return renderToBuffer(<AssessmentDocument d={input} />)
+}
+
+/** PDF μιας ολοκληρωμένης αξιολόγησης από τη βάση (προβολή/λήψη και αποστολή με email). null αν δεν είναι έτοιμη. */
+export async function assessmentPdfById(id: string): Promise<{ pdf: Buffer; fileName: string; companyName: string; programTitle: string; trdrId: string; programId: string } | null> {
+  const { prisma } = await import('@/lib/prisma')
+  const a = await prisma.eligibilityAssessment.findUnique({
+    where: { id },
+    include: { program: { select: { title: true, referenceCode: true, submissionEnd: true } } },
+  })
+  if (!a || a.status !== 'DONE' || !a.result) return null
+  const snap = (a.inputSnapshot ?? {}) as { profile?: CompanyProfile }
+  if (!snap.profile) return null
+  const pdf = await renderAssessmentPdf({
+    createdAt: a.createdAt, programTitle: a.program.title, programRef: a.program.referenceCode, submissionEnd: a.program.submissionEnd,
+    usedGuidePdf: a.usedGuidePdf, model: null, profile: snap.profile, result: a.result as unknown as AssessmentResult,
+  })
+  const safe = snap.profile.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60)
+  return { pdf, fileName: `Αξιολόγηση-ένταξης-${safe}.pdf`, companyName: snap.profile.name, programTitle: a.program.title, trdrId: a.trdrId, programId: a.programId }
 }
