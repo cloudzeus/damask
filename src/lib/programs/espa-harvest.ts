@@ -252,8 +252,11 @@ export async function harvestEspaCalls(opts: { scanBack?: number; maxNew?: numbe
         try {
           const text = fullText || (c.pdfUrl ? await pdfText(c.pdfUrl) : '') || `${c.title}\n${c.description}\nΠεριοχή: ${c.region ?? ''}\nΠροϋπολογισμός: ${c.budget ?? ''}`
           const r = await extractProgramFromText(text, { refId: program.id })
-          await persistExtractedProgram(program.id, r.data)
-          await prisma.program.update({ where: { id: program.id }, data: { model: r.model, extractedData: JSON.parse(JSON.stringify(r.data)), extractStatus: 'DONE', sourceFileName: c.pdfUrl ? decodeURIComponent(c.pdfUrl.split('/').pop() ?? '') : null } })
+          // Πλήρης λίστα ΚΑΔ από το παράρτημα του PDF της πρόσκλησης (το κείμενο εδώ είναι μόνο οι πρώτες 80 σελίδες).
+          const { applyKadAnnex } = await import('./kad-extract')
+          const data = await applyKadAnnex(program.id, r.data)
+          await persistExtractedProgram(program.id, data)
+          await prisma.program.update({ where: { id: program.id }, data: { model: r.model, extractedData: JSON.parse(JSON.stringify(data)), extractStatus: 'DONE', sourceFileName: c.pdfUrl ? decodeURIComponent(c.pdfUrl.split('/').pop() ?? '') : null } })
           // Η επίσημη περίοδος της πηγής υπερισχύει.
           if (c.start || c.end) await prisma.program.update({ where: { id: program.id }, data: { ...(c.start ? { submissionStart: c.start } : {}), ...(c.end ? { submissionEnd: c.end } : {}) } })
           await generateProgramCms(program.id).catch(err => console.error('[calls-harvest] cms', err))

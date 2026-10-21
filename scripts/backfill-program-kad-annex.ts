@@ -10,7 +10,7 @@ import { runPotentialMatching } from '@/lib/pm/potential-matching'
 
 async function main() {
   const dry = process.argv.includes('--dry')
-  const ps = await prisma.program.findMany({ where: { storageKey: { not: null }, status: { not: 'CLOSED' } }, select: { id: true, title: true, extractedData: true, _count: { select: { kads: true } } } })
+  const ps = await prisma.program.findMany({ where: { status: { not: 'CLOSED' } }, select: { id: true, title: true, extractedData: true, _count: { select: { kads: true } } } })
   let changed = 0
   for (const p of ps) {
     const annex = await kadAnnexForProgram(p.id)

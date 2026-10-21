@@ -112,15 +112,45 @@ export async function kadAnnexFromText(fullRaw: string): Promise<ExtractedKad[] 
   return best
 }
 
-/** Παράρτημα ΚΑΔ από τον αποθηκευμένο οδηγό (PDF) ενός προγράμματος — null αν δεν υπάρχει οδηγός ή παράρτημα. */
+/**
+ * Παράρτημα ΚΑΔ από ΟΛΑ τα PDF του προγράμματος: κύριος οδηγός (storageKey), συμπληρωματικοί οδηγοί (αρχεία στη
+ * γνωσιακή μνήμη) και το PDF της πρόσκλησης από την πηγή (σύνδεσμος, π.χ. espa.gr) — κρατιέται το μεγαλύτερο έγκυρο.
+ * null αν κανένα δεν έχει παράρτημα επιλέξιμων ΚΑΔ.
+ */
 export async function kadAnnexForProgram(programId: string): Promise<ExtractedKad[] | null> {
-  const p = await prisma.program.findUnique({ where: { id: programId }, select: { storageKey: true } })
-  if (!p?.storageKey) return null
-  try {
-    const { bunnyDownload } = await import('@/lib/bunny-storage')
-    return await kadAnnexFromText(await pdfFullText(await bunnyDownload(p.storageKey)))
-  } catch (err) {
-    console.warn('[kad-annex] ανάγνωση οδηγού απέτυχε', programId, err instanceof Error ? err.message : err)
-    return null
+  const [p, refs] = await Promise.all([
+    prisma.program.findUnique({ where: { id: programId }, select: { storageKey: true } }),
+    prisma.programReference.findMany({ where: { programId, OR: [{ kind: 'FILE', storageKey: { not: null } }, { kind: 'URL', url: { endsWith: '.pdf', mode: 'insensitive' } }] }, select: { kind: true, storageKey: true, url: true, mimeType: true, fileName: true }, take: 10 }),
+  ])
+  const sources: (() => Promise<Uint8Array>)[] = []
+  const { bunnyDownload } = await import('@/lib/bunny-storage')
+  if (p?.storageKey) sources.push(async () => new Uint8Array(await bunnyDownload(p.storageKey!)))
+  for (const r of refs) {
+    if (r.kind === 'FILE' && r.storageKey && (r.mimeType === 'application/pdf' || /\.pdf$/i.test(r.fileName ?? r.storageKey))) sources.push(async () => new Uint8Array(await bunnyDownload(r.storageKey!)))
+    if (r.kind === 'URL' && r.url) sources.push(async () => {
+      const res = await fetch(r.url!, { headers: { 'User-Agent': 'Mozilla/5.0 (WWA)' }, signal: AbortSignal.timeout(90_000) })
+      if (!res.ok) throw new Error(`PDF ${res.status}`)
+      return new Uint8Array(await res.arrayBuffer())
+    })
   }
+  let best: ExtractedKad[] | null = null
+  for (const load of sources) {
+    try {
+      const a = await kadAnnexFromText(await pdfFullText(await load()))
+      if (a && (!best || a.length > best.length)) best = a
+    } catch (err) {
+      console.warn('[kad-annex] ανάγνωση PDF απέτυχε', programId, err instanceof Error ? err.message : err)
+    }
+  }
+  return best
+}
+
+/**
+ * ΕΝΙΑΙΟ βήμα κάθε αποδελτίωσης (χειροκίνητη, «Προσθήκη οδηγού», αυτόματη συλλογή από espa.gr): αν κάποιο PDF του
+ * προγράμματος έχει πληρέστερη λίστα επιλέξιμων ΚΑΔ από αυτή που βρήκε η αποδελτίωση, αυτή υπερισχύει
+ * (κανόνας «μόνο οι αναφερόμενοι»). Ποτέ δεν μειώνει τη λίστα.
+ */
+export async function applyKadAnnex<T extends { kads: { code: string; description?: string | null }[]; kadRule: string | null }>(programId: string, data: T): Promise<T> {
+  const annex = await kadAnnexForProgram(programId)
+  return annex && annex.length > data.kads.length ? { ...data, kads: annex, kadRule: 'ONLY_LISTED' } : data
 }
