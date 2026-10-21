@@ -28,6 +28,7 @@ import { PortalAccessDialog } from './portal-access-dialog'
 import { FolderStatusDialog } from './folder-status-dialog'
 import { EmailHistory } from '@/components/email/email-history'
 import { ApprovalStrip } from './approval-dialog'
+import { ImplementationHub } from './implementation-hub'
 
 /**
  * Το «Έργο hub» (Task 10) — κεντρική οθόνη PM για μία αίτηση προγράμματος:
@@ -48,7 +49,17 @@ import { ApprovalStrip } from './approval-dialog'
  * [appId]) — γι' αυτό μετά από ΚΑΘΕ mutation καλούμε ρητά router.refresh()
  * αντί να βασιζόμαστε στο server-side revalidate.
  */
+/**
+ * Εγκεκριμένο έργο → «λειτουργία υλοποίησης» (ImplementationHub: επισκόπηση + 7 καρτέλες)· αλλιώς η πλήρης ροή
+ * υποβολής. Η πλήρης προβολή μένει διαθέσιμη και για εγκεκριμένα (⋮ → «Πλήρης προβολή»).
+ */
 export function ApplicationHub({ app, canSend = false }: { app: ApplicationDetail; canSend?: boolean }) {
+  const [full, setFull] = React.useState(false)
+  if (app.approved && !full) return <ImplementationHub app={app} canSend={canSend} onShowFull={() => setFull(true)} />
+  return <SubmissionHub app={app} canSend={canSend} />
+}
+
+function SubmissionHub({ app, canSend = false }: { app: ApplicationDetail; canSend?: boolean }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   // Αρχικό tab από ?tab= (π.χ. deep-link «Επαφές έργου» από τα «Έργα»).

@@ -57,12 +57,14 @@ const STATUSES: ObligationStatusStr[] = ['PENDING', 'IN_PROGRESS', 'SUBMITTED', 
  */
 export function ObligationsTab({
   applicationId, canManage, programId, filterKind, title = 'Εργασίες & Υποχρεώσεις', emptyMessage = 'Δεν υπάρχουν υποχρεώσεις για αυτή την αίτηση.',
-  showBoardToggle = true, smartUploadTrdrId,
+  showBoardToggle = true, smartUploadTrdrId, excludeKinds,
 }: {
   applicationId: string
   canManage: boolean
   programId: string
   filterKind?: ObligationKindStr
+  /** Είδη που ΔΕΝ εμφανίζονται (έχουν δική τους καρτέλα — π.χ. «Εργασίες» χωρίς δικαιολογητικά/παραδοτέα). */
+  excludeKinds?: ObligationKindStr[]
   title?: string
   emptyMessage?: string
   showBoardToggle?: boolean
@@ -217,7 +219,7 @@ export function ObligationsTab({
     }
   }
 
-  const visibleObligations = filterKind ? obligations.filter(o => o.kind === filterKind) : obligations
+  const visibleObligations = (filterKind ? obligations.filter(o => o.kind === filterKind) : obligations).filter(o => !excludeKinds?.includes(o.kind))
 
   // Πρώτα ό,τι θέλει ενέργεια ΣΑΣ (έλεγχος), μετά τα απορριφθέντα, μετά όσα λείπουν· τα ολοκληρωμένα στο τέλος, μαζεμένα.
   const RANK: Record<ObligationStatusStr, number> = { SUBMITTED: 0, REJECTED: 1, IN_PROGRESS: 2, PENDING: 3, APPROVED: 4, WAIVED: 5 }

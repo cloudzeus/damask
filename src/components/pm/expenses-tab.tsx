@@ -116,7 +116,7 @@ export function ExpensesTab({ applicationId, programId, stage, trdrId, approved 
           <ImplementationBoard key={`b-${refreshKey}`} applicationId={applicationId} />
 
           {/* Δευτερεύοντα — κλειστά, ανοίγουν όταν χρειαστούν. */}
-          <Fold title="Αρχεία πελάτη «Προς καταχώριση»" hint="Ό,τι ανέβηκε για το έργο, αναγνωρισμένο: τι χρειάζεται έλεγχο, τι μπαίνει αυτόματα, τι δεν χρειάζεται.">
+          <Fold defaultOpen title="Αρχεία πελάτη «Προς καταχώριση»" hint="Ό,τι ανέβηκε για το έργο, αναγνωρισμένο: τι χρειάζεται έλεγχο, τι μπαίνει αυτόματα, τι δεν χρειάζεται.">
             <ExpenseInboxPanel key={`i-${refreshKey}`} applicationId={applicationId} trdrId={trdrId} onChanged={refreshExpenses} implementation />
           </Fold>
           <Fold title="Μητρώο παγίων" hint="Διασταύρωση δαπανών με το μητρώο παγίων του λογιστή.">
@@ -125,7 +125,7 @@ export function ExpensesTab({ applicationId, programId, stage, trdrId, approved 
           <Fold title="Εξαγωγές για τον επιτόπιο έλεγχο" hint="Excel/Word για τον ελεγκτή.">
             <InspectionExportPanel applicationId={applicationId} />
           </Fold>
-          <Fold title="Σχέδιο δαπανών & αντικατάσταση δαπάνης" hint="Το εγκεκριμένο σχέδιο, όρια κατηγοριών, αντικατάσταση δαπάνης.">
+          <Fold title="Αντικατάσταση δαπάνης & εγκεκριμένο σχέδιο" hint="Όταν μια δαπάνη αλλάζει (τροποποίηση) — και τα όρια κατηγοριών του εγκεκριμένου σχεδίου.">
             <BudgetProposalPanel key={refreshKey} applicationId={applicationId} />
             <ReplaceExpensesSection applicationId={applicationId} refreshKey={refreshKey} onReplaced={refreshExpenses} />
           </Fold>
@@ -146,9 +146,9 @@ export function ExpensesTab({ applicationId, programId, stage, trdrId, approved 
 }
 
 /** Δευτερεύουσα ενότητα που ανοίγει με κλικ (κρατά την κύρια οθόνη καθαρή). */
-function Fold({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+function Fold({ title, hint, children, defaultOpen = false }: { title: string; hint: string; children: React.ReactNode; defaultOpen?: boolean }) {
   return (
-    <details className="group rounded-[18px] border border-border bg-card">
+    <details open={defaultOpen} className="group rounded-[18px] border border-border bg-card">
       <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 px-4 py-2.5 [&::-webkit-details-marker]:hidden">
         <span className="text-muted-foreground transition-transform duration-200 group-open:rotate-90" aria-hidden>›</span>
         <span className="min-w-0">

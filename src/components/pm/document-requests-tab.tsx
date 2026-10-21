@@ -56,7 +56,7 @@ export function DocumentRequestsTab({ applicationId }: { applicationId: string }
     <section className="glass rounded-[22px] p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="dotted-leader flex-1 text-[length:var(--fs-10-5)] font-extrabold tracking-[0.1em] text-muted-foreground uppercase">
-          Αιτήματα εγγράφων ({items.length})
+          Αιτήματα που στάλθηκαν στον πελάτη ({items.length})
         </div>
         <NewDocumentRequestDialog applicationId={applicationId} onCreated={load} />
       </div>
