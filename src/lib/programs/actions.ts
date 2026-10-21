@@ -231,7 +231,12 @@ export async function extractProgram(programId: string, text: string, opts: { mo
   try {
     const r = await extractProgramFromText(text, { refId: programId, userId: session.user.id })
     const { mergeExtractedPrograms } = await import('@/lib/programs/merge-extracted')
-    const data = opts.mode === 'merge' ? mergeExtractedPrograms(before.extractedData as unknown as ExtractedProgram | null, r.data) : r.data
+    let data = opts.mode === 'merge' ? mergeExtractedPrograms(before.extractedData as unknown as ExtractedProgram | null, r.data) : r.data
+    // Παράρτημα «Επιλέξιμοι ΚΑΔ» από ΟΛΟ το PDF του οδηγού (το κείμενο της αποδελτίωσης κόβεται στους ~360k χαρακτήρες
+    // και οι λίστες χιλιάδων ΚΑΔ στο τέλος του οδηγού χάνονταν — π.χ. 33 αντί για 1.848).
+    const { kadAnnexForProgram } = await import('@/lib/programs/kad-extract')
+    const annex = await kadAnnexForProgram(programId)
+    if (annex && annex.length > data.kads.length) data = { ...data, kads: annex, kadRule: 'ONLY_LISTED' }
     await persistExtractedProgram(programId, data)
     await prisma.program.update({
       where: { id: programId },

@@ -54,3 +54,73 @@ export async function extractProgramKads(text: string): Promise<ExtractedKad[]> 
   }
   return [...out.values()].sort((a, b) => a.code.localeCompare(b.code))
 }
+
+/** Όλο το κείμενο ενός PDF (pdfjs, χωρίς worker, ΟΛΕΣ οι σελίδες) — για οδηγούς εκατοντάδων σελίδων. */
+export async function pdfFullText(buf: Buffer | Uint8Array): Promise<string> {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(buf), useSystemFonts: true }).promise
+  const parts: string[] = []
+  for (let i = 1; i <= doc.numPages; i++) {
+    const c = await (await doc.getPage(i)).getTextContent()
+    parts.push(c.items.map(x => ('str' in x ? x.str : '')).join(' '))
+  }
+  return parts.join('\n')
+}
+
+// Παραλλαγές επικεφαλίδας (αναζήτηση ΧΩΡΙΣ τόνους): «ΠΑΡΑΡΤΗΜΑ ΧΙ: ΕΠΙΛΕΞΙΜΟΙ ΤΟΜΕΙΣ ΔΡΑΣΤΗΡΙΟΤΗΤΑΣ (ΚΑΔ)»,
+// «Παράρτημα III EΠΙΛΕΞΙΜΕΣ ΔΡΑΣΤΗΡΙΟΤΗΤΕΣ (ΚΑΔ)» (λατινικό E!), «ΠΑΡΑΡΤΗΜΑ Γ – ΕΠΙΛΕΞΙΜΟΙ ΚΑΔ», «Παράρτημα Ι:
+// Επιλέξιμοι κωδικοί αριθμοί δραστηριότητας (ΚΑΔ)». Αριθμός: ρωμαϊκά (λατ./ελλ.), γράμμα (Α/Β/Γ…) ή ψηφία.
+const ANNEX_HEAD = /ΠΑΡΑΡΤΗΜΑ\s+[ΙIVXΧΑΒΓΔΕΖ0-9]{1,6}(?:\s+[ΙIVXΧ]{1,3})?\s*[:.–—-]?\s*[«"]?\s*[EΕ]ΠΙΛΕΞΙΜ[^\n]{0,90}?(?:ΚΑΔ|Κ\.Α\.Δ\.)/gi
+const stripAccents = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+/** Η λίστα τελειώνει εκεί που σταματούν οι κωδικοί: κενό > GAP χαρακτήρων χωρίς ΚΑΔ μετά τον πρώτο. */
+const GAP = 6000
+
+/**
+ * ΠΑΡΑΡΤΗΜΑ «Επιλέξιμοι … (ΚΑΔ)» από ΟΛΟ το κείμενο του οδηγού: οι οδηγοί έχουν συχνά λίστες χιλιάδων ΚΑΔ σε 100+
+ * σελίδες, που χάνονται όταν το κείμενο της αποδελτίωσης κόβεται. Για κάθε εμφάνιση της επικεφαλίδας (και του πίνακα
+ * περιεχομένων) παίρνεται το συνεχές τμήμα κωδικών που ακολουθεί· κρατιέται το μεγαλύτερο. «ΜΗ ΕΠΙΛΕΞΙΜΟΙ» αγνοείται.
+ * null αν δεν βρεθεί παράρτημα.
+ */
+export async function kadAnnexFromText(fullRaw: string): Promise<ExtractedKad[] | null> {
+  const full = stripAccents(fullRaw)
+  let best: ExtractedKad[] | null = null
+  for (const m of full.matchAll(ANNEX_HEAD)) {
+    const at = m.index ?? 0
+    if (/ΜΗ\s*$/i.test(full.slice(Math.max(0, at - 6), at)) || /ΜΗ\s+[EΕ]ΠΙΛΕΞΙΜ/i.test(m[0])) continue
+    // Συνεχές τμήμα κωδικών μετά την επικεφαλίδα (ανεξάρτητα από το πώς γράφονται οι επόμενες επικεφαλίδες).
+    const rest = full.slice(at + m[0].length)
+    let first = -1, last = -1
+    for (const t of rest.matchAll(KAD_TOKEN)) {
+      const i = t.index ?? 0
+      if (first < 0) { if (i > 20_000) break; first = i }
+      else if (i - last > GAP) break
+      last = i + t[0].length
+    }
+    if (first < 0) continue
+    const kads = await extractProgramKads(rest.slice(first, last))
+    if (kads.length >= 20 && (!best || kads.length > best.length)) best = kads
+  }
+  // Δικλίδα: «παράρτημα» με σχεδόν όλο το μητρώο = ΟΛΗ η ονοματολογία με στήλη επιλεξιμότητας (π.χ. «Πράσινη
+  // Παραγωγική Επένδυση»), όχι λίστα μόνο των επιλέξιμων — δεν χρησιμοποιείται (θα έκανε επιλέξιμους όλους τους ΚΑΔ).
+  if (best) {
+    const registry = await prisma.kadCode.count()
+    if (registry > 0 && best.length > registry * 0.4) {
+      console.warn(`[kad-annex] ${best.length}/${registry} ΚΑΔ — πλήρης ονοματολογία, όχι λίστα επιλέξιμων· αγνοείται`)
+      return null
+    }
+  }
+  return best
+}
+
+/** Παράρτημα ΚΑΔ από τον αποθηκευμένο οδηγό (PDF) ενός προγράμματος — null αν δεν υπάρχει οδηγός ή παράρτημα. */
+export async function kadAnnexForProgram(programId: string): Promise<ExtractedKad[] | null> {
+  const p = await prisma.program.findUnique({ where: { id: programId }, select: { storageKey: true } })
+  if (!p?.storageKey) return null
+  try {
+    const { bunnyDownload } = await import('@/lib/bunny-storage')
+    return await kadAnnexFromText(await pdfFullText(await bunnyDownload(p.storageKey)))
+  } catch (err) {
+    console.warn('[kad-annex] ανάγνωση οδηγού απέτυχε', programId, err instanceof Error ? err.message : err)
+    return null
+  }
+}
