@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-20T18:27:55.496Z",
+  "timestamp": "2026-10-21T05:19:25.201Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,40 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "src/components/pm/application-hub.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/pm/document-requests-tab.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/pm/expenses-tab.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/pm/file-requests-review-tab.tsx"
+    },
+    {
+      "status": "M",
+      "path": "src/components/pm/obligations-tab.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/components/pm/implementation-hub.tsx"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/pm/impl-overview-core.ts"
+    },
+    {
+      "status": "??",
+      "path": "src/lib/pm/impl-overview.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nd77ffcc chore(trdr): αναδρομική ΑΑΔΕ/ΓΕΜΗ/γεωκωδικοποίηση/περιφέρεια για όσους πελάτες δεν πέρασαν ποτέ + δυνητικά για όλους\n3861708 chore: ενημέρωση HANDOFF\ndf4cb96 fix(ai): μόνο OpenRouter όταν υπάρχει κλειδί — χωρίς σιωπηλή εφεδρεία σε απευθείας Gemini· μηνύματα/ετικέτες χωρίς «Gemini»\n8e837b3 feat(programs): συνδυαστική αποδελτίωση — ο επόμενος οδηγός (παράρτημα/λίστα ΚΑΔ/τροποποίηση) συμπληρώνει τον προηγούμενο αντί να τον σβήνει· «Προσθήκη οδηγού / Αντικατάσταση», πολλά PDF στον οδηγό νέου προγράμματος, δυνητικοί πελάτες αμέσως μετά την αποδελτίωση\nbd68284 feat(trdr): αυτόματη καταχώριση κάθε πελάτη — ΑΑΔΕ + ΚΑΔ + ΓΕΜΗ + γεωκωδικοποίηση + περιφέρεια + δυνητικά προγράμματα στο παρασκήνιο (pg-boss trdr-derive) σε κάθε εισαγωγή/αλλαγή· πυρήνας ΑΑΔΕ/ΓΕΜΗ χωρίς auth (enrich-core)· δυνητικά και για αποδελτιωμένα πρόχειρα προγράμματα, μόνο ενεργές επιχειρήσεις"
+  "context_notes": "Recent commits:\n6bbb868 chore: ενημέρωση HANDOFF\nd77ffcc chore(trdr): αναδρομική ΑΑΔΕ/ΓΕΜΗ/γεωκωδικοποίηση/περιφέρεια για όσους πελάτες δεν πέρασαν ποτέ + δυνητικά για όλους\n3861708 chore: ενημέρωση HANDOFF\ndf4cb96 fix(ai): μόνο OpenRouter όταν υπάρχει κλειδί — χωρίς σιωπηλή εφεδρεία σε απευθείας Gemini· μηνύματα/ετικέτες χωρίς «Gemini»\n8e837b3 feat(programs): συνδυαστική αποδελτίωση — ο επόμενος οδηγός (παράρτημα/λίστα ΚΑΔ/τροποποίηση) συμπληρώνει τον προηγούμενο αντί να τον σβήνει· «Προσθήκη οδηγού / Αντικατάσταση», πολλά PDF στον οδηγό νέου προγράμματος, δυνητικοί πελάτες αμέσως μετά την αποδελτίωση"
 }
