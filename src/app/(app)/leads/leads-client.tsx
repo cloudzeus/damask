@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import {
   MoreVertical, UserCog, Phone, MessageSquarePlus, Sparkles, XCircle, ExternalLink, LoaderCircle, History, UserPlus, Trash2,
@@ -27,6 +28,8 @@ import {
 } from '@/lib/leads/actions'
 import type { StaffOption } from '@/lib/assignments/actions'
 import type { LeadCommMedium } from '@prisma/client'
+
+const AssessmentDialog = dynamic(() => import('@/components/assessment/assessment-dialog').then(m => m.AssessmentDialog), { ssr: false })
 
 type Staff = { managers: StaffOption[]; employees: StaffOption[] }
 const NONE = '__none__'
@@ -70,6 +73,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
   const [logging, setLogging] = React.useState<LeadRow | null>(null)
   const [promoting, setPromoting] = React.useState<LeadRow | null>(null)
   const [deleting, setDeleting] = React.useState<LeadRow | null>(null)
+  const [assessTrdr, setAssessTrdr] = React.useState<string | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [acting, startActing] = React.useTransition()
 
@@ -175,6 +179,11 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
                 </DropdownMenuItem>
               )}
               {r.trdrId && (
+                <DropdownMenuItem onClick={() => setAssessTrdr(r.trdrId)}>
+                  <Sparkles className="size-3.5" aria-hidden /> Αξιολόγηση ένταξης & PDF
+                </DropdownMenuItem>
+              )}
+              {r.trdrId && (
                 <DropdownMenuItem render={<a href={`/partners/${r.trdrId}`} />}>
                   <ExternalLink className="size-3.5" aria-hidden /> Άνοιγμα καρτέλας
                 </DropdownMenuItem>
@@ -258,6 +267,7 @@ export function LeadsClient({ rows, staff, canAssign }: { rows: LeadRow[]; staff
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {assessTrdr && <AssessmentDialog trdrId={assessTrdr} open onOpenChange={o => { if (!o) setAssessTrdr(null) }} />}
       {promoting && (
         <PromoteDialog key={promoting.id} row={promoting} open onOpenChange={o => { if (!o) setPromoting(null) }} onDone={trdrId => { setPromoting(null); router.refresh(); if (trdrId) router.push(`/partners/${trdrId}`) }} />
       )}

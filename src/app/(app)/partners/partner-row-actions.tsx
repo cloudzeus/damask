@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { MoreVertical, FileText, ArrowUpRight, Trash2 } from 'lucide-react'
+import { MoreVertical, FileText, ArrowUpRight, Trash2, Sparkles } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
@@ -16,6 +17,9 @@ import { AadeCheckActionItem } from '@/components/trdr/aade-check-dialog'
 import { GemiSyncActionItem } from '@/components/trdr/gemi-sync-dialog'
 import { RegionMatchActionItem } from '@/components/trdr/region-match-action-item'
 import { convertLeadToCustomer, deletePartner } from './actions'
+
+// Ο διάλογος αξιολόγησης φορτώνεται μόνο όταν ανοίξει (όχι σε κάθε γραμμή της λίστας).
+const AssessmentDialog = dynamic(() => import('@/components/assessment/assessment-dialog').then(m => m.AssessmentDialog), { ssr: false })
 
 export function PartnerRowActions({
   id, name, afm, isProsp, isLocal,
@@ -30,6 +34,7 @@ export function PartnerRowActions({
   const [converting, startConvert] = useTransition()
   const [deleting, startDelete] = useTransition()
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [assessOpen, setAssessOpen] = useState(false)
 
   function handleConvert() {
     startConvert(async () => {
@@ -65,6 +70,9 @@ export function PartnerRowActions({
           <DropdownMenuItem render={<Link href={`/partners/${id}`} />}>
             <FileText className="size-3.5" strokeWidth={1.75} /> Καρτέλα
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setAssessOpen(true)}>
+            <Sparkles className="size-3.5" strokeWidth={1.75} /> Αξιολόγηση ένταξης & PDF
+          </DropdownMenuItem>
           <ScanActionItem trdrId={id} trdrName={name} />
           <DropdownMenuSeparator />
           <AadeCheckActionItem trdrId={id} afm={afm} />
@@ -85,6 +93,8 @@ export function PartnerRowActions({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {assessOpen && <AssessmentDialog trdrId={id} open={assessOpen} onOpenChange={setAssessOpen} />}
 
       {isLocal && (
         <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>

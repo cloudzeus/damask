@@ -12,8 +12,8 @@ import { Combobox } from '@/components/ui/combobox'
 import { cn } from '@/lib/utils'
 import { relativeTime } from '@/lib/relative-time'
 import {
-  startEligibilityAssessment, getAssessment, listAssessments, listAssessablePrograms, deleteAssessment,
-  type AssessmentDetail, type AssessmentRow,
+  startEligibilityAssessment, getAssessment, listAssessments, listAssessablePrograms, deleteAssessment, getProfileReadiness,
+  type AssessmentDetail, type AssessmentRow, type ProfileReadiness,
 } from '@/lib/assessment/actions'
 import type { AssessmentResult, CheckStatus } from '@/lib/assessment/agent'
 
@@ -60,20 +60,35 @@ export function AssessmentDialog({
   const [starting, setStarting] = React.useState(false)
   const [section, setSection] = React.useState<Section>('docs')
   const [tick, setTick] = React.useState(0)
+  const [readiness, setReadiness] = React.useState<ProfileReadiness | null>(null)
 
   // Άνοιγμα: προγράμματα + ιστορικό· αν υπάρχει πρόσφατη αξιολόγηση για το επιλεγμένο πρόγραμμα, εμφάνισέ την.
   React.useEffect(() => {
     if (!open) return
     let cancelled = false
-    Promise.all([listAssessablePrograms(), listAssessments(trdrId)]).then(async ([ps, hs]) => {
+    getProfileReadiness(trdrId).then(r => { if (!cancelled) setReadiness(r) }).catch(() => {})
+    Promise.all([listAssessablePrograms(trdrId), listAssessments(trdrId)]).then(async ([ps, hs]) => {
       if (cancelled) return
-      setPrograms(ps.map(p => ({ value: p.id, label: p.title, hint: `${p.status === 'ACTIVE' ? 'Ενεργό' : p.status === 'DRAFT' ? 'Πρόχειρο' : 'Κλειστό'}${p.hasGuide ? '' : ' · χωρίς οδηγό PDF'}` })))
+      // Πρώτα όσα ταιριάζουν ήδη στον πελάτη (★ περιφέρεια/ΚΑΔ), μετά τα ανοιχτά, στο τέλος όσα έληξαν.
+      setPrograms(ps.map(p => ({
+        value: p.id,
+        label: `${p.match === 'strong' ? '★ ' : ''}${p.title}`,
+        hint: [
+          p.match === 'strong' ? `Ταιριάζει: ${p.matched.map(m => ({ region: 'περιφέρεια', kad: 'ΚΑΔ', legalForm: 'μορφή' } as Record<string, string>)[m] ?? m).join(' · ')}` : p.match === 'basic' ? 'Ταιριάζει (χωρίς ειδικό περιορισμό)' : null,
+          p.expired ? 'Έληξε η υποβολή' : p.status === 'DRAFT' ? 'Πρόχειρο' : null,
+          p.hasGuide ? null : 'χωρίς οδηγό PDF',
+        ].filter(Boolean).join(' · ') || 'Ενεργό',
+      })))
       setHistory(hs)
       const latest = hs.find(h => h.programId === (initialProgramId ?? hs[0]?.programId))
       if (latest) {
         setProgramId(latest.programId)
         const d = await getAssessment(latest.id)
         if (!cancelled) setCurrent(d)
+      } else if (!initialProgramId) {
+        // Χωρίς ιστορικό: προεπιλογή το πρόγραμμα που ταιριάζει καλύτερα (ανοιχτό).
+        const best = ps.find(p => p.match && !p.expired)
+        if (best) setProgramId(best.id)
       }
     }).catch(() => {})
     return () => { cancelled = true }
@@ -89,6 +104,7 @@ export function AssessmentDialog({
       if (d && d.status !== 'RUNNING') {
         setCurrent(d)
         setHistory(await listAssessments(trdrId).catch(() => []))
+        getProfileReadiness(trdrId).then(setReadiness).catch(() => {})
         if (d.status === 'DONE') toast.success('Η αξιολόγηση ολοκληρώθηκε.')
         else toast.error(d.error ?? 'Η αξιολόγηση απέτυχε.')
       }
@@ -152,6 +168,25 @@ export function AssessmentDialog({
               {current && current.programId === programId && current.status === 'DONE' ? 'Νέα αξιολόγηση' : 'Αξιολόγηση'}
             </Button>
           </div>
+
+          {/* Ετοιμότητα στοιχείων — τι ξέρουμε για την επιχείρηση πριν την αξιολόγηση */}
+          {readiness && !r && !runningId && (
+            <div className="rounded-2xl border border-border bg-card p-3.5">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="text-[length:var(--fs-12-5)] font-semibold">Στοιχεία της επιχείρησης για την αξιολόγηση</span>
+                <span className={cn('badge-pill', readiness.score >= 80 ? 'ok' : readiness.score >= 50 ? 'warn' : 'danger')}>{readiness.score}% πλήρη</span>
+                <span className="text-[length:var(--fs-11-5)] text-muted-foreground">ΑΑΔΕ/ΓΕΜΗ/περιφέρεια ενημερώνονται αυτόματα πριν την αξιολόγηση.</span>
+              </div>
+              <ul className="grid gap-1.5 sm:grid-cols-2">
+                {readiness.items.map(i => (
+                  <li key={i.key} className="flex items-start gap-2 text-[length:var(--fs-12)]">
+                    {i.ok ? <CircleCheck className="mt-0.5 size-3.5 shrink-0 text-(--success)" aria-label="υπάρχει" /> : <CircleAlert className="mt-0.5 size-3.5 shrink-0 text-(--warning)" aria-label="λείπει" />}
+                    <span className="min-w-0"><b>{i.label}:</b> {i.value}{i.fix && <span className="block text-[length:var(--fs-11-5)] text-muted-foreground">{i.fix}</span>}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Σε εξέλιξη */}
           {runningId && (
